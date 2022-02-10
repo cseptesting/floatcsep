@@ -1,4 +1,0 @@
-git clone https://git.gfz-potsdam.de/csep-group/global_forecasts.git
-cd import_globalmodels
-conda env update --file requirements.yml --prune
-pip install -e .
