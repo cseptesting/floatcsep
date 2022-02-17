@@ -1,3 +1,14 @@
-# Global Test Center
+# Global Earthquake Forecasting Experiment
 
-Global CSEP Test Center
+## Table of Contents
+
+* [Installing computational environment](installing-computational-environment)
+
+## Installing computational environment
+```
+conda env create -f environment.yml
+```
+
+Installs pyCSEP and other dependencies to run the experiment. See `environment.yml` file for details.
+
+
