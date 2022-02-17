@@ -11,4 +11,3 @@ conda env create -f environment.yml
 
 Installs pyCSEP and other dependencies to run the experiment. See `environment.yml` file for details.
 
-
