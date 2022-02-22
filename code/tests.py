@@ -43,6 +43,12 @@ def matrix_binary_t_test(forecasts, catalog, **kwargs):
 def _log_likelihood_point_process(observation, forecast, cell_area):
     """
     Log-likelihood for point process
+    Args:
+        observation: Gridded observation data
+        forecast: gridded forecast data
+        cell_area: Cell area of each grid cell
+    Returns:
+        log-likelihood for point process
 
     """
 
@@ -130,8 +136,7 @@ def paired_ttest_point_process(forecast, benchmark_forecast, observed_catalog, a
     Function for T test based on Point process LL.
     Works for comparing forecasts for different grids
 
-    Parameters
-    ----------
+    Args    
         forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
         benchmark_forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
         observed_catalog (csep.core.catalogs.AbstractBaseCatalog): number of observed earthquakes, should be whole number and >= zero.
@@ -163,12 +168,6 @@ def paired_ttest_point_process(forecast, benchmark_forecast, observed_catalog, a
 
     information_gain = (ll1 - ll2) / N_obs
 
-    # pooled variance = [((n1-1)*s1^2) + ((n2-1)*s^2) ] / (n1+n2-2)
-
-    # first_term = (len(gridded_forecast1)-1) * numpy.std(gridded_forecast1)**2
-    # second_term = (len(gridded_forecast2)-1) * numpy.std(gridded_forecast2)**2
-    # denominator = len(gridded_forecast1) + len(gridded_forecast2) - 2
-    # forecast_variance = (first_term + second_term) / denominator
     forecast_variance = _standard_deviation(gridded_forecast1, gridded_forecast2, gridded_observation1,
                                                   gridded_observation2, cell_area1, cell_area2)
 
