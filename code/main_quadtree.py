@@ -98,10 +98,7 @@ figure_dirname = ''
 """
 #For now just using the available catalog in the subdirectorie. 
 #Improve later  
-#------------------------------------------------
-# experiment start and end times from Strader et al., 2018
 
-#------Read Tono Forecast and Convert it into CSEP format
 #----Read Catalog format
 dfcat = pandas.read_csv(catalog_name)
 
