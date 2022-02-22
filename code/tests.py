@@ -136,7 +136,7 @@ def paired_ttest_point_process(forecast, benchmark_forecast, observed_catalog, a
     Function for T test based on Point process LL.
     Works for comparing forecasts for different grids
 
-    Args    
+    Args:    
         forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
         benchmark_forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
         observed_catalog (csep.core.catalogs.AbstractBaseCatalog): number of observed earthquakes, should be whole number and >= zero.
