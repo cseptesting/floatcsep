@@ -4,9 +4,10 @@ from urllib.parse import urlencode
 from csep.utils.time_utils import datetime_to_utc_epoch
 from csep.core.catalogs import CSEPCatalog
 import xml.etree.ElementTree as ET
+import time
 
 HOST = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
-TIMEOUT = 120
+TIMEOUT = 180
 
 def query_isc_gcmt(out_format='QuakeML',
                      request='COMPREHENSIVE',
@@ -24,7 +25,7 @@ def query_isc_gcmt(out_format='QuakeML',
                      min_mag=5.95,
                      req_mag_type='MW',
                      req_mag_agcy='GCMT',
-                     ):
+                     verbose=False):
 
     """ Return gCMT catalog from ISC online web-portal
 
@@ -48,7 +49,18 @@ def query_isc_gcmt(out_format='QuakeML',
             continue
         query_args[key] = value
 
-    events, creation_time = _search_isc_gcmt(**query_args)
+    del query_args['verbose']
+
+    start_time = time.time()
+    if verbose:
+        print('Accessing ISC API')
+
+    events, creation_time, url = _search_isc_gcmt(**query_args)
+
+    if verbose:
+         print(f'\tAccess URL: {url}')
+         print(f'\tCatalog with {len(events)} events downloaded in {(time.time() - start_time):.2f} seconds')
+
 
     return CSEPCatalog(data=events, date_accessed=creation_time)
 
@@ -77,7 +89,7 @@ def _search_isc_gcmt(**newargs):
         raise Exception(
             'Error downloading data from url %s.  "%s".' % (url, msg))
 
-    return events, creation_time
+    return events, creation_time, url
 
 
 def _parse_isc_event(node, ns, mag_author='GCMT'):
@@ -106,7 +118,6 @@ def _parse_isc_event(node, ns, mag_author='GCMT'):
     return (id_, dtime, float(lat), float(lon), float(depth) / 1000., float(mag))
 
 
-
 def download_from_zenodo(resource_id):
     """ Downloads file from Zenodo and returns checksum for each file
 
@@ -119,12 +130,5 @@ def download_from_zenodo(resource_id):
             checksum (string): md5 checksum from model
     """
     pass
-
-if __name__ == '__main__':
-
-    import matplotlib.pyplot as plt
-    cat = query_isc_gcmt(start_year=2018, start_month=8)
-    cat.plot(set_global=True)
-    plt.show()
 
 

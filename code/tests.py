@@ -1,33 +1,40 @@
-def matrix_poisson_t_test(forecasts, catalog, **kwargs):
-    """ Computes Student's t-test for the information gain per earthquake over a list of forecasts
-        
-        Uses unique combinations of individual forecasts to perform pair-wise t-tests against all forecasts 
-        provided to the function. 
-
-        Args:
-            forecasts (list of csep.GriddedForecast): list of forecasts to evaluate
-            catalog (csep.AbstractBaseCatalog): evaluation catalog filtered consistent with forecast
-            **kwargs: additional default arguments
-
-        Returns:
-            results (list of csep.EvaluationResult): iterable of evaluation results
-    """
-
-def negative_binomial_number_test(forecast, catalog):
-    pass
+from matplotlib import pyplot
+import cartopy
+from utils import prepare_forecast, plot_lowsampled_forecast
+from accessors import query_isc_gcmt
+from matplotlib import pyplot
 
 
-def binomial_conditional_likelihood_test(forecast, catalog, **kwargs):
-    pass
+
+def test_catalog_query_plot():
+
+    catalog = query_isc_gcmt(start_year=2019, start_month=8, verbose=True)
+    catalog.plot(set_global=True)
+    pyplot.show()
 
 
-def binomial_conditional_likelihood_test(forecast, catalog, **kwargs):
-    pass
+def test_forecast_read_plot():
+    model = '../models/GEAR1_csep.txt'
+    forecast = prepare_forecast(model, 3, name='GEAR')
+
+    plot_args = {'figsize': (10, 6),
+                 'coastline': True,
+                 'linecolor': 'grey',
+                 'basemap': None,
+                 'projection': cartopy.crs.Robinson(central_longitude=-179),
+                 'grid_labels': False,
+                 'cmap': 'magma',
+                 'clim': [-8, -1],
+                 'clabel': r'$\log_{10}N_{eq}\left(M_L \geq 5.95\right)$ per '
+                           r'$0.1^\circ\times 0.1^\circ $ per year'}
+
+    plot_lowsampled_forecast(forecast, plot_args, k=6)
+    pyplot.show()
 
 
-def binomial_spatial_test(forecast, catalog, **kwargs):
-    pass
+if __name__ == '__main__':
+
+    test_catalog_query_plot()
+    test_forecast_read_plot()
 
 
-def matrix_binary_t_test(forecasts, catalog, **kwargs):
-    pass
