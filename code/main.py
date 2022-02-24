@@ -3,17 +3,21 @@
 ###- For now, the data is being used from Repo.
 import numpy
 import pandas
+import os
+import pickle
 from csep.core.regions import QuadtreeGrid2D
 from csep.core.catalogs import CSEPCatalog
 from csep.core.poisson_evaluations import spatial_test, number_test, conditional_likelihood_test, magnitude_test, w_test
-from csep.utils.plots import plot_poisson_consistency_test
+from csep.utils.plots import plot_poisson_consistency_test, plot_comparison_test
 from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year_to_utc_epoch, datetime_to_utc_epoch
 from csep.utils.constants import DAYS_PER_ASTRONOMICAL_YEAR
 from csep.core.forecasts import GriddedForecast
 import datetime
+from csep.utils.basic_types import transpose_dict
+
 from tests import paired_ttest_point_process
-import os
+from utils import quadtree_csv_loader
 
 
 """ The main experiment code will go here. 
@@ -42,17 +46,19 @@ catalog_name = 'catalog/cat_test.csv'
 
 
 # list of forecasts to run
-fore_fnames = {'GEAR1': '/global_quadtree_forecasts/GEAR1=',
-               'TEAM': '/global_quadtree_forecasts/TEAM=',
-               'WHEEL': '/global_quadtree_forecasts/WHEEL=',
-               'SHIFT2F_GSRM': '/global_quadtree_forecasts/SHIFT2F_GSRM=',
-               'KJSS': '/forecasts/KJSS='}
+fore_fnames = {'GEAR1': 'global_quadtree_forecasts/GEAR1=',
+                'TEAM': 'global_quadtree_forecasts/TEAM=',
+                'WHEEL': 'global_quadtree_forecasts/WHEEL=',
+                'SHIFT2F_GSRM': 'global_quadtree_forecasts/SHIFT2F_GSRM=',
+                'KJSS': 'global_quadtree_forecasts/KJSS='}
 
-
-grid_names = {'N50L11': 'N50L11.csv',
+grid_names = {'N25L11': 'N25L11.csv',
               'N10L11': 'N10L11.csv',
-              'SN50L11': 'SN50L11.csv',
-              'SN10L11': 'SN10L11.csv'}
+              'SN10L11': 'SN10L11.csv',
+              'SN25L11': 'SN25L11.csv',
+
+              }
+
 
 
 # definitions of evaluations for forecast
@@ -66,8 +72,8 @@ evaluations = {'N-Test': {'func': number_test, 'type': 'consistency'},
 experiment_tag = 'quadtree_global_experiment'
 
 # comparative tests will be performed against this forecast
-benchmark_forecast_name = 'global_quadtree_forecasts/GEAR1=N10L11.csv'
-
+benchmark_forecast_name = 'global_quadtree_forecasts/GEAR1=N25L11.csv'
+benchmark_short_name = 'GEAR1_N25L11'
 # forecasts are provided as rates per m**2
 area_fname = '../forecasts/area.dat'
 
@@ -76,8 +82,9 @@ store_results = True
 
 #Experiment name
 experiment_time = datetime.datetime.today()
-results_tag = 'results_quadtree_global_'+experiment_time.strftime("%Y,%m,%d")
-os.mkdir('results/'+results_tag)
+result_dir = 'results/'
+# results_tag = 'results_quadtree_global_'+experiment_time.strftime("%Y,%m,%d")
+# os.mkdir('results/'+results_tag)
 
 # should results be plotted
 plot_results = True
@@ -118,6 +125,12 @@ dfcat['origin_time'] = dfcat.apply(lambda row: decimal_year_to_utc_epoch(row.yea
 catalog = CSEPCatalog.from_dataframe(dfcat)
 print(catalog)
 
+mw_min = 5.95
+mw_max = 8.95
+dmw = 0.1
+mws = numpy.arange(mw_min, mw_max+dmw/2, dmw)
+catalog.magnitudes = mws #We need this to filter catalog, just in case catalog is not filtered for magnitues.
+
 
 
 
@@ -129,6 +142,106 @@ print(catalog)
 
 #For now simply directly read the forecasts from the folder
 """
+results = {}
+for grid_name, grid_fname in grid_names.items():
+    # print(f"...working on {grid_name} available at {grid_fname}...")
+    
+    for fore_name, fore_fname in fore_fnames.items():
+        print(f"...WORKING ON {fore_name}_{grid_name}...")
+        # t0 = time.time()
+        # class-level api to read forecast with custom format
+        filename = fore_fname+grid_fname
+        rates, qr, mbins = quadtree_csv_loader ( filename )
+        qr.get_cell_area()
+        #Loading quadtree forecast into pyCSEP
+        
+        
+        # rates = numpy.sum(rates, axis=1)
+        # rates = rates.reshape(-1,1)
+        # mmm = [5.95]
+        forecast = GriddedForecast(data=rates, region = qr, magnitudes=mbins, name = fore_name+'_'+grid_name)
+        # bind region from forecast to catalog
+        catalog.region = forecast.region
+        print(f"expected event count before scaling: {forecast.event_count}")
+        # scale time-independent forecast to length of catalog
+        forecast.scale(experiment_years)
+        print(f"expected event count after scaling: {forecast.event_count}")
+        # t1 = time.time()
+        gridded_cat = catalog.spatial_counts()
+        # makes sure we aren't missing any events
+        assert catalog.event_count == numpy.sum(gridded_cat)
+        # print(f"prepared {name} forecast in {t1-t0} seconds.")
+        # store forecast for later use, need to handle this case
+        if filename == benchmark_forecast_name:   #Keep the first file in the list as Benchmark
+            benchmark_forecast = forecast
+            # print('benchmark forecast:', benchmark_forecast_name)
+        # compute number_test 
+        print("")
+        # print(f"...EVALUATING {fore_name}_{grid_name} FORECAST...")
+        eval_results = {}
+        for eval_name, eval_config in evaluations.items():
+            print(f"Running {eval_name}")
+            # t2 = time.time()
+            # this could be simplified by having an Evaluation class.
+            if eval_config['type'] == 'consistency':
+                print(f"computing {eval_name}")
+                # -----cltest = conditional_likelihood_test(forecast, catalog)
+                eval_results[eval_name] = eval_config['func'](forecast, catalog) #, seed = 123456
+                # t3 = time.time()
+            elif eval_config['type'] == 'comparative':
+                if filename == benchmark_forecast_name:
+                    # print(f"skipping comparative testing with forecast {fore_name}_{grid_name}, because its the benchmark.")
+                    break
+                # handle comparison test
+                eval_results[eval_name] = eval_config['func'](forecast, benchmark_forecast, catalog)
+            # t3 = time.time()
+            # print(f"finished {eval_name} in {t3-t2} seconds.")
+        results[fore_name+'_'+grid_name] = eval_results
+        print("")
+
+
+
+if store_results:
+   with open(result_dir+experiment_tag+'.dat', 'wb') as f:
+        pickle.dump(transpose_dict(results), f)
+
+if plot_results:
+    with open(result_dir+experiment_tag+'.dat', 'rb') as f:
+         reordered_results = pickle.load(f)
+            
+    # Plot N-Test
+    n_test_results = list(reordered_results['N-Test'].values())
+    axn = plot_poisson_consistency_test(n_test_results, 
+                                plot_args={'xlabel': 'Number of Earthquakes', 'title': 'N-Test'})
+    axn.figure.tight_layout()
+    axn.figure.savefig(result_dir+experiment_tag+'N-Test.png')
+
+    # Plot M-Test
+    m_test_results = list(reordered_results['M-Test'].values())
+    axm = plot_poisson_consistency_test(m_test_results, 
+                                plot_args={'xlabel': 'M Simulated - M Observed', 'title': 'M-Test'}, normalize=True, one_sided_lower=True)
+    axn.figure.tight_layout()
+    axm.figure.savefig(result_dir+experiment_tag+'M-Test.png')
+
+    # Plot S-Test
+    s_test_results = list(reordered_results['S-Test'].values())
+    axs = plot_poisson_consistency_test(s_test_results, 
+                                plot_args={'xlabel': 'S Simulated - S Observed', 'title': 'S-Test'}, normalize=True, one_sided_lower=True)
+    axs.figure.tight_layout()
+    axs.figure.savefig(result_dir+experiment_tag+'S-Test.png')
+
+    # Plot CL-Test
+    cl_test_results = list(reordered_results['CL-Test'].values())
+    axcl = plot_poisson_consistency_test(cl_test_results, plot_args={'xlabel': 'CL Simulated - CL Observed', 'title': 'CL-Test'}, normalize=True, one_sided_lower=True)
+    axcl.figure.tight_layout()
+    axcl.figure.savefig(result_dir+experiment_tag+'CL-Test.png')
+    
+    # Plot T-Test
+    t_test_results = list(reordered_results['T-Test'].values())
+    ax=plot_comparison_test(t_test_results, plot_args={'title': 'T-Test', 'xlabel': 'Model', 'ylabel': 'Information Gain(Forecast - '+benchmark_short_name})
+    ax.figure.tight_layout()
+    ax.figure.savefig(result_dir+experiment_tag+'T-Test.png')
+    
 
 
 

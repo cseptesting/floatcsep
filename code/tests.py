@@ -117,8 +117,8 @@ def _standard_deviation(gridded_forecast1, gridded_forecast2, gridded_observatio
             target_fore2 = numpy.append(target_fore2, fore2[i] / ca2[i])
             counter = counter - 1
 
-    print('Length of Fore 1: ', len(target_fore1))
-    print('Length of Fore 2: ', len(target_fore2))
+    # print('Length of Fore 1: ', len(target_fore1))
+    # print('Length of Fore 2: ', len(target_fore2))
 
     X1 = numpy.log(target_fore1)
     X2 = numpy.log(target_fore2)
@@ -149,20 +149,22 @@ def paired_ttest_point_process(forecast, benchmark_forecast, observed_catalog, a
     # Forecast 1
     gridded_forecast1 = forecast.data
     gridded_observation1 = forecast.region._get_spatial_counts(observed_catalog)
+    if forecast.region.cell_area == []: #If region object has not computed cell area already.
+        forecast.region.get_cell_area()
     cell_area1 = forecast.region.cell_area
     ll1 = _log_likelihood_point_process(gridded_observation1, gridded_forecast1, cell_area1)
-    print('This is LL1 :', ll1)
+    # print('This is LL1 :', ll1)
 
     # Forecast 2
     gridded_forecast2 = benchmark_forecast.data
     gridded_observation2 = benchmark_forecast.region._get_spatial_counts(observed_catalog)
     cell_area2 = benchmark_forecast.region.cell_area
     ll2 = _log_likelihood_point_process(gridded_observation2, gridded_forecast2, cell_area2)
-    print('This is LL2 :', ll2)
+    # print('This is LL2 :', ll2)
     assert sum(gridded_observation1) == sum(gridded_observation2), 'Sum of Gridded Catalog is not same'
 
-    print('Forecast to Compare: ', len(gridded_forecast1))
-    print('Forecast Benchmark: ', len(gridded_forecast2))
+    # print('Forecast to Compare: ', len(gridded_forecast1))
+    # print('Forecast Benchmark: ', len(gridded_forecast2))
 
     N_obs = sum(gridded_observation1)
 
