@@ -277,8 +277,8 @@ mdFile.new_header(2, "Add images")
 
 # *********************************************** Inline Image *******************************************************
 
-image_text = "snow trees"
-path = "./doc/source/images/photo-of-snow-covered-trees.jpg"
+image_text = "N-Test"
+path = "code/results/quadtree_global_experimentCN-Test.png"
 
 mdFile.new_header(3, "Inline Images")
 
@@ -302,7 +302,7 @@ mdFile.new_header(2, "Add HTML images")
 # *********************************************** Size Image *******************************************************
 
 mdFile.new_header(3, "Change size to images")
-path = "./doc/source/images/sunset.jpg"
+path = "code/results/quadtree_global_experimentCL-Test.png"
 
 mdFile.new_paragraph("With ``Html.image`` you can change size of images in a markdown file. For example you can do"
                      "the following for changing width: ``mdFile.new_paragraph(Html.image(path=path, size='200'))``")

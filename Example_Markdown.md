@@ -300,9 +300,9 @@ You can add inline images using ``new_inline_image`` method. Method will return:
  Check the following example: 
 
 ```
-mdFile.new_line(mdFile.new_inline_image(text='snow trees', path='./doc/source/images/photo-of-snow-covered-trees.jpg'))
+mdFile.new_line(mdFile.new_inline_image(text='N-Test', path='code/results/quadtree_global_experimentCN-Test.png'))
 ```  
-![snow trees](./doc/source/images/photo-of-snow-covered-trees.jpg)
+![N-Test](code/results/quadtree_global_experimentCN-Test.png)
 ### Reference Images
 
 
@@ -310,9 +310,9 @@ You can add inline images using ``new_reference_image`` method. Method will retu
  example: 
 
 ```
-mdFile.new_line(mdFile.new_reference_image(text='snow trees', path='./doc/source/images/photo-of-snow-covered-trees.jpg', reference_tag='im'))
+mdFile.new_line(mdFile.new_reference_image(text='N-Test', path='code/results/quadtree_global_experimentCN-Test.png', reference_tag='im'))
 ```  
-![snow trees][im]
+![N-Test][im]
 ## Add HTML images
 
 ### Change size to images
@@ -321,15 +321,15 @@ mdFile.new_line(mdFile.new_reference_image(text='snow trees', path='./doc/source
 With ``Html.image`` you can change size of images in a markdown file. For example you can dothe following for changing 
 width: ``mdFile.new_paragraph(Html.image(path=path, size='200'))``
 
-<img src="./doc/source/images/sunset.jpg" width="200"/>
+<img src="code/results/quadtree_global_experimentCL-Test.png" width="200"/>
 
 Or maybe only want to change height: ``mdFile.new_paragraph(Html.image(path=path, size='x300'))``
 
-<img src="./doc/source/images/sunset.jpg" height="300"/>
+<img src="code/results/quadtree_global_experimentCL-Test.png" height="300"/>
 
 Or change width and height: ``mdFile.new_paragraph(Html.image(path=path, size='300x300'))``
 
-<img src="./doc/source/images/sunset.jpg" width="300" height="300"/>
+<img src="code/results/quadtree_global_experimentCL-Test.png" width="300" height="300"/>
 
 ### Align images
 
@@ -338,12 +338,12 @@ Html.image allow to align images, too. For example you can run: ``mdFile.new_par
 size='300x200', align='center'))``
 
 <p align="center">
-    <img src="./doc/source/images/sunset.jpg" width="300" height="200"/>
+    <img src="code/results/quadtree_global_experimentCL-Test.png" width="300" height="200"/>
 </p>
 
 
 [1]: https://github.com/didix21/mdutils
 [bold]: https://github.com/didix21/mdutils
-[im]: ./doc/source/images/photo-of-snow-covered-trees.jpg
+[im]: code/results/quadtree_global_experimentCN-Test.png
 [italics]: https://github.com/didix21/mdutils
 [md]: https://github.com/didix21/mdutils
