@@ -16,49 +16,61 @@ Created on Thu Feb 24 13:49:14 2022
 
 
 from mdutils.mdutils import MdUtils
-from mdutils import Html
+#from mdutils import Html
 
 mdFile = MdUtils(file_name='GEFE_Markdown', title='Global Earthquake Forecast Experiment (GEFE)')
 
+#----Temporary Paths to Figures--- Adapth it later---
+result_figs = {'N-Test': 'codes/results/global_quadtree_forecastN-Test.png',
+                'CL-Test': 'codes/results/global_quadtree_forecastCL-Test.png',
+                'M-Test': 'codes/results/global_quadtree_forecastM-Test.png',
+                'S-Test': 'codes/results/global_quadtree_forecastS-Test.png',
+                'T-Test': 'codes/results/global_quadtree_forecastT-Test.png' }
+# -----------------
+
 mdFile.new_header(level=1, title='Overview')  # style is set 'atx' format by default.
 
-mdFile.new_paragraph("On 1 January 2006, the Working Group of the Regional Earthquake Likelihood Models (RELM; Field"
-                    "2007; Schorlemmer et al. 2007; Schorlemmer and Gerstenberger, 2007) launched an earthquake"
+mdFile.new_paragraph("On 1 January 2006, the Working Group of the Regional Earthquake Likelihood Models (RELM; Field "
+                    "2007; Schorlemmer et al. 2007; Schorlemmer and Gerstenberger, 2007) launched an earthquake "
                     "forecasting experiment to evaluate earthquake predictability in California."
-                    "The RELM experiment sparked a series of subsequent regional forecasting experiments in a variety of tectonic"
-                    "settings and the establishment of four testing centers on four different continents (Zechar et al. 2010;"
+                    "The RELM experiment sparked a series of subsequent regional forecasting experiments in a variety of tectonic "
+                    "settings and the establishment of four testing centers on four different continents (Zechar et al. 2010; "
                     "Michael and Werner, 2018; Schorlemmer et al. 2018).")
 
-mdFile.new_paragraph("In addition to the regional experiments, CSEP promotes earthquake predictability research at a global scale"
+mdFile.new_paragraph("In addition to the regional experiments, CSEP promotes earthquake predictability research at a global scale "
                      "(Eberhard et al. 2012; Taroni et al. 2014; Michael and Werner, 2018; Schorlemmer et al. 2018)."
-                     "Compared to regional approaches, global seismicity models offer great testability due to the relatively"
-                     "frequent occurrence of large events worldwide (Bayona et al. 2020). In particular, global M5.8+"
-                     "earthquake forecasting models can be reliably ranked after only one year of prospective testing (Bird"
-                     "et al. 2015). In this regard, Eberhard et al. (2012) took a major step toward conducting a global forecast"
-                     "experiment by prospectively testing three earthquake forecasting models for the western Pacific"
-                     "region. Based on two years of testing, the authors found that a smoothed seismicity model performs"
-                     "the best, and provided useful recommendations for future global experiments. Also based on two"
-                     "years of independent observations, Strader et al. (2018) determined that the global hybrid GEAR1"
-                     "model developed by Bird et al. (2015) significantly outperformed both of its individual model"
-                     "components, providing preliminary evidence that the combination of smoothed seismicity data and"
+                     "Compared to regional approaches, global seismicity models offer great testability due to the relatively "
+                     "frequent occurrence of large events worldwide (Bayona et al. 2020). In particular, global M5.8+ "
+                     "earthquake forecasting models can be reliably ranked after only one year of prospective testing (Bird "
+                     "et al. 2015). In this regard, Eberhard et al. (2012) took a major step toward conducting a global forecast "
+                     "experiment by prospectively testing three earthquake forecasting models for the western Pacific "
+                     "region. Based on two years of testing, the authors found that a smoothed seismicity model performs "
+                     "the best, and provided useful recommendations for future global experiments. Also based on two "
+                     "years of independent observations, Strader et al. (2018) determined that the global hybrid GEAR1 "
+                     "model developed by Bird et al. (2015) significantly outperformed both of its individual model "
+                     "components, providing preliminary evidence that the combination of smoothed seismicity data and "
                      "interseismic strain rates is suitable for global earthquake forecasting.")                    
                     
                     
 
 
-mdFile.new_paragraph("**IMPORTANT:** some features available on this library have no effect with the GitHub Markdown "
-                     "CSS. Some of them are: coloring text, centering text...")
 mdFile.new_paragraph()
 
 # Available Features
 mdFile.new_header(level=1, title="Objectives")
-mdFile.new_line("Describe the predictive skills of posited hypothesis about seismogenesis with (at least) one year"
-                "of mw 5.95+ independent observations around the globe")
+mdFile.new_line("Describe the predictive skills of posited hypothesis about seismogenesis with earthquakes "
+                "of M5.95+ independent observations around the globe")
 mdFile.new_line("Identify the methods and geophysical datasets that lead to the highest information gains in"
                 "global earthquake forecasting.")
 mdFile.new_line("Test earthquake forecast models on different grid settings")
 mdFile.new_line("Use Quadtree based grid to represent and evaluate earthquake forecasts")
 
+mdFile.new_header(level=2, title='Authoritative Data')
+mdFile.new_paragraph(" ------Put GLOBAL CMT Catalog ----")
+
+
+mdFile.new_header(level=2, title='Quadtree Forecasts')
+mdFile.new_paragraph(" Quadtree info ")
 
 
 mdFile.new_header(level=1, title="Competing Forecast Models")
@@ -72,6 +84,36 @@ mdFile.new_header(level=2, title="KJSS")
 mdFile.new_header(level=2, title="TEAM")
 
 mdFile.new_header(level=2, title="SHIFT_GSRM")
+
+
+
+mdFile.new_header(level=1, title="Evaluations")
+
+mdFile.new_header(level=2, title='N-test')
+
+mdFile.new_inline_image('N-Test', result_figs['N-Test'])
+#mdFile.new_line(mdFile.new_inline_image(text=image_text, path=path))
+
+mdFile.new_header(level=2, title='CL-Test')
+
+mdFile.new_inline_image('CL-Test', result_figs['CL-Test'])
+
+
+mdFile.new_header(level=2, title='M-test')
+mdFile.new_inline_image('M-Test', result_figs['M-Test'])
+
+
+mdFile.new_header(level=2, title= 'S-test')
+
+mdFile.new_inline_image('S-Test', result_figs['S-Test'])
+
+
+mdFile.new_header(level=2, title = 'T-test')
+
+mdFile.new_inline_image('T-Test', result_figs['T-Test'])
+
+
+
 
 ## ********************************************************************************************************************
 ## ***************************************************** Markdown *****************************************************
