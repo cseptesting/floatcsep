@@ -18,14 +18,15 @@ Installs pyCSEP and other dependencies to run the experiment. See `environment.y
 
 Creates a new conda environment, clone the RISE GEFE branch from pyCSEP and installs the required dependencies. 
 ```
-conda env create -n gefe
+conda create -n gefe
+conda activate gefe
 sh ./Makefile 
 
 ```
 
 
 
-## Retrieve Forecasts
+## Retrieve Models
 
 See `main.py` for details.
 
@@ -36,3 +37,7 @@ Clones the repository, creates the forecast folder structure and extract the dat
 sh ./import_models.sh
 ```
 
+
+## Downsampling models for development
+
+Run the function `code.utils.resample_models()` to get a low size version of the models

@@ -99,7 +99,7 @@ def resample_block_model(model_path, resample_path, k):
 
     numpy.savetxt(resample_path, new_array, fmt=6 * ['%.1f'] + 31 * ['%.16e'], header=header)
 
-def resample_forecasts(k=20):
+def resample_models(k=20):
 
 
     """
