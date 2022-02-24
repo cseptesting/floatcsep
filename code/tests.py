@@ -71,10 +71,9 @@ def _log_likelihood_point_process(observation, forecast, cell_area):
 def _standard_deviation(gridded_forecast1, gridded_forecast2, gridded_observation1, gridded_observation2,
                               cell_area1, cell_area2):
     """
-    Calculate Pooled Variance using forecast 1 and forecast 2. But we do not calculate is for all the forecasts.
+    Calculate Variance using forecast 1 and forecast 2. 
     But It is calculated using the forecast values corresponding to the non-zero observations.
-    The same process is repeated as repeated during calculation of Point Process LL.
-    After we get forecast rates for non-zeros observations, then Pooled Variance is calculated.
+    Equation is adapted from Rhoades et al. 2011
 
 
     Args:

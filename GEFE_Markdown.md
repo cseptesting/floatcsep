@@ -6,7 +6,8 @@ Contents
 ========
 
 * [Overview](#overview)
-* [Objectives](#objectives)
+	* [Objectives](#objectives)
+* [Forecast Experiment](#forecast-experiment)
 	* [Authoritative Data](#authoritative-data)
 	* [Quadtree Forecasts](#quadtree-forecasts)
 * [Competing Forecast Models](#competing-forecast-models)
@@ -44,15 +45,19 @@ outperformed both of its individual model components, providing preliminary evid
 seismicity data and interseismic strain rates is suitable for global earthquake forecasting.
 
 
-# Objectives
-  
-Describe the predictive skills of posited hypothesis about seismogenesis with earthquakes of M5.95+ independent 
-observations around the globe  
-Identify the methods and geophysical datasets that lead to the highest information gains inglobal earthquake 
-forecasting.  
-Test earthquake forecast models on different grid settings  
-Use Quadtree based grid to represent and evaluate earthquake forecasts
+## Objectives
+
+- Describe the predictive skills of posited hypothesis about seismogenesis with earthquakes of M5.95+ independent observations around the globe.
+- Identify the methods and geophysical datasets that lead to the highest information gains in global earthquake forecasting.
+- Test earthquake forecast models on different grid settings.
+- Use Quadtree based grid to represent and evaluate earthquake forecasts.
+
+# Forecast Experiment
+
 ## Authoritative Data
+
+o The authoritative earthquake catalog is the full Global CMT catalog (Ekström et al. 2012).
+o We confine the hypocentral depths of earthquakes in training and testing datasets to a maximum of 70km
 
 
  ------Put GLOBAL CMT Catalog ----

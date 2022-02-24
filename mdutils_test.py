@@ -58,15 +58,29 @@ mdFile.new_paragraph("In addition to the regional experiments, CSEP promotes ear
 mdFile.new_paragraph()
 
 # Available Features
-mdFile.new_header(level=1, title="Objectives")
-mdFile.new_line("Describe the predictive skills of posited hypothesis about seismogenesis with earthquakes "
-                "of M5.95+ independent observations around the globe")
-mdFile.new_line("Identify the methods and geophysical datasets that lead to the highest information gains in"
-                "global earthquake forecasting.")
-mdFile.new_line("Test earthquake forecast models on different grid settings")
-mdFile.new_line("Use Quadtree based grid to represent and evaluate earthquake forecasts")
+mdFile.new_header(level=2, title="Objectives")
+
+objs = ["Describe the predictive skills of posited hypothesis about seismogenesis with earthquakes of M5.95+ independent observations around the globe.",
+        "Identify the methods and geophysical datasets that lead to the highest information gains in global earthquake forecasting.",
+        "Test earthquake forecast models on different grid settings.",
+        "Use Quadtree based grid to represent and evaluate earthquake forecasts."]
+mdFile.new_list(items = objs, marked_with='-')
+
+#mdFile.new_line("Describe the predictive skills of posited hypothesis about seismogenesis with earthquakes "
+#                "of M5.95+ independent observations around the globe.")
+#mdFile.new_line("Identify the methods and geophysical datasets that lead to the highest information gains in"
+#                "global earthquake forecasting.")
+#mdFile.new_line("Test earthquake forecast models on different grid settings.")
+#mdFile.new_line("Use Quadtree based grid to represent and evaluate earthquake forecasts.")
+
+mdFile.new_header(level=1, title='Forecast Experiment')
 
 mdFile.new_header(level=2, title='Authoritative Data')
+data = ["The authoritative earthquake catalog is the full Global CMT catalog (Ekström et al. 2012).",
+        "We confine the hypocentral depths of earthquakes in training and testing datasets to a maximum of 70km",
+        ]
+mdFile.new_list(items = data, marked_with='o')
+
 mdFile.new_paragraph(" ------Put GLOBAL CMT Catalog ----")
 
 
