@@ -3,9 +3,9 @@ import datetime
 
 # pyCSEP modules
 import matplotlib.pyplot as plt
-from csep.core.regions import global_region
 import csep.core.poisson_evaluations as poisson
 import csep.utils.plots as plots
+from csep.utils.calc import cleaner_range
 from csep.utils.time_utils import decimal_year, datetime_to_utc_epoch
 
 
@@ -13,6 +13,8 @@ from csep.utils.time_utils import decimal_year, datetime_to_utc_epoch
 import evaluations
 import utils
 import accessors
+import numpy
+
 
 global_config = {'start_date': datetime.datetime(2020, 1, 1, 0, 0, 0)}
 
@@ -22,7 +24,7 @@ experiment_config = {
     'verbose': True,
     'start_date': datetime.datetime(2020, 1, 1, 0, 0, 0),
     'end_date': datetime.datetime(2022, 12, 31, 23, 59, 59),
-    'region': global_region,
+    'region': utils.global_region,
     'catalog': accessors.query_isc_gcmt,
     # Todo: Populate with all forecasts, here 'func' takes a model and returns a forecast
     'models': [
@@ -151,7 +153,7 @@ config_short = {
         'verbose': True,
         'start_date': datetime.datetime(2020, 1, 1, 0, 0, 0),
         'end_date': datetime.datetime(2022, 12, 31, 23, 59, 59),
-        'region': global_region(2),
+        'region': utils.global_region(2),
         # Todo: Populate with all forecasts, here 'func' takes a model and returns a forecast
         'models': [
             {'name': 'GEAR1',
@@ -210,12 +212,40 @@ config_short = {
 
 class Experiment:
 
-    def __init__(self, run_date,  evaluation_config, region):
-        self.start_date = global_config['start_date']
-        self.end_date = run_date
-        self.evaluation_config = evaluation_config
-        self.models = evaluation_config['models']
+    def __init__(self, start_date, end_date, region):
+
+        self.start_date = start_date
+        self.end_date = end_date
         self.region = region
+
+        self.models = []
+        self.tests = []
+        self.results = []
+
+    def set_model(self, name, func, func_args, authors=None, doi=None, markdown=None, **kwargs):
+
+        model = {'name': name,
+                 'authors': authors,
+                 'doi': doi,
+                 'func': func,
+                 'func_args': func_args,
+                 'markdown': markdown,
+                 'forecasts': []}
+
+        # todo checks:  Repeated model? Does model file exists?
+        self.models.append(model)
+
+    def set_test(self, name, func, func_args, plot_func, plot_args={}, **kwargs):
+
+        test = {'name': name,
+                'func': func,
+                'func_args': func_args,
+                'plot_func': plot_func,
+                'plot_args': plot_args}
+        # todo checks:  Repeated test? Does test results exists?
+        self.tests.append(test)
+
+
     def time_horizon(self, test_date):
         """ Returns the time horizon in years given the test date
 
@@ -228,54 +258,65 @@ class Experiment:
             Returns:
                 time_horizon (float): time horizon of experiment in years
         """
+
         # we are adding one day, bc tests are considered to occur at the end of the day specified by test_datetime.
         test_date_dec = decimal_year(test_date + datetime.timedelta(1))
 
         return test_date_dec - decimal_year(self.start_date)
 
-    def create_forecasts(self, test_date):
+
+    def create_forecast(self, model, test_date):
 
         time_horizon = self.time_horizon(test_date)
-        for model in self.models:
+        forecast = model['func'](name=model['name'],                             # todo add kwargs
+                                 model_path=model['func_args']['model_path'],
+                                 time_horizon=time_horizon,
+                                 dh=model['func_args']['dh'])
 
-            forecast = model['func'](name=model['name'],
-                                     model_path=model['func_args']['model_path'],
-                                     time_horizon=time_horizon,
-                                     dh=model['func_args']['dh'])
-            model['forecasts'].append(forecast)
+        return forecast
 
-
-    def get_catalog(self, test_date):
+    def get_catalog(self, test_date, min_mag=5.95):
 
         catalog = accessors.query_isc_gcmt(start_datetime=self.start_date,
                                            end_datetime=test_date,
-                                           min_mw=5.95)   # modify
+                                           min_mw=min_mag)   # modify
+        catalog.filter_spatial(self.region, update_stats=True, in_place=True)
         self.catalog = catalog
 
 
-    def run_tests(self):
 
-        results = []
-        for model in self.models:
-            forecast = model['forecasts'][0]
-            catalog = self.catalog
-            catalog.region = forecast.region
-            results.append(poisson.conditional_likelihood_test(forecast, catalog))
+    def run(self, test_date):
+
+        self.get_catalog(test_date)
+
+        for test in self.tests:
+            results = []
+            for model in self.models:
+                forecast = self.create_forecast(model, test_date)
+                # return forecast
+                results.append(test.get('func').__call__(forecast, self.catalog, **test.get('func_args')))
+
         return results
 
 
 
 if __name__ == '__main__':
 
-
-    global_config = {'start_date': datetime.datetime(2020, 1, 1, 0, 0, 0)}
+    dh = 2
+    mag_bins = cleaner_range(5.95, 8.95, 0.1)
+    region = utils.global_region(dh, magnitudes=mag_bins)
+    start_date = datetime.datetime(2020, 1, 1, 0, 0, 0)
     test_date = datetime.datetime(2021, 1, 1, 0, 0, 0)
     end_date = datetime.datetime(2022, 1, 1, 0, 0, 0)
-    region = global_region(2)
-    exp = Experiment(end_date, config_short, region)
-    exp.create_forecasts(test_date)
-    exp.get_catalog(test_date)
-    a = exp.run_tests()
+
+    exp = Experiment(start_date, end_date, region)
+    exp.set_model('GEAR1', utils.prepare_forecast, {'model_path': '../models/GEAR_resampled.txt', 'dh': dh})
+    exp.set_model('KJSS', utils.prepare_forecast, {'model_path': '../models/KJSS_resampled.txt', 'dh': dh})
+    exp.set_model('WHEELr', utils.prepare_forecast, {'model_path': '../models/WHEELr_resampled.txt', 'dh': dh})
+    exp.set_test('Poisson CL', poisson.conditional_likelihood_test, {'num_simulations': 10, 'seed': 23},
+                               plots.plot_poisson_consistency_test)
+
+    a = exp.run(test_date)
     plots.plot_poisson_consistency_test(a)
     plt.show()
     print('asd')
