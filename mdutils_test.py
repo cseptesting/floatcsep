@@ -21,12 +21,13 @@ from mdutils.mdutils import MdUtils
 mdFile = MdUtils(file_name='GEFE_Markdown', title='Global Earthquake Forecast Experiment (GEFE)')
 
 #----Temporary Paths to Figures--- Adapth it later---
-result_figs = {'N-Test': 'codes/results/global_quadtree_forecastN-Test.png',
-                'CL-Test': 'codes/results/global_quadtree_forecastCL-Test.png',
-                'M-Test': 'codes/results/global_quadtree_forecastM-Test.png',
-                'S-Test': 'codes/results/global_quadtree_forecastS-Test.png',
-                'T-Test': 'codes/results/global_quadtree_forecastT-Test.png' }
+result_figs = {'N-Test': 'code/results/quadtree_global_experimentN-Test.png',
+                'CL-Test': 'code/results/quadtree_global_experimentCL-Test.png',
+                'M-Test': 'code/results/quadtree_global_experimentM-Test.png',
+                'S-Test': 'code/results/quadtree_global_experimentS-Test.png',
+                'T-Test': 'code/results/quadtree_global_experimentT-Test.png' }
 # -----------------
+path = '/code/results/quadtree_global_experimentCL-Test.png'
 
 mdFile.new_header(level=1, title='Overview')  # style is set 'atx' format by default.
 
@@ -91,26 +92,27 @@ mdFile.new_header(level=1, title="Evaluations")
 
 mdFile.new_header(level=2, title='N-test')
 
-mdFile.new_inline_image('N-Test', result_figs['N-Test'])
+mdFile.new_line(mdFile.new_inline_image(text='N-Test', path=result_figs['N-Test']))
 #mdFile.new_line(mdFile.new_inline_image(text=image_text, path=path))
 
 mdFile.new_header(level=2, title='CL-Test')
 
-mdFile.new_inline_image('CL-Test', result_figs['CL-Test'])
+mdFile.new_line(mdFile.new_inline_image(text='CL-Test', path=result_figs['CL-Test'])) #
 
 
 mdFile.new_header(level=2, title='M-test')
-mdFile.new_inline_image('M-Test', result_figs['M-Test'])
+
+mdFile.new_line(mdFile.new_inline_image(text ='M-Test', path=result_figs['M-Test']))
 
 
 mdFile.new_header(level=2, title= 'S-test')
 
-mdFile.new_inline_image('S-Test', result_figs['S-Test'])
+mdFile.new_line(mdFile.new_inline_image(text = 'S-Test', path = result_figs['S-Test']))
 
 
 mdFile.new_header(level=2, title = 'T-test')
 
-mdFile.new_inline_image('T-Test', result_figs['T-Test'])
+mdFile.new_line(mdFile.new_inline_image(text = 'T-Test', path = result_figs['T-Test']))
 
 
 

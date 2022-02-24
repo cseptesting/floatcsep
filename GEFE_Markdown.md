@@ -75,11 +75,17 @@ Use Quadtree based grid to represent and evaluate earthquake forecasts
 # Evaluations
 
 ## N-test
-
+  
+![N-Test](code/results/quadtree_global_experimentN-Test.png)
 ## CL-Test
-
+  
+![CL-Test](code/results/quadtree_global_experimentCL-Test.png)
 ## M-test
-
+  
+![M-Test](code/results/quadtree_global_experimentM-Test.png)
 ## S-test
-
+  
+![S-Test](code/results/quadtree_global_experimentS-Test.png)
 ## T-test
+  
+![T-Test](code/results/quadtree_global_experimentT-Test.png)
