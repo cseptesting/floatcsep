@@ -9,19 +9,9 @@ Contents
 	* [Objectives](#objectives)
 * [Forecast Experiment](#forecast-experiment)
 	* [Authoritative Data](#authoritative-data)
+	* [Competing Forecast Models](#competing-forecast-models)
 	* [Quadtree Forecasts](#quadtree-forecasts)
-* [Competing Forecast Models](#competing-forecast-models)
-	* [WHEEL](#wheel)
-	* [GEAR1](#gear1)
-	* [KJSS](#kjss)
-	* [TEAM](#team)
-	* [SHIFT_GSRM](#shift_gsrm)
-* [Evaluations](#evaluations)
-	* [N-test](#n-test)
-	* [CL-Test](#cl-test)
-	* [M-test](#m-test)
-	* [S-test](#s-test)
-	* [T-test](#t-test)
+	* [Evaluations](#evaluations)
 
 # Overview
 
@@ -56,41 +46,34 @@ seismicity data and interseismic strain rates is suitable for global earthquake 
 
 ## Authoritative Data
 
-o The authoritative earthquake catalog is the full Global CMT catalog (Ekström et al. 2012).
-o We confine the hypocentral depths of earthquakes in training and testing datasets to a maximum of 70km
+- The authoritative earthquake catalog is the full Global CMT catalog (Ekström et al. 2012).
+- We confine the hypocentral depths of earthquakes in training and testing datasets to a maximum of 70km
+
+## Competing Forecast Models
 
 
- ------Put GLOBAL CMT Catalog ----
+TIme independent global seismicity models are provided.The earthquake forecasts are rate-based, i.e. forecast are 
+provided as earthquake rates for each longitude/latitute/magnitude bins with bin size of 0.1. All forecasting models 
+compute earthquake rates within unique depth bin, i.e. [0 km, 70km]  
+Following forecast models are competing in this experiment
 ## Quadtree Forecasts
 
 
  Quadtree info 
-# Competing Forecast Models
+## Evaluations
 
-## WHEEL
-
-## GEAR1
-
-## KJSS
-
-## TEAM
-
-## SHIFT_GSRM
-
-# Evaluations
-
-## N-test
+### N-test
   
 ![N-Test](code/results/quadtree_global_experimentN-Test.png)
-## CL-Test
+### CL-Test
   
 ![CL-Test](code/results/quadtree_global_experimentCL-Test.png)
-## M-test
+### M-test
   
 ![M-Test](code/results/quadtree_global_experimentM-Test.png)
-## S-test
+### S-test
   
 ![S-Test](code/results/quadtree_global_experimentS-Test.png)
-## T-test
+### T-test
   
 ![T-Test](code/results/quadtree_global_experimentT-Test.png)
