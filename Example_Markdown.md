@@ -15,7 +15,6 @@ Contents
 	* [Create Links](#create-links)
 	* [Create Lists](#create-lists)
 	* [Add images](#add-images)
-	* [Add HTML images](#add-html-images)
 
 # Overview
 
@@ -312,38 +311,11 @@ You can add inline images using ``new_reference_image`` method. Method will retu
 ```
 mdFile.new_line(mdFile.new_reference_image(text='N-Test', path='code/results/quadtree_global_experimentN-Test.png', reference_tag='im'))
 ```  
-![N-Test][im]
-## Add HTML images
-
-### Change size to images
-
-
-With ``Html.image`` you can change size of images in a markdown file. For example you can dothe following for changing 
-width: ``mdFile.new_paragraph(Html.image(path=path, size='200'))``
-
-<img src="code/results/quadtree_global_experimentCL-Test.png" width="200"/>
-
-Or maybe only want to change height: ``mdFile.new_paragraph(Html.image(path=path, size='x300'))``
-
-<img src="code/results/quadtree_global_experimentCL-Test.png" height="300"/>
-
-Or change width and height: ``mdFile.new_paragraph(Html.image(path=path, size='300x300'))``
-
-<img src="code/results/quadtree_global_experimentCL-Test.png" width="300" height="300"/>
-
-### Align images
-
-
-Html.image allow to align images, too. For example you can run: ``mdFile.new_paragraph(Html.image(path=path, 
-size='300x200', align='center'))``
-
-<p align="center">
-    <img src="code/results/quadtree_global_experimentCL-Test.png" width="300" height="200"/>
-</p>
+![N-Test][N-test_fig]
 
 
 [1]: https://github.com/didix21/mdutils
+[N-test_fig]: code/results/quadtree_global_experimentN-Test.png
 [bold]: https://github.com/didix21/mdutils
-[im]: code/results/quadtree_global_experimentN-Test.png
 [italics]: https://github.com/didix21/mdutils
 [md]: https://github.com/didix21/mdutils
