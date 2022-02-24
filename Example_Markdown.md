@@ -300,9 +300,9 @@ You can add inline images using ``new_inline_image`` method. Method will return:
  Check the following example: 
 
 ```
-mdFile.new_line(mdFile.new_inline_image(text='N-Test', path='code/results/quadtree_global_experimentCN-Test.png'))
+mdFile.new_line(mdFile.new_inline_image(text='N-Test', path='code/results/quadtree_global_experimentN-Test.png'))
 ```  
-![N-Test](code/results/quadtree_global_experimentCN-Test.png)
+![N-Test](code/results/quadtree_global_experimentN-Test.png)
 ### Reference Images
 
 
@@ -310,7 +310,7 @@ You can add inline images using ``new_reference_image`` method. Method will retu
  example: 
 
 ```
-mdFile.new_line(mdFile.new_reference_image(text='N-Test', path='code/results/quadtree_global_experimentCN-Test.png', reference_tag='im'))
+mdFile.new_line(mdFile.new_reference_image(text='N-Test', path='code/results/quadtree_global_experimentN-Test.png', reference_tag='im'))
 ```  
 ![N-Test][im]
 ## Add HTML images
@@ -344,6 +344,6 @@ size='300x200', align='center'))``
 
 [1]: https://github.com/didix21/mdutils
 [bold]: https://github.com/didix21/mdutils
-[im]: code/results/quadtree_global_experimentCN-Test.png
+[im]: code/results/quadtree_global_experimentN-Test.png
 [italics]: https://github.com/didix21/mdutils
 [md]: https://github.com/didix21/mdutils
