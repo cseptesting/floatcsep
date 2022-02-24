@@ -93,6 +93,7 @@ model_list = ["GEAR1 (Bird et al. 2015)",
               "TEAM (Bayona et al. 2021)", 
               "KJSS (Kagan and Jackson (2011))", 
                "SHIFT_GSRM2F (Bird & Kreemer (2015))"]
+mdFile.new_list(items =model_list, marked_with='-')
 
 mdFile.new_header(level=2, title='Quadtree Forecasts')
 mdFile.new_paragraph(" Quadtree info ")

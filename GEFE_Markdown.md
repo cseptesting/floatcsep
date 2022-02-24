@@ -56,6 +56,12 @@ TIme independent global seismicity models are provided.The earthquake forecasts 
 provided as earthquake rates for each longitude/latitute/magnitude bins with bin size of 0.1. All forecasting models 
 compute earthquake rates within unique depth bin, i.e. [0 km, 70km]  
 Following forecast models are competing in this experiment
+- GEAR1 (Bird et al. 2015)
+- WHEEL (Bayona et al. 2021)
+- TEAM (Bayona et al. 2021)
+- KJSS (Kagan and Jackson (2011))
+- SHIFT_GSRM2F (Bird & Kreemer (2015))
+
 ## Quadtree Forecasts
 
 
