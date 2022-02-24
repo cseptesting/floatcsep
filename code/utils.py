@@ -99,6 +99,7 @@ def resample_block_model(model_path, resample_path, k):
 
     numpy.savetxt(resample_path, new_array, fmt=6 * ['%.1f'] + 31 * ['%.16e'], header=header)
 
+
 def resample_models(k=20):
 
 
@@ -128,7 +129,6 @@ def resample_models(k=20):
     model_original = '../models/WHEELr_csep.txt'
     model_resampled = '../models/WHEELr_resampled.txt'
     resample_block_model(model_original, model_resampled, k=k)
-
 
 
 def plot_forecast_lowres(forecast, plot_args, k=4):

@@ -9,23 +9,42 @@ import time
 HOST = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
 TIMEOUT = 180
 
-def query_isc_gcmt(out_format='QuakeML',
-                     request='COMPREHENSIVE',
-                     searchshape='GLOBAL',
-                     start_year=2020,
-                     start_month=1,
-                     start_day=1,
-                     start_time='00:00:00',
-                     end_year=2022,
-                     end_month=1,
-                     end_day=1,
-                     end_time='00:00:00',
-                     host=None,
-                     include_magnitudes='on',
-                     min_mag=5.95,
-                     req_mag_type='MW',
-                     req_mag_agcy='GCMT',
-                     verbose=False):
+def query_isc_gcmt(start_datetime, end_datetime, min_mw, max_mw=None, verbose=False):
+
+
+    events, creation_time = _query_isc_gcmt(start_year=start_datetime.year,
+                                            start_month=start_datetime.month,
+                                            start_day=start_datetime.day,
+                                            start_time=start_datetime.time().isoformat(),
+                                            end_year=end_datetime.year,
+                                            end_month=end_datetime.month,
+                                            end_day=end_datetime.day,
+                                            end_time=end_datetime.time().isoformat(),
+                                            min_mag=min_mw,
+                                            max_mag=max_mw,
+                                            verbose=verbose)
+
+    return CSEPCatalog(data=events, date_accessed=creation_time)
+
+
+def _query_isc_gcmt(out_format='QuakeML',
+                    request='COMPREHENSIVE',
+                    searchshape='GLOBAL',
+                    start_year=2020,
+                    start_month=1,
+                    start_day=1,
+                    start_time='00:00:00',
+                    end_year=2022,
+                    end_month=1,
+                    end_day=1,
+                    end_time='23:59:59',
+                    host=None,
+                    include_magnitudes='on',
+                    min_mag=5.95,
+                    max_mag=None,
+                    req_mag_type='MW',
+                    req_mag_agcy='GCMT',
+                    verbose=False):
 
     """ Return gCMT catalog from ISC online web-portal
 
@@ -62,7 +81,7 @@ def query_isc_gcmt(out_format='QuakeML',
          print(f'\tCatalog with {len(events)} events downloaded in {(time.time() - start_time):.2f} seconds')
 
 
-    return CSEPCatalog(data=events, date_accessed=creation_time)
+    return events, creation_time
 
 
 def _search_isc_gcmt(**newargs):
