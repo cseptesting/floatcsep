@@ -4,27 +4,47 @@ from urllib.parse import urlencode
 from csep.utils.time_utils import datetime_to_utc_epoch
 from csep.core.catalogs import CSEPCatalog
 import xml.etree.ElementTree as ET
+import time
 
 HOST = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
-TIMEOUT = 120
+TIMEOUT = 180
 
-def query_isc_gcmt(out_format='QuakeML',
-                     request='COMPREHENSIVE',
-                     searchshape='GLOBAL',
-                     start_year=2020,
-                     start_month=1,
-                     start_day=1,
-                     start_time='00:00:00',
-                     end_year=2022,
-                     end_month=1,
-                     end_day=1,
-                     end_time='00:00:00',
-                     host=None,
-                     include_magnitudes='on',
-                     min_mag=5.95,
-                     req_mag_type='MW',
-                     req_mag_agcy='GCMT',
-                     ):
+
+def query_isc_gcmt(start_datetime, end_datetime, min_mw, cat_id, max_mw=None, verbose=False):
+
+    events, creation_time = _query_isc_gcmt(start_year=start_datetime.year,
+                                            start_month=start_datetime.month,
+                                            start_day=start_datetime.day,
+                                            start_time=start_datetime.time().isoformat(),
+                                            end_year=end_datetime.year,
+                                            end_month=end_datetime.month,
+                                            end_day=end_datetime.day,
+                                            end_time=end_datetime.time().isoformat(),
+                                            min_mag=min_mw,
+                                            max_mag=max_mw,
+                                            verbose=verbose)
+
+    return CSEPCatalog(data=events, name='ISC Bulletin - gCMT', catalog_id=cat_id, date_accessed=creation_time)
+
+
+def _query_isc_gcmt(out_format='QuakeML',
+                    request='COMPREHENSIVE',
+                    searchshape='GLOBAL',
+                    start_year=2020,
+                    start_month=1,
+                    start_day=1,
+                    start_time='00:00:00',
+                    end_year=2022,
+                    end_month=1,
+                    end_day=1,
+                    end_time='23:59:59',
+                    host=None,
+                    include_magnitudes='on',
+                    min_mag=5.95,
+                    max_mag=None,
+                    req_mag_type='MW',
+                    req_mag_agcy='GCMT',
+                    verbose=False):
 
     """ Return gCMT catalog from ISC online web-portal
 
@@ -48,9 +68,20 @@ def query_isc_gcmt(out_format='QuakeML',
             continue
         query_args[key] = value
 
-    events, creation_time = _search_isc_gcmt(**query_args)
+    del query_args['verbose']
 
-    return CSEPCatalog(data=events, date_accessed=creation_time)
+    start_time = time.time()
+    if verbose:
+        print('Accessing ISC API')
+
+    events, creation_time, url = _search_isc_gcmt(**query_args)
+
+    if verbose:
+         print(f'\tAccess URL: {url}')
+         print(f'\tCatalog with {len(events)} events downloaded in {(time.time() - start_time):.2f} seconds')
+
+
+    return events, creation_time
 
 
 def _search_isc_gcmt(**newargs):
@@ -68,6 +99,7 @@ def _search_isc_gcmt(**newargs):
         root = ET.fromstring(data)
         ns = root.tag.split('}quakeml')[0] + '}'
         creation_time = root[0].find(ns + 'creationInfo').find(ns + 'creationTime').text
+        creation_time = creation_time.replace('T', ' ')
         events_quakeml = root[0].findall(ns + 'event')
         events = []
         for feature in events_quakeml:
@@ -77,7 +109,7 @@ def _search_isc_gcmt(**newargs):
         raise Exception(
             'Error downloading data from url %s.  "%s".' % (url, msg))
 
-    return events, creation_time
+    return events, creation_time, url
 
 
 def _parse_isc_event(node, ns, mag_author='GCMT'):
@@ -106,7 +138,6 @@ def _parse_isc_event(node, ns, mag_author='GCMT'):
     return (id_, dtime, float(lat), float(lon), float(depth) / 1000., float(mag))
 
 
-
 def download_from_zenodo(resource_id):
     """ Downloads file from Zenodo and returns checksum for each file
 
@@ -119,12 +150,5 @@ def download_from_zenodo(resource_id):
             checksum (string): md5 checksum from model
     """
     pass
-
-if __name__ == '__main__':
-
-    import matplotlib.pyplot as plt
-    cat = query_isc_gcmt(start_year=2018, start_month=8)
-    cat.plot(set_global=True)
-    plt.show()
 
 
