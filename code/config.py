@@ -1,24 +1,31 @@
 # Python modules
+import os
 import datetime
+import numpy
+import matplotlib.pyplot as plt
+import json
 
 # pyCSEP modules
-import matplotlib.pyplot as plt
 import csep.core.poisson_evaluations as poisson
+from csep.core.catalogs import CSEPCatalog
 import csep.utils.plots as plots
-from csep.utils.calc import cleaner_range
-from csep.utils.time_utils import decimal_year, datetime_to_utc_epoch
-
-
+from csep.utils.time_utils import decimal_year
+from csep.models import EvaluationResult
 # Local modules
 import evaluations
 import utils
 import accessors
-import numpy
 
 
-global_config = {'start_date': datetime.datetime(2020, 1, 1, 0, 0, 0)}
+test_type = {poisson.number_test: 'individual',
+             poisson.magnitude_test: 'individual',
+             poisson.spatial_test: 'individual',
+             poisson.likelihood_test: 'individual',
+             poisson.conditional_likelihood_test: 'individual',
+             poisson.paired_t_test: 'comparative',
+             poisson.w_test: 'comparative'}
 
-# Todo: Populate experiment configuration
+
 experiment_config = {
     'num_sim': 10000,
     'verbose': True,
@@ -210,20 +217,77 @@ config_short = {
         ]
     }
 
+
 class Experiment:
 
-    def __init__(self, start_date, end_date, region):
+    def __init__(self, start_date, end_date, region, cat_reader):
 
         self.start_date = start_date
         self.end_date = end_date
         self.region = region
+        self.catalog_reader = cat_reader
 
         self.models = []
         self.tests = []
-        self.results = []
+        self.evaluations = {}
+
+    @staticmethod
+    def get_run_struct(args):
+        """
+        Creates the run directory, and reads the file structure inside
+
+        :param args: Dictionary containing the Experiment object and the Run arguments
+        :return: run_folder: Path to the run
+                 exists: flag if forecasts, catalogs and test_results if they exist already
+                 target_paths: flag to each element of the experiment (catalog and evaluation results)
+        """
+        run_name = args['run_name']
+        test_date = args['test_date']
+        tests = [i['name'] for i in args['self'].tests]
+        models = [i['name'] for i in args['self'].models]
+
+        if run_name is None:
+            run_name = test_date.isoformat()
+
+        parent_dir = '../'  # todo Manage parent dir appropiately
+        results_dir = 'results'
+        run_folder = os.path.join(parent_dir, results_dir, run_name)
+        folders = ['forecasts', 'catalog', 'evaluations', 'figures']
+
+        folder_paths = {i: os.path.join(run_folder, i) for i in folders}
+
+        for key, val in folder_paths.items():
+            os.makedirs(val, exist_ok=True)
+
+        files = {i: list(os.listdir(j)) for i, j in folder_paths.items()}
+        exists = {'forecasts': False,  # Modify for time-dependent
+                  'catalog': any(file for file in files['catalog']),
+                  'evaluations': {test: {model: any(f'{test}_{model}' in file for file in files['evaluations'])
+                                         for model in models}
+                                  for test in tests}
+                  }
+
+        target_paths = {'forecasts': None, 'catalog': os.path.join(folder_paths['catalog'], 'catalog.json'),
+                        'evaluations': {test: {model: os.path.join(folder_paths['evaluations'], f'{test}_{model}')
+                                               for model in models}
+                                        for test in tests}
+                        }
+
+        return run_folder, exists, target_paths
 
     def set_model(self, name, func, func_args, authors=None, doi=None, markdown=None, **kwargs):
+        """
+        Loads a model and its configurations to the experiment
 
+        :param name: Name of the model
+        :param func: Function that creates a forecast from the model
+        :param func_args: Function arguments
+        :param authors:
+        :param doi:
+        :param markdown: Template for the markdown
+        :param kwargs:
+        :return:
+        """
         model = {'name': name,
                  'authors': authors,
                  'doi': doi,
@@ -235,39 +299,38 @@ class Experiment:
         # todo checks:  Repeated model? Does model file exists?
         self.models.append(model)
 
-    def set_test(self, name, func, func_args, plot_func, plot_args={}, **kwargs):
+    def set_test(self, name, func, func_args, plot_func, plot_args=None, ref_model=None, **kwargs):
+        """
+        Loads a test configuration to the experiment
 
+        :param name: Name of the test
+        :param func: Function of the test evaluation
+        :param func_args: Test function arguments
+        :param plot_func: Test to plot the function
+        :param plot_args: Arguments to the plot
+        :param ref_model: Reference model for comparative tests
+        :param kwargs:
+        :return:
+        """
         test = {'name': name,
                 'func': func,
                 'func_args': func_args,
                 'plot_func': plot_func,
                 'plot_args': plot_args}
-        # todo checks:  Repeated test? Does test results exists?
+        if ref_model:
+            test['ref_model'] = ref_model
+
         self.tests.append(test)
 
-
-    def time_horizon(self, test_date):
-        """ Returns the time horizon in years given the test date
-
-            Catalogs are filtered using 
-                catalogs.filter(['datetime >= self.start_date', 'datetime < test_date'])
-            
-            Args:
-                test_date (datetime): date to evaluate forecasts
-
-            Returns:
-                time_horizon (float): time horizon of experiment in years
-        """
-
-        # we are adding one day, bc tests are considered to occur at the end of the day specified by test_datetime.
-        test_date_dec = decimal_year(test_date + datetime.timedelta(1))
-
-        return test_date_dec - decimal_year(self.start_date)
-
-
     def create_forecast(self, model, test_date):
+        """
+        Creates a forecast from a model and a time window
+        :param model: A model configuration dict
+        :param test_date: A test date to calculate the horizon
+        :return: A pycsep.core.forecasts.GriddedForecast object
+        """
+        time_horizon = decimal_year(test_date + datetime.timedelta(1)) - decimal_year(self.start_date)
 
-        time_horizon = self.time_horizon(test_date)
         forecast = model['func'](name=model['name'],                             # todo add kwargs
                                  model_path=model['func_args']['model_path'],
                                  time_horizon=time_horizon,
@@ -275,49 +338,96 @@ class Experiment:
 
         return forecast
 
-    def get_catalog(self, test_date, min_mag=5.95):
+    def get_catalog(self, test_date, path, min_mag=5.95, exists=None):
+        """
+        Gets the testing catalog from the catalog reader, query if does not exists, or parse from JSON if not
+        #todo Should also pass arguments to a static catalog reader, or comcat
+        :param test_date:
+        :param path:
+        :param min_mag:
+        :param exists: If it exists in the structure, reads it
+        :return:
+        """
+        if exists:
+            catalog = CSEPCatalog.load_json(path)
+        else:
+            catalog = self.catalog_reader(cat_id=test_date,
+                                          start_datetime=self.start_date,
+                                          end_datetime=test_date,
+                                          min_mw=min_mag, verbose=True)
+            catalog.write_json(path)
 
-        catalog = accessors.query_isc_gcmt(start_datetime=self.start_date,
-                                           end_datetime=test_date,
-                                           min_mw=min_mag)   # modify
         catalog.filter_spatial(self.region, update_stats=True, in_place=True)
-        self.catalog = catalog
+
+        return catalog
+
+    def run(self, test_date, new_run=False, run_name=None):
+        """
+        Main function of the experiment.
+        - Creates the run folder structure
+        - Reads the evaluation catalog
+        - Run the tests for every model
+        - Serializes the result
+        - Reads a result if already exists
+        - Creates the main evaluation dict, containing the experiment results
+
+        :param test_date: Defines until when the experiment is run
+        :param new_run: Flag to rerun an experiment
+        :param run_name: Additional parameter if the run has a specific name. If not, the name is the test date
+        :return:
+        """
+        run_folder, exists, target_paths = self.get_run_struct(locals())
+        catalog = self.get_catalog(test_date, path=target_paths['catalog'], exists=exists['catalog'])
+        eval = self.evaluations
 
 
-
-    def run(self, test_date):
-
-        self.get_catalog(test_date)
-
+        #### TODO, ALL FORECASTS SHOULD BE CREATED OUTSIDE THE LOOP
         for test in self.tests:
-            results = []
-            for model in self.models:
-                forecast = self.create_forecast(model, test_date)
-                # return forecast
-                results.append(test.get('func').__call__(forecast, self.catalog, **test.get('func_args')))
 
-        return results
+            if new_run or all(exists['evaluations'][test['name']].values()) is False:
+                test_func = test.get('func')
+                eval[test['name']] = {}
+                if test_type[test_func] == 'individual':
+                    for model in self.models:
+                        forecast = self.create_forecast(model, test_date)
+                        model_eval = test_func.__call__(forecast, catalog, **test.get('func_args'))
+                        eval_path = target_paths['evaluations'][test['name']][model['name']]
+                        with open(eval_path, 'w') as file_:
+                            json.dump(model_eval.to_dict(), file_, indent=4)
+                        eval[test['name']].update({'result': model_eval,
+                                                   'path': eval_path})
+
+                elif test_type[test.get('func')] == 'comparative':
+                    ref_model = [i for i in self.models if i['name'] == test['ref_model']][0]
+                    ref_forecast = self.create_forecast(ref_model, test_date)
+                    eval[test['name']] = {'ref_model': ref_model['name']}
+                    model_eval = []
+                    for model in self.models:
+                        if model['name'] == ref_model['name']:
+                            continue
+                        else:
+                            forecast = self.create_forecast(model, test_date)
+                            model_eval = test_func.__call__(forecast, ref_forecast, catalog)
+                            eval_path = target_paths['evaluations'][test['name']][ref_model['name']]
+                            with open(eval_path, 'w') as file_:
+                                json.dump(model_eval.to_dict(), file_, indent=4)
+                            eval[test['name']].update({'result': model_eval,
+                                                       'path': eval_path})
+
+                elif test_type[test_func] == 'matrix':
+                    pass
+
+            else:
+                test_func = test.get('func')
+                eval[test['name']] = {}
+                if test_type[test_func] == 'individual':
+                    for model in self.models:
+                        eval_path = target_paths['evaluations'][test['name']][model['name']]
+                        with open(eval_path, 'r') as file_:
+                            model_eval = EvaluationResult.from_dict(json.load(file_))
+                        eval[test['name']].update({'result': model_eval,
+                                                   'path': eval_path})
 
 
 
-if __name__ == '__main__':
-
-    dh = 2
-    mag_bins = cleaner_range(5.95, 8.95, 0.1)
-    region = utils.global_region(dh, magnitudes=mag_bins)
-    start_date = datetime.datetime(2020, 1, 1, 0, 0, 0)
-    test_date = datetime.datetime(2021, 1, 1, 0, 0, 0)
-    end_date = datetime.datetime(2022, 1, 1, 0, 0, 0)
-
-    exp = Experiment(start_date, end_date, region)
-    exp.set_model('GEAR1', utils.prepare_forecast, {'model_path': '../models/GEAR_resampled.txt', 'dh': dh})
-    exp.set_model('KJSS', utils.prepare_forecast, {'model_path': '../models/KJSS_resampled.txt', 'dh': dh})
-    exp.set_model('WHEELr', utils.prepare_forecast, {'model_path': '../models/WHEELr_resampled.txt', 'dh': dh})
-    exp.set_test('Poisson CL', poisson.conditional_likelihood_test, {'num_simulations': 10, 'seed': 23},
-                               plots.plot_poisson_consistency_test)
-
-    a = exp.run(test_date)
-    plots.plot_poisson_consistency_test(a)
-    plt.show()
-    print('asd')
 

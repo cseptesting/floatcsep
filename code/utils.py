@@ -151,7 +151,7 @@ def plot_forecast_lowres(forecast, plot_args, k=4):
     plot_spatial_dataset(dataset, region, set_global=True, plot_args=plot_args)
 
 
-def prepare_forecast(model_path, time_horizon, dh=0.1, name=None,  **kwargs):
+def prepare_forecast(model_path, time_horizon, dh=0.1, name=None, **kwargs):
     """ Returns a forecast from a time-independent model
 
         Note: For the time-independent global models the rates should be 'per year'
@@ -177,7 +177,7 @@ def prepare_forecast(model_path, time_horizon, dh=0.1, name=None,  **kwargs):
     with open(model_path, 'r') as model:                                    # Read the magnitude columns in the forecast
         magnitudes = [float(i) for i in model.readline().split(' ')[7:]]   # todo check it works with escapechar #
 
-    region = global_region(dh)             #todo: Hard coded here, but should be eventually able to give subsets?
+    region = global_region(dh)             #todo: Hard coded here, but should be eventually able to read the region? e.g test italy using gear
     rates = data[:, 6:]
 
     forecast = GriddedForecast(data=rates, region=region, magnitudes=magnitudes, name=name, **kwargs)
