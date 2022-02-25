@@ -60,4 +60,3 @@ if __name__ == '__main__':
     test_forecast_read_plot()
     test_resample_model()
 
-

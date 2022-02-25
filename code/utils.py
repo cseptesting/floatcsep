@@ -154,7 +154,13 @@ def plot_forecast_lowres(forecast, plot_args, k=4):
 def prepare_forecast(model_path, time_horizon, dh=0.1, name=None, **kwargs):
     """ Returns a forecast from a time-independent model
 
-        Note: For the time-independent global models the rates should be 'per year'
+#--------------- Forecast mapping from one grid to another ----------
+def geographical_area_from_qk(quadk):
+    """
+    Wrapper around function geographical_area_from_bounds
+    """
+    bounds = tile_bounds(quadk)
+    return geographical_area_from_bounds(bounds[0], bounds[1], bounds[2], bounds[3])
 
         Args:
             model_path (str): filepath of model
@@ -163,8 +169,7 @@ def prepare_forecast(model_path, time_horizon, dh=0.1, name=None, **kwargs):
             name (str): name of the model
             **kwargs: other keyword arguments
 
-        Returns:
-            forecast (GriddedForecast): pycsep forecast object with rates scaled to time horizon
+def tile_bounds(quad_cell_id):
     """
 
     if name is None:                                                        # Get name from file if none is provided
@@ -185,4 +190,3 @@ def prepare_forecast(model_path, time_horizon, dh=0.1, name=None, **kwargs):
     print(f'\t Total {forecast.event_count:.4f} events forecasted in {time_horizon:.2f} years')
 
     return forecast
-
