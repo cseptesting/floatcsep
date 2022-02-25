@@ -1,3 +1,15 @@
+# python libraries
+import datetime
+
+# pyCSEP libraries
+from csep.utils.calc import cleaner_range
+import csep.core.poisson_evaluations as poisson
+import csep.utils.plots as plots
+
+# Local modules
+import utils
+import accessors
+from config import Experiment
 """ The main experiment code will go here. 
     
     Overall experiment steps:
@@ -34,3 +46,34 @@
             - Commit run results to GitLab (if running from authorized user)
 """
 
+
+
+if __name__ == '__main__':
+    ### Create the experiment configuration parameters
+    dh = 2
+    mag_bins = cleaner_range(5.95, 8.95, 0.1)
+    region = utils.global_region(dh, magnitudes=mag_bins)
+    start_date = datetime.datetime(2020, 1, 1, 0, 0, 0)
+    test_date = datetime.datetime(2021, 1, 1, 0, 0, 0)
+    end_date = datetime.datetime(2022, 1, 1, 0, 0, 0)
+
+    ### Initialize
+    exp = Experiment(start_date, end_date, region, accessors.query_isc_gcmt)
+
+    ### Set the tests
+    exp.set_test('Poisson_CL', poisson.conditional_likelihood_test,
+                 {'num_simulations': 10, 'seed': 23}, plots.plot_poisson_consistency_test)
+    exp.set_test('Poisson_N', poisson.conditional_likelihood_test,
+                 {'num_simulations': 10, 'seed': 23}, plots.plot_poisson_consistency_test)
+    exp.set_test('Poisson_T', poisson.paired_t_test,
+                 {'num_simulations': 10, 'seed': 23}, plots.plot_comparison_test, ref_model='GEAR1')
+
+    ### Set the models
+    exp.set_model('GEAR1', utils.prepare_forecast, {'model_path': '../models/GEAR_resampled.txt', 'dh': dh})
+    exp.set_model('KJSS', utils.prepare_forecast, {'model_path': '../models/KJSS_resampled.txt', 'dh': dh})
+    exp.set_model('SHIFT2F_GSRM', utils.prepare_forecast, {'model_path': '../models/WHEELr_resampled.txt', 'dh': dh})
+    exp.set_model('WHEELr', utils.prepare_forecast, {'model_path': '../models/WHEELr_resampled.txt', 'dh': dh})
+    exp.set_model('TEAMr', utils.prepare_forecast, {'model_path': '../models/WHEELr_resampled.txt', 'dh': dh})
+
+    ### Run the experiment
+    exp.run(test_date, new_run=False)

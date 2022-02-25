@@ -9,8 +9,8 @@ import time
 HOST = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
 TIMEOUT = 180
 
-def query_isc_gcmt(start_datetime, end_datetime, min_mw, max_mw=None, verbose=False):
 
+def query_isc_gcmt(start_datetime, end_datetime, min_mw, cat_id, max_mw=None, verbose=False):
 
     events, creation_time = _query_isc_gcmt(start_year=start_datetime.year,
                                             start_month=start_datetime.month,
@@ -24,7 +24,7 @@ def query_isc_gcmt(start_datetime, end_datetime, min_mw, max_mw=None, verbose=Fa
                                             max_mag=max_mw,
                                             verbose=verbose)
 
-    return CSEPCatalog(data=events, date_accessed=creation_time)
+    return CSEPCatalog(data=events, name='ISC Bulletin - gCMT', catalog_id=cat_id, date_accessed=creation_time)
 
 
 def _query_isc_gcmt(out_format='QuakeML',
@@ -99,6 +99,7 @@ def _search_isc_gcmt(**newargs):
         root = ET.fromstring(data)
         ns = root.tag.split('}quakeml')[0] + '}'
         creation_time = root[0].find(ns + 'creationInfo').find(ns + 'creationTime').text
+        creation_time = creation_time.replace('T', ' ')
         events_quakeml = root[0].findall(ns + 'event')
         events = []
         for feature in events_quakeml:
