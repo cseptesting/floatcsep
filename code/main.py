@@ -56,7 +56,7 @@ catalog_name = 'catalog/cat_test.csv'
 fore_fnames = {'GEAR1': 'global_quadtree_forecasts/GEAR1=', 'TEAM': 'global_quadtree_forecasts/TEAM=', 'WHEEL': 'global_quadtree_forecasts/WHEEL=',
                'SHIFT2F_GSRM': 'global_quadtree_forecasts/SHIFT2F_GSRM=', 'KJSS': 'global_quadtree_forecasts/KJSS='}
 
-grid_names = {'N25L11': 'N25L11.csv', 'N10L11': 'N10L11.csv', 'SN10L11': 'SN10L11.csv', 'SN25L11': 'SN25L11.csv',
+grid_names = {'N25L11': 'N25L11.csv', 'N10L11': 'N10L11.csv', 'N50L11':'N50L11.csv', 'SN10L11': 'SN10L11.csv', 'SN25L11': 'SN25L11.csv', 'SN50L11':'SN50L11.csv'
 
               }
 

@@ -8,10 +8,15 @@ Contents
 * [Overview](#overview)
 	* [Objectives](#objectives)
 * [Forecast Experiment](#forecast-experiment)
-	* [Authoritative Data](#authoritative-data)
+	* [Evaluation Data](#evaluation-data)
 	* [Competing Forecast Models](#competing-forecast-models)
 	* [Quadtree Forecasts](#quadtree-forecasts)
 	* [Evaluations](#evaluations)
+		* [N-test](#n-test)
+		* [CL-Test](#cl-test)
+		* [M-test](#m-test)
+		* [S-test](#s-test)
+		* [T-test](#t-test)
 
 # Overview
 
@@ -44,11 +49,13 @@ seismicity data and interseismic strain rates is suitable for global earthquake 
 
 # Forecast Experiment
 
-## Authoritative Data
+## Evaluation Data
 
-- The authoritative earthquake catalog is the full Global CMT catalog (Ekström et al. 2012).
+- The authoritative evaluation data is the full Global CMT catalog (Ekström et al. 2012). 
 - We confine the hypocentral depths of earthquakes in training and testing datasets to a maximum of 70km
-
+  
+The observed catalog from 2020-01-01 00:00:00 to 2022-12-31 23:59:59:  
+![Observed Catalog](code/results/test_catalog.png)
 ## Competing Forecast Models
 
 
@@ -65,21 +72,40 @@ Following forecast models are competing in this experiment
 ## Quadtree Forecasts
 
 
- Quadtree info 
+ The forecast models are provided for the classical CSEP grid. We want to evaluate all these forecasts for multi-
+resolution grids. We proposed Quadtree to generate multi-resolution grids. We provided different data-driven multi-
+resolution grids based on earthquake catalog and strain data points. We aggregate all the classical forecasts on 
+Quadtree grids. Every forecast on a different Quadtree grid is treated as an independent forecast and evaluated 
+independently to study the performance of forecast models for different grids.
 ## Evaluations
 
 ### N-test
   
-![N-Test](code/results/quadtree_global_experimentN-Test.png)
+![N-Test](code/results/quadtree_global_experimentN-Test.png)  
+The results of N-test from 2020-01-01 00:00:00 to 2022-12-31 23:59:59  
+The models passing the N-test are marked with blue dots, while models failing the test are marked with red.
 ### CL-Test
   
-![CL-Test](code/results/quadtree_global_experimentCL-Test.png)
+![CL-Test](code/results/quadtree_global_experimentCL-Test.png)  
+The results of CL-test from 2020-01-01 00:00:00 to 2022-12-31 23:59:59  
+The test shows overall spatial-magnitude consistency of the forecast model with the observation. The models showing 
+lower observed likelihood than the confidence interval of of log-likelihoods values are unable to pass the CL-test.
 ### M-test
   
-![M-Test](code/results/quadtree_global_experimentM-Test.png)
+![M-Test](code/results/quadtree_global_experimentM-Test.png)  
+The results of M-test from 2020-01-01 00:00:00 to 2022-12-31 23:59:59  
+The test shows the consistency of magnitude aspect of the forecast with the observation. The models showing lower 
+observed likelihood than the confidence interval of of log-likelihoods values are unable to pass the M-test.
 ### S-test
   
-![S-Test](code/results/quadtree_global_experimentS-Test.png)
+![S-Test](code/results/quadtree_global_experimentS-Test.png)  
+The results of S-test from 2020-01-01 00:00:00 to 2022-12-31 23:59:59  
+The test shows the consistency of spatial aspect of the forecast with the observation. The models showing lower observed
+ likelihood than the confidence interval of of log-likelihoods values are unable to pass the S-test.
 ### T-test
   
-![T-Test](code/results/quadtree_global_experimentT-Test.png)
+![T-Test](code/results/quadtree_global_experimentT-Test.png)  
+The results of comparative T-test from 2020-01-01 00:00:00 to 2022-12-31 23:59:59  
+The mean information gain per earthquake as is shownc ircles, and the 95 percent confidence interval with vertical 
+lines. The models with information gain higher than zero are more informative than the benchmark model, while models 
+with lower information gain are less informative.
