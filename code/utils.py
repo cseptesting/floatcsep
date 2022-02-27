@@ -238,8 +238,6 @@ def aggregate_quadtree_forecast(cart_forecast, quadtree_region):
 def geographical_area_from_qk(quadk):
 
     """
-    #--------------- Forecast mapping from one grid to another ----------
-
     Wrapper around function geographical_area_from_bounds
     """
     bounds = tile_bounds(quadk)
@@ -371,7 +369,6 @@ def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
         exact_rate_tgt.append(exact_rate[i][0])
 
     exact_cells = numpy.concatenate(exact_cells)
-    print('Number of Exact Cells: ', len(exact_cells))
     # Exclude all those cells from Grid that have already fallen entirely inside any cell of Target Grid
     fcst_rate_poly = numpy.delete(fcst_rate, exact_cells, axis=0)
     lft_fcst_grid = numpy.delete(fcst_grid, exact_cells, axis=0)
@@ -429,3 +426,31 @@ def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
     target_forecast = GriddedForecast(data=data_mapped_bounds, region=target_grid,
                                           magnitudes=forecast_gridded.magnitudes)
     return target_forecast
+
+
+def forecast_plot(qtree_forecast):
+    """
+    Currently, only a single-resolution plotting capability is available. So we aggregate multi-resolution forecast on a single-resolution grid and then plot it
+    
+    Args: csep.core.forecasts.GriddedForecast
+    
+    Returns: class:`matplotlib.pyplot.ax` object
+    """
+    quadkeys = qtree_forecast.region.quadkeys
+    l =[]
+    for qk in quadkeys:
+        l.append(len(qk))
+    
+    if l.count(l[0]) == len(l):
+        #single-resolution grid
+        ax = qtree_forecast.plot()
+    else:
+        print('Multi-resolution grid detected.')
+        print('Currently, we do not offer utility to plot a forecast with multi-resolution grid')
+        print('Therefore, forecast is being aggregated on a single-resolution grid (L8) for plotting')
+        
+        single_res_grid_L8 = QuadtreeGrid2D.from_single_resolution(8)
+        forecast_L8 = forecast_mapping(qtree_forecast, single_res_grid_L8)
+        ax = forecast_L8.plot()
+    
+    return ax
