@@ -18,7 +18,7 @@ from gefe.models import (
 # Experiment configuration below here:
 ######################################
 
-expected_forecasts = {
+expected_models = {
     'WHEEL=SN25L11': './models/WHEEL=SN25L11.csv',
     'WHEEL=N50L11': './models/WHEEL=N50L11.csv',
     'GEAR1=N25L11': './models/GEAR1=N25L11.csv',
@@ -67,7 +67,7 @@ end_date = datetime.datetime(2022, 1, 1, 0, 0, 0)
 
 default_test_kwargs = {
     'seed': 23,
-    'num_simulations': 1000
+    'num_simulations': 10
 }
 
 # Initialize
@@ -116,5 +116,5 @@ exp.set_models(
           path=path,
           func=quadtree_csv_loader,
           func_args=None)
-    for name, path in expected_forecasts.items()]
+     for name, path in expected_models.items()]
 )

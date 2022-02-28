@@ -2,12 +2,14 @@
 import numpy
 import multiprocessing as mp
 import pandas
+import os
 import mercantile
 import shapely.geometry
 from functools import partial
 import itertools
 
 #pyCSEP libraries
+import six
 from csep.core.regions import CartesianGrid2D, compute_vertices
 from csep.core.forecasts import GriddedForecast
 from csep.utils.plots import plot_spatial_dataset
@@ -418,7 +420,7 @@ def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
     return target_forecast
 
 
-def forecast_plot(qtree_forecast):
+def plot_quadtree_forecast(qtree_forecast):
     """
     Currently, only a single-resolution plotting capability is available. So we aggregate multi-resolution forecast on a single-resolution grid and then plot it
     
@@ -444,3 +446,189 @@ def forecast_plot(qtree_forecast):
         ax = forecast_L8.plot()
     
     return ax
+
+
+class MarkdownReport:
+    """ Class to generate a Markdown report from a study """
+
+    def __init__(self, outname='results.md'):
+        self.outname = outname
+        self.toc = []
+        self.has_title = True
+        self.markdown = []
+
+    def add_introduction(self, adict):
+        """ Generate document header from dictionary """
+        first = f"# CSEP Testing Results: {adict['simulation_name']}  \n" \
+                f"**Forecast Name:** {adict['forecast_name']}  \n" \
+                f"**Simulation Start Time:** {adict['origin_time']}  \n" \
+                f"**Evaluation Time:** {adict['evaluation_time']}  \n" \
+                f"**Catalog Source:** {adict['catalog_source']}  \n" \
+                f"**Number Simulations:** {adict['num_simulations']}\n"
+
+        # used to determine to place TOC at beginning of document or after introduction.
+        self.has_introduction = True
+        self.markdown.append(first)
+        return first
+
+    def add_text(self, text):
+        """
+        text should be a list of strings where each string will be on its own line.
+        each add_text command represents a paragraph.
+        Args:
+            text (list): lines to write
+        Returns:
+        """
+        self.markdown.append('  '.join(text) + '\n\n')
+
+    def add_figure(self, title, relative_filepaths, level=2,  ncols=3, add_ext=False, text='', caption=''):
+        """
+        this function expects a list of filepaths. if you want the output stacked, select a
+        value of ncols. ncols should be divisible by filepaths. todo: modify formatted_paths to work when not divis.
+        Args:
+            title: name of the figure
+            level (int): value 1-6 depending on the heading
+            relative_filepaths (str or List[Tuple[str]]): list of paths in order to make table
+        Returns:
+        """
+        # verify filepaths have proper extension should always be png
+        is_single = False
+        paths = []
+        if isinstance(relative_filepaths, six.string_types):
+            is_single = True
+            paths.append(relative_filepaths)
+        else:
+            paths = relative_filepaths
+
+        correct_paths = []
+        if add_ext:
+            for fp in paths:
+                correct_paths.append(fp + '.png')
+        else:
+            correct_paths = paths
+
+        # generate new lists with size ncols
+        formatted_paths = [correct_paths[i:i+ncols] for i in range(0, len(paths), ncols)]
+
+        # convert str into a proper list, where each potential row is an iter not str
+        def build_header(row):
+            top = "|"
+            bottom = "|"
+            for i, _ in enumerate(row):
+                if i == ncols:
+                    break
+                top +=  " |"
+                bottom += " --- |"
+            return top + '\n' + bottom
+
+        def add_to_row(row):
+            if len(row) == 1:
+                return f"![]({row[0]})"
+            string = '| '
+            for item in row:
+                string = string + f' ![]({item}) |'
+            return string
+
+        level_string = f"{level*'#'}"
+        result_cell = []
+        locator = title.lower().replace(" ", "_")
+        result_cell.append(f'{level_string} {title}  <a name="{locator}"></a>\n')
+        result_cell.append(f'{text}\n')
+
+        for i, row in enumerate(formatted_paths):
+            if i == 0 and not is_single:
+                result_cell.append(build_header(row))
+            result_cell.append(add_to_row(row))
+        result_cell.append('\n')
+        result_cell.append(f'{caption}')
+        self.markdown.append('\n'.join(result_cell) + '\n')
+
+        # generate metadata for TOC
+        self.toc.append((title, level, locator))
+
+    def add_heading(self, title, level=1, text='', add_toc=True):
+        # multipying char simply repeats it
+        if isinstance(text, str):
+            text = [text]
+        cell = []
+        level_string = f"{level*'#'}"
+        locator = title.lower().replace(" ", "_")
+        sub_heading = f'{level_string} {title} <a name="{locator}"></a>\n'
+        cell.append(sub_heading)
+        try:
+            for item in list(text):
+                cell.append(item)
+        except:
+            raise RuntimeWarning("Unable to add document subhead, text must be iterable.")
+        self.markdown.append('\n'.join(cell) + '\n')
+
+        # generate metadata for TOC
+        if add_toc:
+            self.toc.append((title, level, locator))
+
+    def add_list(self, list):
+        cell = []
+        for item in list:
+            cell.append(f"* {item}")
+        self.markdown.append('\n'.join(cell) + '\n')
+
+
+    def add_title(self, title, text):
+        self.has_title = True
+        self.add_heading(title, 1, text, add_toc=False)
+
+    def table_of_contents(self):
+        """ generates table of contents based on contents of document. """
+        if len(self.toc) == 0:
+            return
+        toc = []
+        toc.append("# Table of Contents")
+        for title, level, locator in self.toc:
+            space = '   ' * (level-1)
+            toc.append(f"{space}1. [{title}](#{locator})")
+        insert_loc = 1 if self.has_title else 0
+        self.markdown.insert(insert_loc, '\n'.join(toc) + '\n')
+
+    def add_table(self, data, use_header=True):
+        """
+        Generates table from HTML and styles using bootstrap class
+        Args:
+           data List[Tuple[str]]: should be (nrows, ncols) in size. all rows should be the
+                         same sizes
+        Returns:
+            table (str): this can be added to subheading or other cell if desired.
+        """
+        table = []
+        table.append('<div class="table table-striped">')
+        table.append(f'<table>')
+        def make_header(row):
+            header = []
+            header.append('<tr>')
+            for item in row:
+                header.append(f'<th>{item}</th>')
+            header.append('</tr>')
+            return '\n'.join(header)
+
+        def add_row(row):
+            table_row = []
+            table_row.append('<tr>')
+            for item in row:
+                table_row.append(f"<td>{item}</td>")
+            table_row.append('</tr>')
+            return '\n'.join(table_row)
+
+        for i, row in enumerate(data):
+            if i==0 and use_header:
+                table.append(make_header(row))
+            else:
+                table.append(add_row(row))
+        table.append('</table>')
+        table.append('</div>')
+        table = '\n'.join(table)
+        self.markdown.append(table + '\n')
+
+    def save(self, save_dir):
+        output = list(itertools.chain.from_iterable(self.markdown))
+        full_md_fname = os.path.join(save_dir, self.outname)
+        with open(full_md_fname, 'w') as f:
+            f.writelines(output)
