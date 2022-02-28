@@ -276,6 +276,7 @@ class Experiment:
                 'latitude > -85.0',
                 'latitude < 85.0'
             ])
+            catalog = catalog.filter('depth < 70')
             self.set_catalog(catalog)
         return catalog
 
