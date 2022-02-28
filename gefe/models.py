@@ -244,6 +244,9 @@ class Experiment:
     def set_magnitude_range(self, mw_min, mw_max, mw_inc):
         self.magnitude_range = cleaner_range(mw_min, mw_max, mw_inc)
 
+    def set_depth_range(self, min_depth, max_depth):
+        self.depth_range = cleaner_range(min_depth, max_depth, max_depth - min_depth)
+
     def get_catalog(self):
         """ Returns filtered catalog either from a previous run or for a new run downloads from ISC gCMT catalogue.
 
@@ -263,20 +266,18 @@ class Experiment:
         else:
             print("Downloading catalog from ISC gCMT service...")
             min_mag = self.magnitude_range.min()
+            min_depth = self.depth_range.min()
+            max_depth = self.depth_range.max()
             catalog = self.catalog_reader(
                 cat_id=self.test_date,
                 start_datetime=self.start_date,
                 end_datetime=self.test_date,
                 min_mw=min_mag,
+                min_depth=min_depth,
+                max_depth=max_depth,
                 verbose=True
             )
-            # Quadtree rules require that forecasts and catalogs are within lats = [-85.0, 85.0]
-            # todo: min/max lat should be set in config.py
-            catalog = catalog.filter([
-                'latitude > -85.05',
-                'latitude < 85.05'
-            ])
-            catalog = catalog.filter('depth < 70')
+
             self.set_catalog(catalog)
         return catalog
 
@@ -425,7 +426,7 @@ class Experiment:
 
     def to_dict(self):
         out = {}
-        excluded = ['run_results', 'magnitude_range']
+        excluded = ['run_results', 'magnitude_range', 'depth_range']
 
         def _get_value(x):
             if hasattr(x, 'to_dict'):

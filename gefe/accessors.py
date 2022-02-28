@@ -10,7 +10,7 @@ HOST = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
 TIMEOUT = 180
 
 
-def query_isc_gcmt(start_datetime, end_datetime, min_mw, cat_id=None, max_mw=None, verbose=False):
+def query_isc_gcmt(start_datetime, end_datetime, min_mw, min_depth=None, max_depth=None, cat_id=None, max_mw=None, verbose=False):
 
     events, creation_time = _query_isc_gcmt(start_year=start_datetime.year,
                                             start_month=start_datetime.month,
@@ -22,6 +22,8 @@ def query_isc_gcmt(start_datetime, end_datetime, min_mw, cat_id=None, max_mw=Non
                                             end_time=end_datetime.time().isoformat(),
                                             min_mag=min_mw,
                                             max_mag=max_mw,
+                                            min_dep=min_depth,
+                                            max_dep=max_depth,
                                             verbose=verbose)
 
     return CSEPCatalog(data=events, name='ISC Bulletin - gCMT', catalog_id=cat_id, date_accessed=creation_time)
@@ -42,6 +44,8 @@ def _query_isc_gcmt(out_format='QuakeML',
                     include_magnitudes='on',
                     min_mag=5.95,
                     max_mag=None,
+                    min_dep=None,
+                    max_dep=None,
                     req_mag_type='MW',
                     req_mag_agcy='GCMT',
                     verbose=False):
