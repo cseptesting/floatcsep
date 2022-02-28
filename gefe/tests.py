@@ -1,14 +1,16 @@
 from matplotlib import pyplot
 import cartopy
-from utils import prepare_forecast, plot_forecast_lowres, resample_block_model
-from accessors import query_isc_gcmt
+from gefe.utils import prepare_forecast, plot_forecast_lowres, resample_block_model
+from gefe.accessors import query_isc_gcmt
 from matplotlib import pyplot
-
+import datetime
 
 
 def test_catalog_query_plot():
 
-    catalog = query_isc_gcmt(start_year=2019, start_month=8, verbose=True)
+    start_datetime = datetime.datetime(2020, 1, 1)
+    end_datetime = datetime.datetime(2021, 1, 1)
+    catalog = query_isc_gcmt(start_datetime=start_datetime, end_datetime=end_datetime, min_mw=5.95, verbose=True)
     catalog.plot(set_global=True)
     pyplot.show()
 

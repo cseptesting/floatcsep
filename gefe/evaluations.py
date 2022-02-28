@@ -1,9 +1,10 @@
 import numpy
-import scipy
+import scipy.stats
 from csep.models import EvaluationResult
 import numpy as np
 from csep.core.poisson_evaluations import _simulate_catalog
 from csep.core.exceptions import CSEPCatalogException
+
 
 def matrix_poisson_t_test(forecasts, catalog, **kwargs):
     """ Computes Student's t-test for the information gain per earthquake over a list of forecasts
@@ -181,7 +182,6 @@ def _binomial_likelihood_test(forecast_data, observed_data, num_simulations=1000
         if verbose:
             if (idx + 1) % 100 == 0:
                 print(f'... {idx + 1} catalogs simulated.')
-                
                 target_idx = numpy.nonzero(observed_data.ravel())
 
     # observed joint log-likelihood
@@ -287,7 +287,7 @@ def binomial_conditional_likelihood_test(gridded_forecast, observed_catalog, num
     return result
 
 
-def matrix_binary_t_test(target_event_rates1, target_event_rates2, n_obs, n_f1, n_f2, catalog, alpha=0.05):
+def _binary_t_test_ndarray(target_event_rates1, target_event_rates2, n_obs, n_f1, n_f2, catalog, alpha=0.05):
     """ 
     Computes binary T test statistic by comparing two target event rate distributions.
 
@@ -316,7 +316,6 @@ def matrix_binary_t_test(target_event_rates1, target_event_rates2, n_obs, n_f1, 
     N2 = n_f2  
     X1 = numpy.log(target_event_rates1)  # Log of every element of Forecast 1
     X2 = numpy.log(target_event_rates2)  # Log of every element of Forecast 2
-    
 
     # Information Gain, using Equation (17)  of Rhoades et al. 2011
     information_gain = (numpy.sum(X1 - X2) - (N1 - N2)) / N
@@ -371,13 +370,18 @@ def binary_paired_t_test(forecast, benchmark_forecast, observed_catalog, alpha=0
     target_event_rate_forecast2p, n_fore2 = benchmark_forecast.target_event_rates(observed_catalog, scale=scale)
     
     target_event_rate_forecast1 = forecast.data.ravel()[np.unique(np.nonzero(observed_catalog.spatial_magnitude_counts().ravel()))]
-    target_event_rate_forecast2 = benchmark_forecast.data.ravel()[np.unique(np.nonzero(observed_catalog.spatial_magnitude_counts().
-    ravel()))]
+    target_event_rate_forecast2 = benchmark_forecast.data.ravel()[np.unique(np.nonzero(observed_catalog.spatial_magnitude_counts().ravel()))]
 
     # call the primative version operating on ndarray
-    out = _t_test_ndarray_bi(target_event_rate_forecast1, target_event_rate_forecast2, observed_catalog.event_count, n_fore1, n_fore2, #todo fix or add func
-                          observed_catalog,
-                          alpha=alpha)
+    out = _binary_t_test_ndarray(
+        target_event_rate_forecast1,
+        target_event_rate_forecast2,
+        observed_catalog.event_count,
+        n_fore1,
+        n_fore2,
+        observed_catalog,
+        alpha=alpha
+    )
 
     # storing this for later
     result = EvaluationResult()
@@ -391,27 +395,25 @@ def binary_paired_t_test(forecast, benchmark_forecast, observed_catalog, alpha=0
     result.min_mw = np.min(forecast.magnitudes)
     return result            
 
+
 def log_likelihood_point_process(observation, forecast, cell_area):
     """
     Log-likelihood for point process
 
     """
-    forecast_density = forecast/cell_area.reshape(-1,1) 
+    forecast_density = forecast / cell_area.reshape(-1,1)
     observation = observation.ravel()
     forecast_density = forecast_density.ravel()
     obs = observation[observation>0]
     fcst = forecast_density[observation>0]
     rate_density = []
     for i in range(len(obs)):
-
             counter = obs[i]
             while counter > 0:
-
                 rate_density = numpy.append(rate_density, fcst[i])
                 counter = counter-1
     ll = numpy.sum(numpy.log(rate_density)) - sum(forecast)
     return ll[0] #To get a scalar value instead of array
-
 
 
 def _standard_deviation(gridded_forecast1, gridded_forecast2, gridded_observation1, gridded_observation2, cell_area1, cell_area2):
@@ -476,8 +478,7 @@ def _standard_deviation(gridded_forecast1, gridded_forecast2, gridded_observatio
     return forecast_variance
 
 
-#Function for T test based on Point process LL
-def paired_ttest_point_process(forecast,benchmark_forecast, observed_catalog, alpha=0.05):
+def paired_ttest_point_process(forecast, benchmark_forecast, observed_catalog, alpha=0.05):
         """
         Function for T test based on Point process LL.
         Works for comparing forecasts for different grids
@@ -493,17 +494,18 @@ def paired_ttest_point_process(forecast,benchmark_forecast, observed_catalog, al
             evaluation_result: csep.core.evaluations.EvaluationResult
         """
 
-        
-        gridded_forecast1 = forecast.data 
-        
-        gridded_observation1 = forecast.region._get_spatial_magnitude_counts(observed_catalog)
-        cell_area1 = forecast.region.cell_area
+        gridded_forecast1 = numpy.array(forecast.data)
+
+        observed_catalog.region = forecast.region
+
+        gridded_observation1 = forecast.region._get_spatial_magnitude_counts(observed_catalog, mag_bins=forecast.magnitudes)
+        cell_area1 = numpy.array(forecast.region.cell_area)
         ll1 = log_likelihood_point_process(gridded_observation1, gridded_forecast1, cell_area1)
         
         #Forecast 2
-        gridded_forecast2 = benchmark_forecast.data
-        gridded_observation2 = benchmark_forecast.region._get_spatial_magnitude_counts(observed_catalog)
-        cell_area2 = benchmark_forecast.region.cell_area
+        gridded_forecast2 = numpy.array(benchmark_forecast.data)
+        gridded_observation2 = benchmark_forecast.region._get_spatial_magnitude_counts(observed_catalog, mag_bins=forecast.magnitudes)
+        cell_area2 = numpy.array(benchmark_forecast.region.cell_area)
         ll2 = log_likelihood_point_process(gridded_observation2, gridded_forecast2, cell_area2)
 
         assert numpy.sum(gridded_observation1) == numpy.sum(gridded_observation2), 'Sum of Gridded Catalog is not same'
