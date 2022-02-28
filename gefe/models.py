@@ -5,26 +5,16 @@ import json
 import six
 from collections.abc import Iterable
 
-from csep import GriddedForecast
-from matplotlib import pyplot
 import yaml
+from matplotlib import pyplot
 
-import csep.core.poisson_evaluations as poisson
+from csep import GriddedForecast
+from csep.models import EvaluationResult
 from csep.utils.calc import cleaner_range
 from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
-from csep.models import EvaluationResult
 
-import gefe.evaluations as evaluations
-
-TEST_TYPE = {poisson.number_test: 'consistency',
-             poisson.magnitude_test: 'consistency',
-             poisson.spatial_test: 'consistency',
-             poisson.likelihood_test: 'consistency',
-             poisson.conditional_likelihood_test: 'consistency',
-             poisson.paired_t_test: 'comparative',
-             poisson.w_test: 'comparative',
-             evaluations.binary_paired_t_test: 'comparative'}
+from gefe.utils import MarkdownReport
 
 class Model:
     def __init__(self, name, path, func, func_args, authors=None, doi=None, markdown=None):
@@ -58,7 +48,7 @@ class Model:
         :return: A pycsep.core.forecasts.GriddedForecast object
         """
 
-        time_horizon = decimal_year(test_date + datetime.timedelta(1)) - decimal_year(start_date)
+        time_horizon = decimal_year(test_date) - decimal_year(start_date)
         print(f"Loading model from {self.path}...")
         rates, region, mws = self.func(self.path)
         forecast = GriddedForecast(
@@ -109,6 +99,7 @@ class Test:
         self.ref_model = ref_model
         self.model = model
         self.path = path
+        self.markdown = markdown
 
     def compute(self):
         print(f"Computing {self.name} for model {self.model.name}...")
@@ -183,7 +174,7 @@ class Experiment:
             'catalog': any(file for file in files['catalog']),
             'evaluations': {
                 test: {
-                    model: any(f'{test}_{model}' in file for file in files['evaluations'])
+                    model: any(f'{test}_{model}.json' in file for file in files['evaluations'])
                     for model in models
                 }
                 for test in tests
@@ -195,7 +186,7 @@ class Experiment:
             'catalog': os.path.join(folder_paths['catalog'], 'catalog.json'),
             'evaluations': {
                 test: {
-                    model: os.path.join(folder_paths['evaluations'], f'{test}_{model}')
+                    model: os.path.join(folder_paths['evaluations'], f'{test}_{model}.json')
                     for model in models
                 }
                 for test in tests
@@ -360,6 +351,55 @@ class Experiment:
             test.plot_func(test_result, plot_args=test.plot_args, **test.plot_kwargs)
             pyplot.savefig(file_paths['figures'][test.name], dpi=dpi)
             pyplot.show()
+
+    def generate_report(self):
+        report = MarkdownReport()
+        report.add_title(
+            "Global Earthquake Forecasting Experiment -- Quadtree",
+            "The RISE (Real-time earthquake rIsk reduction for a reSilient Europe, "
+            "[http://www.rise-eu.org/](http://www.rise-eu.org/) research group in collaboration "
+            "with CSEP (Collaboratory for the Study of Earthquake Predictability, "
+            "[https://cseptesting.org/](https://cseptesting.org/) is conducting a global "
+            "earthquake forecast experiments using multi-resolution grids implemented as a quadtree."
+        )
+        report.add_heading("Objectives", level=2)
+        objs = [
+            "Describe the predictive skills of posited hypothesis about seismogenesis with earthquakes of "
+            "M5.95+ independent observations around the globe.",
+            "Identify the methods and geophysical datasets that lead to the highest information gains in "
+            "global earthquake forecasting.",
+            "Test earthquake forecast models on different grid settings.",
+            "Use Quadtree based grid to represent and evaluate earthquake forecasts."
+        ]
+        report.add_list(objs)
+        # Generate plot of the catalog
+        if self.catalog is not None:
+            figure_path = os.path.splitext(self.target_paths['catalog'])[0]
+            # relative to top-level directory
+            ax =self.catalog.plot(plot_args={
+                'figsize': (12, 8),
+                'markersize': 8,
+                'markercolor': 'black',
+                'grid_fontsize': 16,
+                'title': '',
+                'legend': False
+            })
+            ax.get_figure().tight_layout()
+            ax.get_figure().savefig(f"{figure_path}.png")
+            report.add_figure(
+                f"ISC gCMT Authoritative Catalog",
+                figure_path.replace(self.run_folder, '.'),
+                level=2,
+                caption="The authoritative evaluation data is the full Global CMT catalog (Ekström et al. 2012). "
+                        "We confine the hypocentral depths of earthquakes in training and testing datasets to a "
+                       f"maximum of 70km. The plot shows the catalog for the testing period which ranges from "
+                       f"{self.start_date} until {self.test_date}. "
+                       f"Earthquakes are filtered above Mw {self.magnitude_range.min()}. "
+                        "Black circles depict individual earthquakes with its radius proportional to the magnitude.",
+                add_ext = True
+            )
+        report.table_of_contents()
+        report.save(self.run_folder)
 
     def to_dict(self):
         out = {}

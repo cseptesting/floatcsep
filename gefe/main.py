@@ -71,3 +71,6 @@ def run(test_date_string):
 
     # 4. Plot results
     exp.plot_results(run_results)
+
+    # 4.1 Generate report
+    exp.generate_report()
