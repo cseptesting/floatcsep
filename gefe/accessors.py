@@ -10,7 +10,7 @@ HOST = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
 TIMEOUT = 180
 
 
-def query_isc_gcmt(start_datetime, end_datetime, min_mw, cat_id, max_mw=None, verbose=False):
+def query_isc_gcmt(start_datetime, end_datetime, min_mw, cat_id=None, max_mw=None, verbose=False):
 
     events, creation_time = _query_isc_gcmt(start_year=start_datetime.year,
                                             start_month=start_datetime.month,

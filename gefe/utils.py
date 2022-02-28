@@ -16,7 +16,7 @@ from csep.core.regions import QuadtreeGrid2D, geographical_area_from_bounds
 
 
 def plot_matrix_comparative_test(evaluation_results, plot_args=None):
-    """ Produces matrix plot for comparative tests for all forecasts
+    """ Produces matrix plot for comparative tests for all models
 
         Args:
             evaluation_results (list of result objects): paired t-test results
@@ -44,7 +44,7 @@ def plot_binary_consistency_test(evaluation_result, plot_args=None):
 
 
 def global_region(dh=0.1, name="global", magnitudes=None):
-    """ Creates a global region used for evaluating gridded forecasts on the global scale.
+    """ Creates a global region used for evaluating gridded models on the global scale.
 
     Modified from csep.core.regions.global_region
 
@@ -70,7 +70,7 @@ def global_region(dh=0.1, name="global", magnitudes=None):
 def resample_block_model(model_path, resample_path, k):
     """
 
-    Creates a resampled version of a model for code testing purposes
+    Creates a resampled version of a model for gefe testing purposes
 
     :param model_path: Original model
     :param resample_path: Path to resampled model
@@ -112,7 +112,7 @@ def resample_models(k=20):
 
 
     """
-    Resamples all forecast to low resolution for code testing purposes
+    Resamples all forecast to low resolution for gefe testing purposes
 
     :param k: resample factor
     :return:
@@ -177,7 +177,8 @@ def prepare_forecast(model_path, time_horizon, dh=0.1, name=None, **kwargs):
 
     if name is None:                                                        # Get name from file if none is provided
         name = model_path.split('_csep.txt')[0].split('/')[-1]
-
+    start_date = kwargs.get('start_date')
+    end_date = kwargs.get('end_date')
     print(f'Loading Forecast {name}')
 
     db = pandas.read_csv(model_path, header=0, sep=' ', escapechar='#')
@@ -188,7 +189,8 @@ def prepare_forecast(model_path, time_horizon, dh=0.1, name=None, **kwargs):
     region = global_region(dh)             #todo: Hard coded here, but should be eventually able to read the region? e.g test italy using gear
     rates = data[:, 6:]
 
-    forecast = GriddedForecast(data=rates, region=region, magnitudes=magnitudes, name=name, **kwargs)
+    forecast = GriddedForecast(data=rates, region=region, magnitudes=magnitudes, name=name,
+                               start_time=start_date, end_time=end_date)
     forecast.scale(time_horizon)
     print(f'\t Total {forecast.event_count:.4f} events forecasted in {time_horizon:.2f} years')
 
@@ -209,7 +211,7 @@ def quadtree_csv_loader(csv_fname):
             csv_fname: file name of csep forecast in csv format
         Returns:
             rates, region, mws (numpy.ndarray, QuadtreeRegion2D, numpy.ndarray): rates, region, and magnitude bins needed
-                                                                                 to define QuadTree forecasts
+                                                                                 to define QuadTree models
      """
 
     data = numpy.genfromtxt(csv_fname, dtype='str', delimiter=',')
@@ -218,21 +220,9 @@ def quadtree_csv_loader(csv_fname):
     rates = data[1:, 3:]
     rates = rates.astype(float)
     region = QuadtreeGrid2D.from_quadkeys(quadkeys, magnitudes=mws)
+    region.get_cell_area()
 
     return rates, region, mws
-
-
-def aggregate_quadtree_forecast(cart_forecast, quadtree_region):
-    """ Aggregates conventional forecast onto quadtree region
-
-        Args:
-            cart_forecast (GriddedForecast): gridded forecast with regular grid
-            quadtree_region (QuadtreeRegion2D): desired quadtree region
-
-        Returns:
-            qt_forecast (GriddedForecast): gridded forecast on quadtree grid
-    """
-    pass
 
 
 def geographical_area_from_qk(quadk):
@@ -282,7 +272,7 @@ def _map_overlapping_cells(fcst_grid_poly, fcst_cell_area, fcst_rate_poly, targe
     This functions work for Cells that do not directly conside with target polygon cells
     This function uses 3 variables, i.e. fcst_grid_poly, fcst_cell_area, fcst_rate_poly
 
-    This function takes 1 target polygon, upon which forecasts are to be mapped. Finds all the cells of forecast grid that
+    This function takes 1 target polygon, upon which models are to be mapped. Finds all the cells of forecast grid that
     match with this polygon and then maps the forecast rate of those cells according to area.
 
     fcst_grid_polygon (variable in memory): The grid that needs to be mapped on target_poly
@@ -432,7 +422,7 @@ def forecast_plot(qtree_forecast):
     """
     Currently, only a single-resolution plotting capability is available. So we aggregate multi-resolution forecast on a single-resolution grid and then plot it
     
-    Args: csep.core.forecasts.GriddedForecast
+    Args: csep.core.models.GriddedForecast
     
     Returns: class:`matplotlib.pyplot.ax` object
     """
