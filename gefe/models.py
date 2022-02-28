@@ -273,9 +273,10 @@ class Experiment:
             # Quadtree rules require that forecasts and catalogs are within lats = [-85.0, 85.0]
             # todo: min/max lat should be set in config.py
             catalog = catalog.filter([
-                'latitude > -85.0',
-                'latitude < 85.0'
+                'latitude > -85.05',
+                'latitude < 85.05'
             ])
+            catalog = catalog.filter('depth < 70')
             self.set_catalog(catalog)
         return catalog
 
