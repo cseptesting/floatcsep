@@ -6,7 +6,7 @@ if __name__ == "__main__":
 
     # parse command line arguments
     if len(sys.argv) == 1:
-        print('Usage: python run_experiment <test_date> [run_name]')
+        print('Usage: python run_experiment <test_date>')
         print("\ttest_date (required) : format='%Y-%m-%dT%H:%M:%S'")
         sys.exit(-1)
 

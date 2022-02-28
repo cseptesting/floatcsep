@@ -60,7 +60,7 @@ class Model:
             end_time=test_date
         )
         forecast = forecast.scale(time_horizon)
-        print(f"Expected forecast count after scaling: {forecast.event_count}")
+        print(f"Expected forecast count after scaling: {forecast.event_count} with parameter {time_horizon}.")
         self.forecasts[test_date] = forecast
         return forecast
 
@@ -77,8 +77,8 @@ class Test:
     """
 
     """
-    def __init__(self, name, func,
-        func_args=None, func_kwargs=None, plot_func=None, plot_args=None, plot_kwargs=None, model=None, ref_model=None, path=None):
+    def __init__(self, name, func, markdown='', func_args=None, func_kwargs=None, plot_func=None,
+                 plot_args=None, plot_kwargs=None, model=None, ref_model=None, path=None):
         """
 
         :param name:
@@ -338,7 +338,7 @@ class Experiment:
             test_results.append(model_eval)
         return test_results
 
-    def plot_results(self, run_results, file_paths=None, dpi=300):
+    def plot_results(self, run_results, file_paths=None, dpi=300, show=False):
         """ plots test results
         :param run_results: defaultdict(list) where keys are the test name
         :param file_paths: figure path for each test result
@@ -350,7 +350,8 @@ class Experiment:
             test_result = run_results[test.name]
             test.plot_func(test_result, plot_args=test.plot_args, **test.plot_kwargs)
             pyplot.savefig(file_paths['figures'][test.name], dpi=dpi)
-            pyplot.show()
+            if show:
+                pyplot.show()
 
     def generate_report(self):
         report = MarkdownReport()
@@ -398,6 +399,26 @@ class Experiment:
                         "Black circles depict individual earthquakes with its radius proportional to the magnitude.",
                 add_ext = True
             )
+        report.add_heading(
+            "Results",
+            level=2,
+            text="We apply the following tests to each of the forecasts considered in this experiment. "
+                 "More information regarding the tests can be found [here](https://docs.cseptesting.org/getting_started/theory.html)."
+            )
+        test_names = [test.name for test in self.tests]
+        report.add_list(test_names)
+
+        # Include results from Experiment
+        for test in self.tests:
+            fig_path = self.target_paths['figures'][test.name]
+            report.add_figure(
+                f"{test.name}",
+                fig_path.replace(self.run_folder, '.'),
+                level=3,
+                caption=test.markdown,
+                add_ext=True
+            )
+
         report.table_of_contents()
         report.save(self.run_folder)
 

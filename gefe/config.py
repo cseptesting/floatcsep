@@ -16,55 +16,56 @@ from gefe.models import (
     Model
 )
 
-pyplot.rcParams.update({'font.family': 'Ubuntu',
-                        'axes.labelweight': 'bold',
-                        'axes.titlesize': 20
-                        })
+pyplot.rcParams.update({
+    'axes.labelweight': 'bold',
+    'axes.titlesize': 20
+})
+
 # Experiment configuration below here:
 ######################################
 
-expected_forecasts = {
-                        'WHEEL=N10L11': './models/WHEEL=N10L11.csv',
-                        'GEAR1=N10L11': './models/GEAR1=N10L11.csv',
-                        'KJSS=N10L11': './models/KJSS=N10L11.csv',
-                        'TEAM=N10L11': './models/TEAM=N10L11.csv',
-                        'SHIFT2F_GSRM=N10L11': './models/SHIFT2F_GSRM=N10L11.csv',
-                        'WHEEL=N25L11': './models/WHEEL=N25L11.csv',
-                        'GEAR1=N25L11': './models/GEAR1=N25L11.csv',
-                        'KJSS=N25L11': './models/KJSS=N25L11.csv',
-                        'TEAM=N25L11': './models/TEAM=N25L11.csv',
-                        'SHIFT2F_GSRM=N25L11': './models/SHIFT2F_GSRM=N25L11.csv',
-                        'WHEEL=N50L11': './models/WHEEL=N50L11.csv',
-                        'GEAR1=N50L11': './models/GEAR1=N50L11.csv',
-                        'KJSS=N50L11': './models/KJSS=N50L11.csv',
-                        'TEAM=N50L11': './models/TEAM=N50L11.csv',
-                        'SHIFT2F_GSRM=N50L11': './models/SHIFT2F_GSRM=N50L11.csv',
-                        'WHEEL=N100L11': './models/WHEEL=N100L11.csv',
-                        'GEAR1=N100L11': './models/GEAR1=N100L11.csv',
-                        'KJSS=N100L11': './models/KJSS=N100L11.csv',
-                        'TEAM=N100L11': './models/TEAM=N100L11.csv',
-                        'SHIFT2F_GSRM=N100L11': './models/SHIFT2F_GSRM=N100L11.csv',
-                        'WHEEL=SN10L11': './models/WHEEL=SN10L11.csv',
-                        'GEAR1=SN10L11': './models/GEAR1=SN10L11.csv',
-                        'KJSS=SN10L11': './models/KJSS=SN10L11.csv',
-                        'TEAM=SN10L11': './models/TEAM=SN10L11.csv',
-                        'SHIFT2F_GSRM=SN10L11': './models/SHIFT2F_GSRM=SN10L11.csv',
-                        'WHEEL=SN25L11': './models/WHEEL=SN25L11.csv',
-                        'GEAR1=SN25L11': './models/GEAR1=SN25L11.csv',
-                        'KJSS=SN25L11': './models/KJSS=SN25L11.csv',
-                        'TEAM=SN25L11': './models/TEAM=SN25L11.csv',
-                        'SHIFT2F_GSRM=SN25L11': './models/SHIFT2F_GSRM=SN25L11.csv',
-                        'WHEEL=SN50L11': './models/WHEEL=SN50L11.csv',
-                        'GEAR1=SN50L11': './models/GEAR1=SN50L11.csv',
-                        'KJSS=SN50L11': './models/KJSS=SN50L11.csv',
-                        'TEAM=SN50L11': './models/TEAM=SN50L11.csv',
-                        'SHIFT2F_GSRM=SN50L11': './models/SHIFT2F_GSRM=SN50L11.csv',
-                        'WHEEL=SN100L11': './models/WHEEL=SN100L11.csv',
-                        'GEAR1=SN100L11': './models/GEAR1=SN100L11.csv',
-                        'KJSS=SN100L11': './models/KJSS=SN100L11.csv',
-                        'TEAM=SN100L11': './models/TEAM=SN100L11.csv',
-                        'SHIFT2F_GSRM=SN100L11': './models/SHIFT2F_GSRM=SN100L11.csv',
-                    }
+expected_models = {
+    'WHEEL=N10L11': './models/WHEEL=N10L11.csv',
+    'GEAR1=N10L11': './models/GEAR1=N10L11.csv',
+    'KJSS=N10L11': './models/KJSS=N10L11.csv',
+    'TEAM=N10L11': './models/TEAM=N10L11.csv',
+    'SHIFT2F_GSRM=N10L11': './models/SHIFT2F_GSRM=N10L11.csv',
+    'WHEEL=N25L11': './models/WHEEL=N25L11.csv',
+    'GEAR1=N25L11': './models/GEAR1=N25L11.csv',
+    'KJSS=N25L11': './models/KJSS=N25L11.csv',
+    'TEAM=N25L11': './models/TEAM=N25L11.csv',
+    'SHIFT2F_GSRM=N25L11': './models/SHIFT2F_GSRM=N25L11.csv',
+    'WHEEL=N50L11': './models/WHEEL=N50L11.csv',
+    'GEAR1=N50L11': './models/GEAR1=N50L11.csv',
+    'KJSS=N50L11': './models/KJSS=N50L11.csv',
+    'TEAM=N50L11': './models/TEAM=N50L11.csv',
+    'SHIFT2F_GSRM=N50L11': './models/SHIFT2F_GSRM=N50L11.csv',
+    'WHEEL=N100L11': './models/WHEEL=N100L11.csv',
+    'GEAR1=N100L11': './models/GEAR1=N100L11.csv',
+    'KJSS=N100L11': './models/KJSS=N100L11.csv',
+    'TEAM=N100L11': './models/TEAM=N100L11.csv',
+    'SHIFT2F_GSRM=N100L11': './models/SHIFT2F_GSRM=N100L11.csv',
+    'WHEEL=SN10L11': './models/WHEEL=SN10L11.csv',
+    'GEAR1=SN10L11': './models/GEAR1=SN10L11.csv',
+    'KJSS=SN10L11': './models/KJSS=SN10L11.csv',
+    'TEAM=SN10L11': './models/TEAM=SN10L11.csv',
+    'SHIFT2F_GSRM=SN10L11': './models/SHIFT2F_GSRM=SN10L11.csv',
+    'WHEEL=SN25L11': './models/WHEEL=SN25L11.csv',
+    'GEAR1=SN25L11': './models/GEAR1=SN25L11.csv',
+    'KJSS=SN25L11': './models/KJSS=SN25L11.csv',
+    'TEAM=SN25L11': './models/TEAM=SN25L11.csv',
+    'SHIFT2F_GSRM=SN25L11': './models/SHIFT2F_GSRM=SN25L11.csv',
+    'WHEEL=SN50L11': './models/WHEEL=SN50L11.csv',
+    'GEAR1=SN50L11': './models/GEAR1=SN50L11.csv',
+    'KJSS=SN50L11': './models/KJSS=SN50L11.csv',
+    'TEAM=SN50L11': './models/TEAM=SN50L11.csv',
+    'SHIFT2F_GSRM=SN50L11': './models/SHIFT2F_GSRM=SN50L11.csv',
+    'WHEEL=SN100L11': './models/WHEEL=SN100L11.csv',
+    'GEAR1=SN100L11': './models/GEAR1=SN100L11.csv',
+    'KJSS=SN100L11': './models/KJSS=SN100L11.csv',
+    'TEAM=SN100L11': './models/TEAM=SN100L11.csv',
+    'SHIFT2F_GSRM=SN100L11': './models/SHIFT2F_GSRM=SN100L11.csv',
+}
 
 # Create the experiment configuration parameters
 start_date = datetime.datetime(2018, 1, 1, 0, 0, 0)
@@ -81,8 +82,7 @@ exp.set_catalog_reader(query_isc_gcmt)
 exp.set_magnitude_range(5.95, 8.95, 0.1)
 
 # Set the tests
-# todo: add default plotting arguments to call normalize=True for consistency tests
-# todo: we don't want to call show in plots
+# todo: finish markdown template strings for each test
 exp.set_tests([
     Test(
         name='Poisson_N',
@@ -95,7 +95,8 @@ exp.set_tests([
                    'xlabel': 'Number of events',
                    'linewidth': 0.7,
                    'capsize': 2},
-        plot_kwargs={'normalize': True}
+        plot_kwargs={'normalize': True},
+        markdown='Placeholder text for N-Test. Please complete me.'
     ),
     Test(
         name='Poisson_M',
@@ -108,7 +109,8 @@ exp.set_tests([
                    'xlabel': 'Log-likelihood',
                    'linewidth': 0.7, 'capsize': 2},
         plot_kwargs={'normalize': True,
-                     'one_sided_lower': True}
+                     'one_sided_lower': True},
+        markdown='Placeholder text for M-Test. Please complete me.'
     ),
     Test(
         name='Poisson_S',
@@ -122,7 +124,8 @@ exp.set_tests([
                    'linewidth': 0.7,
                    'capsize': 2},
         plot_kwargs={'normalize': True,
-                     'one_sided_lower': True}
+                     'one_sided_lower': True},
+        markdown='Placeholder text for S-Test. Please complete me.'
     ),
     Test(name='Poisson_CL',
          func=poisson.conditional_likelihood_test,
@@ -135,7 +138,8 @@ exp.set_tests([
                     'linewidth': 0.7,
                     'capsize': 2},
          plot_kwargs={'normalize': True,
-                      'one_sided_lower': True}
+                      'one_sided_lower': True},
+         markdown='Placeholder text for S-Test. Please complete me.'
          ),
     Test(name='Poisson_T',
          func=evaluations.paired_ttest_point_process,
@@ -150,13 +154,12 @@ exp.set_tests([
                     'xlabel': '',
                     'linewidth': 1.2,
                     'capsize': 2,
-                    'markersize': 3})
+                    'markersize': 3},
+         markdown='Placeholder text for T-Test. Please complete me.'
+    )
 ])
 
 # Set the models
-exp.set_models([Model(name=name,
-                      path=path,
-                      func=quadtree_csv_loader,
-                      func_args=None)
-                for name, path in expected_forecasts.items()]
-               )
+exp.set_models(
+    [Model(name=name, path=path, func=quadtree_csv_loader, func_args=None) for name, path in expected_models.items()]
+)
