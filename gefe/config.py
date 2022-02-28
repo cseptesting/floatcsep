@@ -68,12 +68,12 @@ expected_models = {
 }
 
 # Create the experiment configuration parameters
-start_date = datetime.datetime(2018, 1, 1, 0, 0, 0)
+start_date = datetime.datetime(2014, 1, 1, 0, 0, 0)
 end_date = datetime.datetime(2022, 1, 1, 0, 0, 0)
 
 default_test_kwargs = {
     'seed': 23,
-    'num_simulations': 10
+    'num_simulations': 10000
 }
 
 # Initialize
@@ -112,9 +112,9 @@ exp.set_tests([
                    'linewidth': 0.7, 'capsize': 2},
         plot_kwargs={'normalize': True,
                      'one_sided_lower': True},
-        markdown='The results of M-test from {start_date} to {end_date}. '
-                 'The test evaluates the magnitude distribution of the forecasts. '
-                 'The (green) boxes inside the confidence interval indicate the models passing M-Test.'
+        markdown=f'The results of M-test from {start_date} to {end_date}. '
+                 f'The test evaluates the magnitude distribution of the forecasts. '
+                 f'The (green) boxes inside the confidence interval indicate the models passing M-Test.'
     ),
     Test(
         name='Poisson_S',
@@ -129,9 +129,9 @@ exp.set_tests([
                    'capsize': 2},
         plot_kwargs={'normalize': True,
                      'one_sided_lower': True},
-        markdown='The results of S-test from {start_date} to {end_date}. '
-                 'The test evaluates the spatial distribution of the forecasts. '
-                 'The (red) boxes lagging behind the confidence interval indicate the models failing to pass S-Test.'
+        markdown=f'The results of S-test from {start_date} to {end_date}. '
+                 f'The test evaluates the spatial distribution of the forecasts. '
+                 f'The (red) boxes lagging behind the confidence interval indicate the models failing to pass S-Test.'
     ),
     Test(name='Poisson_CL',
          func=poisson.conditional_likelihood_test,
