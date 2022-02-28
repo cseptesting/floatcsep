@@ -4,9 +4,7 @@
 
 * [Installing computational environment](installing-computational-environment)
 * [Retrieve models](retrieve-models)
-* [Downsampling](downsampling)
-* [Run tests](tests)
-* [Run preliminary experiment](run)
+* [Run experiment](run-experiment)
 
 
 ## Installing computational environment
@@ -24,19 +22,20 @@ Installs pyCSEP and other dependencies to run the experiment. See `environment.y
 
 ## Retrieve Models
 
-### Manually from GFZ Gitlab repository
+Models are contained within this repository. No extra steps are needed. Forecasts are from the models
+each time the experiment is computed. Since models are time-independent, forecasts are simply scaled to the 
+appropriate time-horizon for the forecast.
+
+## Run experiment
+From the top-level directory type:  
 ```
-sh get_models_from_git.sh
+python run_experiment.py <test_date>
+```
+Usage:
+```
+python run_experiment <test_date>  
+    test_date (required) : format='%Y-%m-%dT%H:%M:%S'
 ```
 
-## Downsampling models for development
-
-Run the function `gefe.utils.resample_models()` to get a low size version of the models
-```python
-from gefe.utils import resample_models
-resample_models()
-```
-
-## Run tests
-
-Run the script `code/tests.py` (i) Check the catalog query, plots the catalog (ii) Check the model exists and plots (iii) Checks the downsampled forecast version and plots.
+A runtime directory will be created in the `results` folder with the test date as the name. The results from this 
+run of the experiment are contained in `readme.md`.
