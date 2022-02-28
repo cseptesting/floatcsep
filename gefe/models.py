@@ -1,8 +1,8 @@
 import copy
 import os
-import six
-import json
 import datetime
+import json
+import six
 from collections.abc import Iterable
 
 import yaml
@@ -78,7 +78,7 @@ class Test:
 
     """
     def __init__(self, name, func,
-        func_args=None, func_kwargs=None, plot_func=None, plot_args=None, model=None, ref_model=None, path=None, markdown=None):
+        func_args=None, func_kwargs=None, plot_func=None, plot_args=None, plot_kwargs=None, model=None, ref_model=None, path=None):
         """
 
         :param name:
@@ -94,7 +94,8 @@ class Test:
         self.func_kwargs = func_kwargs      # todo Set default args?
         self.func_args = func_args
         self.plot_func = plot_func          # todo Should this function be assigned, the same way as TEST_TYPE???? (see line 8)
-        self.plot_args = plot_args          # todo default args?
+        self.plot_args = plot_args or {}        # todo default args?
+        self.plot_kwargs = plot_kwargs or {}
         self.ref_model = ref_model
         self.model = model
         self.path = path
@@ -347,7 +348,7 @@ class Experiment:
             file_paths = self.target_paths
         for test in self.tests:
             test_result = run_results[test.name]
-            test.plot_func(test_result, plot_args=test.plot_args or {})
+            test.plot_func(test_result, plot_args=test.plot_args, **test.plot_kwargs)
             pyplot.savefig(file_paths['figures'][test.name], dpi=dpi)
             pyplot.show()
 
