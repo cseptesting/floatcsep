@@ -5,8 +5,13 @@ from csep.utils.time_utils import datetime_to_utc_epoch
 from csep.core.catalogs import CSEPCatalog
 import xml.etree.ElementTree as ET
 import time
+import requests
+import hashlib
+import argparse
+import os
+import sys
 
-HOST = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
+HOST_CATALOG = "https://www.isc.ac.uk/cgi-bin/web-db-run?"
 TIMEOUT = 180
 
 
@@ -95,7 +100,7 @@ def _search_isc_gcmt(**newargs):
 
     """
     paramstr = urlencode(newargs)
-    url = HOST + paramstr
+    url = HOST_CATALOG + paramstr
     try:
         fh = request.urlopen(url, timeout=TIMEOUT)
         data = fh.read().decode('utf8')
@@ -142,17 +147,71 @@ def _parse_isc_event(node, ns, mag_author='GCMT'):
     return (id_, dtime, float(lat), float(lon), float(depth) / 1000., float(mag))
 
 
-def download_from_zenodo(resource_id):
-    """ Downloads file from Zenodo and returns checksum for each file
+def _download_file(url, filename):
+    progress_bar_length = 72
+    block_size = 1024
+    with requests.head(url) as h:
+        try:
+            total_size = int(h.headers.get('Content-Length', 0))
 
-        Note: Returns here should be a list even if one object is found
+        except TypeError:
+            total_size = None
+    download_size = 0
+    if total_size:
+        print(f'Downloading file with size of {total_size / block_size:.3f} kB')
+    else:
+        print(f'Downloading file with unknown size')
+    r = requests.get(url, stream=True)
+    with open(filename, 'wb') as f:
+        for data in r.iter_content(chunk_size=block_size):
+            download_size += len(data)
+            f.write(data)
+            if total_size:
+                progress = int(progress_bar_length*download_size/total_size)
+                sys.stdout.write('\r[{}{}] {:.1f}%'.format('█'*progress, '.' * (progress_bar_length-progress),
+                    100*download_size/total_size))
+                sys.stdout.flush()
+        sys.stdout.write('\n')
 
-        Args:
-            resource_id (int): resource id from zenodo
 
-        Returns:
-            checksum (string): md5 checksum from model
-    """
-    pass
+def _check_hash(filename, checksum):
+    algorithm, value = checksum.split(':')
+    if not os.path.exists(filename):
+        return value, 'invalid'
+    h = hashlib.new(algorithm)
+    with open(filename, 'rb') as f:
+        while True:
+            data = f.read(4096)
+            if not data:
+                break
+            h.update(data)
+    digest = h.hexdigest()
+    return value, digest
 
+
+def download_from_zenodo(record_id, folder):
+
+    # Grab the urls and filenames and checksums
+    r = requests.get(f"https://zenodo.org/api/records/{record_id}")
+    download_urls = [f['links']['self'] for f in r.json()['files']]
+    filenames = [(f['key'], f['checksum']) for f in r.json()['files']]
+
+    # Download and verify checksums
+    for (fname, checksum), url in zip(filenames, download_urls):
+        full_path = os.path.join(folder, fname)
+        if os.path.exists(full_path):
+            value, digest = _check_hash(full_path, checksum)
+            if value != digest:
+                print(f"Checksum is different: re-downloading {fname} from Zenodo...")
+                _download_file(url, full_path)
+            else:
+                print(f'Found file {fname}. Checksum OK.')
+
+        else:
+            print(f"Downloading {fname} from Zenodo...")
+            _download_file(url, full_path)
+        value, digest = _check_hash(full_path, checksum)
+        if value != digest:
+            print("Error: Checksum does not match")
+            sys.exit(-1)
 
