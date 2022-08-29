@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 from csep.utils.time_utils import datetime_to_utc_epoch
 from csep.core.catalogs import CSEPCatalog
 import xml.etree.ElementTree as ET
+from git import Repo, InvalidGitRepositoryError, NoSuchPathError
 import time
 import requests
 import hashlib
@@ -193,7 +194,7 @@ def _check_hash(filename, checksum):
     return value, digest
 
 
-def download_from_zenodo(record_id, folder, force=False):
+def from_zenodo(record_id, folder, force=False):
     """
     Download data from a Zenodo repository.
     Downloads if file does not exist, checksum has changed in local respect to url
@@ -232,4 +233,14 @@ def download_from_zenodo(record_id, folder, force=False):
         if value != digest:
             print("Error: Checksum does not match")
             sys.exit(-1)
+
+def from_git(url, path, branch=None, force=False):
+
+    try:
+        repo = Repo(path)
+    except (NoSuchPathError, InvalidGitRepositoryError):
+        repo = Repo.clone_from(url, path, branch=branch)
+
+    return repo
+
 
