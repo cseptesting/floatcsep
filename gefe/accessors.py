@@ -7,7 +7,6 @@ import xml.etree.ElementTree as ET
 import time
 import requests
 import hashlib
-import argparse
 import os
 import sys
 
@@ -152,12 +151,13 @@ def _download_file(url, filename):
     block_size = 1024
 
     r = requests.get(url, stream=True)
-    if r.headers.get('content-length', False):
+    total_size = r.headers.get('content-length', False)
+    if not total_size:
         with requests.head(url) as h:
             try:
                 total_size = int(h.headers.get('Content-Length', 0))
             except TypeError:
-                total_size = None
+                total_size = 0
     download_size = 0
     if total_size:
         print(f'Downloading file with size of {total_size / block_size:.3f} kB')
