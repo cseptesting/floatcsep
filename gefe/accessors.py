@@ -150,18 +150,19 @@ def _parse_isc_event(node, ns, mag_author='GCMT'):
 def _download_file(url, filename):
     progress_bar_length = 72
     block_size = 1024
-    with requests.head(url) as h:
-        try:
-            total_size = int(h.headers.get('Content-Length', 0))
 
-        except TypeError:
-            total_size = None
+    r = requests.get(url, stream=True)
+    if r.headers.get('content-length', False):
+        with requests.head(url) as h:
+            try:
+                total_size = int(h.headers.get('Content-Length', 0))
+            except TypeError:
+                total_size = None
     download_size = 0
     if total_size:
         print(f'Downloading file with size of {total_size / block_size:.3f} kB')
     else:
         print(f'Downloading file with unknown size')
-    r = requests.get(url, stream=True)
     with open(filename, 'wb') as f:
         for data in r.iter_content(chunk_size=block_size):
             download_size += len(data)
@@ -175,6 +176,9 @@ def _download_file(url, filename):
 
 
 def _check_hash(filename, checksum):
+    """
+    Checks if existing file hash matches checksum from url
+    """
     algorithm, value = checksum.split(':')
     if not os.path.exists(filename):
         return value, 'invalid'
@@ -189,8 +193,19 @@ def _check_hash(filename, checksum):
     return value, digest
 
 
-def download_from_zenodo(record_id, folder):
+def download_from_zenodo(record_id, folder, force=False):
+    """
+    Download data from a Zenodo repository.
+    Downloads if file does not exist, checksum has changed in local respect to url
+    or force
+    Args:
+        record_id: corresponding to the Zenodo repository
+        folder: where the repository files will be downloaded
+        force: force download even if file exists and checksum passes
 
+    Returns:
+
+    """
     # Grab the urls and filenames and checksums
     r = requests.get(f"https://zenodo.org/api/records/{record_id}")
     download_urls = [f['links']['self'] for f in r.json()['files']]
@@ -203,6 +218,9 @@ def download_from_zenodo(record_id, folder):
             value, digest = _check_hash(full_path, checksum)
             if value != digest:
                 print(f"Checksum is different: re-downloading {fname} from Zenodo...")
+                _download_file(url, full_path)
+            elif force:
+                print(f"Re-downloading {fname} from Zenodo...")
                 _download_file(url, full_path)
             else:
                 print(f'Found file {fname}. Checksum OK.')
