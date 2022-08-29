@@ -6,6 +6,7 @@ import six
 from collections.abc import Iterable
 
 import yaml
+import subprocess
 from matplotlib import pyplot
 
 from csep import GriddedForecast
@@ -15,9 +16,53 @@ from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
 
 from gefe.utils import MarkdownReport
+from gefe.accessors import from_zenodo, from_git
+import docker
+
+TASKS = dict()
+
+def registry(func):
+    """
+    mockup registry
+    """
+    TASKS[func.__name__] = func
+    return func
+
+def _set_dockerfile(name):
+    string = f"""
+## Install Docker image from trusted source
+FROM python:3.8.13
+
+## Setup user args
+ARG USERNAME={name}
+ARG USER_UID=1100
+ARG USER_GID=$USER_UID
+RUN groupadd --non-unique -g $USER_GID $USERNAME useradd -u $USER_UID -g $USER_GID -s /bin/sh -m $USERNAME
+
+## Set up work directory in the Docker container
+WORKDIR /usr/src/{name}/
+
+## Copy the files from the local machine (the repository) to the Docker container
+COPY --chown=$USER_UID:$USER_GID . /usr/src/{name}/
+
+## Calls setup.py, install python dependencies and install this model as a python module
+ENV VIRTUAL_ENV=/venv/
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# RUN pip install --no-cache-dir --upgrade pip
+# RUN pip install -r requirements.txt
+# RUN pip install -e .
+
+USER $USERNAME
+
+    """
+    return string
 
 class Model:
-    def __init__(self, name, path, func, func_args, authors=None, doi=None, markdown=None):
+    def __init__(self, name, path, func, func_args,
+                 authors=None, doi=None, markdown=None,
+                 zenodo_id=None, giturl=None, repo_hash=None):
         """
         Model constructor
 
@@ -39,6 +84,50 @@ class Model:
         self.markdown = markdown
         self.forecast_unit = 1          # Model is defined as rates per 1 year
         self.forecasts = {}
+        self.zenodo_id = zenodo_id
+        self.giturl = giturl
+        self.repo_hash = hash
+        os.makedirs(path, exist_ok=True)
+
+    @staticmethod
+    def build_docker(model_name, folder):
+        dockerfile = os.path.join(folder, 'Dockerfile')
+        if os.path.isfile(dockerfile):
+            print('Existing Dockerfile')
+        else:
+            with open(dockerfile, 'w') as file_:
+                file_.write(_set_dockerfile(model_name))
+        client = docker.from_env()
+        img = client.images.build(path=folder,
+                                  quiet=False,
+                                  tag=model_name,
+                                  forcerm=True,
+                                  buildargs={'USERNAME': os.environ['USER'],
+                                             'USER_UID': str(os.getuid()),
+                                             'USER_GID': str(os.getgid())},
+                                  dockerfile='Dockerfile')
+        for stream in img[1]:
+            print(stream.get('stream', '').split('\n')[0])
+
+        return img
+
+    @registry
+    def stage(self):
+        """
+        Stage model deployment. Checks download and builds image container
+
+        Returns:
+
+        """
+        try:
+            print('ahoi')
+            from_zenodo(self.zenodo_id, self.path)
+        except KeyError or TypeError:
+            from_git(self.giturl, self.path)
+
+        self.image = self.build_docker(self.name.lower(), self.path)
+
+        return
 
     def create_forecast(self, start_date, test_date, name=None):
         """
@@ -72,6 +161,7 @@ class Model:
             if k in included:
                 out[k] = v
         return out
+
 
 class Test:
     """
@@ -121,6 +211,7 @@ class Test:
             f"kwargs: {self.func_kwargs}\n"
             f"path: {self.path}"
         )
+
 
 class Experiment:
 
@@ -460,3 +551,15 @@ class Experiment:
             default_flow_style=False,
             indent=1
         )
+
+
+if __name__ == '__main__':
+    name = 'TEAM'
+    path = '../models/TEAM'
+    A = Model(name, path, None, None, zenodo_id=6289795)
+    img = A.stage()
+
+    name = 'WHEEL'
+    path = '../models/WHEEL'
+    A = Model(name, path, None, None, zenodo_id=6255575)
+    img = A.stage()
