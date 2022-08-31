@@ -37,7 +37,7 @@ FROM python:3.8.13
 ARG USERNAME={name}
 ARG USER_UID=1100
 ARG USER_GID=$USER_UID
-RUN groupadd --non-unique -g $USER_GID $USERNAME useradd -u $USER_UID -g $USER_GID -s /bin/sh -m $USERNAME
+RUN groupadd --non-unique -g $USER_GID $USERNAME && useradd -u $USER_UID -g $USER_GID -s /bin/sh -m $USERNAME
 
 ## Set up work directory in the Docker container
 WORKDIR /usr/src/{name}/
@@ -127,8 +127,8 @@ class Model:
 
         self.image = self.build_docker(self.name.lower(), self.path)
 
-        return
 
+    @registry
     def create_forecast(self, start_date, test_date, name=None):
         """
         Creates a forecast from a model and a time window
@@ -559,7 +559,7 @@ if __name__ == '__main__':
     A = Model(name, path, None, None, zenodo_id=6289795)
     img = A.stage()
 
-    name = 'WHEEL'
-    path = '../models/WHEEL'
-    A = Model(name, path, None, None, zenodo_id=6255575)
-    img = A.stage()
+    # name = 'WHEEL'
+    # path = '../models/WHEEL'
+    # A = Model(name, path, None, None, zenodo_id=6255575)
+    # img = A.stage()
