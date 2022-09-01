@@ -9,6 +9,7 @@ import h5py
 import yaml
 from matplotlib import pyplot
 
+import csep
 from csep import GriddedForecast
 from csep.models import EvaluationResult
 from csep.utils.calc import cleaner_range
@@ -16,11 +17,18 @@ from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
 from csep.core.regions import QuadtreeGrid2D, geographical_area_from_bounds
 
+import gefe
 from gefe.utils import MarkdownReport
 from gefe.accessors import from_zenodo, from_git
 import docker
+import functools
+
 
 TASKS = dict()
+
+class NoAliasLoader(yaml.Loader):
+    def ignore_aliases(self, data):
+        return True
 
 def registry(func):
     """
@@ -62,6 +70,29 @@ USER $USERNAME
 
     """
     return string
+
+
+def parse_func(func):
+    def rgetattr(obj, attr, *args):
+        def _getattr(obj, attr):
+            return getattr(obj, attr, *args)
+        return functools.reduce(_getattr, [obj] + attr.split('.'))
+
+    if callable(func):
+        return func
+    else:
+        target_modules = [csep.core,
+                          csep.utils,
+                          csep.utils.plots,
+                          gefe.utils,
+                          gefe.accessors]
+        for module in target_modules:
+            try:
+                return rgetattr(module, func)
+            except AttributeError:
+                pass
+        raise AttributeError(f'Evaluation or Plot function {func} has not yet been implemented in gefe or pycsep')
+
 
 
 client = docker.from_env()
@@ -223,16 +254,19 @@ class Test:
         :param kwargs:
         """
         self.name = name
-        self.func = func
-        self.func_kwargs = func_kwargs      # todo Set default args?
+        self.func = parse_func(func)
+        self.func_kwargs = func_kwargs      # todo set default args from exp?
         self.func_args = func_args
-        self.plot_func = plot_func          # todo Should this function be assigned, the same way as TEST_TYPE???? (see line 8)
+        self.plot_func = parse_func(plot_func)
         self.plot_args = plot_args or {}        # todo default args?
         self.plot_kwargs = plot_kwargs or {}
         self.ref_model = ref_model
         self.model = model
         self.path = path
         self.markdown = markdown
+
+
+
 
     def compute(self):
         print(f"Computing {self.name} for model {self.model.name}...")
@@ -255,20 +289,33 @@ class Test:
             f"path: {self.path}"
         )
 
+    @classmethod
+    def from_dict(cls, record):
+        if len(record) != 1:
+            raise IndexError('A single test has not been passed')
+        name = next(iter(record))
+        return cls(name=name, **record[name])
 
 class Experiment:
 
-    def __init__(self, start_date, end_date, test_date=None, catalog_reader=None, name=None):
+    def __init__(self, start_date, end_date,
+                 test_date=None, intervals=1, catalog_reader=None,
+                 name=None, mag_min=None, mag_max=None, mag_bin=None,
+                 default_test_kwargs=None):
 
         self.name = name
         self.start_date = start_date
         self.end_date = end_date
+        self.intervals = intervals
         self.test_date = test_date
-        self.catalog_reader = catalog_reader
-
+        self.catalog_reader = parse_func(catalog_reader)
+        self.default_test_kwargs = default_test_kwargs
         self.models = []
         self.tests = []
         self.run_results = {}
+
+        if mag_min and mag_max and mag_bin:
+            self.set_magnitude_range(mag_min, mag_max, mag_bin)
 
     def get_run_struct(self, run_name=None):
         """
@@ -594,6 +641,20 @@ class Experiment:
             default_flow_style=False,
             indent=1
         )
+
+
+
+    @classmethod
+    def from_yaml(cls, config_yml):
+
+        with open(config_yml, 'r') as yml:
+            config_dict = yaml.safe_load(yml)
+
+        class Struct:
+            def __init__(self, **entries):
+                self.__dict__.update(entries)
+
+        return cls(**config_dict)
 
 
 if __name__ == '__main__':
