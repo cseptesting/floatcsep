@@ -17,5 +17,7 @@ dependencies:
   - scipy=1.8.0
   - shapely=1.8.0
   - pyyaml
-  - docker=6.0.0
+  - docker-py
+  - h5py
+  - pytables
   - gitpython=3.1.27
