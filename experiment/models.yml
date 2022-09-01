@@ -1,4 +1,4 @@
-- team:
+- TEAM:
     zenodo_id: 6289795
     path: models/team
     format: quadtree
@@ -12,7 +12,7 @@
       SN25L11: TEAM=SN25L11.csv
       SN50L11: TEAM=SN50L11.csv
       SN100L11: TEAM=SN100L11.csv
-- wheel:
+- WHEEL:
     zenodo_id: 6255575
     path: models/wheel
     db_type: hdf5

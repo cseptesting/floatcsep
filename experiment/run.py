@@ -1,23 +1,36 @@
 from gefe import models
 import yaml
+import os
 from datetime import datetime as dt
-class NoAliasLoader(yaml.Loader):
-    def ignore_aliases(self, data):
-        return True
+from collections import defaultdict
 
-# with open('../experiment/models.yml', 'r') as r:
-#     model_config = yaml.load(r, NoAliasLoader)
+exp_config = '../experiment/config.yml'
+tests_config = '../experiment/tests.yml'
+models_config = '../experiment/models.yml'
+exp = models.Experiment.from_yaml(exp_config)
+exp.set_tests(tests_config)
+exp.set_models(models_config)
+exp.stage_models()
 
-# team = models.Model.from_dict(model_config[0])
-# team.stage()
-# start = dt(2015,1,1,0,0,0)
-# end = dt(2017,1,1,0,0,0)
-# a = team.create_forecast(start, end, 'N10L11')
-# wheel = models.Model.from_dict(model_config[1])
-# wheel.stage()
+date = dt(2015, 1, 1, 0, 0, 0)
+exp.set_test_date(date)
 
 
-with open('../experiment/tests.yml', 'r') as r:
-    test_config = yaml.load(r, NoAliasLoader)
-a = models.Experiment.from_yaml('../experiment/config.yml')
-# a = models.Test.from_dict(test_config[0])
+exp.get_run_struct()
+catalog = exp.get_catalog()
+if not os.path.exists(exp.target_paths['catalog']):
+    catalog.write_json(exp.target_paths['catalog'])
+test_list = exp.prepare_all_tests()
+
+# 3. Evaluate models
+
+run_results = defaultdict(list)
+for test in test_list:
+    result = exp.run_test(test)
+    run_results[test.name].append(result)
+
+# 4. Plot results
+exp.plot_results(run_results)
+
+# 4.1 Generate report
+exp.generate_report()
