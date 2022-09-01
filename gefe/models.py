@@ -1,12 +1,12 @@
 import copy
 import os
+import gefe
 import datetime
 import json
 import six
 from collections.abc import Iterable
-
+import h5py
 import yaml
-import subprocess
 from matplotlib import pyplot
 
 from csep import GriddedForecast
@@ -14,6 +14,7 @@ from csep.models import EvaluationResult
 from csep.utils.calc import cleaner_range
 from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
+from csep.core.regions import QuadtreeGrid2D, geographical_area_from_bounds
 
 from gefe.utils import MarkdownReport
 from gefe.accessors import from_zenodo, from_git
@@ -28,6 +29,7 @@ def registry(func):
     TASKS[func.__name__] = func
     return func
 
+
 def _set_dockerfile(name):
     string = f"""
 ## Install Docker image from trusted source
@@ -37,6 +39,8 @@ FROM python:3.8.13
 ARG USERNAME={name}
 ARG USER_UID=1100
 ARG USER_GID=$USER_UID
+
+RUN mkdir -p /usr/src/{name} && chown $USER_UID:$USER_GID /usr/src/{name} 
 RUN groupadd --non-unique -g $USER_GID $USERNAME && useradd -u $USER_UID -g $USER_GID -s /bin/sh -m $USERNAME
 
 ## Set up work directory in the Docker container
@@ -52,15 +56,19 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # RUN pip install --no-cache-dir --upgrade pip
 # RUN pip install -r requirements.txt
-# RUN pip install -e .
+RUN pip install numpy pandas h5py
 
 USER $USERNAME
 
     """
     return string
 
+
+client = docker.from_env()
+
+
 class Model:
-    def __init__(self, name, path, func, func_args,
+    def __init__(self, name, path, flavours=None, format='quadtree', db_type=None, forecast_unit=1,
                  authors=None, doi=None, markdown=None,
                  zenodo_id=None, giturl=None, repo_hash=None):
         """
@@ -79,14 +87,17 @@ class Model:
         self.path = path
         self.authors = authors
         self.doi = doi
-        self.func = func
-        self.func_args = func_args
+        self.format = format
+        self.flavours = flavours if flavours else {self.name: ''}
+        self.db_type = db_type if db_type else self.format
         self.markdown = markdown
-        self.forecast_unit = 1          # Model is defined as rates per 1 year
+        self.forecast_unit = forecast_unit         # Model is defined as rates per 1 year
         self.forecasts = {}
         self.zenodo_id = zenodo_id
         self.giturl = giturl
         self.repo_hash = hash
+        self.image = None
+        self.bind = None
         os.makedirs(path, exist_ok=True)
 
     @staticmethod
@@ -111,25 +122,41 @@ class Model:
 
         return img
 
-    @registry
     def stage(self):
         """
-        Stage model deployment. Checks download and builds image container
+        Stage model deployment. Checks download and builds image container. Transform to desired db format if asked
+        format: None, 'hdf5'
 
         Returns:
 
         """
         try:
-            print('ahoi')
+            print('Retrieving from Zenodo')
             from_zenodo(self.zenodo_id, self.path)
         except KeyError or TypeError:
+            print('Retrieving from git')
             from_git(self.giturl, self.path)
 
-        self.image = self.build_docker(self.name.lower(), self.path)
+        self.image = self.build_docker(self.name.lower(), self.path)[0]
+        self.bind = self.image.attrs['Config']['WorkingDir']
 
+        if self.db_type == 'hdf5':
+            for flav, flav_path in self.flavours.items():
+                fn_h5 = os.path.splitext(flav_path)[0] + '.hdf5'
+                path_h5 = os.path.join(self.path, fn_h5)
+                if os.path.isfile(path_h5):
+                    # print(path_h5, 'found')
+                    self.flavours[flav] = fn_h5
+                    continue
+                gefe_bind = f'/usr/src/gefe' ## todo: func has name of gefe module hardcoded: Should gefe beinstalled in docker?
+                cmd = f'python {gefe_bind}/serialize.py --format {self.format} --filename {flav_path}'  ## todo: func has name of gefe module
+                client.containers.run(self.image, remove=True,
+                                      volumes={os.path.abspath(self.path): {'bind': self.bind, 'mode': 'rw'},
+                                               os.path.abspath(gefe.__path__[0]): {'bind': gefe_bind, 'mode': 'ro'}},
+                                      command=cmd)
+                self.flavours[flav] = fn_h5
 
-    @registry
-    def create_forecast(self, start_date, test_date, name=None):
+    def create_forecast(self, start_date, test_date, flavour=None, name=None):
         """
         Creates a forecast from a model and a time window
         :param model: A model configuration dict
@@ -139,12 +166,21 @@ class Model:
 
         time_horizon = decimal_year(test_date) - decimal_year(start_date)
         print(f"Loading model from {self.path}...")
-        rates, region, mws = self.func(self.path)
+        fn = os.path.join(self.path, self.flavours[flavour if flavour else self.name])
+
+        if self.db_type == 'hdf5':
+            with h5py.File(fn, 'r') as db:
+                rates = db['rates'][:]  #todo check memory efficiency. Is it better to leave db open for multiple time intervals?
+                magnitudes = db['magnitudes'][:]
+                if self.format == 'quadtree':
+                    region = QuadtreeGrid2D.from_quadkeys(db['quadkeys'][:].astype(str), magnitudes=magnitudes)
+                    region.get_cell_area()
+
         forecast = GriddedForecast(
             name=name,
             data=rates,
             region=region,
-            magnitudes=mws,
+            magnitudes=magnitudes,
             start_time=start_date,
             end_time=test_date
         )
@@ -161,6 +197,13 @@ class Model:
             if k in included:
                 out[k] = v
         return out
+
+    @classmethod
+    def from_dict(cls, record):
+        if len(record) != 1:
+            raise IndexError('A single model has not been passed')
+        name = next(iter(record))
+        return cls(name=name, **record[name])
 
 
 class Test:
@@ -557,8 +600,13 @@ if __name__ == '__main__':
     name = 'TEAM'
     path = '../models/TEAM'
     A = Model(name, path, None, None, zenodo_id=6289795)
-    img = A.stage()
-
+    # img = A.stage(format=True)
+    # b = A.to_yaml()
+    # args = ['docker', 'run' '--rm', '--volume', '$PWD/models/TEAM:/usr/src/TEAM:rw',
+    #         'team', 'python', 'serialize.py', '--filename', 'TEAM=N10L11.csv',
+    #         '--format', 'quadtree']
+    # print('serializing to hdf5')
+    # subprocess.Popen(args)
     # name = 'WHEEL'
     # path = '../models/WHEEL'
     # A = Model(name, path, None, None, zenodo_id=6255575)
