@@ -1,6 +1,6 @@
 import copy
 import os
-import gefe
+import fecsep
 import datetime
 import json
 import six
@@ -17,9 +17,9 @@ from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
 from csep.core.regions import QuadtreeGrid2D, geographical_area_from_bounds
 
-import gefe
-from gefe.utils import MarkdownReport
-from gefe.accessors import from_zenodo, from_git
+import fecsep
+from fecsep.utils import MarkdownReport
+from fecsep.accessors import from_zenodo, from_git
 import docker
 import docker.errors
 import functools
@@ -85,14 +85,14 @@ def parse_func(func):
         target_modules = [csep.core,
                           csep.utils,
                           csep.utils.plots,
-                          gefe.utils,
-                          gefe.accessors]
+                          fecsep.utils,
+                          fecsep.accessors]
         for module in target_modules:
             try:
                 return rgetattr(module, func)
             except AttributeError:
                 pass
-        raise AttributeError(f'Evaluation or Plot function {func} has not yet been implemented in gefe or pycsep')
+        raise AttributeError(f'Evaluation or Plot function {func} has not yet been implemented in fecsep or pycsep')
 
 
 
@@ -195,11 +195,11 @@ class Model:
             if os.path.isfile(path_h5):
                 self.filename = fn_h5
             else:
-                gefe_bind = f'/usr/src/gefe' ## todo: func has name of gefe module hardcoded: Should gefe beinstalled in the model docker?
-                cmd = f'python {gefe_bind}/serialize.py --format {self.format} --filename {self.filename}'  ## todo: func has name of gefe module
+                fecsep_bind = f'/usr/src/fecsep' ## todo: func has name of fecsep module hardcoded: Should fecsep beinstalled in the model docker?
+                cmd = f'python {fecsep_bind}/serialize.py --format {self.format} --filename {self.filename}'  ## todo: func has name of fecsep module
                 client.containers.run(self.image, remove=True,
                                       volumes={os.path.abspath(self.path): {'bind': self.bind, 'mode': 'rw'},
-                                               os.path.abspath(gefe.__path__[0]): {'bind': gefe_bind, 'mode': 'ro'}},
+                                               os.path.abspath(fecsep.__path__[0]): {'bind': fecsep_bind, 'mode': 'ro'}},
                                       command=cmd)
                 self.filename = fn_h5
 

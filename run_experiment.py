@@ -1,6 +1,6 @@
 # Local modules
 import sys
-from gefe import run, models
+from fecsep import run, models
 
 if __name__ == "__main__":
 

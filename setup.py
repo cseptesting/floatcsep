@@ -7,9 +7,9 @@ setup(
     author='Pablo Iturrieta',
     author_email='pciturri@gfz-potsdam.de',
     license='LICENSE',
-    description='gefe',
+    description='fecsep',
     packages=find_packages(),
     include_package_data=False,
     python_requires=">=3.8",
-    url='git@git.gfz-potsdam.de:csep-group/gefe-quadtree.git'
+    url='git@git.gfz-potsdam.de:csep-group/fecsep-quadtree.git'
 )

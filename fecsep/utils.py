@@ -72,7 +72,7 @@ def global_region(dh=0.1, name="global", magnitudes=None):
 def resample_block_model(model_path, resample_path, k):
     """
 
-    Creates a resampled version of a model for gefe testing purposes
+    Creates a resampled version of a model for fecsep testing purposes
 
     :param model_path: Original model
     :param resample_path: Path to resampled model
@@ -114,7 +114,7 @@ def resample_models(k=20):
 
 
     """
-    Resamples all forecast to low resolution for gefe testing purposes
+    Resamples all forecast to low resolution for fecsep testing purposes
 
     :param k: resample factor
     :return:

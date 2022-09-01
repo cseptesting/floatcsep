@@ -1,7 +1,7 @@
 from matplotlib import pyplot
 import cartopy
-from gefe.utils import prepare_forecast, plot_forecast_lowres, resample_block_model
-from gefe.accessors import query_isc_gcmt
+from fecsep.utils import prepare_forecast, plot_forecast_lowres, resample_block_model
+from fecsep.accessors import query_isc_gcmt
 from matplotlib import pyplot
 import datetime
 

@@ -37,7 +37,7 @@
 import os
 import datetime
 from collections import defaultdict
-from gefe.config import exp
+from fecsep.config import exp
 
 def run(test_date_string):
     # parse test date from date string

@@ -7,10 +7,10 @@ import csep.core.poisson_evaluations as poisson
 import csep.utils.plots as plots
 
 # Local modules
-import gefe.evaluations as evaluations
-from gefe.accessors import query_isc_gcmt
-from gefe.utils import quadtree_csv_loader
-from gefe.models import (
+import fecsep.evaluations as evaluations
+from fecsep.accessors import query_isc_gcmt
+from fecsep.utils import quadtree_csv_loader
+from fecsep.models import (
     Experiment,
     Test,
     Model

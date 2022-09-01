@@ -1,4 +1,4 @@
-name: fecsep
+name: fecsep2
 channels:
   - conda-forge
   - defaults
