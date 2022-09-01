@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name='gefe',
+    name='fecsep',
     version='0.1.0',
     author='Pablo Iturrieta',
     author_email='pciturri@gfz-potsdam.de',
