@@ -21,6 +21,7 @@ import gefe
 from gefe.utils import MarkdownReport
 from gefe.accessors import from_zenodo, from_git
 import docker
+import docker.errors
 import functools
 
 
@@ -99,7 +100,7 @@ client = docker.from_env()
 
 
 class Model:
-    def __init__(self, name, path, flavours=None, format='quadtree', db_type=None, forecast_unit=1,
+    def __init__(self, name, path, filename, format='quadtree', db_type=None, forecast_unit=1,
                  authors=None, doi=None, markdown=None,
                  zenodo_id=None, giturl=None, repo_hash=None):
         """
@@ -116,10 +117,10 @@ class Model:
         """
         self.name = name
         self.path = path
+        self.filename = filename
         self.authors = authors
         self.doi = doi
         self.format = format
-        self.flavours = flavours if flavours else {self.name: ''}
         self.db_type = db_type if db_type else self.format
         self.markdown = markdown
         self.forecast_unit = forecast_unit         # Model is defined as rates per 1 year
@@ -135,7 +136,7 @@ class Model:
     def build_docker(model_name, folder):
         dockerfile = os.path.join(folder, 'Dockerfile')
         if os.path.isfile(dockerfile):
-            print('Existing Dockerfile')
+            print('Dockerfile exists')
         else:
             with open(dockerfile, 'w') as file_:
                 file_.write(_set_dockerfile(model_name))
@@ -153,7 +154,22 @@ class Model:
 
         return img
 
-    def stage(self):
+
+    def get_source(self, force=False):
+
+        if not os.path.exists(os.path.join(self.path, self.filename)):
+            force = True
+        if force:
+            try:
+                print('Retrieving from Zenodo')
+                from_zenodo(self.zenodo_id, self.path)
+            except KeyError or TypeError:
+                print('Retrieving from git')
+                from_git(self.giturl, self.path)
+
+
+
+    def stage_db(self, force=False):
         """
         Stage model deployment. Checks download and builds image container. Transform to desired db format if asked
         format: None, 'hdf5'
@@ -161,31 +177,31 @@ class Model:
         Returns:
 
         """
-        try:
-            print('Retrieving from Zenodo')
-            from_zenodo(self.zenodo_id, self.path)
-        except KeyError or TypeError:
-            print('Retrieving from git')
-            from_git(self.giturl, self.path)
 
-        self.image = self.build_docker(self.name.lower(), self.path)[0]
+        ## Creates one docker per repo
+        img_name = os.path.basename(self.path).lower()
+        if force:
+            self.image = self.build_docker(img_name, self.path)[0]
+        else:
+            try:
+                self.image = client.images.get(img_name)
+            except docker.errors.ImageNotFound:
+                self.image = self.build_docker(img_name, self.path)[0]
         self.bind = self.image.attrs['Config']['WorkingDir']
 
         if self.db_type == 'hdf5':
-            for flav, flav_path in self.flavours.items():
-                fn_h5 = os.path.splitext(flav_path)[0] + '.hdf5'
-                path_h5 = os.path.join(self.path, fn_h5)
-                if os.path.isfile(path_h5):
-                    # print(path_h5, 'found')
-                    self.flavours[flav] = fn_h5
-                    continue
-                gefe_bind = f'/usr/src/gefe' ## todo: func has name of gefe module hardcoded: Should gefe beinstalled in docker?
-                cmd = f'python {gefe_bind}/serialize.py --format {self.format} --filename {flav_path}'  ## todo: func has name of gefe module
+            fn_h5 = os.path.splitext(self.filename)[0] + '.hdf5'
+            path_h5 = os.path.join(self.path, fn_h5)
+            if os.path.isfile(path_h5):
+                self.filename = fn_h5
+            else:
+                gefe_bind = f'/usr/src/gefe' ## todo: func has name of gefe module hardcoded: Should gefe beinstalled in the model docker?
+                cmd = f'python {gefe_bind}/serialize.py --format {self.format} --filename {self.filename}'  ## todo: func has name of gefe module
                 client.containers.run(self.image, remove=True,
                                       volumes={os.path.abspath(self.path): {'bind': self.bind, 'mode': 'rw'},
                                                os.path.abspath(gefe.__path__[0]): {'bind': gefe_bind, 'mode': 'ro'}},
                                       command=cmd)
-                self.flavours[flav] = fn_h5
+                self.filename = fn_h5
 
     def create_forecast(self, start_date, test_date, flavour=None, name=None):
         """
@@ -197,7 +213,7 @@ class Model:
 
         time_horizon = decimal_year(test_date) - decimal_year(start_date)
         print(f"Loading model from {self.path}...")
-        fn = os.path.join(self.path, self.flavours[flavour if flavour else self.name])
+        fn = os.path.join(self.path, self.filename)
 
         if self.db_type == 'hdf5':
             with h5py.File(fn, 'r') as db:
@@ -296,6 +312,7 @@ class Test:
         name = next(iter(record))
         return cls(name=name, **record[name])
 
+
 class Experiment:
 
     def __init__(self, start_date, end_date, test_date=None, intervals=1,
@@ -317,7 +334,6 @@ class Experiment:
         self.run_results = {}
         self.set_magnitude_range(mag_min, mag_max, mag_bin)
         self.set_depth_range(depth_min, depth_max)
-
 
     def get_run_struct(self, run_name=None):
         """
@@ -398,7 +414,7 @@ class Experiment:
             forecast = model.create_forecast(self.start_date, self.end_date, name=model.name)
         return forecast
 
-    def set_models(self, models):
+    def set_models(self, models_config):
         """
         Loads a model and its configurations to the experiment
 
@@ -407,16 +423,31 @@ class Experiment:
         """
 
         # todo checks:  Repeated model? Does model file exists?
-        self.models = models
+        with open(models_config, 'r') as config:
+            config_dict = yaml.load(config, NoAliasLoader)
+            for element in config_dict:
+                # Check if the model has multiple submodels from its repository
+                if any('flavours' in i for i in element.values()):
+                    for flav, flav_path in list(element.values())[0]['flavours'].items():
+                        name_root = next(iter(element))
+                        name_flav = f'{name_root}_{flav}'
+                        model_ = {name_flav: {**element[name_root],
+                                              'filename': flav_path}}
+                        model_[name_flav].pop('flavours')
+                        self.models.append(Model.from_dict(model_))
+                else:
+                    self.models.append(Model.from_dict(model_))
 
-    def set_tests(self, tests):
+    def set_tests(self, test_config):
         """
-        Loads a test configuration to the experiment
+        Loads a test configuration file to the experiment
 
         :param tests
         :return:
         """
-        self.tests = tests
+        with open(test_config, 'r') as config:
+            config_dict = yaml.load(config, NoAliasLoader)
+            self.tests = [Test.from_dict(tdict) for tdict in config_dict]
 
     def set_catalog_reader(self, loader):
         self.catalog_reader = loader
@@ -466,6 +497,11 @@ class Experiment:
 
     def set_catalog(self, catalog):
         self.catalog = catalog
+
+    def stage_models(self, force=False):
+        for model in self.models:
+            model.get_source(force)
+            model.stage_db(force)
 
     def run_test(self, test, write=True):
         # requires that test be fully configured, probably by calling enumerate_tests() first
