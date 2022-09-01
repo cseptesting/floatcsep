@@ -11,7 +11,7 @@ import hashlib
 import os
 import sys
 
-HOST_CATALOG = "https://www.isc.ac.uk/cgi-bin/web-db-run?"
+HOST_CATALOG = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
 TIMEOUT = 180
 
 
