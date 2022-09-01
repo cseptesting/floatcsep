@@ -1,5 +1,4 @@
 from gefe import models
-import yaml
 import os
 from datetime import datetime as dt
 from collections import defaultdict
@@ -8,13 +7,12 @@ exp_config = '../experiment/config.yml'
 tests_config = '../experiment/tests.yml'
 models_config = '../experiment/models.yml'
 exp = models.Experiment.from_yaml(exp_config)
-exp.set_tests(tests_config)
-exp.set_models(models_config)
+exp.set_tests()
+exp.set_models()
 exp.stage_models()
 
 date = dt(2015, 1, 1, 0, 0, 0)
 exp.set_test_date(date)
-
 
 exp.get_run_struct()
 catalog = exp.get_catalog()
@@ -23,7 +21,6 @@ if not os.path.exists(exp.target_paths['catalog']):
 test_list = exp.prepare_all_tests()
 
 # 3. Evaluate models
-
 run_results = defaultdict(list)
 for test in test_list:
     result = exp.run_test(test)

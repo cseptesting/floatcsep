@@ -320,7 +320,8 @@ class Experiment:
                  catalog_reader=None,
                  mag_min=None, mag_max=None, mag_bin=None,
                  depth_min=None, depth_max=None,
-                 default_test_kwargs=None):
+                 models_config=None, tests_config=None,
+                 default_test_kwargs=None, **kwargs):
 
         self.name = name
         self.start_date = start_date
@@ -328,12 +329,15 @@ class Experiment:
         self.intervals = intervals
         self.test_date = test_date
         self.catalog_reader = parse_func(catalog_reader)
+        self.models_config = models_config
+        self.tests_config = tests_config
         self.default_test_kwargs = default_test_kwargs
         self.models = []
         self.tests = []
         self.run_results = {}
         self.set_magnitude_range(mag_min, mag_max, mag_bin)
         self.set_depth_range(depth_min, depth_max)
+        self.__dict__.update(kwargs)
 
     def get_run_struct(self, run_name=None):
         """
@@ -414,7 +418,7 @@ class Experiment:
             forecast = model.create_forecast(self.start_date, self.end_date, name=model.name)
         return forecast
 
-    def set_models(self, models_config):
+    def set_models(self):
         """
         Loads a model and its configurations to the experiment
 
@@ -423,7 +427,7 @@ class Experiment:
         """
 
         # todo checks:  Repeated model? Does model file exists?
-        with open(models_config, 'r') as config:
+        with open(self.models_config, 'r') as config:
             config_dict = yaml.load(config, NoAliasLoader)
             for element in config_dict:
                 # Check if the model has multiple submodels from its repository
@@ -438,14 +442,15 @@ class Experiment:
                 else:
                     self.models.append(Model.from_dict(model_))
 
-    def set_tests(self, test_config):
+    def set_tests(self):
         """
         Loads a test configuration file to the experiment
 
         :param tests
         :return:
         """
-        with open(test_config, 'r') as config:
+
+        with open(self.tests_config, 'r') as config:
             config_dict = yaml.load(config, NoAliasLoader)
             self.tests = [Test.from_dict(tdict) for tdict in config_dict]
 
