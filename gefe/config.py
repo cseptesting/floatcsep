@@ -77,99 +77,100 @@ default_test_kwargs = {
 }
 
 # Initialize
-exp = Experiment(start_date, end_date, name='Global Earthquake Forecasting Experiment -- Quadtree')
-exp.set_catalog_reader(query_isc_gcmt)
-exp.set_magnitude_range(5.95, 8.95, 0.1)
-exp.set_depth_range(0, 70)
-# Set the tests
-# todo: finish markdown template strings for each test
-exp.set_tests([
-    Test(
-        name='Poisson_N',
-        func=poisson.number_test,
-        func_kwargs={},
-        plot_func=plots.plot_poisson_consistency_test,
-        plot_args={'title': r'$N-$test',
-                   'title_fontsize': 18,
-                   'figsize': (5, 8),
-                   'xlabel': 'Number of events',
-                   'linewidth': 0.7,
-                   'capsize': 2},
-        plot_kwargs={'normalize': True},
-        markdown=f'The results of N-test from {start_date} to {end_date}. '
-                 f'The test shows whether the number of observed earthquakes forecasted is consistent with the observed events. '
-                 f'The (green) boxes inside the confidence interval indicate the models passing N-Test.'
-    ),
-    Test(
-        name='Poisson_M',
-        func=poisson.magnitude_test,
-        func_kwargs=default_test_kwargs,
-        plot_func=plots.plot_poisson_consistency_test,
-        plot_args={'title': r'$M-$test',
-                   'title_fontsize': 18,
-                   'figsize': (5, 8),
-                   'xlabel': 'Log-likelihood',
-                   'linewidth': 0.7, 'capsize': 2},
-        plot_kwargs={'normalize': True,
-                     'one_sided_lower': True},
-        markdown=f'The results of M-test from {start_date} to {end_date}. '
-                 f'The test evaluates the magnitude distribution of the forecasts. '
-                 f'The (green) boxes inside the confidence interval indicate the models passing M-Test.'
-    ),
-    Test(
-        name='Poisson_S',
-        func=poisson.spatial_test,
-        func_kwargs=default_test_kwargs,
-        plot_func=plots.plot_poisson_consistency_test,
-        plot_args={'title': r'$S-$test',
-                   'title_fontsize': 18,
-                   'figsize': (5, 8),
-                   'xlabel': 'Log-likelihood',
-                   'linewidth': 0.7,
-                   'capsize': 2},
-        plot_kwargs={'normalize': True,
-                     'one_sided_lower': True},
-        markdown=f'The results of S-test from {start_date} to {end_date}. '
-                 f'The test evaluates the spatial distribution of the forecasts. '
-                 f'The (red) boxes lagging behind the confidence interval indicate the models failing to pass S-Test.'
-    ),
-    Test(name='Poisson_CL',
-         func=poisson.conditional_likelihood_test,
-         func_kwargs=default_test_kwargs,
-         plot_func=plots.plot_poisson_consistency_test,
-         plot_args={'title': r'$L_{n}-$test',
-                    'title_fontsize': 18,
-                    'figsize': (5, 8),
-                    'xlabel': 'Log-likelihood',
-                    'linewidth': 0.7,
-                    'capsize': 2},
-         plot_kwargs={'normalize': True,
-                      'one_sided_lower': True},
-         markdown=f'The results of CL-test from {start_date} to {end_date}. '
-                  f'The test simultaneously evaluates the spatial and magnitude distribution of the forecasts. '
-                  f'The (red) boxes lagging behind the confidence interval indicate the models failing to pass CL-Test.'
-         ),
-    Test(name='Poisson_T',
-         func=evaluations.paired_ttest_point_process,
-         func_kwargs={},
-         plot_func=plots.plot_comparison_test,
-         ref_model='GEAR1=SN50L11',
-         plot_args={'title': f'$T-$test',
-                    'title_fontsize': 18,
-                    'figsize': (8, 6),
-                    'ylabel': 'Information Gain per Earthquake',
-                    'ylabel_fontsize': 10,
-                    'xlabel': '',
-                    'linewidth': 1.2,
-                    'capsize': 2,
-                    'markersize': 3},
-         markdown=f'The results of comparitive T-test from {start_date} to {end_date} GEAR1 at Grid:SN50L11 as the benchmark.'
-                  f' The mean information gain per earthquake as is shown by circles, and the 95 percent confidence interval with vertical lines.'
-                  f' The models with information gain higher than zero are more informative than the benchmark model.'
-    )
-])
-
-# Set the models
-exp.set_models(
-    [Model(name=name, path=path, func=quadtree_csv_loader, func_args=None) for name, path in expected_models.items()]
-)
+exp = None
+# exp = Experiment(start_date, end_date, name='Global Earthquake Forecasting Experiment -- Quadtree')
+# exp.set_catalog_reader(query_isc_gcmt)
+# exp.set_magnitude_range(5.95, 8.95, 0.1)
+# exp.set_depth_range(0, 70)
+# # Set the tests
+# # todo: finish markdown template strings for each test
+# exp.set_tests([
+#     Test(
+#         name='Poisson_N',
+#         func=poisson.number_test,
+#         func_kwargs={},
+#         plot_func=plots.plot_poisson_consistency_test,
+#         plot_args={'title': r'$N-$test',
+#                    'title_fontsize': 18,
+#                    'figsize': (5, 8),
+#                    'xlabel': 'Number of events',
+#                    'linewidth': 0.7,
+#                    'capsize': 2},
+#         plot_kwargs={'normalize': True},
+#         markdown=f'The results of N-test from {start_date} to {end_date}. '
+#                  f'The test shows whether the number of observed earthquakes forecasted is consistent with the observed events. '
+#                  f'The (green) boxes inside the confidence interval indicate the models passing N-Test.'
+#     ),
+#     Test(
+#         name='Poisson_M',
+#         func=poisson.magnitude_test,
+#         func_kwargs=default_test_kwargs,
+#         plot_func=plots.plot_poisson_consistency_test,
+#         plot_args={'title': r'$M-$test',
+#                    'title_fontsize': 18,
+#                    'figsize': (5, 8),
+#                    'xlabel': 'Log-likelihood',
+#                    'linewidth': 0.7, 'capsize': 2},
+#         plot_kwargs={'normalize': True,
+#                      'one_sided_lower': True},
+#         markdown=f'The results of M-test from {start_date} to {end_date}. '
+#                  f'The test evaluates the magnitude distribution of the forecasts. '
+#                  f'The (green) boxes inside the confidence interval indicate the models passing M-Test.'
+#     ),
+#     Test(
+#         name='Poisson_S',
+#         func=poisson.spatial_test,
+#         func_kwargs=default_test_kwargs,
+#         plot_func=plots.plot_poisson_consistency_test,
+#         plot_args={'title': r'$S-$test',
+#                    'title_fontsize': 18,
+#                    'figsize': (5, 8),
+#                    'xlabel': 'Log-likelihood',
+#                    'linewidth': 0.7,
+#                    'capsize': 2},
+#         plot_kwargs={'normalize': True,
+#                      'one_sided_lower': True},
+#         markdown=f'The results of S-test from {start_date} to {end_date}. '
+#                  f'The test evaluates the spatial distribution of the forecasts. '
+#                  f'The (red) boxes lagging behind the confidence interval indicate the models failing to pass S-Test.'
+#     ),
+#     Test(name='Poisson_CL',
+#          func=poisson.conditional_likelihood_test,
+#          func_kwargs=default_test_kwargs,
+#          plot_func=plots.plot_poisson_consistency_test,
+#          plot_args={'title': r'$L_{n}-$test',
+#                     'title_fontsize': 18,
+#                     'figsize': (5, 8),
+#                     'xlabel': 'Log-likelihood',
+#                     'linewidth': 0.7,
+#                     'capsize': 2},
+#          plot_kwargs={'normalize': True,
+#                       'one_sided_lower': True},
+#          markdown=f'The results of CL-test from {start_date} to {end_date}. '
+#                   f'The test simultaneously evaluates the spatial and magnitude distribution of the forecasts. '
+#                   f'The (red) boxes lagging behind the confidence interval indicate the models failing to pass CL-Test.'
+#          ),
+#     Test(name='Poisson_T',
+#          func=evaluations.paired_ttest_point_process,
+#          func_kwargs={},
+#          plot_func=plots.plot_comparison_test,
+#          ref_model='GEAR1=SN50L11',
+#          plot_args={'title': f'$T-$test',
+#                     'title_fontsize': 18,
+#                     'figsize': (8, 6),
+#                     'ylabel': 'Information Gain per Earthquake',
+#                     'ylabel_fontsize': 10,
+#                     'xlabel': '',
+#                     'linewidth': 1.2,
+#                     'capsize': 2,
+#                     'markersize': 3},
+#          markdown=f'The results of comparitive T-test from {start_date} to {end_date} GEAR1 at Grid:SN50L11 as the benchmark.'
+#                   f' The mean information gain per earthquake as is shown by circles, and the 95 percent confidence interval with vertical lines.'
+#                   f' The models with information gain higher than zero are more informative than the benchmark model.'
+#     )
+# ])
+#
+# # Set the models
+# exp.set_models(
+#     [Model(name=name, path=path, func=quadtree_csv_loader, func_args=None) for name, path in expected_models.items()]
+# )
