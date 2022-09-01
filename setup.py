@@ -1,6 +1,5 @@
 from setuptools import setup, find_packages
 
-
 setup(
     name='fecsep',
     version='0.1.0',
@@ -11,5 +10,8 @@ setup(
     packages=find_packages(),
     include_package_data=False,
     python_requires=">=3.8",
+    entry_points={
+                  'console_scripts': ['fecsep = fecsep.__init__:fecsep']
+                  },
     url='git@git.gfz-potsdam.de:csep-group/fecsep-quadtree.git'
 )

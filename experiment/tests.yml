@@ -3,11 +3,11 @@
     func_kwargs: {}
     plot_func: plot_poisson_consistency_test
     plot_args:
-        title: r'$N-$test'
+        title: $N-$test
 - Poisson_S:
     func: poisson_evaluations.spatial_test
     func_kwargs: {}
     plot_func: plot_poisson_consistency_test
     plot_args:
-        title: r'$S-$test'
+        title: $S-$test
 
