@@ -298,9 +298,11 @@ class Test:
 
 class Experiment:
 
-    def __init__(self, start_date, end_date,
-                 test_date=None, intervals=1, catalog_reader=None,
-                 name=None, mag_min=None, mag_max=None, mag_bin=None,
+    def __init__(self, start_date, end_date, test_date=None, intervals=1,
+                 name=None,
+                 catalog_reader=None,
+                 mag_min=None, mag_max=None, mag_bin=None,
+                 depth_min=None, depth_max=None,
                  default_test_kwargs=None):
 
         self.name = name
@@ -313,9 +315,9 @@ class Experiment:
         self.models = []
         self.tests = []
         self.run_results = {}
+        self.set_magnitude_range(mag_min, mag_max, mag_bin)
+        self.set_depth_range(depth_min, depth_max)
 
-        if mag_min and mag_max and mag_bin:
-            self.set_magnitude_range(mag_min, mag_max, mag_bin)
 
     def get_run_struct(self, run_name=None):
         """
@@ -649,11 +651,6 @@ class Experiment:
 
         with open(config_yml, 'r') as yml:
             config_dict = yaml.safe_load(yml)
-
-        class Struct:
-            def __init__(self, **entries):
-                self.__dict__.update(entries)
-
         return cls(**config_dict)
 
 
