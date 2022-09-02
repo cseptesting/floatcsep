@@ -1,4 +1,4 @@
-# CSEP Floating Experiments
+# CSEP Floating Experiments - `fecsep`
 
 ## Table of Contents
 
@@ -7,8 +7,6 @@
 
 
 ## Installing computational environment
-
-
 
 ```
 conda env create -f environment.yml
@@ -19,13 +17,13 @@ pip install -e .
 Installs pyCSEP and other dependencies to run the experiment. See `environment.yml` file for details.
 
 ## Run experiment
-From the top-level directory type:  
+Access the experiment directory (e.g. gefe, gear)
 ```
-python run_experiment.py <test_date>
+fecsep run <config> <test_date>
 ```
 Usage:
 ```
-python run_experiment <test_date>  
+    config (required) : path to config.yml file
     test_date (required) : format='%Y-%m-%dT%H:%M:%S'
 ```
 
