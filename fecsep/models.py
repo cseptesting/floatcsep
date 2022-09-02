@@ -1,6 +1,8 @@
 import copy
 import os
 import json
+
+import csep.core.regions
 import six
 from collections.abc import Iterable
 import h5py
@@ -28,8 +30,9 @@ client = docker.from_env()
 
 
 class Model:
-    def __init__(self, name, path, filename, format='quadtree', db_type=None, forecast_unit=1,
+    def __init__(self, name, path, filename=None, format='quadtree', db_type=None, forecast_unit=1,
                  authors=None, doi=None, markdown=None,
+                 func=None, func_args=None,
                  zenodo_id=None, giturl=None, repo_hash=None):
         """
         Model constructor
@@ -58,6 +61,8 @@ class Model:
         self.repo_hash = hash
         self.image = None
         self.bind = None
+        self.func = func
+        self.func_args = func_args
         os.makedirs(path, exist_ok=True)
 
     @staticmethod
@@ -84,20 +89,24 @@ class Model:
 
     def get_source(self, force=False):
 
-        if not os.path.exists(os.path.join(self.path, self.filename)):
+        if not os.path.isfile(os.path.join(self.path, self.filename if self.filename else '')):
             force = True
-        if force:
+        if force and (self.zenodo_id or self.giturl):
             try:
                 print('Retrieving from Zenodo')
                 from_zenodo(self.zenodo_id, self.path)
             except KeyError or TypeError:
                 print('Retrieving from git')
                 from_git(self.giturl, self.path)
+        else:
+            print('Retrieving from local')
 
     def stage_db(self, force=False):
         """
-        Stage model deployment. Checks download and builds image container. Transform to desired db format if asked
-        format: None, 'hdf5'
+        Stage model deployment.
+        Checks download and builds image container.
+        Makes a model forecast with desired params
+        Transform to desired db format if asked
 
         Returns:
 
@@ -120,9 +129,9 @@ class Model:
             if os.path.isfile(path_h5):
                 self.filename = fn_h5
             else:
-                fecsep_bind = f'/usr/src/fecsep' ## todo: func has name of fecsep module hardcoded: Should fecsep beinstalled in the model docker?
-                cmd = f'python {fecsep_bind}/dbparser.py --format {self.format} --filename {self.filename}'  ## todo: func has name of fecsep module
-                client.containers.run(self.image, remove=True,
+                fecsep_bind = f'/usr/src/fecsep'
+                cmd = f'python {fecsep_bind}/dbparser.py --format {self.format} --filename {self.filename}'
+                a = client.containers.run(self.image, remove=True,
                                       volumes={os.path.abspath(self.path): {'bind': self.bind, 'mode': 'rw'},
                                                os.path.abspath(fecsep.__path__[0]): {'bind': fecsep_bind, 'mode': 'ro'}},
                                       command=cmd)
@@ -148,7 +157,7 @@ class Model:
                 if self.format == 'quadtree':
                     region = QuadtreeGrid2D.from_quadkeys(db['quadkeys'][:].astype(str), magnitudes=magnitudes)
                     region.get_cell_area()
-                elif self.format == 'dat':
+                elif self.format == 'dat' or self.format == 'csep':
                     dh = db['dh'][:]
                     bboxes = db['bboxes'][:]
                     poly_mask = db['poly_mask'][:]
@@ -248,7 +257,7 @@ class Experiment:
                  catalog_reader=None,
                  mag_min=None, mag_max=None, mag_bin=None,
                  depth_min=None, depth_max=None,
-                 models_config=None, tests_config=None,
+                 models_config=None, tests_config=None, region=None,
                  default_test_kwargs=None, **kwargs):
 
         self.name = name
@@ -265,6 +274,7 @@ class Experiment:
         self.run_results = {}
         self.set_magnitude_range(mag_min, mag_max, mag_bin)
         self.set_depth_range(depth_min, depth_max)
+        self.region = parse_func(region)() if region else None
         self.__dict__.update(kwargs)
 
     def get_run_struct(self, run_name=None):
@@ -415,6 +425,12 @@ class Experiment:
             min_mag = self.magnitude_range.min()
             min_depth = self.depth_range.min()
             max_depth = self.depth_range.max()
+            if self.region is not None:
+                bounds = {i: j for i,j in zip(['min_longitude', 'max_longitude',
+                                              'min_latitude', 'max_latitude'],
+                                                self.region.get_bbox())}
+            else:
+                bounds = {}
             catalog = self.catalog_reader(
                 cat_id=self.test_date,
                 start_datetime=self.start_date,
@@ -422,7 +438,8 @@ class Experiment:
                 min_mw=min_mag,
                 min_depth=min_depth,
                 max_depth=max_depth,
-                verbose=True
+                verbose=True,
+                **bounds
             )
 
             self.set_catalog(catalog)
@@ -476,6 +493,8 @@ class Experiment:
         forecast = self.get_forecast(model)
         catalog = copy.deepcopy(self.get_catalog())
         catalog.region = forecast.region
+        if self.region:
+            catalog.filter_spatial(in_place=True)
         if test.ref_model is not None:
             ref_model = self.get_model(test.ref_model)
             test_args = (forecast, self.get_forecast(ref_model), catalog)
@@ -578,7 +597,7 @@ class Experiment:
 
     def to_dict(self):
         out = {}
-        excluded = ['run_results', 'magnitude_range', 'depth_range']
+        excluded = ['run_results', 'magnitude_range', 'depth_range', 'region']
 
         def _get_value(x):
             if hasattr(x, 'to_dict'):
