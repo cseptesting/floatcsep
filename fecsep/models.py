@@ -12,8 +12,8 @@ from csep.models import EvaluationResult
 from csep.utils.calc import cleaner_range
 from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
-from csep.core.regions import QuadtreeGrid2D
-
+from csep.core.regions import QuadtreeGrid2D, CartesianGrid2D
+from csep.models import Polygon
 import fecsep
 import fecsep.utils
 import fecsep.accessors
@@ -82,7 +82,6 @@ class Model:
 
         return img
 
-
     def get_source(self, force=False):
 
         if not os.path.exists(os.path.join(self.path, self.filename)):
@@ -94,8 +93,6 @@ class Model:
             except KeyError or TypeError:
                 print('Retrieving from git')
                 from_git(self.giturl, self.path)
-
-
 
     def stage_db(self, force=False):
         """
@@ -117,21 +114,21 @@ class Model:
                 self.image = self.build_docker(img_name, self.path)[0]
         self.bind = self.image.attrs['Config']['WorkingDir']
 
-        if self.db_type == 'hdf5':
+        if self.db_type in ['hdf5', 'dat']:
             fn_h5 = os.path.splitext(self.filename)[0] + '.hdf5'
             path_h5 = os.path.join(self.path, fn_h5)
             if os.path.isfile(path_h5):
                 self.filename = fn_h5
             else:
                 fecsep_bind = f'/usr/src/fecsep' ## todo: func has name of fecsep module hardcoded: Should fecsep beinstalled in the model docker?
-                cmd = f'python {fecsep_bind}/serialize.py --format {self.format} --filename {self.filename}'  ## todo: func has name of fecsep module
+                cmd = f'python {fecsep_bind}/dbparser.py --format {self.format} --filename {self.filename}'  ## todo: func has name of fecsep module
                 client.containers.run(self.image, remove=True,
                                       volumes={os.path.abspath(self.path): {'bind': self.bind, 'mode': 'rw'},
                                                os.path.abspath(fecsep.__path__[0]): {'bind': fecsep_bind, 'mode': 'ro'}},
                                       command=cmd)
                 self.filename = fn_h5
 
-    def create_forecast(self, start_date, test_date, flavour=None, name=None):
+    def create_forecast(self, start_date, test_date, name=None):
         """
         Creates a forecast from a model and a time window
         :param model: A model configuration dict
@@ -143,6 +140,7 @@ class Model:
         print(f"Loading model from {self.path}...")
         fn = os.path.join(self.path, self.filename)
 
+        #todo implement these functions in dbparser
         if self.db_type == 'hdf5':
             with h5py.File(fn, 'r') as db:
                 rates = db['rates'][:]  #todo check memory efficiency. Is it better to leave db open for multiple time intervals?
@@ -150,6 +148,11 @@ class Model:
                 if self.format == 'quadtree':
                     region = QuadtreeGrid2D.from_quadkeys(db['quadkeys'][:].astype(str), magnitudes=magnitudes)
                     region.get_cell_area()
+                elif self.format == 'dat':
+                    dh = db['dh'][:]
+                    bboxes = db['bboxes'][:]
+                    poly_mask = db['poly_mask'][:]
+                    region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
 
         forecast = GriddedForecast(
             name=name,
@@ -365,7 +368,7 @@ class Experiment:
                         model_[name_flav].pop('flavours')
                         self.models.append(Model.from_dict(model_))
                 else:
-                    self.models.append(Model.from_dict(model_))
+                    self.models.append(Model.from_dict(element))
 
     def set_tests(self):
         """
