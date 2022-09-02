@@ -10,4 +10,10 @@
     plot_func: plot_poisson_consistency_test
     plot_args:
         title: $S-$test
+- Binary_S:
+      func: binomial_spatial_test
+      func_kwargs: {}
+      plot_func: plot_poisson_consistency_test
+      plot_args:
+          title: $S-$Btest
 

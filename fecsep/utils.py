@@ -7,14 +7,84 @@ import mercantile
 import shapely.geometry
 from functools import partial
 import itertools
+import functools
+import yaml
 
 #pyCSEP libraries
 import six
+import csep.core
+import csep.utils
 from csep.core.regions import CartesianGrid2D, compute_vertices
 from csep.core.forecasts import GriddedForecast
 from csep.utils.plots import plot_spatial_dataset
 from csep.models import Polygon
 from csep.core.regions import QuadtreeGrid2D, geographical_area_from_bounds
+
+#feCSEP libraries
+import fecsep.accessors
+import fecsep.evaluations
+
+
+class NoAliasLoader(yaml.Loader):
+    def ignore_aliases(self, data):
+        return True
+
+
+def _set_dockerfile(name):
+    string = f"""
+## Install Docker image from trusted source
+FROM python:3.8.13
+
+## Setup user args
+ARG USERNAME={name}
+ARG USER_UID=1100
+ARG USER_GID=$USER_UID
+
+RUN mkdir -p /usr/src/{name} && chown $USER_UID:$USER_GID /usr/src/{name} 
+RUN groupadd --non-unique -g $USER_GID $USERNAME && useradd -u $USER_UID -g $USER_GID -s /bin/sh -m $USERNAME
+
+## Set up work directory in the Docker container
+WORKDIR /usr/src/{name}/
+
+## Copy the files from the local machine (the repository) to the Docker container
+COPY --chown=$USER_UID:$USER_GID . /usr/src/{name}/
+
+## Calls setup.py, install python dependencies and install this model as a python module
+ENV VIRTUAL_ENV=/venv/
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# RUN pip install --no-cache-dir --upgrade pip
+# RUN pip install -r requirements.txt
+RUN pip install numpy pandas h5py
+
+USER $USERNAME
+
+    """
+    return string
+
+
+def parse_func(func):
+    def rgetattr(obj, attr, *args):
+        def _getattr(obj, attr):
+            return getattr(obj, attr, *args)
+        return functools.reduce(_getattr, [obj] + attr.split('.'))
+
+    if callable(func):
+        return func
+    else:
+        target_modules = [csep.core,
+                          csep.utils,
+                          csep.utils.plots,
+                          fecsep.utils,
+                          fecsep.accessors,
+                          fecsep.evaluations]
+        for module in target_modules:
+            try:
+                return rgetattr(module, func)
+            except AttributeError:
+                pass
+        raise AttributeError(f'Evaluation or Plot function {func} has not yet been implemented in fecsep or pycsep')
 
 
 def plot_matrix_comparative_test(evaluation_results, plot_args=None):

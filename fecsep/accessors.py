@@ -86,9 +86,8 @@ def _query_isc_gcmt(out_format='QuakeML',
     events, creation_time, url = _search_isc_gcmt(**query_args)
 
     if verbose:
-         print(f'\tAccess URL: {url}')
-         print(f'\tCatalog with {len(events)} events downloaded in {(time.time() - start_time):.2f} seconds')
-
+        print(f'\tAccess URL: {url}')
+        print(f'\tCatalog with {len(events)} events downloaded in {(time.time() - start_time):.2f} seconds')
 
     return events, creation_time
 
@@ -144,7 +143,7 @@ def _parse_isc_event(node, ns, mag_author='GCMT'):
     time = dtstr.split('T')[1][:-1]
     dtime = datetime_to_utc_epoch(datetime.fromisoformat(date + ' ' + time + '0'))
 
-    return (id_, dtime, float(lat), float(lon), float(depth) / 1000., float(mag))
+    return id_, dtime, float(lat), float(lon), float(depth) / 1000., float(mag)
 
 
 def _download_file(url, filename):
@@ -171,7 +170,7 @@ def _download_file(url, filename):
             if total_size:
                 progress = int(progress_bar_length*download_size/total_size)
                 sys.stdout.write('\r[{}{}] {:.1f}%'.format('█'*progress, '.' * (progress_bar_length-progress),
-                    100*download_size/total_size))
+                                 100*download_size/total_size))
                 sys.stdout.flush()
         sys.stdout.write('\n')
 
@@ -233,6 +232,7 @@ def from_zenodo(record_id, folder, force=False):
         if value != digest:
             print("Error: Checksum does not match")
             sys.exit(-1)
+
 
 def from_git(url, path, branch=None, force=False):
 

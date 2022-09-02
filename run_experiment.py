@@ -14,7 +14,7 @@ if __name__ == "__main__":
         print("\ttest_date (required) : format='%Y-%m-%dT%H:%M:%S'")
         sys.exit(-1)
     #
-    # # run experiment with command line arguments
+    # # run gefe with command line arguments
     run(sys.argv[1])
 
 

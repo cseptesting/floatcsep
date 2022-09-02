@@ -1,7 +1,5 @@
 import copy
 import os
-import fecsep
-import datetime
 import json
 import six
 from collections.abc import Iterable
@@ -9,91 +7,21 @@ import h5py
 import yaml
 from matplotlib import pyplot
 
-import csep
 from csep import GriddedForecast
 from csep.models import EvaluationResult
 from csep.utils.calc import cleaner_range
 from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
-from csep.core.regions import QuadtreeGrid2D, geographical_area_from_bounds
+from csep.core.regions import QuadtreeGrid2D
 
 import fecsep
-from fecsep.utils import MarkdownReport
+import fecsep.utils
+import fecsep.accessors
+import fecsep.evaluations
+from fecsep.utils import MarkdownReport, NoAliasLoader, _set_dockerfile, parse_func
 from fecsep.accessors import from_zenodo, from_git
 import docker
 import docker.errors
-import functools
-
-
-TASKS = dict()
-
-class NoAliasLoader(yaml.Loader):
-    def ignore_aliases(self, data):
-        return True
-
-def registry(func):
-    """
-    mockup registry
-    """
-    TASKS[func.__name__] = func
-    return func
-
-
-def _set_dockerfile(name):
-    string = f"""
-## Install Docker image from trusted source
-FROM python:3.8.13
-
-## Setup user args
-ARG USERNAME={name}
-ARG USER_UID=1100
-ARG USER_GID=$USER_UID
-
-RUN mkdir -p /usr/src/{name} && chown $USER_UID:$USER_GID /usr/src/{name} 
-RUN groupadd --non-unique -g $USER_GID $USERNAME && useradd -u $USER_UID -g $USER_GID -s /bin/sh -m $USERNAME
-
-## Set up work directory in the Docker container
-WORKDIR /usr/src/{name}/
-
-## Copy the files from the local machine (the repository) to the Docker container
-COPY --chown=$USER_UID:$USER_GID . /usr/src/{name}/
-
-## Calls setup.py, install python dependencies and install this model as a python module
-ENV VIRTUAL_ENV=/venv/
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-# RUN pip install --no-cache-dir --upgrade pip
-# RUN pip install -r requirements.txt
-RUN pip install numpy pandas h5py
-
-USER $USERNAME
-
-    """
-    return string
-
-
-def parse_func(func):
-    def rgetattr(obj, attr, *args):
-        def _getattr(obj, attr):
-            return getattr(obj, attr, *args)
-        return functools.reduce(_getattr, [obj] + attr.split('.'))
-
-    if callable(func):
-        return func
-    else:
-        target_modules = [csep.core,
-                          csep.utils,
-                          csep.utils.plots,
-                          fecsep.utils,
-                          fecsep.accessors]
-        for module in target_modules:
-            try:
-                return rgetattr(module, func)
-            except AttributeError:
-                pass
-        raise AttributeError(f'Evaluation or Plot function {func} has not yet been implemented in fecsep or pycsep')
-
 
 
 client = docker.from_env()
@@ -281,9 +209,6 @@ class Test:
         self.path = path
         self.markdown = markdown
 
-
-
-
     def compute(self):
         print(f"Computing {self.name} for model {self.model.name}...")
         return self.func(*self.func_args, **self.func_kwargs)
@@ -346,11 +271,11 @@ class Experiment:
         :param args: Dictionary containing the Experiment object and the Run arguments
         :return: run_folder: Path to the run
                  exists: flag if forecasts, catalogs and test_results if they exist already
-                 target_paths: flag to each element of the experiment (catalog and evaluation results)
+                 target_paths: flag to each element of the gefe (catalog and evaluation results)
         """
 
         if self.test_date is None:
-            raise RuntimeError("Test date must be set before running experiment.")
+            raise RuntimeError("Test date must be set before running gefe.")
 
         # grab names for creating directories
         tests = [i.name for i in self.tests]
@@ -397,7 +322,7 @@ class Experiment:
             'figures': {test: os.path.join(folder_paths['figures'], f'{test}') for test in tests}
         }
 
-        # store in experiment configuration
+        # store in gefe configuration
         self.run_folder = run_folder
         self.target_paths = target_paths
         self.exists = exists
@@ -420,7 +345,7 @@ class Experiment:
 
     def set_models(self):
         """
-        Loads a model and its configurations to the experiment
+        Loads a model and its configurations to the gefe
 
         :param models: list of Model objects
         :return:
@@ -444,7 +369,7 @@ class Experiment:
 
     def set_tests(self):
         """
-        Loads a test configuration file to the experiment
+        Loads a test configuration file to the gefe
 
         :param tests
         :return:
@@ -469,7 +394,7 @@ class Experiment:
     def get_catalog(self):
         """ Returns filtered catalog either from a previous run or for a new run downloads from ISC gCMT catalogue.
 
-        This function is passively optimized for the global experiment. Meaning that no filtering needs to
+        This function is passively optimized for the global gefe. Meaning that no filtering needs to
         occur aside from magnitudes.
 
         :param region:
@@ -517,9 +442,9 @@ class Experiment:
         return result
 
     def prepare_all_tests(self):
-        """ Prepare test to be run for the experiment by including runtime arguments like forecasts and catalogs
+        """ Prepare test to be run for the gefe by including runtime arguments like forecasts and catalogs
 
-        :return tests: Complete list of evaluations to run for experiment
+        :return tests: Complete list of evaluations to run for gefe
         """
         # prepares arguments for test
         test_list = []
@@ -628,7 +553,7 @@ class Experiment:
         report.add_heading(
             "Results",
             level=2,
-            text="We apply the following tests to each of the forecasts considered in this experiment. "
+            text="We apply the following tests to each of the forecasts considered in this gefe. "
                  "More information regarding the tests can be found [here](https://docs.cseptesting.org/getting_started/theory.html)."
             )
         test_names = [test.name for test in self.tests]
@@ -685,8 +610,6 @@ class Experiment:
             indent=1
         )
 
-
-
     @classmethod
     def from_yaml(cls, config_yml):
 
@@ -694,19 +617,3 @@ class Experiment:
             config_dict = yaml.safe_load(yml)
         return cls(**config_dict)
 
-
-if __name__ == '__main__':
-    name = 'TEAM'
-    path = '../models/TEAM'
-    A = Model(name, path, None, None, zenodo_id=6289795)
-    # img = A.stage(format=True)
-    # b = A.to_yaml()
-    # args = ['docker', 'run' '--rm', '--volume', '$PWD/models/TEAM:/usr/src/TEAM:rw',
-    #         'team', 'python', 'serialize.py', '--filename', 'TEAM=N10L11.csv',
-    #         '--format', 'quadtree']
-    # print('serializing to hdf5')
-    # subprocess.Popen(args)
-    # name = 'WHEEL'
-    # path = '../models/WHEEL'
-    # A = Model(name, path, None, None, zenodo_id=6255575)
-    # img = A.stage()

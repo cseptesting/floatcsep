@@ -35,7 +35,6 @@ def quadtree_to_hdf5(filename):
         hf['quadkeys'][:] = quadkeys
 
 
-
 def serialize():
 
     parser = argparse.ArgumentParser()

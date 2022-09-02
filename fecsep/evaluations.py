@@ -1,7 +1,6 @@
 import numpy
 import scipy.stats
 from csep.models import EvaluationResult
-import numpy as np
 from csep.core.poisson_evaluations import _simulate_catalog
 from csep.core.exceptions import CSEPCatalogException
 
@@ -108,13 +107,13 @@ def binomial_joint_log_likelihood_ndarray(forecast, catalog):
                     It has to be a either zero or positive integer only (No Floating Point)
     """
     #First, we mask the forecast in cells where we could find log=0.0 singularities:
-    forecast_masked = np.ma.masked_where(forecast.ravel() <= 0.0, forecast.ravel()) 
+    forecast_masked = numpy.ma.masked_where(forecast.ravel() <= 0.0, forecast.ravel()) 
     
     #Then, we compute the log-likelihood of observing one or more events given a Poisson distribution, i.e., 1 - Pr(0) 
     target_idx = numpy.nonzero(catalog.ravel())
     y = numpy.zeros(forecast_masked.ravel().shape)
     y[target_idx[0]] = 1
-    first_term = y * (np.log(1.0 - np.exp(-forecast_masked.ravel())))
+    first_term = y * (numpy.log(1.0 - numpy.exp(-forecast_masked.ravel())))
     
     #Also, we estimate the log-likelihood in cells no events are observed:
     second_term = (1-y) * (-forecast_masked.ravel().data)
@@ -149,7 +148,7 @@ def _binomial_likelihood_test(forecast_data, observed_data, num_simulations=1000
     # data structures to store results
     sim_fore = numpy.zeros(sampling_weights.shape)
     simulated_ll = []
-    n_obs = len(np.unique(np.nonzero(observed_data.ravel())))
+    n_obs = len(numpy.unique(numpy.nonzero(observed_data.ravel())))
     n_fore = numpy.sum(forecast_data)
     expected_forecast_count = int(n_obs) 
     
@@ -311,7 +310,7 @@ def _binary_t_test_ndarray(target_event_rates1, target_event_rates2, n_obs, n_f1
     """
     # Some Pre Calculations -  Because they are being used repeatedly.
     N_p = n_obs  
-    N = len(np.unique(np.nonzero(catalog.spatial_magnitude_counts().ravel()))) # Number of active bins
+    N = len(numpy.unique(numpy.nonzero(catalog.spatial_magnitude_counts().ravel()))) # Number of active bins
     N1 = n_f1  
     N2 = n_f2  
     X1 = numpy.log(target_event_rates1)  # Log of every element of Forecast 1
@@ -369,8 +368,8 @@ def binary_paired_t_test(forecast, benchmark_forecast, observed_catalog, alpha=0
     target_event_rate_forecast1p, n_fore1 = forecast.target_event_rates(observed_catalog, scale=scale)
     target_event_rate_forecast2p, n_fore2 = benchmark_forecast.target_event_rates(observed_catalog, scale=scale)
     
-    target_event_rate_forecast1 = forecast.data.ravel()[np.unique(np.nonzero(observed_catalog.spatial_magnitude_counts().ravel()))]
-    target_event_rate_forecast2 = benchmark_forecast.data.ravel()[np.unique(np.nonzero(observed_catalog.spatial_magnitude_counts().ravel()))]
+    target_event_rate_forecast1 = forecast.data.ravel()[numpy.unique(numpy.nonzero(observed_catalog.spatial_magnitude_counts().ravel()))]
+    target_event_rate_forecast2 = benchmark_forecast.data.ravel()[numpy.unique(numpy.nonzero(observed_catalog.spatial_magnitude_counts().ravel()))]
 
     # call the primative version operating on ndarray
     out = _binary_t_test_ndarray(
@@ -392,7 +391,7 @@ def binary_paired_t_test(forecast, benchmark_forecast, observed_catalog, alpha=0
     result.sim_name = (forecast.name, benchmark_forecast.name)
     result.obs_name = observed_catalog.name
     result.status = 'normal'
-    result.min_mw = np.min(forecast.magnitudes)
+    result.min_mw = numpy.min(forecast.magnitudes)
     return result            
 
 

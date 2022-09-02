@@ -1,5 +1,5 @@
 """
-Use the MarkdownReport class to create output for the experiment
+Use the MarkdownReport class to create output for the gefe
 
 1. string templates are stored for each evaluation
 2. string templates are stored for each forecast
@@ -7,10 +7,10 @@ Use the MarkdownReport class to create output for the experiment
     - plots of catalog
     - plots of forecasts
     - evaluation results
-    - metadata from run, (maybe json dump of experiment class)
+    - metadata from run, (maybe json dump of gefe class)
 """
 # def generate_markdown_report(mdFile, result_figs_paths, experiment_configuration):
-#     """ Generates markdown report from experiment configuration
+#     """ Generates markdown report from gefe configuration
 #
 #         Use the return value of this function to write the report to disk.
 #
@@ -31,7 +31,7 @@ Use the MarkdownReport class to create output for the experiment
 #                      "frequent occurrence of large events worldwide (Bayona et al. 2020). In particular, global M5.8+ "
 #                      "earthquake forecasting models can be reliably ranked after only one year of prospective testing (Bird "
 #                      "et al. 2015). In this regard, Eberhard et al. (2012) took a major step toward conducting a global forecast "
-#                      "experiment by prospectively testing three earthquake forecasting models for the western Pacific "
+#                      "gefe by prospectively testing three earthquake forecasting models for the western Pacific "
 #                      "region. Based on two years of testing, the authors found that a smoothed seismicity model performs "
 #                      "the best, and provided useful recommendations for future global experiments. Also based on two "
 #                      "years of independent observations, Strader et al. (2018) determined that the global hybrid GEAR1 "
@@ -77,7 +77,7 @@ Use the MarkdownReport class to create output for the experiment
 #                      "with bin size of 0.1. All forecasting models compute earthquake rates within unique depth bin, i.e. [0 km, 70km]"
 #                      )
 #
-#     mdFile.new_line(text="Following forecast models are competing in this experiment")
+#     mdFile.new_line(text="Following forecast models are competing in this gefe")
 #     model_list = ["GEAR1 (Bird et al. 2015)",
 #                  "WHEEL (Bayona et al. 2021)",
 #                  "TEAM (Bayona et al. 2021)",

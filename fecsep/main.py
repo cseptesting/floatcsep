@@ -21,7 +21,7 @@ def run(cfg, test_date_string):
     print('======================================================\n')
     print(exp.to_yaml())
 
-    # 0. create expected paths based on experiment configuration
+    # 0. create expected paths based on configuration
     exp.get_run_struct()
 
     # 1. retrieve data from isc catalog reader or from previous run
