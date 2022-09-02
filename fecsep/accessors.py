@@ -15,11 +15,19 @@ HOST_CATALOG = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
 TIMEOUT = 180
 
 
-def query_isc_gcmt(start_datetime, end_datetime, min_mw, min_depth=None, max_depth=None, cat_id=None, max_mw=None, verbose=False):
-
+def query_isc_gcmt(start_datetime, end_datetime, min_mw, min_depth=None, max_depth=None,
+                   cat_id=None, max_mw=None, verbose=False,
+                   min_latitude=None, max_latitude=None,
+                   min_longitude=None, max_longitude=None,
+                   **kwargs,):
+    if min_latitude:
+        searchshape='RECT'
+    else:
+        searchshape='GLOBAL'
     events, creation_time = _query_isc_gcmt(start_year=start_datetime.year,
                                             start_month=start_datetime.month,
                                             start_day=start_datetime.day,
+                                            searchshape=searchshape,
                                             start_time=start_datetime.time().isoformat(),
                                             end_year=end_datetime.year,
                                             end_month=end_datetime.month,
@@ -29,6 +37,10 @@ def query_isc_gcmt(start_datetime, end_datetime, min_mw, min_depth=None, max_dep
                                             max_mag=max_mw,
                                             min_dep=min_depth,
                                             max_dep=max_depth,
+                                            left_lon=min_longitude,
+                                            right_lon=max_longitude,
+                                            bot_lat=min_latitude,
+                                            top_lat=max_latitude,
                                             verbose=verbose)
 
     return CSEPCatalog(data=events, name='ISC Bulletin - gCMT', catalog_id=cat_id, date_accessed=creation_time)
@@ -51,6 +63,10 @@ def _query_isc_gcmt(out_format='QuakeML',
                     max_mag=None,
                     min_dep=None,
                     max_dep=None,
+                    left_lon=None,
+                    right_lon=None,
+                    bot_lat=None,
+                    top_lat=None,
                     req_mag_type='MW',
                     req_mag_agcy='GCMT',
                     verbose=False):
