@@ -1,0 +1,12 @@
+- GEAR1:
+    zenodo_id: 6289795
+    path: models/gear1
+    filename: GEAR1.dat
+    format: dat
+    db_type: hdf5
+- GEAR2:
+    zenodo_id: 6255575
+    path: models/gear2
+    filename: GEAR2.dat
+    db_type: hdf5
+    format: dat
