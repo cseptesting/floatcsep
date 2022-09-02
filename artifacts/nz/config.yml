@@ -3,12 +3,12 @@ start_date: 2014-1-1T00:00:00
 end_date: 2016-1-1T00:00:00
 intervals: 1
 catalog_reader: query_isc_gcmt
-region: new_zealand
+region: new_zealand_csep_region
 mag_min: 4.95
 mag_max: 7.95
 mag_bin: 0.1
 depth_min: 0
-depth_max: 70
+depth_max: 30
 models_config: models.yml
 tests_config: tests.yml
 default_test_kwargs:
