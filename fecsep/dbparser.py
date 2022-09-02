@@ -96,8 +96,13 @@ def csep_to_hdf5(filename):
             return False
 
     hdf5_filename = f'{os.path.splitext(filename)[0]}.hdf5'
-
-    data = pandas.read_csv(filename, header=0)
+    with open(filename, 'r') as file_:
+        line = file_.readline()
+        if len(line.split(',')) > 3:
+            sep = ','
+        else:
+            sep = ' '
+    data = pandas.read_csv(filename, header=0, sep=sep, escapechar='#')
     magnitudes = numpy.array([float(i) for i in data.columns if is_mag(i)])
     rates = data[[i for i in data.columns if is_mag(i)]].to_numpy()
     all_polys = data[['lon_min', 'lon_max', 'lat_min', 'lat_max']].to_numpy()
@@ -134,9 +139,7 @@ def serialize():
         dat_to_hdf5(args.filename)
     if args.format == 'csep':
         csep_to_hdf5(args.filename)
-    print('serializing ready')
 
 
 if __name__ == '__main__':
-    print('hihih')
     serialize()
