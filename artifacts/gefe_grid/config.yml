@@ -1,0 +1,15 @@
+name: gefe
+start_date: 2014-1-1T00:00:00
+end_date: 2016-1-1T00:00:00
+intervals: 1
+catalog_reader: query_isc_gcmt
+mag_min: 5.95
+mag_max: 8.95
+mag_bin: 0.1
+depth_min: 0
+depth_max: 70
+models_config: models.yml
+tests_config: tests.yml
+default_test_kwargs:
+  seed: 23
+  num_simulations: 100

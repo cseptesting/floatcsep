@@ -4,6 +4,7 @@ import argparse, os
 import numpy
 import itertools
 
+
 def quadtree_to_hdf5(filename):
     """
 
@@ -34,6 +35,7 @@ def quadtree_to_hdf5(filename):
         hf.require_dataset('quadkeys', shape=len(quadkeys), dtype='S16')
         hf['quadkeys'][:] = quadkeys
 
+
 def dat_to_hdf5(filename):
     """
     from csep.load_ascii
@@ -45,7 +47,6 @@ def dat_to_hdf5(filename):
     """
 
     hdf5_filename = f'{os.path.splitext(filename)[0]}.hdf5'
-    # Load data
     data = numpy.loadtxt(filename)
     all_polys = data[:, :4]
     all_poly_mask = data[:, -1]
@@ -75,6 +76,52 @@ def dat_to_hdf5(filename):
         hf['poly_mask'][:] = poly_mask
 
 
+def csep_to_hdf5(filename):
+    """
+    from csep.load_ascii
+    Args:
+        *args:
+
+    Returns:
+
+    """
+    def is_mag(num):
+        try:
+            m = float(num)
+            if m > -1 and m < 12.:
+                return True
+            else:
+                return False
+        except ValueError:
+            return False
+
+    hdf5_filename = f'{os.path.splitext(filename)[0]}.hdf5'
+
+    data = pandas.read_csv(filename, header=0)
+    magnitudes = numpy.array([float(i) for i in data.columns if is_mag(i)])
+    rates = data[[i for i in data.columns if is_mag(i)]].to_numpy()
+    all_polys = data[['lon_min', 'lon_max', 'lat_min', 'lat_max']].to_numpy()
+    bboxes = numpy.array([tuple(itertools.product(bbox[:2], bbox[2:])) for bbox in all_polys])
+    dh = float(all_polys[0, 3] - all_polys[0, 2])
+
+    try:
+        poly_mask = data['mask']
+    except:
+        poly_mask = numpy.ones(bboxes.shape[0])
+
+    with h5py.File(hdf5_filename, 'a') as hf:
+        hf.require_dataset('rates', shape=rates.shape, dtype=float)
+        hf['rates'][:] = rates
+        hf.require_dataset('magnitudes', shape=magnitudes.shape, dtype=float)
+        hf['magnitudes'][:] = magnitudes
+        hf.require_dataset('bboxes', shape=bboxes.shape, dtype=float)
+        hf['bboxes'][:] = bboxes
+        hf.require_dataset('dh', shape=(1,), dtype=float)
+        hf['dh'][:] = dh
+        hf.require_dataset('poly_mask', shape=poly_mask.shape, dtype=float)
+        hf['poly_mask'][:] = poly_mask
+
+
 def serialize():
     parser = argparse.ArgumentParser()
     parser.add_argument("--format", help="format")
@@ -85,9 +132,11 @@ def serialize():
         quadtree_to_hdf5(args.filename)
     if args.format == 'dat':
         dat_to_hdf5(args.filename)
+    if args.format == 'csep':
+        csep_to_hdf5(args.filename)
     print('serializing ready')
 
 
 if __name__ == '__main__':
-
+    print('hihih')
     serialize()
