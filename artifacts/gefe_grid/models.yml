@@ -1,28 +1,25 @@
 - TEAM:
-    zenodo_id: 6289795
-    path: models/team
-    format: quadtree
+    path: models
+    filename: TEAMr_csep.txt
+    format: csep
     db_type: hdf5
-    flavours:
-      N10L11: TEAM=N10L11.csv
-      N25L11: TEAM=N25L11.csv
-      N50L11: TEAM=N50L11.csv
-      N100L11: TEAM=N100L11.csv
-      SN10L11: TEAM=SN10L11.csv
-      SN25L11: TEAM=SN25L11.csv
-      SN50L11: TEAM=SN50L11.csv
-      SN100L11: TEAM=SN100L11.csv
-- WHEEL:
-    zenodo_id: 6255575
-    path: models/wheel
-    db_type: hdf5
-    format: quadtree
-    flavours:
-      N10L11: WHEEL=N10L11.csv
-      N25L11: WHEEL=N25L11.csv
-      N50L11: WHEEL=N50L11.csv
-      N100L11: WHEEL=N100L11.csv
-      SN10L11: WHEEL=SN10L11.csv
-      SN25L11: WHEEL=SN25L11.csv
-      SN50L11: WHEEL=SN50L11.csv
-      SN100L11: WHEEL=SN100L11.csv
+#- GEAR1:
+#    path: models
+#    filename: GEAR1_csep.txt
+#    format: csep
+#    db_type: hdf5
+#- KJSS:
+#    path: models
+#    filename: KJSS_csep.txt
+#    format: csep
+#    db_type: hdf5
+#- SHIFT2F_GSRM:
+#    path: models
+#    filename: SHIFT2F_GSRM_csep.txt
+#    format: csep
+#    db_type: hdf5
+#- WHEEL:
+#    path: models
+#    filename: WHEELr_csep.txt
+#    format: csep
+#    db_type: hdf5

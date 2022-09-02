@@ -12,4 +12,4 @@ models_config: models.yml
 tests_config: tests.yml
 default_test_kwargs:
   seed: 23
-  num_simulations: 100
+  num_simulations: 1000

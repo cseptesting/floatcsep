@@ -102,7 +102,8 @@ def csep_to_hdf5(filename):
             sep = ','
         else:
             sep = ' '
-    data = pandas.read_csv(filename, header=0, sep=sep, escapechar='#')
+    data = pandas.read_csv(filename, header=0, sep=sep, escapechar='#', skipinitialspace=True)
+    data.columns = [i.strip() for i in data.columns]
     magnitudes = numpy.array([float(i) for i in data.columns if is_mag(i)])
     rates = data[[i for i in data.columns if is_mag(i)]].to_numpy()
     all_polys = data[['lon_min', 'lon_max', 'lat_min', 'lat_max']].to_numpy()
