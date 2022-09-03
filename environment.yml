@@ -21,3 +21,5 @@ dependencies:
   - h5py
   - pytables
   - gitpython=3.1.27
+  - dateparser
+  - xmltodict
