@@ -64,7 +64,7 @@ USER $USERNAME
     return string
 
 
-def parse_func(func):
+def parse_csep_func(func):
     def rgetattr(obj, attr, *args):
         def _getattr(obj, attr):
             return getattr(obj, attr, *args)
@@ -76,6 +76,7 @@ def parse_func(func):
         target_modules = [csep.core,
                           csep.utils,
                           csep.utils.plots,
+                          csep.core.regions,
                           fecsep.utils,
                           fecsep.accessors,
                           fecsep.evaluations]

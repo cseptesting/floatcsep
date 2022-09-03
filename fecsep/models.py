@@ -20,7 +20,7 @@ import fecsep
 import fecsep.utils
 import fecsep.accessors
 import fecsep.evaluations
-from fecsep.utils import MarkdownReport, NoAliasLoader, _set_dockerfile, parse_func
+from fecsep.utils import MarkdownReport, NoAliasLoader, _set_dockerfile, parse_csep_func
 from fecsep.accessors import from_zenodo, from_git
 import docker
 import docker.errors
@@ -123,7 +123,7 @@ class Model:
                 self.image = self.build_docker(img_name, self.path)[0]
         self.bind = self.image.attrs['Config']['WorkingDir']
 
-        if self.db_type in ['hdf5', 'dat']:
+        if self.db_type in ['hdf5']:
             fn_h5 = os.path.splitext(self.filename)[0] + '.hdf5'
             path_h5 = os.path.join(self.path, fn_h5)
             if os.path.isfile(path_h5):
@@ -157,7 +157,7 @@ class Model:
                 if self.format == 'quadtree':
                     region = QuadtreeGrid2D.from_quadkeys(db['quadkeys'][:].astype(str), magnitudes=magnitudes)
                     region.get_cell_area()
-                elif self.format == 'dat' or self.format == 'csep':
+                elif self.format in ['dat', 'csep', 'xml']:
                     dh = db['dh'][:]
                     bboxes = db['bboxes'][:]
                     poly_mask = db['poly_mask'][:]
@@ -210,10 +210,10 @@ class Test:
         :param kwargs:
         """
         self.name = name
-        self.func = parse_func(func)
+        self.func = parse_csep_func(func)
         self.func_kwargs = func_kwargs      # todo set default args from exp?
         self.func_args = func_args
-        self.plot_func = parse_func(plot_func)
+        self.plot_func = parse_csep_func(plot_func)
         self.plot_args = plot_args or {}        # todo default args?
         self.plot_kwargs = plot_kwargs or {}
         self.ref_model = ref_model
@@ -265,7 +265,7 @@ class Experiment:
         self.end_date = end_date
         self.intervals = intervals
         self.test_date = test_date
-        self.catalog_reader = parse_func(catalog_reader)
+        self.catalog_reader = parse_csep_func(catalog_reader)
         self.models_config = models_config
         self.tests_config = tests_config
         self.default_test_kwargs = default_test_kwargs
@@ -274,7 +274,7 @@ class Experiment:
         self.run_results = {}
         self.set_magnitude_range(mag_min, mag_max, mag_bin)
         self.set_depth_range(depth_min, depth_max)
-        self.region = parse_func(region)() if region else None
+        self.region = parse_csep_func(region)() if region else None
         self.__dict__.update(kwargs)
 
     def get_run_struct(self, run_name=None):

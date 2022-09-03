@@ -16,6 +16,8 @@ def run(cfg, test_date_string):
     except:
         raise RuntimeError("Error parsing test date string. Should have format='%Y-%m-%dT%H:%M:%S")
     exp.set_test_date(test_date)
+    # exp.models[0].create_forecast(exp.start_date, test_date).plot(plot_args={'filename':
+    #                                                                          'forecast'})
 
     print('Experiment is configured with the following parameters')
     print('======================================================\n')

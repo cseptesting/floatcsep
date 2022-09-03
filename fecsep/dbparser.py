@@ -1,7 +1,10 @@
+import datetime
+
 import h5py
 import pandas
 import argparse, os
 import numpy
+import xml.etree.ElementTree as et
 import itertools
 
 
@@ -128,6 +131,85 @@ def csep_to_hdf5(filename):
         hf['poly_mask'][:] = poly_mask
 
 
+def xml_to_hdf5(filename_):
+
+    """
+    Parses a xml file (Italy experiment format) and drops into hdf5
+    """
+    folder, filename = os.path.split(filename_)
+    hdf5_filename = f'{os.path.splitext(filename)[0]}.hdf5'
+
+    name = filename.split('.')[1]
+    author = filename.split('.')[0].split('-')[0].capitalize()
+    print('Processing model %s of author %s' % (name, author))
+    tree = et.parse(filename_)
+    root = tree.getroot()
+
+    data_Hij = []
+    m_bins = []
+
+    for children in list(root[0]):
+        if 'modelName' in children.tag:
+            name_xml = children.text
+        elif 'author' in children.tag:
+            author_xml = children.text
+        elif 'forecastStartDate' in children.tag:
+            start_date = children.text.replace('Z', '')
+        elif 'forecastEndDate' in children.tag:
+            end_date = children.text.replace('Z', '')
+        elif 'defaultMagBinDimension' in children.tag:
+            m_bin_width = float(children.text)
+        elif 'lastMagBinOpen' in children.tag:
+            lastmbin = float(children.text)
+        elif 'defaultCellDimension' in children.tag:
+            cell_dim = {i[0]:float(i[1]) for i in children.attrib.items()}
+        elif 'depthLayer' in children.tag:
+            depth = {i[0]:float(i[1]) for i in root[0][9].attrib.items()}
+            cells = root[0][9]
+
+
+    for cell in cells:
+        cell_data = []
+        m_cell_bins = []
+        for i, m in enumerate(cell.iter()):
+            if i == 0:
+                cell_data.extend([float(m.attrib['lon']),
+                                  float(m.attrib['lat'])])
+            else:
+                cell_data.append(float(m.text))
+                m_cell_bins.append(float(m.attrib['m']))
+        data_Hij.append(cell_data)
+        m_bins.append(m_cell_bins)
+    try:
+        data_Hij = numpy.array(data_Hij)
+        m_bins = numpy.array(m_bins)
+    except:
+        raise Exception('Data is not square ')
+
+    magnitudes = m_bins[0, :]
+    rates = data_Hij[:, -len(magnitudes):]
+    all_polys = numpy.vstack((data_Hij[:,0] - cell_dim['lonRange']/2.,
+                              data_Hij[:,0] + cell_dim['lonRange']/2.,
+                              data_Hij[:,1] - cell_dim['latRange']/2.,
+                              data_Hij[:,1] + cell_dim['latRange']/2.)).T
+    bboxes = numpy.array([tuple(itertools.product(bbox[:2], bbox[2:])) for bbox in all_polys])
+    dh = float(all_polys[0, 3] - all_polys[0, 2])
+    poly_mask = numpy.ones(bboxes.shape[0])
+
+    with h5py.File(hdf5_filename, 'a') as hf:
+        hf.require_dataset('rates', shape=rates.shape, dtype=float)
+        hf['rates'][:] = rates
+        hf.require_dataset('magnitudes', shape=magnitudes.shape, dtype=float)
+        hf['magnitudes'][:] = magnitudes
+        hf.require_dataset('bboxes', shape=bboxes.shape, dtype=float)
+        hf['bboxes'][:] = bboxes
+        hf.require_dataset('dh', shape=(1,), dtype=float)
+        hf['dh'][:] = dh
+        hf.require_dataset('poly_mask', shape=poly_mask.shape, dtype=float)
+        hf['poly_mask'][:] = poly_mask
+
+
+
 def serialize():
     parser = argparse.ArgumentParser()
     parser.add_argument("--format", help="format")
@@ -140,7 +222,10 @@ def serialize():
         dat_to_hdf5(args.filename)
     if args.format == 'csep':
         csep_to_hdf5(args.filename)
-
+    if args.format == 'xml':
+        xml_to_hdf5(args.filename)
 
 if __name__ == '__main__':
     serialize()
+    # path = '../artifacts/italy/models/akinci.HAZFX_BPT.italy.10yr.2010-01-01.xml'
+    # xml_to_hdf5(path)
