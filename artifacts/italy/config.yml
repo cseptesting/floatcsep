@@ -1,0 +1,16 @@
+name: italy
+start_date: 2010-1-1T00:00:00
+end_date: 2020-1-1T00:00:00
+intervals: 1
+catalog_reader: query_bsi
+mag_min: 5.0
+mag_max: 9.0
+mag_bin: 0.1
+depth_min: 0
+depth_max: 30
+region: italy_csep_region
+models_config: models.yml
+tests_config: tests.yml
+default_test_kwargs:
+  seed: 23
+  num_simulations: 100

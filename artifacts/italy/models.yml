@@ -1,0 +1,5 @@
+- HAZFX_BPT:
+    path: models
+    format: xml
+    filename: werner.HRSS-m2.italy.10yr.2010-01-01.xml
+    db_type: hdf5
