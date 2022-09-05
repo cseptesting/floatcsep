@@ -728,3 +728,43 @@ class MarkdownReport:
         full_md_fname = os.path.join(save_dir, self.outname)
         with open(full_md_fname, 'w') as f:
             f.writelines(output)
+
+
+def _check_zero_bins(exp, catalog, test_date):
+    for model in exp.models:
+        forecast = model.create_forecast(exp.start_date, test_date)
+        catalog.filter_spatial(forecast.region)
+        bins = catalog.get_spatial_idx()
+        import numpy as np
+        import matplotlib.pyplot as plt
+        zero_forecast = np.argwhere(forecast.spatial_counts()[bins]==0)
+        if zero_forecast:
+            print(zero_forecast)
+        ax = catalog.plot(plot_args={'basemap':'stock_img'})
+        ax = forecast.plot(ax=ax, plot_args={'alpha':0.8})
+        ax.plot(catalog.get_longitudes()[zero_forecast.ravel()],
+                catalog.get_latitudes()[zero_forecast.ravel()], 'o', markersize=10)
+    plt.savefig(f'{model.path}/{model.name}.png', dpi=300)
+    for model in exp.models:
+        forecast = model.create_forecast(exp.start_date, test_date)
+        catalog.filter_spatial(forecast.region)
+        sbins = catalog.get_spatial_idx()
+        mbins = catalog.get_mag_idx()
+        import numpy as np
+        import matplotlib.pyplot as plt
+        zero_forecast = np.argwhere(forecast.data[sbins, mbins] == 0)
+        print('event', 'cell', sbins[zero_forecast], 'datum', catalog.data[zero_forecast])
+        if zero_forecast:
+
+            print(zero_forecast)
+            print('cellfc', forecast.get_longitudes()[sbins[zero_forecast]],
+                  forecast.get_latitudes()[sbins[zero_forecast]])
+            print('scounts', forecast.spatial_counts()[sbins[zero_forecast]])
+            print('data', forecast.data[sbins[zero_forecast]])
+            print(forecast.data[zero_forecast[0]])
+        ax = catalog.plot(plot_args={'basemap':'stock_img'})
+        ax = forecast.plot(ax=ax, plot_args={'alpha':0.8})
+        ax.plot(catalog.get_longitudes()[zero_forecast.ravel()],
+                catalog.get_latitudes()[zero_forecast.ravel()], 'o', markersize=10)
+        print(zero_forecast)
+        plt.savefig(f'{model.path}/{model.name}.png', dpi=300)
