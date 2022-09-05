@@ -1,6 +1,6 @@
 name: gear1
 start_date: 2014-1-1T00:00:00
-end_date: 2016-1-1T00:00:00
+end_date: 2022-1-1T00:00:00
 intervals: 1
 catalog_reader: query_isc_gcmt
 mag_min: 5.95
@@ -13,3 +13,16 @@ tests_config: tests.yml
 default_test_kwargs:
   seed: 235
   num_simulations: 100
+postproc_config:
+  plot_forecasts:
+    region_border: False
+    #    basemap: ESRI_imagery
+#    basemap: None
+#    alpha: 0.7
+    catalog:
+      legend: True
+      legend_loc: 3
+      markersize: 6
+    projection:
+      Robinson:
+        central_longitude: -179.0

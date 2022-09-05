@@ -13,4 +13,18 @@ models_config: models.yml
 tests_config: tests.yml
 default_test_kwargs:
   seed: 23
-  num_simulations: 100
+  num_simulations: 1000
+#postproc_config:
+#  plot_forecasts:
+#    region_border: False
+#    basemap: ESRI_terrain
+#    clabel_fontsize: 14
+#    cticks_fontsize: 12
+#    alpha_exp: 0.8
+#    catalog:
+#      legend: True
+#      legend_loc: 1
+#      legend_fontsize: 14
+#      legend_titlesize: 16
+#      markersize: 6
+#      markercolor: blue

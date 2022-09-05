@@ -1,8 +1,8 @@
 import os.path
+
 import numpy
 import pandas
 import argparse
-
 
 def truncated_GR(bval, mag_bin, mmin, mmax, n=1):
 
@@ -47,7 +47,7 @@ def main():
 
     N = args.N
     b = args.b
-    for name in ['ao_eepas.csv', 'at_eepas.csv', 'm_eepas.csv']:
+    for name in ['fe_ao.csv', 'fe_at.csv', 'fe_m.csv']:
         new_path = f'_N{N:.1f}_b{b:.2f}'.join(os.path.splitext(name))
         make(name, new_path, N, b)
 

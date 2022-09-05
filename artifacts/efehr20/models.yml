@@ -1,3 +1,8 @@
+- SEIFA13:
+      path: models/SEIFA_13
+      format: csep
+      db_type: hdf5
+      filename: seifa_model.csv
 - FSBG:
     path: models/FSBG
     format: csep
@@ -17,15 +22,15 @@
     format: csep
     db_type: hdf5
     flavours:
-        pareto_abgrs_cornermag_upp: asm_ver12e_winGT_fs017_pareto_abgrs_cornermag_upp.csv
-        pareto_abgrs_cornermag_mid: asm_ver12e_winGT_fs017_pareto_abgrs_cornermag_mid.csv
-        pareto_abgrs_cornermag_low: asm_ver12e_winGT_fs017_pareto_abgrs_cornermag_low.csv
-        mid_abgrs_maxmag_upp: asm_ver12e_winGT_fs017_mid_abgrs_maxmag_upp.csv
-        mid_abgrs_maxmag_mid: asm_ver12e_winGT_fs017_mid_abgrs_maxmag_mid.csv
-        mid_abgrs_maxmag_low: asm_ver12e_winGT_fs017_mid_abgrs_maxmag_low.csv
-        lo_abgrs_maxmag_upp: asm_ver12e_winGT_fs017_lo_abgrs_maxmag_upp.csv
-        lo_abgrs_maxmag_mid: asm_ver12e_winGT_fs017_lo_abgrs_maxmag_mid.csv
-        lo_abgrs_maxmag_low: asm_ver12e_winGT_fs017_lo_abgrs_maxmag_low.csv
-        hi_abgrs_maxmag_upp: asm_ver12e_winGT_fs017_hi_abgrs_maxmag_upp.csv
-        hi_abgrs_maxmag_mid: asm_ver12e_winGT_fs017_hi_abgrs_maxmag_mid.csv
-        hi_abgrs_maxmag_low: asm_ver12e_winGT_fs017_hi_abgrs_maxmag_low.csv
+        Pareto_Mc_upp: asm_ver12e_winGT_fs017_pareto_abgrs_cornermag_upp.csv
+        Pareto_Mc_mid: asm_ver12e_winGT_fs017_pareto_abgrs_cornermag_mid.csv
+        Pareto_Mc_low: asm_ver12e_winGT_fs017_pareto_abgrs_cornermag_low.csv
+        TGR_mid_Mmax_upp: asm_ver12e_winGT_fs017_mid_abgrs_maxmag_upp.csv
+        TGR_mid_Mmax_mid: asm_ver12e_winGT_fs017_mid_abgrs_maxmag_mid.csv
+        TGR_mid_Mmax_low: asm_ver12e_winGT_fs017_mid_abgrs_maxmag_low.csv
+        TGR_lo_Mmax_upp: asm_ver12e_winGT_fs017_lo_abgrs_maxmag_upp.csv
+        TGR_lo_Mmax_mid: asm_ver12e_winGT_fs017_lo_abgrs_maxmag_mid.csv
+        TGR_lo_Mmax_low: asm_ver12e_winGT_fs017_lo_abgrs_maxmag_low.csv
+        TGR_hi_Mmax_upp: asm_ver12e_winGT_fs017_hi_abgrs_maxmag_upp.csv
+        TGR_hi_Mmax_mid: asm_ver12e_winGT_fs017_hi_abgrs_maxmag_mid.csv
+        TGR_hi_Mmax_low: asm_ver12e_winGT_fs017_hi_abgrs_maxmag_low.csv

@@ -1,6 +1,6 @@
 name: nz_nshm
-start_date: 2014-1-1T00:00:00
-end_date: 2016-1-1T00:00:00
+start_date: 2020-1-1T00:00:00
+end_date: 2022-1-1T00:00:00
 intervals: 1
 catalog_reader: query_isc_gcmt
 region: new_zealand_csep_region

@@ -1,6 +1,6 @@
 name: gefe_qtree
 start_date: 2014-1-1T00:00:00
-end_date: 2016-1-1T00:00:00
+end_date: 2022-1-1T00:00:00
 intervals: 1
 catalog_reader: query_isc_gcmt
 mag_min: 5.95

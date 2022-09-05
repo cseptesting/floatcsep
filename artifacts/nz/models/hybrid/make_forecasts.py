@@ -21,7 +21,7 @@ def make(raw, forecast_path, N=None, bval=None, mmin=5.0, mmax=8.0):
 
     if data.columns.shape[0] <= 12:
         spatial_rate = data['rate'].to_numpy()
-        rates = spatial_rate[:, numpy.newaxis] * mw_weights[numpy.newaxis, :]
+        rates = spatial_rate[:, numpy.newaxis] * mw_weights[numpy.newaxis, :] * N
         data.drop(['rate', 'mask', 'm_min', 'm_max', 'mask', 'dispersion'], axis=1, inplace=True) # only poisson
 
     else:
@@ -30,7 +30,7 @@ def make(raw, forecast_path, N=None, bval=None, mmin=5.0, mmax=8.0):
         for i in spatial_rate:
             mi_rates = i*mw_weights
             rates.append(mi_rates)
-        rates = numpy.array(rates)
+        rates = numpy.array(rates) * N
         data.drop(['dispersion'], axis=1, inplace=True) # only poisson
 
     data[[f'{i:.1f}' for i in mws]] = rates

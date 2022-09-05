@@ -3,17 +3,42 @@
     func_kwargs: {}
     plot_func: plot_poisson_consistency_test
     plot_args:
-        title: $N-$test
+      title: $N-$test
+      xlabel: Event counts
+      figsize: !!python/tuple [ 4, 4 ]
+      title_fontsize: 16
 - Poisson_S:
     func: poisson_evaluations.spatial_test
     func_kwargs: {}
     plot_func: plot_poisson_consistency_test
     plot_args:
-        title: $S-$test
+      title: $S-$test
+      xlabel: Spatial Log-Likelihood
+      figsize: !!python/tuple [4, 4]
+      title_fontsize: 16
+    plot_kwargs:
+      normalize: True
+      one_sided_lower: True
 - Binary_S:
-      func: binomial_spatial_test
-      func_kwargs: {}
-      plot_func: plot_poisson_consistency_test
-      plot_args:
-          title: $S-$Btest
-
+    func: binomial_spatial_test
+    func_kwargs: {}
+    plot_func: plot_poisson_consistency_test
+    plot_args:
+      title: $S-$Binary Test
+      xlabel: Spatial Log-Likelihood
+      figsize: !!python/tuple [ 4, 4 ]
+      title_fontsize: 16
+    plot_kwargs:
+      normalize: True
+      one_sided_lower: True
+- Poisson_T:
+    func: poisson_evaluations.paired_t_test
+    func_kwargs: {}
+    plot_func: plot_comparison_test
+    ref_model: GEAR1
+    plot_args:
+      title: $T-$test
+      figsize: !!python/tuple [ 6, 4 ]
+      title_fontsize: 16
+      ylim: !!python/tuple [-0.81, 0.21]
+      ylabel: Information Gain / Earthquake
