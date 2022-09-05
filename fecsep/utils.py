@@ -519,7 +519,7 @@ def plot_quadtree_forecast(qtree_forecast):
     return ax
 
 
-def new_zealand_csep_region(dh_scale=1, magnitudes=None, name="csep-italy", use_midpoint=True):
+def new_zealand_csep_region(dh_scale=1, magnitudes=None, name="csep-new_zealand", use_midpoint=True):
     """
 
     """
@@ -530,6 +530,18 @@ def new_zealand_csep_region(dh_scale=1, magnitudes=None, name="csep-italy", use_
     nz_region = CartesianGrid2D.from_origins(midpoints, magnitudes=magnitudes)
 
     return nz_region
+
+
+def europe_efehr20(dh_scale=1, magnitudes=None, name="europe_efehr20", use_midpoint=True):
+    """
+
+    """
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filepath = os.path.join(root_dir, 'fecsep', 'artifacts', 'europe_efehr20.csv')
+    midpoints = numpy.genfromtxt(filepath, delimiter=',')
+    europe_region = CartesianGrid2D.from_origins(midpoints, magnitudes=magnitudes)
+
+    return europe_region
 
 
 class MarkdownReport:

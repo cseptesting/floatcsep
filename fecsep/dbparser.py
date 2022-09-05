@@ -131,18 +131,17 @@ def csep_to_hdf5(filename):
         hf['poly_mask'][:] = poly_mask
 
 
-def xml_to_hdf5(filename_):
+def xml_to_hdf5(filename):
 
     """
     Parses a xml file (Italy experiment format) and drops into hdf5
     """
-    folder, filename = os.path.split(filename_)
     hdf5_filename = f'{os.path.splitext(filename)[0]}.hdf5'
 
     name = filename.split('.')[1]
     author = filename.split('.')[0].split('-')[0].capitalize()
     print('Processing model %s of author %s' % (name, author))
-    tree = et.parse(filename_)
+    tree = et.parse(filename)
     root = tree.getroot()
 
     data_Hij = []
@@ -227,5 +226,4 @@ def serialize():
 
 if __name__ == '__main__':
     serialize()
-    # path = '../artifacts/italy/models/akinci.HAZFX_BPT.italy.10yr.2010-01-01.xml'
-    # xml_to_hdf5(path)
+

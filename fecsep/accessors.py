@@ -50,8 +50,10 @@ def query_isc_gcmt(start_datetime, end_datetime, min_mw, min_depth=None, max_dep
                                             bot_lat=min_latitude,
                                             top_lat=max_latitude,
                                             verbose=verbose)
-
-    return CSEPCatalog(data=events, name='ISC Bulletin - gCMT', catalog_id=cat_id, date_accessed=creation_time)
+    catalog = CSEPCatalog(data=events, name='ISC Bulletin - gCMT', catalog_id=cat_id, date_accessed=creation_time)
+    #todo check why url query does not cut exactly by provided magmin
+    catalog.filter([f'magnitude >= {min_mw}'], in_place=True)
+    return catalog
 
 
 def _query_isc_gcmt(out_format='QuakeML',
