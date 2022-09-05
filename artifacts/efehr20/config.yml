@@ -1,14 +1,14 @@
-name: italy
-start_date: 2010-1-1T00:00:00
-end_date: 2020-1-1T00:00:00
+name: europe
+start_date: 2015-1-1T00:00:00
+end_date: 2022-1-1T00:00:00
 intervals: 1
 catalog_reader: query_isc_gcmt
 mag_min: 4.7
 mag_max: 8.7
 mag_bin: 0.2
-depth_min: 0
+depth_min: -2
 depth_max: 30
-region: italy_csep_region
+region: europe_efehr20
 models_config: models.yml
 tests_config: tests.yml
 default_test_kwargs:

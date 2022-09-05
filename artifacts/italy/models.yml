@@ -1,5 +1,95 @@
 - HAZFX_BPT:
     path: models
     format: xml
-    filename: werner.HRSS-m2.italy.10yr.2010-01-01.xml
+    filename: akinci.HAZFX_BPT.italy.10yr.2010-01-01.xml
     db_type: hdf5
+- HAZGRIDX:
+      path: models
+      format: xml
+      filename: akinci-lombardi.HAZGRIDX.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- HZA_TD:
+      path: models
+      format: xml
+      filename: chan.HZA_TD.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- HZA_TI:
+      path: models
+      format: xml
+      filename: chan.HZA_TI.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- LTST:
+      path: models
+      format: xml
+      filename: console-murru-falcone.LTST.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- PHM_Grid:
+      path: models
+      format: xml
+      filename: faenza.PHM_Grid.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- PHM_Zone:
+      path: models
+      format: xml
+      filename: faenza.PHM_Zone.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- ALM:
+      path: models
+      format: xml
+      filename: gulia-wiemer.ALM.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- HALM:
+      path: models
+      format: xml
+      filename: gulia-wiemer.HALM.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- DBM:
+      path: models
+      format: xml
+      filename: lombardi.DBM.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- MPS04:
+      path: models
+      format: xml
+      filename: meletti.MPS04.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- MPS04after:
+      path: models
+      format: xml
+      filename: meletti.MPS04after.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- RI:
+      path: models
+      format: xml
+      filename: nanjo.RI.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- ALM_IT:
+      path: models
+      format: xml
+      filename: schorlemmer-wiemer.ALM_IT.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- HRSS-m1:
+      path: models
+      format: xml
+      filename: werner.HRSS-m1.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- HRSS-m2:
+      path: models
+      format: xml
+      filename: werner.HRSS-m2.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- TripleS-CPTI:
+      path: models
+      format: xml
+      filename: zechar.TripleS-CPTI.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- TripleS-CSI:
+      path: models
+      format: xml
+      filename: zechar.TripleS-CSI.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- TripleS-hybrid:
+      path: models
+      format: xml
+      filename: zechar.TripleS-hybrid.italy.10yr.2010-01-01.xml
+      db_type: hdf5

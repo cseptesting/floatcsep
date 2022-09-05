@@ -1,0 +1,39 @@
+- Poisson_N:
+    func: poisson_evaluations.number_test
+    func_kwargs: {}
+    plot_func: plot_poisson_consistency_test
+    plot_args:
+        title: $N-$test
+#- Poisson_S:
+#    func: poisson_evaluations.spatial_test
+#    func_kwargs: {}
+#    plot_func: plot_poisson_consistency_test
+#    plot_args:
+#        title: $S-$test
+#- Poisson_M:
+#    func: poisson_evaluations.magnitude_test
+#    func_kwargs: {}
+#    plot_func: plot_poisson_consistency_test
+#    plot_args:
+#      title: $S-$test
+#- Poisson_CL:
+#      func: poisson_evaluations.conditional_likelihood_test
+#      func_kwargs: {}
+#      plot_func: plot_poisson_consistency_test
+#      plot_args:
+#          title: $CL-$test
+#- Binary_S:
+#      func: binomial_spatial_test
+#      func_kwargs: {}
+#      plot_func: plot_poisson_consistency_test
+#      plot_args:
+#          title: $S-$Btest
+- Poisson_T:
+    func: poisson_evaluations.paired_t_test
+    func_kwargs: {}
+    plot_func: plot_comparison_test
+    ref_model: FSBG_SRU_ML
+#    ref_model: AS_mid_abgrs_maxmag_mid
+    plot_args:
+      title: $T-$test
+
