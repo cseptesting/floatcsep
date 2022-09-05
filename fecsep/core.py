@@ -2,7 +2,7 @@ import copy
 import os
 import json
 
-import csep.core.regions
+import cartopy.crs as ccrs
 import six
 from collections.abc import Iterable
 import h5py
@@ -162,7 +162,6 @@ class Model:
                     bboxes = db['bboxes'][:]
                     poly_mask = db['poly_mask'][:]
                     region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
-
         forecast = GriddedForecast(
             name=name,
             data=rates,
@@ -171,7 +170,7 @@ class Model:
             start_time=start_date,
             end_time=test_date
         )
-        forecast = forecast.scale(time_horizon)
+        forecast = forecast.scale(time_horizon/self.forecast_unit)
         print(f"Expected forecast count after scaling: {forecast.event_count} with parameter {time_horizon}.")
         self.forecasts[test_date] = forecast
         return forecast
@@ -256,8 +255,8 @@ class Experiment:
                  name=None,
                  catalog_reader=None,
                  mag_min=None, mag_max=None, mag_bin=None,
-                 depth_min=None, depth_max=None,
-                 models_config=None, tests_config=None, region=None,
+                 depth_min=None, depth_max=None, region=None,
+                 models_config=None, tests_config=None, postproc_config=None,
                  default_test_kwargs=None, **kwargs):
 
         self.name = name
@@ -268,6 +267,7 @@ class Experiment:
         self.catalog_reader = parse_csep_func(catalog_reader)
         self.models_config = models_config
         self.tests_config = tests_config
+        self.postproc_config = postproc_config if postproc_config else {}
         self.default_test_kwargs = default_test_kwargs
         self.models = []
         self.tests = []
@@ -323,7 +323,8 @@ class Experiment:
         }
 
         target_paths = {
-            'models': None,
+            'models': {'figures': {model: os.path.join(folder_paths['figures'],
+                                                       f'{model}') for model in models}},
             'catalog': os.path.join(folder_paths['catalog'], 'catalog.json'),
             'evaluations': {
                 test: {
@@ -427,7 +428,7 @@ class Experiment:
             max_depth = self.depth_range.max()
             if self.region is not None:
                 bounds = {i: j for i,j in zip(['min_longitude', 'max_longitude',
-                                              'min_latitude', 'max_latitude'],
+                                               'min_latitude', 'max_latitude'],
                                                 self.region.get_bbox())}
             else:
                 bounds = {}
@@ -443,6 +444,9 @@ class Experiment:
             )
 
             self.set_catalog(catalog)
+        if not os.path.exists(self.target_paths['catalog']):
+            catalog.write_json(self.target_paths['catalog'])
+
         return catalog
 
     def set_catalog(self, catalog):
@@ -504,6 +508,9 @@ class Experiment:
 
     def read_evaluation_result(self, test, models, target_paths):
         test_results = []
+        if 'T' in test.name:    #todo cleaner
+            models = [i for i in models if i.name != test.ref_model]
+
         for model_i in models:
             eval_path = target_paths['evaluations'][test.name][model_i.name]
             with open(eval_path, 'r') as file_:
@@ -525,6 +532,59 @@ class Experiment:
             pyplot.savefig(file_paths['figures'][test.name], dpi=dpi)
             if show:
                 pyplot.show()
+
+        #todo create different method for forecast plotting
+        plot_fc_config = self.postproc_config.get('plot_forecasts')
+        if plot_fc_config:
+            try:
+                proj_ = plot_fc_config.get('projection')
+                if isinstance(proj_, dict):
+                    proj_name = list(proj_.keys())[0]
+                    proj_args = list(proj_.values())[0]
+                else:
+                    proj_name = proj_
+                    proj_args = {}
+                plot_fc_config['projection'] = getattr(ccrs, proj_name)(**proj_args)
+            except:
+                plot_fc_config['projection'] = ccrs.PlateCarree(central_longitude=0.0)
+
+            cat = plot_fc_config.get('catalog')
+            if cat:
+                cat_args = {'markersize': 7, 'markercolor': 'black', 'title': None,
+                            'legend': False, 'basemap': None, 'region_border': False}
+                if self.region:
+                    self.catalog.filter_spatial(self.region, in_place=True)
+                if isinstance(cat, dict):
+                    cat_args.update(cat)
+
+            for model in self.models:
+                fig_path = self.target_paths['models']['figures'][model.name]
+                start = decimal_year(self.start_date)
+                end = decimal_year(self.test_date)
+                time = f'{round(end-start,3)} years'
+                plot_args = {'region_border': False,
+                             'cmap': 'magma',
+                             'clabel': r'$\log_{10} N\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per '
+                                       r'$0.1^\circ\times 0.1^\circ $ per %s' %
+                                       (min(self.magnitude_range), max(self.magnitude_range), time)}
+                if not self.region:
+                    set_global = True
+                else:
+                    set_global = False
+                plot_args.update(plot_fc_config)
+                ax = model.forecasts[self.test_date].plot(set_global=set_global, plot_args=plot_args)
+
+                if self.region:
+                    bbox = self.region.get_bbox()
+                    dh = self.region.dh
+                    extent = [bbox[0] - 3*dh , bbox[1] + 3*dh,
+                              bbox[2] - 3*dh, bbox[3] + 3*dh]
+                else:
+                    extent = None
+                if cat:
+                    self.catalog.plot(ax=ax, set_global=set_global, extent=extent, plot_args=cat_args)
+
+                pyplot.savefig(fig_path, dpi=300, facecolor=(0, 0, 0, 0))
 
     def generate_report(self):
         report = MarkdownReport()
@@ -550,6 +610,8 @@ class Experiment:
         if self.catalog is not None:
             figure_path = os.path.splitext(self.target_paths['catalog'])[0]
             # relative to top-level directory
+            if self.region:
+                self.catalog.filter_spatial(self.region, in_place=True)
             ax =self.catalog.plot(plot_args={
                 'figsize': (12, 8),
                 'markersize': 8,
