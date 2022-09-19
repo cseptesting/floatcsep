@@ -14,3 +14,13 @@ tests_config: tests.yml
 default_test_kwargs:
   seed: 23
   num_simulations: 100
+postproc_config:
+  plot_forecasts:
+    basemap: None
+    region_border: False
+    catalog:
+      legend: True
+      legend_loc: 3
+      markersize: 6
+      basemap: None
+    projection: Mercator

@@ -1,13 +1,3 @@
-- TEAM:
-    path: models
-    filename: TEAMr_csep.txt
-    format: csep
-    db_type: hdf5
-- GEAR1:
-    path: models
-    filename: GEAR1_csep.txt
-    format: csep
-    db_type: hdf5
 - KJSS:
     path: models
     filename: KJSS_csep.txt
@@ -23,3 +13,13 @@
     filename: WHEELr_csep.txt
     format: csep
     db_type: hdf5
+- TEAM:
+      path: models
+      filename: TEAMr_csep.txt
+      format: csep
+      db_type: hdf5
+- GEAR1:
+      path: models
+      filename: GEAR1_csep.txt
+      format: csep
+      db_type: hdf5
