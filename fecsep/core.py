@@ -424,7 +424,6 @@ class Experiment:
         else:
             print("Downloading catalog from ISC gCMT service...")
             min_mag = self.magnitude_range.min()
-            min_depth = self.depth_range.min()
             max_depth = self.depth_range.max()
             if self.region is not None:
                 bounds = {i: j for i,j in zip(['min_longitude', 'max_longitude',
@@ -433,15 +432,14 @@ class Experiment:
             else:
                 bounds = {}
             catalog = self.catalog_reader(
-                cat_id=self.test_date,
-                start_datetime=self.start_date,
-                end_datetime=self.test_date,
-                min_mw=min_mag,
-                min_depth=min_depth,
-                max_depth=max_depth,
-                verbose=True,
-                **bounds
-            )
+                                          catalog_id=self.test_date,
+                                          start_time=self.start_date,
+                                          end_time=self.test_date,
+                                          min_magnitude=min_mag,
+                                          max_depth=max_depth,
+                                          verbose=True,
+                                          **bounds
+                                         )
 
             self.set_catalog(catalog)
         if not os.path.exists(self.target_paths['catalog']):

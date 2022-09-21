@@ -1,8 +1,6 @@
-from datetime import datetime, timezone
-from dateutil.relativedelta import relativedelta
+from datetime import datetime
 from urllib import request
 from urllib.parse import urlencode
-from urllib.request import urlopen
 from csep.utils.time_utils import datetime_to_utc_epoch
 from csep.core.catalogs import CSEPCatalog
 import xml.etree.ElementTree as ET
@@ -12,19 +10,13 @@ import requests
 import hashlib
 import os
 import sys
-import dateparser
-import xmltodict
-import json
-from math import modf
-from time import sleep
-
 
 HOST_CATALOG = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
 TIMEOUT = 180
 
 
-def query_isc_gcmt(start_datetime, end_datetime, min_mw, min_depth=None, max_depth=None,
-                   cat_id=None, max_mw=None, verbose=False,
+def query_isc_gcmt(start_time, end_time, min_magnitude=5.0, min_depth=None, max_depth=None,
+                   catalog_id=None, verbose=False,
                    min_latitude=None, max_latitude=None,
                    min_longitude=None, max_longitude=None,
                    **kwargs,):
@@ -32,16 +24,16 @@ def query_isc_gcmt(start_datetime, end_datetime, min_mw, min_depth=None, max_dep
         searchshape='RECT'
     else:
         searchshape='GLOBAL'
-    events, creation_time = _query_isc_gcmt(start_year=start_datetime.year,
-                                            start_month=start_datetime.month,
-                                            start_day=start_datetime.day,
+    events, creation_time = _query_isc_gcmt(start_year=start_time.year,
+                                            start_month=start_time.month,
+                                            start_day=start_time.day,
                                             searchshape=searchshape,
-                                            start_time=start_datetime.time().isoformat(),
-                                            end_year=end_datetime.year,
-                                            end_month=end_datetime.month,
-                                            end_day=end_datetime.day,
-                                            end_time=end_datetime.time().isoformat(),
-                                            min_mag=min_mw,
+                                            start_time=start_time.time().isoformat(),
+                                            end_year=end_time.year,
+                                            end_month=end_time.month,
+                                            end_day=end_time.day,
+                                            end_time=end_time.time().isoformat(),
+                                            min_mag=min_magnitude,
                                             max_mag=max_mw,
                                             min_dep=min_depth,
                                             max_dep=max_depth,
@@ -50,7 +42,7 @@ def query_isc_gcmt(start_datetime, end_datetime, min_mw, min_depth=None, max_dep
                                             bot_lat=min_latitude,
                                             top_lat=max_latitude,
                                             verbose=verbose)
-    catalog = CSEPCatalog(data=events, name='ISC Bulletin - gCMT', catalog_id=cat_id, date_accessed=creation_time)
+    catalog = CSEPCatalog(data=events, name='ISC Bulletin - gCMT', catalog_id=catalog_id, date_accessed=creation_time)
     #todo check why url query does not cut exactly by provided magmin
     catalog.filter([f'magnitude >= {min_mw}'], in_place=True)
     return catalog
