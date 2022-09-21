@@ -73,7 +73,8 @@ def parse_csep_func(func):
     if callable(func):
         return func
     else:
-        target_modules = [csep.core,
+        target_modules = [csep,
+                          csep.core,
                           csep.utils,
                           csep.utils.plots,
                           csep.core.regions,

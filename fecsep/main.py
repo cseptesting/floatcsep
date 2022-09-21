@@ -4,15 +4,18 @@ from fecsep import core
 from collections import defaultdict
 
 
-def run(cfg, test_date_string, rerun=False):
+def run(cfg, test_date_string=None, rerun=False):
 
 
     exp = core.Experiment.from_yaml(cfg)
-    try:
-        test_date = datetime.datetime.strptime(test_date_string, '%Y-%m-%dT%H:%M:%S')
-    except:
-        raise RuntimeError("Error parsing test date string. Should have format='%Y-%m-%dT%H:%M:%S")
-    exp.set_test_date(test_date)
+    if test_date_string:
+        try:
+            test_date = datetime.datetime.strptime(test_date_string, '%Y-%m-%dT%H:%M:%S')
+        except:
+            raise RuntimeError("Error parsing test date string. Should have format='%Y-%m-%dT%H:%M:%S")
+        exp.set_test_date(test_date)
+    else:
+        exp.set_test_date(exp.end_date)
 
     print('Experiment is configured with the following parameters')
     print('======================================================\n')
