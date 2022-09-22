@@ -526,7 +526,9 @@ class Experiment:
             file_paths = self.target_paths
         for test in self.tests:
             test_result = run_results[test.name]
-            test.plot_func(test_result, plot_args=test.plot_args, **test.plot_kwargs)
+            ax = test.plot_func(test_result, plot_args=test.plot_args, **test.plot_kwargs)
+            if 'code' in test.plot_args:
+                exec(test.plot_args['code'])
             pyplot.savefig(file_paths['figures'][test.name], dpi=dpi)
             if show:
                 pyplot.show()
