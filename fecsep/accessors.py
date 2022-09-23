@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 from csep.utils.time_utils import datetime_to_utc_epoch
 from csep.core.catalogs import CSEPCatalog
 import xml.etree.ElementTree as ET
-from git import Repo, InvalidGitRepositoryError, NoSuchPathError
+from git import Git, Repo, InvalidGitRepositoryError, NoSuchPathError
 import time
 import requests
 import hashlib
@@ -115,7 +115,6 @@ def _search_isc_gcmt(**newargs):
     """
     paramstr = urlencode(newargs)
     url = HOST_CATALOG + paramstr
-    print(url)
     try:
         fh = request.urlopen(url, timeout=TIMEOUT)
         data = fh.read().decode('utf8')
