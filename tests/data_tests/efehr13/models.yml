@@ -1,0 +1,15 @@
+- AreaSources:
+    path: models
+    format: csep
+    filename: area_source_model.csv
+    db_type: hdf5
+- FaultBackgroundSources:
+      path: models
+      format: csep
+      filename: faults_backg_source_model.csv
+      db_type: hdf5
+- SEIFA:
+      path: models
+      format: csep
+      filename: seifa_model.csv
+      db_type: hdf5

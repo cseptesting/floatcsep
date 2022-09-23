@@ -1,7 +1,6 @@
-#python libraries
+# python libraries
 import numpy
 import multiprocessing as mp
-import pandas
 import os
 import mercantile
 import shapely.geometry
@@ -13,64 +12,25 @@ from matplotlib import pyplot
 from matplotlib.lines import Line2D
 import seaborn
 
-#pyCSEP libraries
+# pyCSEP libraries
 import six
 import csep.core
 import csep.utils
 from csep.core.regions import CartesianGrid2D, compute_vertices
-from csep.core.forecasts import GriddedForecast
 from csep.utils.plots import plot_spatial_dataset
 from csep.models import Polygon
 from csep.core.regions import QuadtreeGrid2D, geographical_area_from_bounds
 
-#feCSEP libraries
+# feCSEP libraries
 import fecsep.accessors
 import fecsep.evaluations
-
-
-class NoAliasLoader(yaml.Loader):
-    def ignore_aliases(self, data):
-        return True
-
-
-def _set_dockerfile(name):
-    string = f"""
-## Install Docker image from trusted source
-FROM python:3.8.13
-
-## Setup user args
-ARG USERNAME={name}
-ARG USER_UID=1100
-ARG USER_GID=$USER_UID
-
-RUN mkdir -p /usr/src/{name} && chown $USER_UID:$USER_GID /usr/src/{name} 
-RUN groupadd --non-unique -g $USER_GID $USERNAME && useradd -u $USER_UID -g $USER_GID -s /bin/sh -m $USERNAME
-
-## Set up work directory in the Docker container
-WORKDIR /usr/src/{name}/
-
-## Copy the files from the local machine (the repository) to the Docker container
-COPY --chown=$USER_UID:$USER_GID . /usr/src/{name}/
-
-## Calls setup.py, install python dependencies and install this model as a python module
-ENV VIRTUAL_ENV=/venv/
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-# RUN pip install --no-cache-dir --upgrade pip
-# RUN pip install -r requirements.txt
-RUN pip install numpy pandas h5py
-
-USER $USERNAME
-
-    """
-    return string
 
 
 def parse_csep_func(func):
     def rgetattr(obj, attr, *args):
         def _getattr(obj, attr):
             return getattr(obj, attr, *args)
+
         return functools.reduce(_getattr, [obj] + attr.split('.'))
 
     if callable(func):
@@ -92,7 +52,7 @@ def parse_csep_func(func):
         raise AttributeError(f'Evaluation or Plot function {func} has not yet been implemented in fecsep or pycsep')
 
 
-def plot_matrix_comparative_test(evaluation_results, p = 0.05, order = True, plot_args=None):
+def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True, plot_args=None):
     """ Produces matrix plot for comparative tests for all models
 
         Args:
@@ -121,136 +81,275 @@ def plot_matrix_comparative_test(evaluation_results, p = 0.05, order = True, plo
 
     cmap = seaborn.diverging_palette(220, 20, as_cmap=True)
     seaborn.heatmap(data_t, vmin=-3, vmax=3, center=0, cmap=cmap,
-    ax = ax, cbar_kws = {'pad': 0.01, 'shrink': 0.7, 'label': 'Information Gain',
-                         'anchor': (0., 0.)}),
+                    ax=ax, cbar_kws={'pad': 0.01, 'shrink': 0.7, 'label': 'Information Gain',
+                                     'anchor': (0., 0.)}),
     ax.set_yticklabels([names[i] for i in arg_ind], rotation='horizontal')
     ax.set_xticklabels([names[i] for i in arg_ind], rotation='vertical')
     for n, i in enumerate(data_tq):
         for m, j in enumerate(i):
             if j > 0 and data_w[n, m] < p:
-    # ax.scatter(n + 0.5, m + 0.5, marker='o', s=75, facecolor='None', edgecolor='black')
+                # ax.scatter(n + 0.5, m + 0.5, marker='o', s=75, facecolor='None', edgecolor='black')
                 ax.scatter(n + 0.5, m + 0.5, marker='o', s=5, color='black')
 
     legend_elements = [Line2D([0], [0], marker='o', lw=0, label='$\mathcal{T}$ and $\mathcal{W}$ significant',
                               markerfacecolor="black", markeredgecolor='black', markersize=4)]
-    fig.legend(handles=legend_elements, loc='lower right', bbox_to_anchor = (0.75, 0.0, 0.2, 0.2), handletextpad = 0)
+    fig.legend(handles=legend_elements, loc='lower right', bbox_to_anchor=(0.75, 0.0, 0.2, 0.2), handletextpad=0)
     pyplot.tight_layout()
 
 
+def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
+    """
+    Aggregates conventional forecast onto quadtree region
+    This is generic function, which can map any forecast on to another grid.
+    Wrapper function over "_forecat_mapping_generic"
+    Forecast mapping onto Target Grid
 
-def plot_binary_consistency_test(evaluation_result, plot_args=None):
-    """ Plots consistency test result for binary evaluations
+    forecast_gridded: csep.core.forecast with other grid.
+    target_grid: csep.core.region.CastesianGrid2D or QuadtreeGrid2D
+    only_de-aggregate: Flag (True or False)
+        Note: set the flag "only_deagregate = True" Only if one is sure that both grids are Quadtree and
+        Target grid is high-resolution at every level than the other grid.
+    """
+    from csep.core.forecasts import GriddedForecast
+    bounds_target = target_grid.bounds
+    bounds = forecast_gridded.region.bounds
+    data = forecast_gridded.data
+    data_mapped_bounds = _forecast_mapping_generic(bounds_target, bounds, data, ncpu=ncpu)
+    target_forecast = GriddedForecast(data=data_mapped_bounds, region=target_grid,
+                                      magnitudes=forecast_gridded.magnitudes)
+    return target_forecast
 
-        Note: We might be able to recycle poisson here, but lets wrap it
 
+def plot_quadtree_forecast(qtree_forecast):
+    """
+    Currently, only a single-resolution plotting capability is available. So we aggregate multi-resolution forecast on a single-resolution grid and then plot it
+
+    Args: csep.core.models.GriddedForecast
+
+    Returns: class:`matplotlib.pyplot.ax` object
+    """
+    quadkeys = qtree_forecast.region.quadkeys
+    l = []
+    for qk in quadkeys:
+        l.append(len(qk))
+
+    if l.count(l[0]) == len(l):
+        # single-resolution grid
+        ax = qtree_forecast.plot()
+    else:
+        print('Multi-resolution grid detected.')
+        print('Currently, we do not offer utility to plot a forecast with multi-resolution grid')
+        print('Therefore, forecast is being aggregated on a single-resolution grid (L8) for plotting')
+
+        single_res_grid_L8 = QuadtreeGrid2D.from_single_resolution(8)
+        forecast_L8 = forecast_mapping(qtree_forecast, single_res_grid_L8)
+        ax = forecast_L8.plot()
+
+    return ax
+
+
+def europe_efehr20(dh_scale=1, magnitudes=None, name="europe_efehr20", use_midpoint=True):
+    """
+
+    """
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filepath = os.path.join(root_dir, 'fecsep', 'artifacts', 'europe_efehr20.csv')
+    midpoints = numpy.genfromtxt(filepath, delimiter=',')
+    europe_region = CartesianGrid2D.from_origins(midpoints, magnitudes=magnitudes)
+
+    return europe_region
+
+
+class MarkdownReport:
+    """ Class to generate a Markdown report from a study """
+
+    def __init__(self, outname='results.md'):
+        self.outname = outname
+        self.toc = []
+        self.has_title = True
+        self.markdown = []
+
+    def add_introduction(self, adict):
+        """ Generate document header from dictionary """
+        first = f"# CSEP Testing Results: {adict['simulation_name']}  \n" \
+                f"**Forecast Name:** {adict['forecast_name']}  \n" \
+                f"**Simulation Start Time:** {adict['origin_time']}  \n" \
+                f"**Evaluation Time:** {adict['evaluation_time']}  \n" \
+                f"**Catalog Source:** {adict['catalog_source']}  \n" \
+                f"**Number Simulations:** {adict['num_simulations']}\n"
+
+        # used to determine to place TOC at beginning of document or after introduction.
+        self.has_introduction = True
+        self.markdown.append(first)
+        return first
+
+    def add_text(self, text):
+        """
+        text should be a list of strings where each string will be on its own line.
+        each add_text command represents a paragraph.
         Args:
-            evaluation_results (list of result objects): paired t-test results
-            plot_args (dict): plotting arguments for function
-
+            text (list): lines to write
         Returns:
-            ax (matplotlib.Axes): handle for figure
-    """
-    pass
+        """
+        self.markdown.append('  '.join(text) + '\n\n')
+
+    def add_figure(self, title, relative_filepaths, level=2, ncols=3, add_ext=False, text='', caption=''):
+        """
+        this function expects a list of filepaths. if you want the output stacked, select a
+        value of ncols. ncols should be divisible by filepaths. todo: modify formatted_paths to work when not divis.
+        Args:
+            title: name of the figure
+            level (int): value 1-6 depending on the heading
+            relative_filepaths (str or List[Tuple[str]]): list of paths in order to make table
+        Returns:
+        """
+        # verify filepaths have proper extension should always be png
+        is_single = False
+        paths = []
+        if isinstance(relative_filepaths, six.string_types):
+            is_single = True
+            paths.append(relative_filepaths)
+        else:
+            paths = relative_filepaths
+
+        correct_paths = []
+        if add_ext:
+            for fp in paths:
+                correct_paths.append(fp + '.png')
+        else:
+            correct_paths = paths
+
+        # generate new lists with size ncols
+        formatted_paths = [correct_paths[i:i + ncols] for i in range(0, len(paths), ncols)]
+
+        # convert str into a proper list, where each potential row is an iter not str
+        def build_header(row):
+            top = "|"
+            bottom = "|"
+            for i, _ in enumerate(row):
+                if i == ncols:
+                    break
+                top += " |"
+                bottom += " --- |"
+            return top + '\n' + bottom
+
+        def add_to_row(row):
+            if len(row) == 1:
+                return f"![]({row[0]})"
+            string = '| '
+            for item in row:
+                string = string + f' ![]({item}) |'
+            return string
+
+        level_string = f"{level * '#'}"
+        result_cell = []
+        locator = title.lower().replace(" ", "_")
+        result_cell.append(f'{level_string} {title}  <a name="{locator}"></a>\n')
+        result_cell.append(f'{text}\n')
+
+        for i, row in enumerate(formatted_paths):
+            if i == 0 and not is_single:
+                result_cell.append(build_header(row))
+            result_cell.append(add_to_row(row))
+        result_cell.append('\n')
+        result_cell.append(f'{caption}')
+        self.markdown.append('\n'.join(result_cell) + '\n')
+
+        # generate metadata for TOC
+        self.toc.append((title, level, locator))
+
+    def add_heading(self, title, level=1, text='', add_toc=True):
+        # multipying char simply repeats it
+        if isinstance(text, str):
+            text = [text]
+        cell = []
+        level_string = f"{level * '#'}"
+        locator = title.lower().replace(" ", "_")
+        sub_heading = f'{level_string} {title} <a name="{locator}"></a>\n'
+        cell.append(sub_heading)
+        try:
+            for item in list(text):
+                cell.append(item)
+        except:
+            raise RuntimeWarning("Unable to add document subhead, text must be iterable.")
+        self.markdown.append('\n'.join(cell) + '\n')
+
+        # generate metadata for TOC
+        if add_toc:
+            self.toc.append((title, level, locator))
+
+    def add_list(self, list):
+        cell = []
+        for item in list:
+            cell.append(f"* {item}")
+        self.markdown.append('\n'.join(cell) + '\n')
+
+    def add_title(self, title, text):
+        self.has_title = True
+        self.add_heading(title, 1, text, add_toc=False)
+
+    def table_of_contents(self):
+        """ generates table of contents based on contents of document. """
+        if len(self.toc) == 0:
+            return
+        toc = ["# Table of Contents"]
+        for title, level, locator in self.toc:
+            space = '   ' * (level - 1)
+            toc.append(f"{space}1. [{title}](#{locator})")
+        insert_loc = 1 if self.has_title else 0
+        self.markdown.insert(insert_loc, '\n'.join(toc) + '\n')
+
+    def add_table(self, data, use_header=True):
+        """
+        Generates table from HTML and styles using bootstrap class
+        Args:
+           data List[Tuple[str]]: should be (nrows, ncols) in size. all rows should be the
+                         same sizes
+        Returns:
+            table (str): this can be added to subheading or other cell if desired.
+        """
+        table = []
+        table.append('<div class="table table-striped">')
+        table.append(f'<table>')
+
+        def make_header(row):
+            header = []
+            header.append('<tr>')
+            for item in row:
+                header.append(f'<th>{item}</th>')
+            header.append('</tr>')
+            return '\n'.join(header)
+
+        def add_row(row):
+            table_row = ['<tr>']
+            for item in row:
+                table_row.append(f"<td>{item}</td>")
+            table_row.append('</tr>')
+            return '\n'.join(table_row)
+
+        for i, row in enumerate(data):
+            if i == 0 and use_header:
+                table.append(make_header(row))
+            else:
+                table.append(add_row(row))
+        table.append('</table>')
+        table.append('</div>')
+        table = '\n'.join(table)
+        self.markdown.append(table + '\n')
+
+    def save(self, save_dir):
+        output = list(itertools.chain.from_iterable(self.markdown))
+        full_md_fname = os.path.join(save_dir, self.outname)
+        with open(full_md_fname, 'w') as f:
+            f.writelines(output)
 
 
-def global_region(dh=0.1, name="global", magnitudes=None):
-    """ Creates a global region used for evaluating gridded models on the global scale.
-
-    Modified from csep.core.regions.global_region
-
-    The gridded region corresponds to the
-
-    Args:
-        dh:
-
-    Returns:
-        csep.utils.CartesianGrid2D:
-    """
-    # generate latitudes
-
-    lons = numpy.arange(-180.0, 180, dh)
-    lats = numpy.arange(-90, 90, dh)
-    coords = itertools.product(lons,lats)
-    region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh, name=name)
-    if magnitudes is not None:
-        region.magnitudes = magnitudes
-    return region
-
-
-def resample_block_model(model_path, resample_path, k):
-    """
-
-    Creates a resampled version of a model for fecsep testing purposes
-
-    :param model_path: Original model
-    :param resample_path: Path to resampled model
-    :param k: Grouping number of cells, creating blocks (k times k). Must be factor of 3600 and 1800
-
-    """
-    db = pandas.read_csv(model_path, header=0, sep=' ', escapechar='#')
-    data = db.to_numpy()
-
-    with open(model_path, 'r') as model:                                    # Read the magnitude columns in the forecast
-        header = model.readline()[2:]
-        magnitudes = [float(i) for i in header.split(' ')[6:]]
-
-    nx = 3600
-    ny = 1800
-    nm = len(magnitudes)
-
-    if nx % k != 0 or ny % k != 0:
-        raise Exception('Grouping factor k must be factor of 3600 and 1800')
-
-    ordered = data[:, 6:].reshape((nx, ny, nm))
-    resampled = ordered.reshape(int(nx/k), k, int(ny/k), k, nm).sum(axis=(1, 3))  # blocks, n, blocks, n
-    rates = resampled.reshape(int(nx/k) * int(ny/k), nm)
-
-    region = global_region(0.1 * k)
-    origin = region.origins()
-
-    cells = numpy.vstack((origin[:, 0], origin[:, 0] + region.dh,
-                          origin[:, 1], origin[:, 1] + region.dh,
-                          numpy.zeros(int(nx * ny / k**2)), 70 * numpy.ones(int(nx * ny / k**2)))).T
-
-    new_array = numpy.hstack((cells, rates))
-    header = 'lon_min lon_max lat_min lat_max depth_min depth_max ' + ' '.join([str(i) for i in magnitudes])
-
-    numpy.savetxt(resample_path, new_array, fmt=6 * ['%.1f'] + 31 * ['%.16e'], header=header)
-
-
-def resample_models(k=20):
-
-
-    """
-    Resamples all forecast to low resolution for fecsep testing purposes
-
-    :param k: resample factor
-    :return:
-    """
-
-    model_original = '../models/GEAR1_csep.txt'
-    model_resampled = '../models/GEAR_resampled.txt'
-    resample_block_model(model_original, model_resampled, k=k)
-
-    model_original = '../models/KJSS_csep.txt'
-    model_resampled = '../models/KJSS_resampled.txt'
-    resample_block_model(model_original, model_resampled, k=k)
-
-    model_original = '../models/SHIFT2F_GSRM_csep.txt'
-    model_resampled = '../models/SHIFT2F_GSRM_resampled.txt'
-    resample_block_model(model_original, model_resampled, k=k)
-
-    model_original = '../models/TEAMr_csep.txt'
-    model_resampled = '../models/TEAMr_resampled.txt'
-    resample_block_model(model_original, model_resampled, k=k)
-
-    model_original = '../models/WHEELr_csep.txt'
-    model_resampled = '../models/WHEELr_resampled.txt'
-    resample_block_model(model_original, model_resampled, k=k)
+class NoAliasLoader(yaml.Loader):
+    def ignore_aliases(self):
+        return True
 
 
 def plot_forecast_lowres(forecast, plot_args, k=4):
-
     """
     Plot a reduced resolution plot. The forecast values are kept the same, but cells are enlarged
     :param forecast: GriddedForecast object
@@ -267,44 +366,6 @@ def plot_forecast_lowres(forecast, plot_args, k=4):
     region.xs = numpy.unique(region.get_cartesian(coords[:, 0])[0, ::k])
     region.ys = numpy.unique(region.get_cartesian(coords[:, 1])[::k, 0])
     plot_spatial_dataset(dataset, region, set_global=True, plot_args=plot_args)
-
-
-def prepare_forecast(model_path, time_horizon, dh=0.1, name=None, **kwargs):
-    """ Returns a forecast from a time-independent model
-
-        Note: For the time-independent global models the rates should be 'per year'
-
-        Args:
-            model_path (str): filepath of model
-            time_horizon (float): time horizon of forecast in years     # todo < Should this be a pair of datetimes instead of the scale? In such way, the forecast object has time bounds, and can be identified with a catalog.
-            dh (float): spatial cell size
-            name (str): name of the model
-            **kwargs: other keyword arguments
-
-        Returns:
-            forecast (GriddedForecast): pycsep forecast object with rates scaled to time horizon
-    """
-
-    if name is None:                                                        # Get name from file if none is provided
-        name = model_path.split('_csep.txt')[0].split('/')[-1]
-    start_date = kwargs.get('start_date')
-    end_date = kwargs.get('end_date')
-    print(f'Loading Forecast {name}')
-
-    db = pandas.read_csv(model_path, header=0, sep=' ', escapechar='#')
-    data = db.to_numpy()
-    with open(model_path, 'r') as model:                                    # Read the magnitude columns in the forecast
-        magnitudes = [float(i) for i in model.readline().split(' ')[7:]]   # todo check it works with escapechar #
-
-    region = global_region(dh)             #todo: Hard coded here, but should be eventually able to read the region? e.g test italy using gear1
-    rates = data[:, 6:]
-
-    forecast = GriddedForecast(data=rates, region=region, magnitudes=magnitudes, name=name,
-                               start_time=start_date, end_time=end_date)
-    forecast.scale(time_horizon)
-    print(f'\t Total {forecast.event_count:.4f} events forecasted in {time_horizon:.2f} years')
-
-    return forecast
 
 
 def quadtree_csv_loader(csv_fname):
@@ -336,7 +397,6 @@ def quadtree_csv_loader(csv_fname):
 
 
 def geographical_area_from_qk(quadk):
-
     """
     Wrapper around function geographical_area_from_bounds
     """
@@ -451,12 +511,12 @@ def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
                 [nx1]
     """
 
-    if ncpu==None:
+    if ncpu == None:
         ncpu = mp.cpu_count()
         pool = mp.Pool(ncpu)
     else:
         pool = mp.Pool(ncpu)  # mp.cpu_count()
-    print('Number of CPUs :',ncpu)
+    print('Number of CPUs :', ncpu)
 
     func_exact = partial(_map_exact_inside_cells, fcst_grid, fcst_rate)
     exact_rate = pool.map(func_exact, [poly for poly in target_grid])
@@ -473,7 +533,7 @@ def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
     fcst_rate_poly = numpy.delete(fcst_rate, exact_cells, axis=0)
     lft_fcst_grid = numpy.delete(fcst_grid, exact_cells, axis=0)
 
-    #play now only with those cells are overlapping with multiple target cells
+    # play now only with those cells are overlapping with multiple target cells
     ##Get the polygon of Remaining Forecast grid Cells
     pool = mp.Pool(ncpu)
     fcst_grid_poly = pool.map(create_polygon, [i for i in lft_fcst_grid])
@@ -484,12 +544,12 @@ def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
     fcst_cell_area = pool.map(calc_cell_area, [i for i in lft_fcst_grid])
     pool.close()
 
-    #print('Calculate target polygons')
+    # print('Calculate target polygons')
     pool = mp.Pool(ncpu)
     target_grid_poly = pool.map(create_polygon, [i for i in target_grid])
     pool.close()
 
-    #print('--2nd Step: Start Polygon mapping--')
+    # print('--2nd Step: Start Polygon mapping--')
     pool = mp.Pool(ncpu)
     func_overlapping = partial(_map_overlapping_cells, fcst_grid_poly, fcst_cell_area, fcst_rate_poly)
     rate_tgt = pool.map(func_overlapping, [poly for poly in target_grid_poly])  # Uses above three Global Parameters
@@ -505,266 +565,62 @@ def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
     return map_rate
 
 
-def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
-    """
-    Aggregates conventional forecast onto quadtree region
-    This is generic function, which can map any forecast on to another grid.
-    Wrapper function over "_forecat_mapping_generic"
-    Forecast mapping onto Target Grid
+def _set_dockerfile(name):
+    string = f"""
+## Install Docker image from trusted source
+FROM python:3.8.13
 
-    forecast_gridded: csep.core.forecast with other grid.
-    target_grid: csep.core.region.CastesianGrid2D or QuadtreeGrid2D
-    only_de-aggregate: Flag (True or False)
-        Note: set the flag "only_deagregate = True" Only if one is sure that both grids are Quadtree and
-        Target grid is high-resolution at every level than the other grid.
-    """
-    from csep.core.forecasts import GriddedForecast
-    bounds_target = target_grid.bounds
-    bounds = forecast_gridded.region.bounds
-    data = forecast_gridded.data
-    data_mapped_bounds = _forecast_mapping_generic(bounds_target, bounds, data, ncpu=ncpu)
-    target_forecast = GriddedForecast(data=data_mapped_bounds, region=target_grid,
-                                          magnitudes=forecast_gridded.magnitudes)
-    return target_forecast
+## Setup user args
+ARG USERNAME={name}
+ARG USER_UID=1100
+ARG USER_GID=$USER_UID
 
+RUN mkdir -p /usr/src/{name} && chown $USER_UID:$USER_GID /usr/src/{name} 
+RUN groupadd --non-unique -g $USER_GID $USERNAME && useradd -u $USER_UID -g $USER_GID -s /bin/sh -m $USERNAME
 
-def plot_quadtree_forecast(qtree_forecast):
-    """
-    Currently, only a single-resolution plotting capability is available. So we aggregate multi-resolution forecast on a single-resolution grid and then plot it
-    
-    Args: csep.core.models.GriddedForecast
-    
-    Returns: class:`matplotlib.pyplot.ax` object
-    """
-    quadkeys = qtree_forecast.region.quadkeys
-    l =[]
-    for qk in quadkeys:
-        l.append(len(qk))
-    
-    if l.count(l[0]) == len(l):
-        #single-resolution grid
-        ax = qtree_forecast.plot()
-    else:
-        print('Multi-resolution grid detected.')
-        print('Currently, we do not offer utility to plot a forecast with multi-resolution grid')
-        print('Therefore, forecast is being aggregated on a single-resolution grid (L8) for plotting')
-        
-        single_res_grid_L8 = QuadtreeGrid2D.from_single_resolution(8)
-        forecast_L8 = forecast_mapping(qtree_forecast, single_res_grid_L8)
-        ax = forecast_L8.plot()
-    
-    return ax
+## Set up work directory in the Docker container
+WORKDIR /usr/src/{name}/
 
+## Copy the files from the local machine (the repository) to the Docker container
+COPY --chown=$USER_UID:$USER_GID . /usr/src/{name}/
 
-def new_zealand_csep_region(dh_scale=1, magnitudes=None, name="csep-new_zealand", use_midpoint=True):
-    """
+## Calls setup.py, install python dependencies and install this model as a python module
+ENV VIRTUAL_ENV=/venv/
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# RUN pip install --no-cache-dir --upgrade pip
+# RUN pip install -r requirements.txt
+RUN pip install numpy pandas h5py
+
+USER $USERNAME
 
     """
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    filepath = os.path.join(root_dir, 'fecsep', 'artifacts', 'new_zealand_csep_testing.csv')
-    cells = numpy.genfromtxt(filepath, delimiter=',')
-    midpoints = numpy.vstack((cells[:,(0,1)].sum(axis=1)/2., cells[:,(2,3)].sum(axis=1)/2.)).T
-    nz_region = CartesianGrid2D.from_origins(midpoints, magnitudes=magnitudes)
-
-    return nz_region
+    return string
 
 
-def europe_efehr20(dh_scale=1, magnitudes=None, name="europe_efehr20", use_midpoint=True):
+def _global_region(dh=0.1, name="global", magnitudes=None):
+    """ Creates a global region used for evaluating gridded models on the global scale.
+
+    Modified from csep.core.regions.global_region
+
+    The gridded region corresponds to the
+
+    Args:
+        dh:
+
+    Returns:
+        csep.utils.CartesianGrid2D:
     """
+    # generate latitudes
 
-    """
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    filepath = os.path.join(root_dir, 'fecsep', 'artifacts', 'europe_efehr20.csv')
-    midpoints = numpy.genfromtxt(filepath, delimiter=',')
-    europe_region = CartesianGrid2D.from_origins(midpoints, magnitudes=magnitudes)
-
-    return europe_region
-
-
-class MarkdownReport:
-    """ Class to generate a Markdown report from a study """
-
-    def __init__(self, outname='results.md'):
-        self.outname = outname
-        self.toc = []
-        self.has_title = True
-        self.markdown = []
-
-    def add_introduction(self, adict):
-        """ Generate document header from dictionary """
-        first = f"# CSEP Testing Results: {adict['simulation_name']}  \n" \
-                f"**Forecast Name:** {adict['forecast_name']}  \n" \
-                f"**Simulation Start Time:** {adict['origin_time']}  \n" \
-                f"**Evaluation Time:** {adict['evaluation_time']}  \n" \
-                f"**Catalog Source:** {adict['catalog_source']}  \n" \
-                f"**Number Simulations:** {adict['num_simulations']}\n"
-
-        # used to determine to place TOC at beginning of document or after introduction.
-        self.has_introduction = True
-        self.markdown.append(first)
-        return first
-
-    def add_text(self, text):
-        """
-        text should be a list of strings where each string will be on its own line.
-        each add_text command represents a paragraph.
-        Args:
-            text (list): lines to write
-        Returns:
-        """
-        self.markdown.append('  '.join(text) + '\n\n')
-
-    def add_figure(self, title, relative_filepaths, level=2,  ncols=3, add_ext=False, text='', caption=''):
-        """
-        this function expects a list of filepaths. if you want the output stacked, select a
-        value of ncols. ncols should be divisible by filepaths. todo: modify formatted_paths to work when not divis.
-        Args:
-            title: name of the figure
-            level (int): value 1-6 depending on the heading
-            relative_filepaths (str or List[Tuple[str]]): list of paths in order to make table
-        Returns:
-        """
-        # verify filepaths have proper extension should always be png
-        is_single = False
-        paths = []
-        if isinstance(relative_filepaths, six.string_types):
-            is_single = True
-            paths.append(relative_filepaths)
-        else:
-            paths = relative_filepaths
-
-        correct_paths = []
-        if add_ext:
-            for fp in paths:
-                correct_paths.append(fp + '.png')
-        else:
-            correct_paths = paths
-
-        # generate new lists with size ncols
-        formatted_paths = [correct_paths[i:i+ncols] for i in range(0, len(paths), ncols)]
-
-        # convert str into a proper list, where each potential row is an iter not str
-        def build_header(row):
-            top = "|"
-            bottom = "|"
-            for i, _ in enumerate(row):
-                if i == ncols:
-                    break
-                top +=  " |"
-                bottom += " --- |"
-            return top + '\n' + bottom
-
-        def add_to_row(row):
-            if len(row) == 1:
-                return f"![]({row[0]})"
-            string = '| '
-            for item in row:
-                string = string + f' ![]({item}) |'
-            return string
-
-        level_string = f"{level*'#'}"
-        result_cell = []
-        locator = title.lower().replace(" ", "_")
-        result_cell.append(f'{level_string} {title}  <a name="{locator}"></a>\n')
-        result_cell.append(f'{text}\n')
-
-        for i, row in enumerate(formatted_paths):
-            if i == 0 and not is_single:
-                result_cell.append(build_header(row))
-            result_cell.append(add_to_row(row))
-        result_cell.append('\n')
-        result_cell.append(f'{caption}')
-        self.markdown.append('\n'.join(result_cell) + '\n')
-
-        # generate metadata for TOC
-        self.toc.append((title, level, locator))
-
-    def add_heading(self, title, level=1, text='', add_toc=True):
-        # multipying char simply repeats it
-        if isinstance(text, str):
-            text = [text]
-        cell = []
-        level_string = f"{level*'#'}"
-        locator = title.lower().replace(" ", "_")
-        sub_heading = f'{level_string} {title} <a name="{locator}"></a>\n'
-        cell.append(sub_heading)
-        try:
-            for item in list(text):
-                cell.append(item)
-        except:
-            raise RuntimeWarning("Unable to add document subhead, text must be iterable.")
-        self.markdown.append('\n'.join(cell) + '\n')
-
-        # generate metadata for TOC
-        if add_toc:
-            self.toc.append((title, level, locator))
-
-    def add_list(self, list):
-        cell = []
-        for item in list:
-            cell.append(f"* {item}")
-        self.markdown.append('\n'.join(cell) + '\n')
-
-
-    def add_title(self, title, text):
-        self.has_title = True
-        self.add_heading(title, 1, text, add_toc=False)
-
-    def table_of_contents(self):
-        """ generates table of contents based on contents of document. """
-        if len(self.toc) == 0:
-            return
-        toc = []
-        toc.append("# Table of Contents")
-        for title, level, locator in self.toc:
-            space = '   ' * (level-1)
-            toc.append(f"{space}1. [{title}](#{locator})")
-        insert_loc = 1 if self.has_title else 0
-        self.markdown.insert(insert_loc, '\n'.join(toc) + '\n')
-
-    def add_table(self, data, use_header=True):
-        """
-        Generates table from HTML and styles using bootstrap class
-        Args:
-           data List[Tuple[str]]: should be (nrows, ncols) in size. all rows should be the
-                         same sizes
-        Returns:
-            table (str): this can be added to subheading or other cell if desired.
-        """
-        table = []
-        table.append('<div class="table table-striped">')
-        table.append(f'<table>')
-        def make_header(row):
-            header = []
-            header.append('<tr>')
-            for item in row:
-                header.append(f'<th>{item}</th>')
-            header.append('</tr>')
-            return '\n'.join(header)
-
-        def add_row(row):
-            table_row = []
-            table_row.append('<tr>')
-            for item in row:
-                table_row.append(f"<td>{item}</td>")
-            table_row.append('</tr>')
-            return '\n'.join(table_row)
-
-        for i, row in enumerate(data):
-            if i==0 and use_header:
-                table.append(make_header(row))
-            else:
-                table.append(add_row(row))
-        table.append('</table>')
-        table.append('</div>')
-        table = '\n'.join(table)
-        self.markdown.append(table + '\n')
-
-    def save(self, save_dir):
-        output = list(itertools.chain.from_iterable(self.markdown))
-        full_md_fname = os.path.join(save_dir, self.outname)
-        with open(full_md_fname, 'w') as f:
-            f.writelines(output)
+    lons = numpy.arange(-180.0, 180, dh)
+    lats = numpy.arange(-90, 90, dh)
+    coords = itertools.product(lons, lats)
+    region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh, name=name)
+    if magnitudes is not None:
+        region.magnitudes = magnitudes
+    return region
 
 
 def _check_zero_bins(exp, catalog, test_date):
@@ -772,36 +628,30 @@ def _check_zero_bins(exp, catalog, test_date):
         forecast = model.create_forecast(exp.start_date, test_date)
         catalog.filter_spatial(forecast.region)
         bins = catalog.get_spatial_idx()
-        import numpy as numpy
-        import matplotlib.pyplot as plt
-        zero_forecast = numpy.argwhere(forecast.spatial_counts()[bins]==0)
+        zero_forecast = numpy.argwhere(forecast.spatial_counts()[bins] == 0)
         if zero_forecast:
             print(zero_forecast)
-        ax = catalog.plot(plot_args={'basemap':'stock_img'})
-        ax = forecast.plot(ax=ax, plot_args={'alpha':0.8})
+        ax = catalog.plot(plot_args={'basemap': 'stock_img'})
+        ax = forecast.plot(ax=ax, plot_args={'alpha': 0.8})
         ax.plot(catalog.get_longitudes()[zero_forecast.ravel()],
                 catalog.get_latitudes()[zero_forecast.ravel()], 'o', markersize=10)
-    plt.savefig(f'{model.path}/{model.name}.png', dpi=300)
+        pyplot.savefig(f'{model.path}/{model.name}.png', dpi=300)
     for model in exp.models:
         forecast = model.create_forecast(exp.start_date, test_date)
         catalog.filter_spatial(forecast.region)
         sbins = catalog.get_spatial_idx()
         mbins = catalog.get_mag_idx()
-        import numpy as numpy
-        import matplotlib.pyplot as plt
         zero_forecast = numpy.argwhere(forecast.data[sbins, mbins] == 0)
         print('event', 'cell', sbins[zero_forecast], 'datum', catalog.data[zero_forecast])
         if zero_forecast:
-
             print(zero_forecast)
             print('cellfc', forecast.get_longitudes()[sbins[zero_forecast]],
                   forecast.get_latitudes()[sbins[zero_forecast]])
             print('scounts', forecast.spatial_counts()[sbins[zero_forecast]])
             print('data', forecast.data[sbins[zero_forecast]])
             print(forecast.data[zero_forecast[0]])
-        ax = catalog.plot(plot_args={'basemap':'stock_img'})
-        ax = forecast.plot(ax=ax, plot_args={'alpha':0.8})
+        ax = catalog.plot(plot_args={'basemap': 'stock_img'})
+        ax = forecast.plot(ax=ax, plot_args={'alpha': 0.8})
         ax.plot(catalog.get_longitudes()[zero_forecast.ravel()],
                 catalog.get_latitudes()[zero_forecast.ravel()], 'o', markersize=10)
-        print(zero_forecast)
-        plt.savefig(f'{model.path}/{model.name}.png', dpi=300)
+        pyplot.savefig(f'{model.path}/{model.name}.png', dpi=300)

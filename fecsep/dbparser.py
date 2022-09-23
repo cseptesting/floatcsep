@@ -1,5 +1,3 @@
-import datetime
-
 import h5py
 import pandas
 import argparse, os
@@ -23,7 +21,7 @@ def quadtree_to_hdf5(filename):
     with open(filename, 'r') as file_:
         qt_header = file_.readline().split(',')
         fmts = [str] + [float] * (len(qt_header) - 1)
-    qt_formats = {i:j for i, j in zip(qt_header, fmts)}
+    qt_formats = {i: j for i, j in zip(qt_header, fmts)}
     data = pandas.read_csv(filename, header=0, dtype=qt_formats)
 
     quadkeys = [i.encode('ascii', 'ignore') for i in data.tile]
@@ -62,7 +60,6 @@ def dat_to_hdf5(filename):
     bboxes = numpy.array([tuple(itertools.product(bbox[:2], bbox[2:])) for bbox in unique_poly])
     dh = float(unique_poly[0, 3] - unique_poly[0, 2])
 
-
     n_mag_bins = len(mws)
     rates = data[:, -2].reshape(len(bboxes), n_mag_bins)
 
@@ -88,6 +85,7 @@ def csep_to_hdf5(filename):
     Returns:
 
     """
+
     def is_mag(num):
         try:
             m = float(num)
@@ -132,7 +130,6 @@ def csep_to_hdf5(filename):
 
 
 def xml_to_hdf5(filename):
-
     """
     Parses a xml file (Italy experiment format) and drops into hdf5
     """
@@ -161,11 +158,10 @@ def xml_to_hdf5(filename):
         elif 'lastMagBinOpen' in children.tag:
             lastmbin = float(children.text)
         elif 'defaultCellDimension' in children.tag:
-            cell_dim = {i[0]:float(i[1]) for i in children.attrib.items()}
+            cell_dim = {i[0]: float(i[1]) for i in children.attrib.items()}
         elif 'depthLayer' in children.tag:
-            depth = {i[0]:float(i[1]) for i in root[0][9].attrib.items()}
+            depth = {i[0]: float(i[1]) for i in root[0][9].attrib.items()}
             cells = root[0][9]
-
 
     for cell in cells:
         cell_data = []
@@ -187,10 +183,10 @@ def xml_to_hdf5(filename):
 
     magnitudes = m_bins[0, :]
     rates = data_Hij[:, -len(magnitudes):]
-    all_polys = numpy.vstack((data_Hij[:,0] - cell_dim['lonRange']/2.,
-                              data_Hij[:,0] + cell_dim['lonRange']/2.,
-                              data_Hij[:,1] - cell_dim['latRange']/2.,
-                              data_Hij[:,1] + cell_dim['latRange']/2.)).T
+    all_polys = numpy.vstack((data_Hij[:, 0] - cell_dim['lonRange'] / 2.,
+                              data_Hij[:, 0] + cell_dim['lonRange'] / 2.,
+                              data_Hij[:, 1] - cell_dim['latRange'] / 2.,
+                              data_Hij[:, 1] + cell_dim['latRange'] / 2.)).T
     bboxes = numpy.array([tuple(itertools.product(bbox[:2], bbox[2:])) for bbox in all_polys])
     dh = float(all_polys[0, 3] - all_polys[0, 2])
     poly_mask = numpy.ones(bboxes.shape[0])
@@ -208,7 +204,6 @@ def xml_to_hdf5(filename):
         hf['poly_mask'][:] = poly_mask
 
 
-
 def serialize():
     parser = argparse.ArgumentParser()
     parser.add_argument("--format", help="format")
@@ -224,6 +219,6 @@ def serialize():
     if args.format == 'xml':
         xml_to_hdf5(args.filename)
 
+
 if __name__ == '__main__':
     serialize()
-

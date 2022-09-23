@@ -5,15 +5,15 @@ from csep.core.poisson_evaluations import _simulate_catalog, paired_t_test, w_te
 from csep.core.exceptions import CSEPCatalogException
 
 
-
-def vector_poisson_t_w_test(benchmark_forecast, forecasts,  catalog, **kwargs):
+def vector_poisson_t_w_test(benchmark_forecast, forecasts, catalog, **kwargs):
     """ Computes Student's t-test for the information gain per earthquake over a list of forecasts and
         w-test for normality
         
-        Uses unique combinations of individual forecasts to perform pair-wise t-tests against all forecasts 
+        Uses all forecasts to perform pair-wise t-tests against ref forecast
         provided to the function. 
 
         Args:
+            benchmark_forecast (csep.GriddedForecast): reference forecast to evaluate
             forecasts (list of csep.GriddedForecast): list of forecasts to evaluate
             catalog (csep.AbstractBaseCatalog): evaluation catalog filtered consistent with forecast
             **kwargs: additional default arguments
@@ -40,12 +40,12 @@ def vector_poisson_t_w_test(benchmark_forecast, forecasts,  catalog, **kwargs):
     return result
 
 
-def brier_score(Forecast, Catalog, spatial_only=False, binary=True):
-    def p_series(lambd, iter=500):
+def brier_score(forecast, catalog, spatial_only=False, binary=True):
+    def p_series(lambd, niters=500):
 
         tol = 1e-8
         p2 = 0
-        for i in range(iter):
+        for i in range(niters):
             inc = scipy.stats.poisson.pmf(i, lambd) ** 2
             if numpy.all(numpy.abs((inc - p2) / p2) >= tol) or p2 == 0:
                 p2 += inc
@@ -54,11 +54,11 @@ def brier_score(Forecast, Catalog, spatial_only=False, binary=True):
         return p2
 
     if spatial_only:
-        data = Forecast.spatial_counts()
-        obs = Catalog.spatial_counts()
+        data = forecast.spatial_counts()
+        obs = catalog.spatial_counts()
     else:
-        data = Forecast.data
-        obs = Catalog.spatial_magnitude_counts()
+        data = forecast.data
+        obs = catalog.spatial_magnitude_counts()
 
     if binary:
         obs = (obs >= 1).astype(int)
@@ -68,9 +68,9 @@ def brier_score(Forecast, Catalog, spatial_only=False, binary=True):
         for p, o in zip(prob_success.ravel(), obs.ravel()):
 
             if o == 0:
-                brier.append(-2 * p**2)
+                brier.append(-2 * p ** 2)
             else:
-                brier.append(-2 * (p - 1)**2)
+                brier.append(-2 * (p - 1) ** 2)
         brier = numpy.sum(brier)
     else:
         prob_success = scipy.stats.poisson.pmf(obs, data)
@@ -81,12 +81,13 @@ def brier_score(Forecast, Catalog, spatial_only=False, binary=True):
         brier /= n_dim
 
     result = EvaluationResult(
-                              name='Brier score',
-                              observed_statistic=brier,
-                              test_distribution=[0],
-                              sim_name=Forecast.name
-                              )
+        name='Brier score',
+        observed_statistic=brier,
+        test_distribution=[0],
+        sim_name=forecast.name
+    )
     return result
+
 
 def _nbd_number_test_ndarray(fore_cnt, obs_cnt, variance, epsilon=1e-6):
     """ 
@@ -105,8 +106,8 @@ def _nbd_number_test_ndarray(fore_cnt, obs_cnt, variance, epsilon=1e-6):
     var = variance
     mean = fore_cnt
     upsilon = 1.0 - ((var - mean) / var)
-    tau = (mean**2 /(var - mean))
-    
+    tau = (mean ** 2 / (var - mean))
+
     delta1 = 1.0 - scipy.stats.nbinom.cdf(obs_cnt - epsilon, tau, upsilon, loc=0)
     delta2 = scipy.stats.nbinom.cdf(obs_cnt + epsilon, tau, upsilon, loc=0)
 
@@ -147,7 +148,7 @@ def negative_binomial_number_test(gridded_forecast, observed_catalog, variance):
 
     # stores the actual result of the number test
     delta1, delta2 = _nbd_number_test_ndarray(fore_cnt, obs_cnt, variance, epsilon=epsilon)
-    
+
     # store results
     result.test_distribution = ('negative_binomial', fore_cnt)
     result.name = 'NBD N-Test'
@@ -173,22 +174,22 @@ def binomial_joint_log_likelihood_ndarray(forecast, catalog):
                     An Observation has to be Number of Events in Each Bin
                     It has to be a either zero or positive integer only (No Floating Point)
     """
-    #First, we mask the forecast in cells where we could find log=0.0 singularities:
-    forecast_masked = numpy.ma.masked_where(forecast.ravel() <= 0.0, forecast.ravel()) 
-    
-    #Then, we compute the log-likelihood of observing one or more events given a Poisson distribution, i.e., 1 - Pr(0) 
+    # First, we mask the forecast in cells where we could find log=0.0 singularities:
+    forecast_masked = numpy.ma.masked_where(forecast.ravel() <= 0.0, forecast.ravel())
+
+    # Then, we compute the log-likelihood of observing one or more events given a Poisson distribution, i.e., 1 - Pr(0)
     target_idx = numpy.nonzero(catalog.ravel())
     y = numpy.zeros(forecast_masked.ravel().shape)
     y[target_idx[0]] = 1
     first_term = y * (numpy.log(1.0 - numpy.exp(-forecast_masked.ravel())))
-    
-    #Also, we estimate the log-likelihood in cells no events are observed:
-    second_term = (1-y) * (-forecast_masked.ravel().data)
-    #Finally, we sum both terms to compute the joint log-likelihood score:
+
+    # Also, we estimate the log-likelihood in cells no events are observed:
+    second_term = (1 - y) * (-forecast_masked.ravel().data)
+    # Finally, we sum both terms to compute the joint log-likelihood score:
     return sum(first_term.data + second_term.data)
 
 
-def _binomial_likelihood_test(forecast_data, observed_data, num_simulations=1000, random_numbers=None, 
+def _binomial_likelihood_test(forecast_data, observed_data, num_simulations=1000, random_numbers=None,
                               seed=None, use_observed_counts=True, verbose=True, normalize_likelihood=False):
     """
     Computes binary conditional-likelihood test from CSEP using an efficient simulation based approach.
@@ -201,10 +202,10 @@ def _binomial_likelihood_test(forecast_data, observed_data, num_simulations=1000
         use_observed_counts (bool): if true, will simulate catalogs using the observed events, if false will draw from poisson 
         distribution
     """
-    
+
     # Array-masking that avoids log singularities:
-    forecast_data = numpy.ma.masked_where(forecast_data <= 0.0, forecast_data) 
-    
+    forecast_data = numpy.ma.masked_where(forecast_data <= 0.0, forecast_data)
+
     # set seed for the likelihood test
     if seed is not None:
         numpy.random.seed(seed)
@@ -217,8 +218,8 @@ def _binomial_likelihood_test(forecast_data, observed_data, num_simulations=1000
     simulated_ll = []
     n_obs = len(numpy.unique(numpy.nonzero(observed_data.ravel())))
     n_fore = numpy.sum(forecast_data)
-    expected_forecast_count = int(n_obs) 
-    
+    expected_forecast_count = int(n_obs)
+
     if use_observed_counts and normalize_likelihood:
         scale = n_obs / n_fore
         expected_forecast_count = int(n_obs)
@@ -230,17 +231,16 @@ def _binomial_likelihood_test(forecast_data, observed_data, num_simulations=1000
             num_events_to_simulate = int(n_obs)
         else:
             num_events_to_simulate = int(numpy.random.poisson(expected_forecast_count))
-    
+
         if random_numbers is None:
             sim_fore = _simulate_catalog(num_events_to_simulate, sampling_weights, sim_fore)
         else:
             sim_fore = _simulate_catalog(num_events_to_simulate, sampling_weights, sim_fore,
-                                         random_numbers=random_numbers[idx,:])
+                                         random_numbers=random_numbers[idx, :])
 
-    
         # compute joint log-likelihood
         current_ll = binomial_joint_log_likelihood_ndarray(forecast_data.data, sim_fore)
-        
+
         # append to list of simulated log-likelihoods
         simulated_ll.append(current_ll)
 
@@ -252,7 +252,7 @@ def _binomial_likelihood_test(forecast_data, observed_data, num_simulations=1000
 
     # observed joint log-likelihood
     obs_ll = binomial_joint_log_likelihood_ndarray(forecast_data.data, observed_data)
-        
+
     # quantile score
     qs = numpy.sum(simulated_ll <= obs_ll) / num_simulations
 
@@ -260,7 +260,8 @@ def _binomial_likelihood_test(forecast_data, observed_data, num_simulations=1000
     return qs, obs_ll, simulated_ll
 
 
-def binomial_spatial_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None, verbose=False):
+def binomial_spatial_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None,
+                          verbose=False):
     """
     Performs the binary spatial test on the Forecast using the Observed Catalogs.
     Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
@@ -281,14 +282,13 @@ def binomial_spatial_test(gridded_forecast, observed_catalog, num_simulations=10
 
     # simply call likelihood test on catalog data and forecast
     qs, obs_ll, simulated_ll = _binomial_likelihood_test(gridded_forecast.spatial_counts(), gridded_catalog_data,
-                                                        num_simulations=num_simulations,
-                                                        seed=seed,
-                                                        random_numbers=random_numbers,
-                                                        use_observed_counts=True,
-                                                        verbose=verbose, normalize_likelihood=True)
+                                                         num_simulations=num_simulations,
+                                                         seed=seed,
+                                                         random_numbers=random_numbers,
+                                                         use_observed_counts=True,
+                                                         verbose=verbose, normalize_likelihood=True)
 
-    
-# populate result data structure
+    # populate result data structure
     result = EvaluationResult()
     result.test_distribution = simulated_ll
     result.name = 'Binary S-Test'
@@ -301,10 +301,11 @@ def binomial_spatial_test(gridded_forecast, observed_catalog, num_simulations=10
         result.min_mw = numpy.min(gridded_forecast.magnitudes)
     except AttributeError:
         result.min_mw = -1
-    return result   
+    return result
 
 
-def binomial_conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None, verbose=False):
+def binomial_conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None,
+                                         random_numbers=None, verbose=False):
     """
     Performs the binary conditional likelihood test on Gridded Forecast using an Observed Catalog.
 
@@ -325,7 +326,7 @@ def binomial_conditional_likelihood_test(gridded_forecast, observed_catalog, num
     Returns:
         evaluation_result: csep.core.evaluations.EvaluationResult
     """
-        
+
     # grid catalog onto spatial grid
     try:
         _ = observed_catalog.region.magnitudes
@@ -335,9 +336,10 @@ def binomial_conditional_likelihood_test(gridded_forecast, observed_catalog, num
 
     # simply call likelihood test on catalog data and forecast
     qs, obs_ll, simulated_ll = _binomial_likelihood_test(gridded_forecast.data, gridded_catalog_data,
-                                                        num_simulations=num_simulations, seed=seed, random_numbers=random_numbers,
-                                                        use_observed_counts=True,
-                                                        verbose=verbose, normalize_likelihood=False)
+                                                         num_simulations=num_simulations, seed=seed,
+                                                         random_numbers=random_numbers,
+                                                         use_observed_counts=True,
+                                                         verbose=verbose, normalize_likelihood=False)
 
     # populate result data structure
     result = EvaluationResult()
@@ -376,10 +378,10 @@ def _binary_t_test_ndarray(target_event_rates1, target_event_rates2, n_obs, n_f1
         out (dict): relevant statistics from the t-test
     """
     # Some Pre Calculations -  Because they are being used repeatedly.
-    N_p = n_obs  
-    N = len(numpy.unique(numpy.nonzero(catalog.spatial_magnitude_counts().ravel()))) # Number of active bins
-    N1 = n_f1  
-    N2 = n_f2  
+    N_p = n_obs
+    N = len(numpy.unique(numpy.nonzero(catalog.spatial_magnitude_counts().ravel())))  # Number of active bins
+    N1 = n_f1
+    N2 = n_f2
     X1 = numpy.log(target_event_rates1)  # Log of every element of Forecast 1
     X2 = numpy.log(target_event_rates2)  # Log of every element of Forecast 2
 
@@ -434,9 +436,11 @@ def binary_paired_t_test(forecast, benchmark_forecast, observed_catalog, alpha=0
     # for cumulative forecasts (eg, multiple time-horizons) and static file-based forecasts.
     target_event_rate_forecast1p, n_fore1 = forecast.target_event_rates(observed_catalog, scale=scale)
     target_event_rate_forecast2p, n_fore2 = benchmark_forecast.target_event_rates(observed_catalog, scale=scale)
-    
-    target_event_rate_forecast1 = forecast.data.ravel()[numpy.unique(numpy.nonzero(observed_catalog.spatial_magnitude_counts().ravel()))]
-    target_event_rate_forecast2 = benchmark_forecast.data.ravel()[numpy.unique(numpy.nonzero(observed_catalog.spatial_magnitude_counts().ravel()))]
+
+    target_event_rate_forecast1 = forecast.data.ravel()[
+        numpy.unique(numpy.nonzero(observed_catalog.spatial_magnitude_counts().ravel()))]
+    target_event_rate_forecast2 = benchmark_forecast.data.ravel()[
+        numpy.unique(numpy.nonzero(observed_catalog.spatial_magnitude_counts().ravel()))]
 
     # call the primative version operating on ndarray
     out = _binary_t_test_ndarray(
@@ -459,7 +463,7 @@ def binary_paired_t_test(forecast, benchmark_forecast, observed_catalog, alpha=0
     result.obs_name = observed_catalog.name
     result.status = 'normal'
     result.min_mw = numpy.min(forecast.magnitudes)
-    return result            
+    return result
 
 
 def log_likelihood_point_process(observation, forecast, cell_area):
@@ -467,22 +471,23 @@ def log_likelihood_point_process(observation, forecast, cell_area):
     Log-likelihood for point process
 
     """
-    forecast_density = forecast / cell_area.reshape(-1,1)
+    forecast_density = forecast / cell_area.reshape(-1, 1)
     observation = observation.ravel()
     forecast_density = forecast_density.ravel()
-    obs = observation[observation>0]
-    fcst = forecast_density[observation>0]
+    obs = observation[observation > 0]
+    fcst = forecast_density[observation > 0]
     rate_density = []
     for i in range(len(obs)):
-            counter = obs[i]
-            while counter > 0:
-                rate_density = numpy.append(rate_density, fcst[i])
-                counter = counter-1
+        counter = obs[i]
+        while counter > 0:
+            rate_density = numpy.append(rate_density, fcst[i])
+            counter = counter - 1
     ll = numpy.sum(numpy.log(rate_density)) - sum(forecast)
-    return ll[0] #To get a scalar value instead of array
+    return ll[0]  # To get a scalar value instead of array
 
 
-def _standard_deviation(gridded_forecast1, gridded_forecast2, gridded_observation1, gridded_observation2, cell_area1, cell_area2):
+def _standard_deviation(gridded_forecast1, gridded_forecast2, gridded_observation1, gridded_observation2, cell_area1,
+                        cell_area2):
     """
     Calculate Variance using forecast 1 and forecast 2.
     But It is calculated using the forecast values corresponding to the non-zero observations. 
@@ -502,113 +507,111 @@ def _standard_deviation(gridded_forecast1, gridded_forecast2, gridded_observatio
         Variance
 
     """
-    
+
     N_obs = numpy.sum(gridded_observation1)
-    
-    forecast_density1 = (gridded_forecast1/cell_area1.reshape(-1,1)).ravel()
-    forecast_density2 = (gridded_forecast2/cell_area2.reshape(-1,1)).ravel()
-    
+
+    forecast_density1 = (gridded_forecast1 / cell_area1.reshape(-1, 1)).ravel()
+    forecast_density2 = (gridded_forecast2 / cell_area2.reshape(-1, 1)).ravel()
+
     gridded_observation1 = gridded_observation1.ravel()
     gridded_observation2 = gridded_observation2.ravel()
-    
-    
-    obs1 = gridded_observation1[gridded_observation1>0]
-    obs2 = gridded_observation2[gridded_observation2>0]
-    
-    fore1 = forecast_density1[gridded_observation1>0]
-    fore2 = forecast_density2[gridded_observation2>0]
-    
-    
+
+    obs1 = gridded_observation1[gridded_observation1 > 0]
+    obs2 = gridded_observation2[gridded_observation2 > 0]
+
+    fore1 = forecast_density1[gridded_observation1 > 0]
+    fore2 = forecast_density2[gridded_observation2 > 0]
+
     target_fore1 = []
     target_fore2 = []
-    
-    for i in range(len(obs1)):
-            counter = obs1[i]
-            while counter > 0:
-                target_fore1 = numpy.append(target_fore1, fore1[i])
-                counter = counter-1
-    
-    for i in range(len(obs2)):
-            counter = obs2[i]
-            while counter > 0:
 
-                target_fore2 = numpy.append(target_fore2, fore2[i])
-                counter = counter-1
-    
+    for i in range(len(obs1)):
+        counter = obs1[i]
+        while counter > 0:
+            target_fore1 = numpy.append(target_fore1, fore1[i])
+            counter = counter - 1
+
+    for i in range(len(obs2)):
+        counter = obs2[i]
+        while counter > 0:
+            target_fore2 = numpy.append(target_fore2, fore2[i])
+            counter = counter - 1
+
     X1 = numpy.log(target_fore1)
     X2 = numpy.log(target_fore2)
     first_term = (numpy.sum(numpy.power((X1 - X2), 2))) / (N_obs - 1)
     second_term = numpy.power(numpy.sum(X1 - X2), 2) / (numpy.power(N_obs, 2) - N_obs)
     forecast_variance = first_term - second_term
-   
+
     return forecast_variance
 
 
 def paired_ttest_point_process(forecast, benchmark_forecast, observed_catalog, alpha=0.05):
-        """
-        Function for T test based on Point process LL.
-        Works for comparing forecasts for different grids
-        
-        Parameters
-        ----------
-            forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
-            benchmark_forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
-            observed_catalog (csep.core.catalogs.AbstractBaseCatalog): number of observed earthquakes, should be whole number and >= zero.
-            alpha (float): tolerance level for the type-i error rate of the statistical test
-            scale (bool): if true, scale forecasted rates down to a single day
-        Returns:
-            evaluation_result: csep.core.evaluations.EvaluationResult
-        """
+    """
+    Function for T test based on Point process LL.
+    Works for comparing forecasts for different grids
 
-        gridded_forecast1 = numpy.array(forecast.data)
+    Parameters
+    ----------
+        forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
+        benchmark_forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
+        observed_catalog (csep.core.catalogs.AbstractBaseCatalog): number of observed earthquakes, should be whole number and >= zero.
+        alpha (float): tolerance level for the type-i error rate of the statistical test
+        scale (bool): if true, scale forecasted rates down to a single day
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
 
-        observed_catalog.region = forecast.region
+    gridded_forecast1 = numpy.array(forecast.data)
 
-        gridded_observation1 = forecast.region._get_spatial_magnitude_counts(observed_catalog, mag_bins=forecast.magnitudes)
-        cell_area1 = numpy.array(forecast.region.cell_area)
-        ll1 = log_likelihood_point_process(gridded_observation1, gridded_forecast1, cell_area1)
-        
-        #Forecast 2
-        gridded_forecast2 = numpy.array(benchmark_forecast.data)
-        gridded_observation2 = benchmark_forecast.region._get_spatial_magnitude_counts(observed_catalog, mag_bins=forecast.magnitudes)
-        cell_area2 = numpy.array(benchmark_forecast.region.cell_area)
-        ll2 = log_likelihood_point_process(gridded_observation2, gridded_forecast2, cell_area2)
+    observed_catalog.region = forecast.region
 
-        assert numpy.sum(gridded_observation1) == numpy.sum(gridded_observation2), 'Sum of Gridded Catalog is not same'
+    gridded_observation1 = forecast.region._get_spatial_magnitude_counts(observed_catalog, mag_bins=forecast.magnitudes)
+    cell_area1 = numpy.array(forecast.region.cell_area)
+    ll1 = log_likelihood_point_process(gridded_observation1, gridded_forecast1, cell_area1)
 
-        N_obs = numpy.sum(gridded_observation1)
-        
-        information_gain = (ll1 - ll2) / N_obs
+    # Forecast 2
+    gridded_forecast2 = numpy.array(benchmark_forecast.data)
+    gridded_observation2 = benchmark_forecast.region._get_spatial_magnitude_counts(observed_catalog,
+                                                                                   mag_bins=forecast.magnitudes)
+    cell_area2 = numpy.array(benchmark_forecast.region.cell_area)
+    ll2 = log_likelihood_point_process(gridded_observation2, gridded_forecast2, cell_area2)
 
-        forecast_variance = _standard_deviation(gridded_forecast1, gridded_forecast2, gridded_observation1, 
-                                                      gridded_observation2, cell_area1, cell_area2)
-        
-        forecast_std = numpy.sqrt(forecast_variance)
-        t_statistic = information_gain / (forecast_std / numpy.sqrt(N_obs))
+    assert numpy.sum(gridded_observation1) == numpy.sum(gridded_observation2), 'Sum of Gridded Catalog is not same'
 
-        # Obtaining the Critical Value of T from T distribution.
-        df = N_obs - 1
-        t_critical = scipy.stats.t.ppf(1 - (alpha / 2), df)  # Assuming 2-Tail Distribution  for 2 tail, divide 0.05/2.
+    N_obs = numpy.sum(gridded_observation1)
 
-        # Computing Information Gain Interval.
-        ig_lower = information_gain - (t_critical * forecast_std / numpy.sqrt(N_obs))
-        ig_upper = information_gain + (t_critical * forecast_std / numpy.sqrt(N_obs))
+    information_gain = (ll1 - ll2) / N_obs
 
-        # If T value greater than T critical, Then both Lower and Upper Confidence Interval limits will be greater than Zero.
-        # If above Happens, Then It means that Forecasting Model 1 is better than Forecasting Model 2.
-        out =  {'t_statistic': t_statistic,
-                't_critical': t_critical,
-                'information_gain': information_gain,
-                'ig_lower': ig_lower,
-                'ig_upper': ig_upper}
-        
-        result = EvaluationResult()
-        result.name = 'Paired T-Test'
-        result.test_distribution = (out['ig_lower'], out['ig_upper'])        
-        result.observed_statistic = out['information_gain']
-        result.quantile = (out['t_statistic'], out['t_critical'])
-        result.sim_name = (forecast.name, benchmark_forecast.name)
-        result.obs_name = observed_catalog.name
-        result.status = 'normal'
-        result.min_mw = numpy.min(forecast.magnitudes)
-        return result
+    forecast_variance = _standard_deviation(gridded_forecast1, gridded_forecast2, gridded_observation1,
+                                            gridded_observation2, cell_area1, cell_area2)
+
+    forecast_std = numpy.sqrt(forecast_variance)
+    t_statistic = information_gain / (forecast_std / numpy.sqrt(N_obs))
+
+    # Obtaining the Critical Value of T from T distribution.
+    df = N_obs - 1
+    t_critical = scipy.stats.t.ppf(1 - (alpha / 2), df)  # Assuming 2-Tail Distribution  for 2 tail, divide 0.05/2.
+
+    # Computing Information Gain Interval.
+    ig_lower = information_gain - (t_critical * forecast_std / numpy.sqrt(N_obs))
+    ig_upper = information_gain + (t_critical * forecast_std / numpy.sqrt(N_obs))
+
+    # If T value greater than T critical, Then both Lower and Upper Confidence Interval limits will be greater than Zero.
+    # If above Happens, Then It means that Forecasting Model 1 is better than Forecasting Model 2.
+    out = {'t_statistic': t_statistic,
+           't_critical': t_critical,
+           'information_gain': information_gain,
+           'ig_lower': ig_lower,
+           'ig_upper': ig_upper}
+
+    result = EvaluationResult()
+    result.name = 'Paired T-Test'
+    result.test_distribution = (out['ig_lower'], out['ig_upper'])
+    result.observed_statistic = out['information_gain']
+    result.quantile = (out['t_statistic'], out['t_critical'])
+    result.sim_name = (forecast.name, benchmark_forecast.name)
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(forecast.magnitudes)
+    return result

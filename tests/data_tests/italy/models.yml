@@ -1,0 +1,18 @@
+- ALM:
+      path: models
+      format: xml
+      forecast_unit: 10
+      filename: gulia-wiemer.ALM.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- MPS04:
+      path: models
+      format: xml
+      forecast_unit: 10
+      filename: meletti.MPS04.italy.10yr.2010-01-01.xml
+      db_type: hdf5
+- TripleS-CPTI:
+      path: models
+      format: xml
+      forecast_unit: 10
+      filename: zechar.TripleS-CPTI.italy.10yr.2010-01-01.xml
+      db_type: hdf5
