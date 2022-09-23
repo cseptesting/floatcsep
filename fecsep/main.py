@@ -44,7 +44,7 @@ def run(cfg, test_date_string=None, rerun=False):
 
     exp.plot_results(run_results)
 
-    exp.generate_report()
+    # exp.generate_report()
 
 
 def fecsep():

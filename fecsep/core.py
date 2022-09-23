@@ -500,6 +500,9 @@ class Experiment:
         if test.ref_model is not None:
             ref_model = self.get_model(test.ref_model)
             test_args = (forecast, self.get_forecast(ref_model), catalog)
+        elif test.func == fecsep.evaluations.vector_poisson_t_w_test:
+            forecast_batch = [self.get_forecast(model_i) for model_i in self.models]
+            test_args = (forecast, forecast_batch, catalog)
         else:
             test_args = (forecast, catalog)
         return test_args

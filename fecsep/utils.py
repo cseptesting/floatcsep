@@ -9,6 +9,9 @@ from functools import partial
 import itertools
 import functools
 import yaml
+from matplotlib import pyplot
+from matplotlib.lines import Line2D
+import seaborn
 
 #pyCSEP libraries
 import six
@@ -89,7 +92,7 @@ def parse_csep_func(func):
         raise AttributeError(f'Evaluation or Plot function {func} has not yet been implemented in fecsep or pycsep')
 
 
-def plot_matrix_comparative_test(evaluation_results, plot_args=None):
+def plot_matrix_comparative_test(evaluation_results, p = 0.05, order = True, plot_args=None):
     """ Produces matrix plot for comparative tests for all models
 
         Args:
@@ -99,7 +102,40 @@ def plot_matrix_comparative_test(evaluation_results, plot_args=None):
         Returns:
             ax (matplotlib.Axes): handle for figure
     """
-    pass
+    names = [i.sim_name for i in evaluation_results]
+
+    T_value = numpy.array([Tw_i.observed_statistic for Tw_i in evaluation_results]).T
+    T_quantile = numpy.array([Tw_i.quantile[0] for Tw_i in evaluation_results]).T
+    W_quantile = numpy.array([Tw_i.quantile[1] for Tw_i in evaluation_results]).T
+    score = numpy.sum(T_value, axis=1) / T_value.shape[0]
+
+    if order:
+        arg_ind = numpy.flip(numpy.argsort(score))
+    else:
+        arg_ind = numpy.arange(len(score))
+
+    data_t = T_value[arg_ind, :][:, arg_ind]  ## Flip rows/cols if ordered by value
+    data_w = W_quantile[arg_ind, :][:, arg_ind]
+    data_tq = T_quantile[arg_ind, :][:, arg_ind]
+    fig, ax = pyplot.subplots(1, 1, figsize=(7, 6))
+
+    cmap = seaborn.diverging_palette(220, 20, as_cmap=True)
+    seaborn.heatmap(data_t, vmin=-3, vmax=3, center=0, cmap=cmap,
+    ax = ax, cbar_kws = {'pad': 0.01, 'shrink': 0.7, 'label': 'Information Gain',
+                         'anchor': (0., 0.)}),
+    ax.set_yticklabels([names[i] for i in arg_ind], rotation='horizontal')
+    ax.set_xticklabels([names[i] for i in arg_ind], rotation='vertical')
+    for n, i in enumerate(data_tq):
+        for m, j in enumerate(i):
+            if j > 0 and data_w[n, m] < p:
+    # ax.scatter(n + 0.5, m + 0.5, marker='o', s=75, facecolor='None', edgecolor='black')
+                ax.scatter(n + 0.5, m + 0.5, marker='o', s=5, color='black')
+
+    legend_elements = [Line2D([0], [0], marker='o', lw=0, label='$\mathcal{T}$ and $\mathcal{W}$ significant',
+                              markerfacecolor="black", markeredgecolor='black', markersize=4)]
+    fig.legend(handles=legend_elements, loc='lower right', bbox_to_anchor = (0.75, 0.0, 0.2, 0.2), handletextpad = 0)
+    pyplot.tight_layout()
+
 
 
 def plot_binary_consistency_test(evaluation_result, plot_args=None):
@@ -400,7 +436,7 @@ def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
     Works in two steps:
         1 - Maps all those cells that fall entirely on target cells
         2 - The cells that overlap with multiple cells, map them according to cell area
-    Inputs:
+    Inumpyuts:
         target_grid: Target grid bounds, upon which forecast is to be mapped.
                         [n x 4] array, Bottom left and Top Right corners
                         [lon1, lat1, lon2, lat2]
@@ -736,9 +772,9 @@ def _check_zero_bins(exp, catalog, test_date):
         forecast = model.create_forecast(exp.start_date, test_date)
         catalog.filter_spatial(forecast.region)
         bins = catalog.get_spatial_idx()
-        import numpy as np
+        import numpy as numpy
         import matplotlib.pyplot as plt
-        zero_forecast = np.argwhere(forecast.spatial_counts()[bins]==0)
+        zero_forecast = numpy.argwhere(forecast.spatial_counts()[bins]==0)
         if zero_forecast:
             print(zero_forecast)
         ax = catalog.plot(plot_args={'basemap':'stock_img'})
@@ -751,9 +787,9 @@ def _check_zero_bins(exp, catalog, test_date):
         catalog.filter_spatial(forecast.region)
         sbins = catalog.get_spatial_idx()
         mbins = catalog.get_mag_idx()
-        import numpy as np
+        import numpy as numpy
         import matplotlib.pyplot as plt
-        zero_forecast = np.argwhere(forecast.data[sbins, mbins] == 0)
+        zero_forecast = numpy.argwhere(forecast.data[sbins, mbins] == 0)
         print('event', 'cell', sbins[zero_forecast], 'datum', catalog.data[zero_forecast])
         if zero_forecast:
 

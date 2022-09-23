@@ -1,0 +1,16 @@
+README.md
+setup.py
+fecsep/__init__.py
+fecsep/accessors.py
+fecsep/core.py
+fecsep/dbparser.py
+fecsep/evaluations.py
+fecsep/main.py
+fecsep/report.py
+fecsep/tests.py
+fecsep/utils.py
+fecsep.egg-info/PKG-INFO
+fecsep.egg-info/SOURCES.txt
+fecsep.egg-info/dependency_links.txt
+fecsep.egg-info/entry_points.txt
+fecsep.egg-info/top_level.txt

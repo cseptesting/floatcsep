@@ -1,12 +1,14 @@
 import numpy
 import scipy.stats
 from csep.models import EvaluationResult
-from csep.core.poisson_evaluations import _simulate_catalog
+from csep.core.poisson_evaluations import _simulate_catalog, paired_t_test, w_test
 from csep.core.exceptions import CSEPCatalogException
 
 
-def matrix_poisson_t_test(forecasts, catalog, **kwargs):
-    """ Computes Student's t-test for the information gain per earthquake over a list of forecasts
+
+def vector_poisson_t_w_test(benchmark_forecast, forecasts,  catalog, **kwargs):
+    """ Computes Student's t-test for the information gain per earthquake over a list of forecasts and
+        w-test for normality
         
         Uses unique combinations of individual forecasts to perform pair-wise t-tests against all forecasts 
         provided to the function. 
@@ -19,7 +21,72 @@ def matrix_poisson_t_test(forecasts, catalog, **kwargs):
         Returns:
             results (list of csep.EvaluationResult): iterable of evaluation results
     """
+    results_t = []
+    results_w = []
 
+    for f_j in forecasts:
+        results_t.append(paired_t_test(f_j, benchmark_forecast, catalog))
+        results_w.append(w_test(f_j, benchmark_forecast, catalog))
+    result = EvaluationResult()
+    result.name = 'Paired T-Test'
+    result.test_distribution = 'normal'
+    result.observed_statistic = [t.observed_statistic for t in results_t]
+    result.quantile = ([numpy.abs(t.quantile[0]) - t.quantile[1] for t in results_t], [w.quantile for w in results_w])
+    result.sim_name = benchmark_forecast.name
+    result.obs_name = catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(benchmark_forecast.magnitudes)
+
+    return result
+
+
+def brier_score(Forecast, Catalog, spatial_only=False, binary=True):
+    def p_series(lambd, iter=500):
+
+        tol = 1e-8
+        p2 = 0
+        for i in range(iter):
+            inc = scipy.stats.poisson.pmf(i, lambd) ** 2
+            if numpy.all(numpy.abs((inc - p2) / p2) >= tol) or p2 == 0:
+                p2 += inc
+            else:
+                break
+        return p2
+
+    if spatial_only:
+        data = Forecast.spatial_counts()
+        obs = Catalog.spatial_counts()
+    else:
+        data = Forecast.data
+        obs = Catalog.spatial_magnitude_counts()
+
+    if binary:
+        obs = (obs >= 1).astype(int)
+        prob_success = 1 - scipy.stats.poisson.cdf(0, data)
+        brier = []
+
+        for p, o in zip(prob_success.ravel(), obs.ravel()):
+
+            if o == 0:
+                brier.append(-2 * p**2)
+            else:
+                brier.append(-2 * (p - 1)**2)
+        brier = numpy.sum(brier)
+    else:
+        prob_success = scipy.stats.poisson.pmf(obs, data)
+        brier = 2 * (prob_success) - p_series(data) - 1
+        brier = numpy.sum(brier)
+
+    for n_dim in obs.shape:
+        brier /= n_dim
+
+    result = EvaluationResult(
+                              name='Brier score',
+                              observed_statistic=brier,
+                              test_distribution=[0],
+                              sim_name=Forecast.name
+                              )
+    return result
 
 def _nbd_number_test_ndarray(fore_cnt, obs_cnt, variance, epsilon=1e-6):
     """ 
