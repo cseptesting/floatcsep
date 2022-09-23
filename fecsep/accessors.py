@@ -19,11 +19,11 @@ def query_isc_gcmt(start_time, end_time, min_magnitude=5.0, min_depth=None, max_
                    catalog_id=None, verbose=False,
                    min_latitude=None, max_latitude=None,
                    min_longitude=None, max_longitude=None,
-                   **kwargs,):
+                   **kwargs, ):
     if min_latitude:
-        searchshape='RECT'
+        searchshape = 'RECT'
     else:
-        searchshape='GLOBAL'
+        searchshape = 'GLOBAL'
     events, creation_time = _query_isc_gcmt(start_year=start_time.year,
                                             start_month=start_time.month,
                                             start_day=start_time.day,
@@ -34,7 +34,6 @@ def query_isc_gcmt(start_time, end_time, min_magnitude=5.0, min_depth=None, max_
                                             end_day=end_time.day,
                                             end_time=end_time.time().isoformat(),
                                             min_mag=min_magnitude,
-                                            max_mag=max_mw,
                                             min_dep=min_depth,
                                             max_dep=max_depth,
                                             left_lon=min_longitude,
@@ -43,8 +42,8 @@ def query_isc_gcmt(start_time, end_time, min_magnitude=5.0, min_depth=None, max_
                                             top_lat=max_latitude,
                                             verbose=verbose)
     catalog = CSEPCatalog(data=events, name='ISC Bulletin - gCMT', catalog_id=catalog_id, date_accessed=creation_time)
-    #todo check why url query does not cut exactly by provided magmin
-    catalog.filter([f'magnitude >= {min_mw}'], in_place=True)
+    # todo check why url query does not cut exactly by provided magmin
+    catalog.filter([f'magnitude >= {min_magnitude}'], in_place=True)
     return catalog
 
 
@@ -72,10 +71,9 @@ def _query_isc_gcmt(out_format='QuakeML',
                     req_mag_type='MW',
                     req_mag_agcy='GCMT',
                     verbose=False):
-
     """ Return gCMT catalog from ISC online web-portal
 
-        Args: 
+        Args:
             (follow csep.query_comcat for guidance)
 
         Returns:
@@ -111,13 +109,13 @@ def _query_isc_gcmt(out_format='QuakeML',
 
 
 def _search_isc_gcmt(**newargs):
-
     """
     Performs de query at ISC API and returns event list and access date
 
     """
     paramstr = urlencode(newargs)
     url = HOST_CATALOG + paramstr
+    print(url)
     try:
         fh = request.urlopen(url, timeout=TIMEOUT)
         data = fh.read().decode('utf8')
@@ -176,6 +174,8 @@ def _download_file(url, filename):
                 total_size = int(h.headers.get('Content-Length', 0))
             except TypeError:
                 total_size = 0
+    else:
+        total_size = int(total_size)
     download_size = 0
     if total_size:
         print(f'Downloading file with size of {total_size / block_size:.3f} kB')
@@ -186,9 +186,9 @@ def _download_file(url, filename):
             download_size += len(data)
             f.write(data)
             if total_size:
-                progress = int(progress_bar_length*download_size/total_size)
-                sys.stdout.write('\r[{}{}] {:.1f}%'.format('█'*progress, '.' * (progress_bar_length-progress),
-                                 100*download_size/total_size))
+                progress = int(progress_bar_length * download_size / total_size)
+                sys.stdout.write('\r[{}{}] {:.1f}%'.format('█' * progress, '.' * (progress_bar_length - progress),
+                                                           100 * download_size / total_size))
                 sys.stdout.flush()
         sys.stdout.write('\n')
 
@@ -253,12 +253,9 @@ def from_zenodo(record_id, folder, force=False):
 
 
 def from_git(url, path, branch=None, force=False):
-
     try:
         repo = Repo(path)
     except (NoSuchPathError, InvalidGitRepositoryError):
         repo = Repo.clone_from(url, path, branch=branch)
 
     return repo
-
-

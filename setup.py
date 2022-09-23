@@ -9,9 +9,31 @@ setup(
     description='fecsep',
     packages=find_packages(),
     include_package_data=True,
+    extras_require={
+        'test': [
+            'pytest',
+            'vcrpy',
+            'pytest-cov'
+        ],
+        'dev': [
+            'sphinx',
+            'sphinx-gallery',
+            'sphinx-rtd-theme',
+            'pillow'
+        ],
+        'all': [
+            'pytest',
+            'vcrpy',
+            'pytest-cov',
+            'sphinx',
+            'sphinx-gallery',
+            'sphinx-rtd-theme',
+            'pillow'
+        ]
+    },
     python_requires=">=3.8",
     entry_points={
-                  'console_scripts': ['fecsep = fecsep.main:fecsep']
-                  },
+        'console_scripts': ['fecsep = fecsep.main:fecsep']
+    },
     url='git@git.gfz-potsdam.de:csep-group/fecsep-quadtree.git'
 )

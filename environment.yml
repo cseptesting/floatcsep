@@ -22,4 +22,5 @@ dependencies:
   - pytables
   - gitpython=3.1.27
   - dateparser
+  - vcrpy
   - xmltodict
