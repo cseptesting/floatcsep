@@ -1,9 +1,0 @@
-Metadata-Version: 2.1
-Name: fecsep
-Version: 0.1.0
-Summary: fecsep
-Home-page: git@git.gfz-potsdam.de:csep-group/fecsep-quadtree.git
-Author: Pablo Iturrieta
-Author-email: pciturri@gfz-potsdam.de
-License: LICENSE
-Requires-Python: >=3.8
