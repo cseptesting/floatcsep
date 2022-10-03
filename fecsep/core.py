@@ -8,6 +8,7 @@ from collections.abc import Iterable
 import h5py
 import yaml
 from matplotlib import pyplot
+from datetime import datetime
 
 from csep import GriddedForecast
 from csep.models import EvaluationResult
@@ -24,7 +25,6 @@ from fecsep.utils import MarkdownReport, NoAliasLoader, _set_dockerfile, parse_c
 from fecsep.accessors import from_zenodo, from_git
 import docker
 import docker.errors
-
 
 client = docker.from_env()
 
@@ -54,7 +54,7 @@ class Model:
         self.format = format
         self.db_type = db_type if db_type else self.format
         self.markdown = markdown
-        self.forecast_unit = forecast_unit         # Model is defined as rates per 1 year
+        self.forecast_unit = forecast_unit  # Model is defined as rates per 1 year
         self.forecasts = {}
         self.zenodo_id = zenodo_id
         self.giturl = giturl
@@ -132,9 +132,10 @@ class Model:
                 fecsep_bind = f'/usr/src/fecsep'
                 cmd = f'python {fecsep_bind}/dbparser.py --format {self.format} --filename {self.filename}'
                 a = client.containers.run(self.image, remove=True,
-                                      volumes={os.path.abspath(self.path): {'bind': self.bind, 'mode': 'rw'},
-                                               os.path.abspath(fecsep.__path__[0]): {'bind': fecsep_bind, 'mode': 'ro'}},
-                                      command=cmd)
+                                          volumes={os.path.abspath(self.path): {'bind': self.bind, 'mode': 'rw'},
+                                                   os.path.abspath(fecsep.__path__[0]): {'bind': fecsep_bind,
+                                                                                         'mode': 'ro'}},
+                                          command=cmd)
                 self.filename = fn_h5
 
     def create_forecast(self, start_date, test_date, name=None):
@@ -149,10 +150,11 @@ class Model:
         print(f"Loading model from {self.path}...")
         fn = os.path.join(self.path, self.filename)
 
-        #todo implement these functions in dbparser
+        # todo implement these functions in dbparser
         if self.db_type == 'hdf5':
             with h5py.File(fn, 'r') as db:
-                rates = db['rates'][:]  #todo check memory efficiency. Is it better to leave db open for multiple time intervals?
+                rates = db['rates'][
+                        :]  # todo check memory efficiency. Is it better to leave db open for multiple time intervals?
                 magnitudes = db['magnitudes'][:]
                 if self.format == 'quadtree':
                     region = QuadtreeGrid2D.from_quadkeys(db['quadkeys'][:].astype(str), magnitudes=magnitudes)
@@ -170,7 +172,7 @@ class Model:
             start_time=start_date,
             end_time=test_date
         )
-        forecast = forecast.scale(time_horizon/self.forecast_unit)
+        forecast = forecast.scale(time_horizon / self.forecast_unit)
         print(f"Expected forecast count after scaling: {forecast.event_count} with parameter {time_horizon}.")
         self.forecasts[test_date] = forecast
         return forecast
@@ -196,6 +198,7 @@ class Test:
     """
 
     """
+
     def __init__(self, name, func, markdown='', func_args=None, func_kwargs=None, plot_func=None,
                  plot_args=None, plot_kwargs=None, model=None, ref_model=None, path=None):
         """
@@ -210,10 +213,10 @@ class Test:
         """
         self.name = name
         self.func = parse_csep_func(func)
-        self.func_kwargs = func_kwargs      # todo set default args from exp?
+        self.func_kwargs = func_kwargs  # todo set default args from exp?
         self.func_args = func_args
         self.plot_func = parse_csep_func(plot_func)
-        self.plot_args = plot_args or {}        # todo default args?
+        self.plot_args = plot_args or {}  # todo default args?
         self.plot_kwargs = plot_kwargs or {}
         self.ref_model = ref_model
         self.model = model
@@ -251,22 +254,22 @@ class Test:
 
 class Experiment:
 
-    def __init__(self, start_date, end_date, test_date=None, intervals=1,
+    def __init__(self, start_date, end_date, test_date=None,
                  name=None,
-                 catalog_reader=None,
+                 catalog_reader=None, region=None,
                  mag_min=None, mag_max=None, mag_bin=None,
-                 depth_min=None, depth_max=None, region=None,
-                 models_config=None, tests_config=None, postproc_config=None,
+                 depth_min=None, depth_max=None,
+                 model_conf=None, test_conf=None, postproc_config=None,
                  default_test_kwargs=None, **kwargs):
 
         self.name = name
         self.start_date = start_date
         self.end_date = end_date
-        self.intervals = intervals
         self.test_date = test_date
         self.catalog_reader = parse_csep_func(catalog_reader)
-        self.models_config = models_config
-        self.tests_config = tests_config
+        self.region = parse_csep_func(region)() if region else None
+        self.model_config = model_conf
+        self.test_config = test_conf
         self.postproc_config = postproc_config if postproc_config else {}
         self.default_test_kwargs = default_test_kwargs
         self.models = []
@@ -274,10 +277,17 @@ class Experiment:
         self.run_results = {}
         self.set_magnitude_range(mag_min, mag_max, mag_bin)
         self.set_depth_range(depth_min, depth_max)
-        self.region = parse_csep_func(region)() if region else None
         self.__dict__.update(kwargs)
 
-    def get_run_struct(self, run_name=None):
+        self.run_folder: str = ''
+        self.target_paths: dict = {}
+        self.exists: dict = {}
+
+    @property
+    def paths(self):
+        return self.paths
+
+    def prepare_paths(self, results_path=None, run_name=None):
         """
         Creates the run directory, and reads the file structure inside
 
@@ -287,21 +297,23 @@ class Experiment:
                  target_paths: flag to each element of the gefe (catalog and evaluation results)
         """
 
+        # todo:  extrapolate to multiple test_dates
         if self.test_date is None:
-            raise RuntimeError("Test date must be set before running gefe.")
+            raise RuntimeError("Test date must be set before running experiment.")
 
         # grab names for creating directories
         tests = [i.name for i in self.tests]
         models = [i.name for i in self.models]
 
         # use the test date by default
+        # todo create datetime parser for filenames
         if run_name is None:
             run_name = self.test_date.isoformat().replace('-', '').replace(':', '')
 
         # determine required directory structure for run
-        parent_dir = '.'
-        results_dir = 'results'
-        run_folder = os.path.join(parent_dir, results_dir, run_name)
+        run_folder = os.path.join(os.getcwd(), results_path or 'results', run_name)
+
+        # results > test_date > cats / evals / figures
         folders = ['catalog', 'evaluations', 'figures']
         folder_paths = {folder: os.path.join(run_folder, folder) for folder in folders}
 
@@ -323,7 +335,10 @@ class Experiment:
         }
 
         target_paths = {
-            'models': {'figures': {model: os.path.join(folder_paths['figures'],
+            # todo Here goes the forecast paths
+            'models': {'forecasts': {model: os.path.join(model.path, model.filename)
+                                     for model in models},
+                       'figures': {model: os.path.join(folder_paths['figures'],
                                                        f'{model}') for model in models}},
             'catalog': os.path.join(folder_paths['catalog'], 'catalog.json'),
             'evaluations': {
@@ -336,12 +351,9 @@ class Experiment:
             'figures': {test: os.path.join(folder_paths['figures'], f'{test}') for test in tests}
         }
 
-        # store in gefe configuration
         self.run_folder = run_folder
         self.target_paths = target_paths
         self.exists = exists
-
-        return run_folder, exists, target_paths
 
     def get_model(self, name):
         for model in self.models:
@@ -366,7 +378,7 @@ class Experiment:
         """
 
         # todo checks:  Repeated model? Does model file exists?
-        with open(self.models_config, 'r') as config:
+        with open(self.model_config, 'r') as config:
             config_dict = yaml.load(config, NoAliasLoader)
             for element in config_dict:
                 # Check if the model has multiple submodels from its repository
@@ -389,7 +401,7 @@ class Experiment:
         :return:
         """
 
-        with open(self.tests_config, 'r') as config:
+        with open(self.test_config, 'r') as config:
             config_dict = yaml.load(config, NoAliasLoader)
             self.tests = [Test.from_dict(tdict) for tdict in config_dict]
 
@@ -397,7 +409,13 @@ class Experiment:
         self.catalog_reader = loader
 
     def set_test_date(self, date):
-        self.test_date = date
+        if date:
+            try:
+                self.test_date = datetime.strptime(date, '%Y-%m-%dT%H:%M:%S')
+            except:
+                raise RuntimeError("Error parsing test date string. Should have format='%Y-%m-%dT%H:%M:%S")
+        else:
+            self.test_date = self.end_date
 
     def set_magnitude_range(self, mw_min, mw_max, mw_inc):
         self.magnitude_range = cleaner_range(mw_min, mw_max, mw_inc)
@@ -422,24 +440,24 @@ class Experiment:
             catalog = CSEPCatalog.load_json(self.target_paths['catalog'])
             self.set_catalog(catalog)
         else:
-            print("Downloading catalog from ISC gCMT service...")
+            print("Downloading catalog")
             min_mag = self.magnitude_range.min()
             max_depth = self.depth_range.max()
             if self.region is not None:
-                bounds = {i: j for i,j in zip(['min_longitude', 'max_longitude',
-                                               'min_latitude', 'max_latitude'],
-                                                self.region.get_bbox())}
+                bounds = {i: j for i, j in zip(['min_longitude', 'max_longitude',
+                                                'min_latitude', 'max_latitude'],
+                                               self.region.get_bbox())}
             else:
                 bounds = {}
             catalog = self.catalog_reader(
-                                          catalog_id=self.test_date,
-                                          start_time=self.start_date,
-                                          end_time=self.test_date,
-                                          min_magnitude=min_mag,
-                                          max_depth=max_depth,
-                                          verbose=True,
-                                          **bounds
-                                         )
+                catalog_id=self.test_date,
+                start_time=self.start_date,
+                end_time=self.test_date,
+                min_magnitude=min_mag,
+                max_depth=max_depth,
+                verbose=True,
+                **bounds
+            )
 
             self.set_catalog(catalog)
         if not os.path.exists(self.target_paths['catalog']):
@@ -477,15 +495,15 @@ class Experiment:
                     continue
                 # prepare args so test is callable
                 t = Test(
-                    name = test.name,
-                    func = test.func,
-                    func_args = self._prepare_test_func_args(test, model),
-                    func_kwargs = test.func_kwargs,
-                    plot_func = test.plot_func,
-                    plot_args = test.plot_args,
-                    model = model,
-                    path = self.target_paths['evaluations'][test.name][model.name],
-                    ref_model = test.ref_model
+                    name=test.name,
+                    func=test.func,
+                    func_args=self._prepare_test_func_args(test, model),
+                    func_kwargs=test.func_kwargs,
+                    plot_func=test.plot_func,
+                    plot_args=test.plot_args,
+                    model=model,
+                    path=self.target_paths['evaluations'][test.name][model.name],
+                    ref_model=test.ref_model
                 )
                 test_list.append(t)
                 print("Prepared...\n", t)
@@ -509,7 +527,7 @@ class Experiment:
 
     def read_evaluation_result(self, test, models, target_paths):
         test_results = []
-        if 'T' in test.name:    #todo cleaner
+        if 'T' in test.name:  # todo cleaner
             models = [i for i in models if i.name != test.ref_model]
 
         for model_i in models:
@@ -536,7 +554,7 @@ class Experiment:
             if show:
                 pyplot.show()
 
-        #todo create different method for forecast plotting
+        # todo create different method for forecast plotting
         plot_fc_config = self.postproc_config.get('plot_forecasts')
         if plot_fc_config:
             try:
@@ -564,7 +582,7 @@ class Experiment:
                 fig_path = self.target_paths['models']['figures'][model.name]
                 start = decimal_year(self.start_date)
                 end = decimal_year(self.test_date)
-                time = f'{round(end-start,3)} years'
+                time = f'{round(end - start, 3)} years'
                 plot_args = {'region_border': False,
                              'cmap': 'magma',
                              'clabel': r'$\log_{10} N\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per '
@@ -580,8 +598,8 @@ class Experiment:
                 if self.region:
                     bbox = self.region.get_bbox()
                     dh = self.region.dh
-                    extent = [bbox[0] - 3*dh , bbox[1] + 3*dh,
-                              bbox[2] - 3*dh, bbox[3] + 3*dh]
+                    extent = [bbox[0] - 3 * dh, bbox[1] + 3 * dh,
+                              bbox[2] - 3 * dh, bbox[3] + 3 * dh]
                 else:
                     extent = None
                 if cat:
@@ -615,7 +633,7 @@ class Experiment:
             # relative to top-level directory
             if self.region:
                 self.catalog.filter_spatial(self.region, in_place=True)
-            ax =self.catalog.plot(plot_args={
+            ax = self.catalog.plot(plot_args={
                 'figsize': (12, 8),
                 'markersize': 8,
                 'markercolor': 'black',
@@ -631,18 +649,18 @@ class Experiment:
                 level=2,
                 caption="The authoritative evaluation data is the full Global CMT catalog (Ekström et al. 2012). "
                         "We confine the hypocentral depths of earthquakes in training and testing datasets to a "
-                       f"maximum of 70km. The plot shows the catalog for the testing period which ranges from "
-                       f"{self.start_date} until {self.test_date}. "
-                       f"Earthquakes are filtered above Mw {self.magnitude_range.min()}. "
+                        f"maximum of 70km. The plot shows the catalog for the testing period which ranges from "
+                        f"{self.start_date} until {self.test_date}. "
+                        f"Earthquakes are filtered above Mw {self.magnitude_range.min()}. "
                         "Black circles depict individual earthquakes with its radius proportional to the magnitude.",
-                add_ext = True
+                add_ext=True
             )
         report.add_heading(
             "Results",
             level=2,
             text="We apply the following tests to each of the forecasts considered in this gefe. "
                  "More information regarding the tests can be found [here](https://docs.cseptesting.org/getting_started/theory.html)."
-            )
+        )
         test_names = [test.name for test in self.tests]
         report.add_list(test_names)
 
@@ -703,4 +721,3 @@ class Experiment:
         with open(config_yml, 'r') as yml:
             config_dict = yaml.safe_load(yml)
         return cls(**config_dict)
-

@@ -5,7 +5,7 @@
     db_type: hdf5
     flavours:
       N10L11: TEAM=N10L11.csv
-      SN10L11: TEAM=SN10L11.csv
+#      SN10L11: TEAM=SN10L11.csv
 - WHEEL:
     zenodo_id: 6255575
     path: models/wheel
@@ -13,4 +13,4 @@
     format: quadtree
     flavours:
       N10L11: WHEEL=N10L11.csv
-      SN100L11: WHEEL=SN100L11.csv
+#      SN100L11: WHEEL=SN100L11.csv
