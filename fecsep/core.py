@@ -291,16 +291,8 @@ class Experiment:
         """
 
         self.name = name
-        self.time_config, self.time_windows = read_time_config(time_config,
-                                                               **kwargs)
-        for attr, val in time_config.items():
-            setattr(self, attr, val)
-
-        self.region_config = read_region_config(region_config,
-                                                **kwargs)
-        for attr, val in self.region_config.items():
-            setattr(self, attr, val)
-
+        self.time_config = read_time_config(time_config, **kwargs)
+        self.region_config = read_region_config(region_config, **kwargs)
         self.catalog_reader = parse_csep_func(catalog_reader)
 
         self.model_config = model_config
@@ -317,6 +309,15 @@ class Experiment:
         self.run_folder: str = ''
         self.target_paths: dict = {}
         self.exists: dict = {}
+
+    def __getattr__(self, item):
+        try:
+            return self.__dict__[item]
+        except KeyError:
+            try:
+                return self.time_config[item]
+            except KeyError:
+                return self.region_config[item]
 
     @property
     def paths(self):

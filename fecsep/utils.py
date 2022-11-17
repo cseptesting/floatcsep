@@ -1,5 +1,6 @@
 # python libraries
 import numpy
+import re
 import multiprocessing as mp
 import os
 import mercantile
@@ -27,7 +28,6 @@ from csep.utils.calc import cleaner_range
 
 import fecsep.accessors
 import fecsep.evaluations
-import re
 
 _UNITS = ['years', 'months', 'weeks', 'days']
 _PD_FORMAT = ['YS', 'MS', 'W', 'D']
@@ -36,15 +36,19 @@ _PD_FORMAT = ['YS', 'MS', 'W', 'D']
 def parse_csep_func(func):
     """
     Searchs in pyCSEP and feCSEP a function or method whose name matches the
-     provided string.
+    provided string.
+
     Args:
-        func (str, obj) : representing the name of the pycsep or
-         fecsep function or method
+        func (str, obj) : representing the name of the pycsep/fecsep function
+        or method
 
     Returns:
         The callable function/method object. If it was already callable,
         returns the same input
     """
+
+    def __getattr__(self, item):
+        return self[item]
 
     def rgetattr(obj, attr, *args):
         def _getattr(obj, attr):
@@ -141,9 +145,11 @@ def read_time_config(time_config, **kwargs):
         time_config['offset'] = parse_timedelta_string(time_config['offset'])
 
     if experiment_class == 'ti':
-        return time_config, time_windows_ti(**time_config)
+        time_config['time_windows'] = time_windows_ti(**time_config)
+        return time_config
     elif experiment_class == 'td':
-        return time_config, time_windows_td(**time_config)
+        time_config['time_windows'] = time_windows_td(**time_config)
+        return time_config
 
 
 def read_region_config(region_config, **kwargs):
