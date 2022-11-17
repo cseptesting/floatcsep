@@ -1,7 +1,7 @@
 import copy
 import os
 import json
-
+from pprint import pprint
 import cartopy.crs as ccrs
 import six
 from collections.abc import Iterable
@@ -21,7 +21,8 @@ import fecsep
 import fecsep.utils
 import fecsep.accessors
 import fecsep.evaluations
-from fecsep.utils import MarkdownReport, NoAliasLoader, _set_dockerfile, parse_csep_func
+from fecsep.utils import MarkdownReport, NoAliasLoader, _set_dockerfile, \
+    parse_csep_func, read_time_config, read_region_config
 from fecsep.accessors import from_zenodo, from_git
 import docker
 import docker.errors
@@ -30,7 +31,8 @@ client = docker.from_env()
 
 
 class Model:
-    def __init__(self, name, path, filename=None, format='quadtree', db_type=None, forecast_unit=1,
+    def __init__(self, name, path, filename=None, format='quadtree',
+                 db_type=None, forecast_unit=1,
                  authors=None, doi=None, markdown=None,
                  func=None, func_args=None,
                  zenodo_id=None, giturl=None, repo_hash=None):
@@ -89,7 +91,8 @@ class Model:
 
     def get_source(self, force=False):
 
-        if not os.path.isfile(os.path.join(self.path, self.filename if self.filename else '')):
+        if not os.path.isfile(os.path.join(self.path,
+                                           self.filename if self.filename else '')):
             force = True
         if force and (self.zenodo_id or self.giturl):
             try:
@@ -132,9 +135,14 @@ class Model:
                 fecsep_bind = f'/usr/src/fecsep'
                 cmd = f'python {fecsep_bind}/dbparser.py --format {self.format} --filename {self.filename}'
                 a = client.containers.run(self.image, remove=True,
-                                          volumes={os.path.abspath(self.path): {'bind': self.bind, 'mode': 'rw'},
-                                                   os.path.abspath(fecsep.__path__[0]): {'bind': fecsep_bind,
-                                                                                         'mode': 'ro'}},
+                                          volumes={
+                                              os.path.abspath(self.path): {
+                                                  'bind': self.bind,
+                                                  'mode': 'rw'},
+                                              os.path.abspath(
+                                                  fecsep.__path__[0]): {
+                                                  'bind': fecsep_bind,
+                                                  'mode': 'ro'}},
                                           command=cmd)
                 self.filename = fn_h5
 
@@ -157,13 +165,15 @@ class Model:
                         :]  # todo check memory efficiency. Is it better to leave db open for multiple time intervals?
                 magnitudes = db['magnitudes'][:]
                 if self.format == 'quadtree':
-                    region = QuadtreeGrid2D.from_quadkeys(db['quadkeys'][:].astype(str), magnitudes=magnitudes)
+                    region = QuadtreeGrid2D.from_quadkeys(
+                        db['quadkeys'][:].astype(str), magnitudes=magnitudes)
                     region.get_cell_area()
                 elif self.format in ['dat', 'csep', 'xml']:
                     dh = db['dh'][:]
                     bboxes = db['bboxes'][:]
                     poly_mask = db['poly_mask'][:]
-                    region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
+                    region = CartesianGrid2D(
+                        [Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
         forecast = GriddedForecast(
             name=name,
             data=rates,
@@ -173,7 +183,8 @@ class Model:
             end_time=test_date
         )
         forecast = forecast.scale(time_horizon / self.forecast_unit)
-        print(f"Expected forecast count after scaling: {forecast.event_count} with parameter {time_horizon}.")
+        print(
+            f"Expected forecast count after scaling: {forecast.event_count} with parameter {time_horizon}.")
         self.forecasts[test_date] = forecast
         return forecast
 
@@ -199,8 +210,10 @@ class Test:
 
     """
 
-    def __init__(self, name, func, markdown='', func_args=None, func_kwargs=None, plot_func=None,
-                 plot_args=None, plot_kwargs=None, model=None, ref_model=None, path=None):
+    def __init__(self, name, func, markdown='', func_args=None,
+                 func_kwargs=None, plot_func=None,
+                 plot_args=None, plot_kwargs=None, model=None, ref_model=None,
+                 path=None):
         """
 
         :param name:
@@ -254,30 +267,52 @@ class Test:
 
 class Experiment:
 
-    def __init__(self, start_date, end_date, test_date=None,
+    def __init__(self,
                  name=None,
-                 catalog_reader=None, region=None,
-                 mag_min=None, mag_max=None, mag_bin=None,
-                 depth_min=None, depth_max=None,
-                 model_conf=None, test_conf=None, postproc_config=None,
-                 default_test_kwargs=None, **kwargs):
+                 time_config=None,
+                 region_config=None,
+                 catalog_reader=None,
+                 model_config=None,
+                 eval_config=None,
+                 postproc_config=None,
+                 default_test_kwargs=None,
+                 **kwargs):
+        """
+
+        Args:
+            name:
+            time_config:
+            region_config:
+            model_config:
+            eval_config:
+            postproc_config:
+            default_test_kwargs:
+            **kwargs:
+        """
 
         self.name = name
-        self.start_date = start_date
-        self.end_date = end_date
-        self.test_date = test_date
+        self.time_config, self.time_windows = read_time_config(time_config,
+                                                               **kwargs)
+        for attr, val in time_config.items():
+            setattr(self, attr, val)
+
+        self.region_config = read_region_config(region_config,
+                                                **kwargs)
+        for attr, val in self.region_config.items():
+            setattr(self, attr, val)
+
         self.catalog_reader = parse_csep_func(catalog_reader)
-        self.region = parse_csep_func(region)() if region else None
-        self.model_config = model_conf
-        self.test_config = test_conf
+
+        self.model_config = model_config
+        self.test_config = eval_config
         self.postproc_config = postproc_config if postproc_config else {}
         self.default_test_kwargs = default_test_kwargs
+
         self.models = []
         self.tests = []
         self.run_results = {}
-        self.set_magnitude_range(mag_min, mag_max, mag_bin)
-        self.set_depth_range(depth_min, depth_max)
-        self.__dict__.update(kwargs)
+
+        self.__dict__.update(**kwargs)
 
         self.run_folder: str = ''
         self.target_paths: dict = {}
@@ -299,7 +334,8 @@ class Experiment:
 
         # todo:  extrapolate to multiple test_dates
         if self.test_date is None:
-            raise RuntimeError("Test date must be set before running experiment.")
+            raise RuntimeError(
+                "Test date must be set before running experiment.")
 
         # grab names for creating directories
         tests = [i.name for i in self.tests]
@@ -308,26 +344,31 @@ class Experiment:
         # use the test date by default
         # todo create datetime parser for filenames
         if run_name is None:
-            run_name = self.test_date.isoformat().replace('-', '').replace(':', '')
+            run_name = self.test_date.isoformat().replace('-', '').replace(':',
+                                                                           '')
 
         # determine required directory structure for run
-        run_folder = os.path.join(os.getcwd(), results_path or 'results', run_name)
+        run_folder = os.path.join(os.getcwd(), results_path or 'results',
+                                  run_name)
 
         # results > test_date > cats / evals / figures
         folders = ['catalog', 'evaluations', 'figures']
-        folder_paths = {folder: os.path.join(run_folder, folder) for folder in folders}
+        folder_paths = {folder: os.path.join(run_folder, folder) for folder in
+                        folders}
 
         # create directories if they don't exist
         for key, val in folder_paths.items():
             os.makedirs(val, exist_ok=True)
 
-        files = {name: list(os.listdir(path)) for name, path in folder_paths.items()}
+        files = {name: list(os.listdir(path)) for name, path in
+                 folder_paths.items()}
         exists = {
             'models': False,  # Modify for time-dependent
             'catalog': any(file for file in files['catalog']),
             'evaluations': {
                 test: {
-                    model: any(f'{test}_{model}.json' in file for file in files['evaluations'])
+                    model: any(f'{test}_{model}.json' in file for file in
+                               files['evaluations'])
                     for model in models
                 }
                 for test in tests
@@ -335,20 +376,23 @@ class Experiment:
         }
 
         target_paths = {
-            # todo Here goes the forecast paths
-            'models': {'forecasts': {model: os.path.join(model.path, model.filename)
-                                     for model in models},
-                       'figures': {model: os.path.join(folder_paths['figures'],
-                                                       f'{model}') for model in models}},
+            'models': {
+                'forecasts': {model: os.path.join(model.path, model.filename)
+                              for model in models},
+                'figures': {model: os.path.join(folder_paths['figures'],
+                                                f'{model}') for model in
+                            models}},
             'catalog': os.path.join(folder_paths['catalog'], 'catalog.json'),
             'evaluations': {
                 test: {
-                    model: os.path.join(folder_paths['evaluations'], f'{test}_{model}.json')
+                    model: os.path.join(folder_paths['evaluations'],
+                                        f'{test}_{model}.json')
                     for model in models
                 }
                 for test in tests
             },
-            'figures': {test: os.path.join(folder_paths['figures'], f'{test}') for test in tests}
+            'figures': {test: os.path.join(folder_paths['figures'], f'{test}')
+                        for test in tests}
         }
 
         self.run_folder = run_folder
@@ -366,7 +410,8 @@ class Experiment:
             forecast = model.forecasts[self.test_date]
         except KeyError:
             # this call binds to model class
-            forecast = model.create_forecast(self.start_date, self.end_date, name=model.name)
+            forecast = model.create_forecast(self.start_date, self.end_date,
+                                             name=model.name)
         return forecast
 
     def set_models(self):
@@ -383,7 +428,8 @@ class Experiment:
             for element in config_dict:
                 # Check if the model has multiple submodels from its repository
                 if any('flavours' in i for i in element.values()):
-                    for flav, flav_path in list(element.values())[0]['flavours'].items():
+                    for flav, flav_path in list(element.values())[0][
+                        'flavours'].items():
                         name_root = next(iter(element))
                         name_flav = f'{name_root}_{flav}'
                         model_ = {name_flav: {**element[name_root],
@@ -392,6 +438,7 @@ class Experiment:
                         self.models.append(Model.from_dict(model_))
                 else:
                     self.models.append(Model.from_dict(element))
+        print(self.models[0].__dict__)
 
     def set_tests(self):
         """
@@ -413,15 +460,16 @@ class Experiment:
             try:
                 self.test_date = datetime.strptime(date, '%Y-%m-%dT%H:%M:%S')
             except:
-                raise RuntimeError("Error parsing test date string. Should have format='%Y-%m-%dT%H:%M:%S")
+                raise RuntimeError(
+                    "Error parsing test date string. Should have format='%Y-%m-%dT%H:%M:%S")
         else:
             self.test_date = self.end_date
 
-    def set_magnitude_range(self, mw_min, mw_max, mw_inc):
-        self.magnitude_range = cleaner_range(mw_min, mw_max, mw_inc)
+        # def set_magnitude_range(self, mw_min, mw_max, mw_inc):
+        # self.magnitude_range = cleaner_range(mw_min, mw_max, mw_inc)
 
-    def set_depth_range(self, min_depth, max_depth):
-        self.depth_range = cleaner_range(min_depth, max_depth, max_depth - min_depth)
+    # def set_depth_range(self, min_depth, max_depth):
+    # self.depth_range =
 
     def get_catalog(self):
         """ Returns filtered catalog either from a previous run or for a new run downloads from ISC gCMT catalogue.
@@ -436,7 +484,8 @@ class Experiment:
         if hasattr(self, 'catalog'):
             catalog = self.catalog
         elif os.path.exists(self.target_paths['catalog']):
-            print(f"Catalog found at {self.target_paths['catalog']}. Using existing filtered catalog...")
+            print(
+                f"Catalog found at {self.target_paths['catalog']}. Using existing filtered catalog...")
             catalog = CSEPCatalog.load_json(self.target_paths['catalog'])
             self.set_catalog(catalog)
         else:
@@ -444,9 +493,10 @@ class Experiment:
             min_mag = self.magnitude_range.min()
             max_depth = self.depth_range.max()
             if self.region is not None:
-                bounds = {i: j for i, j in zip(['min_longitude', 'max_longitude',
-                                                'min_latitude', 'max_latitude'],
-                                               self.region.get_bbox())}
+                bounds = {i: j for i, j in
+                          zip(['min_longitude', 'max_longitude',
+                               'min_latitude', 'max_latitude'],
+                              self.region.get_bbox())}
             else:
                 bounds = {}
             catalog = self.catalog_reader(
@@ -502,7 +552,8 @@ class Experiment:
                     plot_func=test.plot_func,
                     plot_args=test.plot_args,
                     model=model,
-                    path=self.target_paths['evaluations'][test.name][model.name],
+                    path=self.target_paths['evaluations'][test.name][
+                        model.name],
                     ref_model=test.ref_model
                 )
                 test_list.append(t)
@@ -519,7 +570,8 @@ class Experiment:
             ref_model = self.get_model(test.ref_model)
             test_args = (forecast, self.get_forecast(ref_model), catalog)
         elif test.func == fecsep.evaluations.vector_poisson_t_w_test:
-            forecast_batch = [self.get_forecast(model_i) for model_i in self.models]
+            forecast_batch = [self.get_forecast(model_i) for model_i in
+                              self.models]
             test_args = (forecast, forecast_batch, catalog)
         else:
             test_args = (forecast, catalog)
@@ -547,7 +599,8 @@ class Experiment:
             file_paths = self.target_paths
         for test in self.tests:
             test_result = run_results[test.name]
-            ax = test.plot_func(test_result, plot_args=test.plot_args, **test.plot_kwargs)
+            ax = test.plot_func(test_result, plot_args=test.plot_args,
+                                **test.plot_kwargs)
             if 'code' in test.plot_args:
                 exec(test.plot_args['code'])
             pyplot.savefig(file_paths['figures'][test.name], dpi=dpi)
@@ -565,14 +618,18 @@ class Experiment:
                 else:
                     proj_name = proj_
                     proj_args = {}
-                plot_fc_config['projection'] = getattr(ccrs, proj_name)(**proj_args)
+                plot_fc_config['projection'] = getattr(ccrs, proj_name)(
+                    **proj_args)
             except:
-                plot_fc_config['projection'] = ccrs.PlateCarree(central_longitude=0.0)
+                plot_fc_config['projection'] = ccrs.PlateCarree(
+                    central_longitude=0.0)
 
             cat = plot_fc_config.get('catalog')
             if cat:
-                cat_args = {'markersize': 7, 'markercolor': 'black', 'title': None,
-                            'legend': False, 'basemap': None, 'region_border': False}
+                cat_args = {'markersize': 7, 'markercolor': 'black',
+                            'title': None,
+                            'legend': False, 'basemap': None,
+                            'region_border': False}
                 if self.region:
                     self.catalog.filter_spatial(self.region, in_place=True)
                 if isinstance(cat, dict):
@@ -587,13 +644,15 @@ class Experiment:
                              'cmap': 'magma',
                              'clabel': r'$\log_{10} N\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per '
                                        r'$0.1^\circ\times 0.1^\circ $ per %s' %
-                                       (min(self.magnitude_range), max(self.magnitude_range), time)}
+                                       (min(self.magnitude_range),
+                                        max(self.magnitude_range), time)}
                 if not self.region:
                     set_global = True
                 else:
                     set_global = False
                 plot_args.update(plot_fc_config)
-                ax = model.forecasts[self.test_date].plot(set_global=set_global, plot_args=plot_args)
+                ax = model.forecasts[self.test_date].plot(
+                    set_global=set_global, plot_args=plot_args)
 
                 if self.region:
                     bbox = self.region.get_bbox()
@@ -603,7 +662,8 @@ class Experiment:
                 else:
                     extent = None
                 if cat:
-                    self.catalog.plot(ax=ax, set_global=set_global, extent=extent, plot_args=cat_args)
+                    self.catalog.plot(ax=ax, set_global=set_global,
+                                      extent=extent, plot_args=cat_args)
 
                 pyplot.savefig(fig_path, dpi=300, facecolor=(0, 0, 0, 0))
 
@@ -694,7 +754,8 @@ class Experiment:
 
         for k, v in self.__dict__.items():
             if k not in excluded:
-                if isinstance(v, Iterable) and not isinstance(v, six.string_types):
+                if isinstance(v, Iterable) and not isinstance(v,
+                                                              six.string_types):
                     out[k] = []
                     for item in v:
                         out[k].append(_get_value(item))

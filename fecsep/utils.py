@@ -8,6 +8,7 @@ from functools import partial
 import itertools
 import functools
 import yaml
+import pandas
 from matplotlib import pyplot
 from matplotlib.lines import Line2D
 import seaborn
@@ -20,13 +21,31 @@ from csep.core.regions import CartesianGrid2D, compute_vertices
 from csep.utils.plots import plot_spatial_dataset
 from csep.models import Polygon
 from csep.core.regions import QuadtreeGrid2D, geographical_area_from_bounds
+from csep.utils.calc import cleaner_range
 
 # feCSEP libraries
+
 import fecsep.accessors
 import fecsep.evaluations
+import re
+
+_UNITS = ['years', 'months', 'weeks', 'days']
+_PD_FORMAT = ['YS', 'MS', 'W', 'D']
 
 
 def parse_csep_func(func):
+    """
+    Searchs in pyCSEP and feCSEP a function or method whose name matches the
+     provided string.
+    Args:
+        func (str, obj) : representing the name of the pycsep or
+         fecsep function or method
+
+    Returns:
+        The callable function/method object. If it was already callable,
+        returns the same input
+    """
+
     def rgetattr(obj, attr, *args):
         def _getattr(obj, attr):
             return getattr(obj, attr, *args)
@@ -36,23 +55,280 @@ def parse_csep_func(func):
     if callable(func):
         return func
     else:
-        target_modules = [csep,
-                          csep.core,
-                          csep.utils,
-                          csep.utils.plots,
-                          csep.core.regions,
-                          fecsep.utils,
-                          fecsep.accessors,
-                          fecsep.evaluations]
-        for module in target_modules:
+        _target_modules = [csep,
+                           csep.utils,
+                           csep.utils.plots,
+                           csep.core.regions,
+                           fecsep.utils,
+                           fecsep.accessors,
+                           fecsep.evaluations]
+        for module in _target_modules:
             try:
                 return rgetattr(module, func)
             except AttributeError:
                 pass
-        raise AttributeError(f'Evaluation or Plot function {func} has not yet been implemented in fecsep or pycsep')
+        raise AttributeError(
+            f'Evaluation/Plot/Region function {func} has not yet been'
+            f' implemented in fecsep or pycsep')
 
 
-def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True, plot_args=None):
+def parse_timedelta_string(window, exp_class='ti'):
+    """
+    Parses a float or string representing the testing time window length
+
+    Note:
+        Time-independent experiments defaults to `year` as time unit whereas
+        time-dependent to `days`
+
+    Args:
+        window (str, int) : length of the time window
+        exp_class (str) : experiment class
+
+    Returns:
+        Formatted :py:class:`str` representing the length and
+        unit (year, month, week, day) of the time window
+
+    """
+
+    if isinstance(window, str):
+        try:
+            n, unit_ = [i for i in re.split(r'(\d+)', window) if i]
+            unit = [i for i in [j[:-1] for j in _UNITS] if i in unit_.lower()][
+                0]
+            return f'{n}-{unit}s'
+
+        except (ValueError, IndexError):
+            raise ValueError('Time window is misspecified. '
+                             'Try the amount followed by the time unit '
+                             '(e.g. 1 day, 1 months, 3 years)')
+    elif isinstance(window, float):
+        n = window
+        unit = 'year' if exp_class == 'ti' else 'day'
+        return f'{n}-{unit}s'
+
+
+def read_time_config(time_config, **kwargs):
+    """
+    Builds the temporal configuration of an experiment.
+
+    Args:
+        time_config (dict): Dictionary containing the explicit temporal
+         attributes of the experiment (see `_attrs` local variable)
+        **kwargs: Keywords related to _attrs are captured, in case they are
+        passed explictly to an :fecsep:class:`Experiment` object
+
+    Returns:
+        A dictionary containing the experiment time attributes and the time
+        windows to be evaluated
+
+    """
+    _attrs = ['start_date', 'end_date', 'intervals', 'horizon', 'offset',
+              'growth', 'exp_class']
+
+    if time_config is None:
+        time_config = {}
+
+    try:
+        experiment_class = time_config.get('exp_class', kwargs['exp_class'])
+    except KeyError:
+        experiment_class = 'ti'
+        time_config['exp_class'] = experiment_class
+
+    time_config.update({i: j for i, j in kwargs.items() if i in _attrs})
+    if 'horizon' in time_config.keys():
+        time_config['horizon'] = parse_timedelta_string(time_config['horizon'])
+    if 'offset' in time_config.keys():
+        time_config['offset'] = parse_timedelta_string(time_config['offset'])
+
+    if experiment_class == 'ti':
+        return time_config, time_windows_ti(**time_config)
+    elif experiment_class == 'td':
+        return time_config, time_windows_td(**time_config)
+
+
+def read_region_config(region_config, **kwargs):
+    """
+    Builds the region configuration of an experiment.
+
+    Args:
+        region_config (dict): Dictionary containing the explicit region
+         attributes of the experiment (see `_attrs` local variable)
+        **kwargs: Keywords related to _attrs are captured, in case they are
+        passed explictly to an :fecsep:class:`Experiment` object
+
+    Returns:
+        A dictionary containing the region attributes of the experiment
+
+    """
+    _attrs = ['region', 'mag_min', 'mag_max', 'mag_bin', 'magnitudes',
+              'depth_min', 'depth_max']
+
+    if region_config is None:
+        region_config = {}
+    region_config.update({i: j for i, j in kwargs.items() if i in _attrs})
+    dmin = region_config['depth_min']
+    dmax = region_config['depth_max']
+    depths = cleaner_range(dmin, dmax, dmax - dmin)
+
+    magnitudes = region_config.get('magnitudes', None)
+    if magnitudes is None:
+        magmin = region_config['mag_min']
+        magmax = region_config['mag_max']
+        magbin = region_config['mag_bin']
+        magnitudes = cleaner_range(magmin, magmax, magbin)
+
+    region_data = region_config.get('region', None)
+    try:
+        region = parse_csep_func(region_data)() if region_data else None
+    except AttributeError:
+        print('Region not implemented in pyCSEP or feCSEP.'
+              f' Reading from file {region_data}')
+        with open(region_data, 'r') as file_:
+            data = numpy.array([re.split(r'\s+|,', i.strip()) for i in
+                                file_.readlines()], dtype=float)
+            region = CartesianGrid2D.from_origins(data)
+
+    region_config.update({'depths': depths,
+                          'magnitudes': magnitudes,
+                          'region': region})
+
+    return region_config
+
+
+def time_windows_ti(start_date=None,
+                    end_date=None,
+                    intervals=None,
+                    horizon=None,
+                    growth='incremental',
+                    **_):
+    """
+    Creates the testing intervals for a time-independent experiment.
+
+    Notes:
+        The following arg combinations are possible:\n
+        (start_date, end_date)\n
+        (start_date, end_date, timeintervals)\n
+        (start_date, end_date, timehorizon)\n
+        (start_date, timeintervals, timehorizon)\n)
+
+    Args:
+        start_date (datetime.datetime): Start of the experiment
+        end_date  (datetime.datetime): End of the experiment
+        intervals (int): number of intervals to discretize the time span
+        horizon (str): time length of each interval
+        growth (str): incremental or cumulative time windows
+
+    Returns:
+        List of tuples containing the lower and upper boundaries of each
+        testing window, as :py:class:`datetime.datetime`.
+
+    """
+    frequency = None
+
+    if (intervals is None) and (horizon is None):
+        intervals = 1
+    elif horizon:
+        print(horizon)
+        n, unit = horizon.split('-')
+        frequency = f'{n}{_PD_FORMAT[_UNITS.index(unit)]}'
+
+    periods = intervals + 1 if intervals else intervals
+    try:
+        timelimits = pandas.date_range(start=start_date,
+                                       end=end_date,
+                                       periods=periods,
+                                       freq=frequency).to_pydatetime()
+    except ValueError as e_:
+        print(e_)
+        raise ValueError(
+            'The following experiment parameters combinations are possible:\n'
+            '   (start_date, end_date)\n'
+            '   (start_date, end_date, intervals)\n'
+            '   (start_date, end_date, timewindow)\n'
+            '   (start_date, intervals, timewindow)\n')
+
+    if growth == 'incremental':
+        return [(i, j) for i, j in zip(timelimits[:-1],
+                                       timelimits[1:])]
+
+    elif growth == 'cumulative':
+        return [(timelimits[0], i) for i in timelimits[1:]]
+
+
+def time_windows_td(start_date=None,
+                    end_date=None,
+                    timeintervals=None,
+                    timehorizon=None,
+                    timeoffset=None,
+                    **_):
+    """
+    Creates the testing intervals for a time-dependent experiment.
+
+    Notes:
+        The following arg combinations are possible:\n
+        (start_date, end_date, timeintervals)\n
+        (start_date, end_date, timehorizon)\n
+        (start_date, timeintervals, timehorizon)\n
+        (start_date,  end_date, timehorizon, timeoffset)\n
+        (start_date,  timeinvervals, timehorizon, timeoffset)\n
+
+    Args:
+        start_date (datetime.datetime): Start of the experiment
+        end_date  (datetime.datetime): End of the experiment
+        timeintervals (int): number of intervals to discretize the time span
+        timehorizon (str): time length of each time window
+        timeoffset (str): Offset between consecutive forecast.
+                          if None or timeoffset=timehorizon, windows are
+                          non-overlapping
+
+    Returns:
+        List of tuples containing the lower and upper boundaries of each
+        testing window, as :py:class:`datetime.datetime`.
+
+    """
+
+    frequency = None
+
+    if timehorizon:
+        n, unit = timehorizon.split('-')
+        frequency = f'{n}{_PD_FORMAT[_UNITS.index(unit)]}'
+
+    periods = timeintervals + 1 if timeintervals else timeintervals
+
+    try:
+        offset = timeoffset.split('-') if timeoffset else None
+        start_offset = start_date + pandas.DateOffset(
+            **{offset[1]: float(offset[0])}) if offset else start_date
+        end_offset = end_date - pandas.DateOffset(
+            **{offset[1]: float(offset[0])}) if offset else start_date
+
+        lower_limits = pandas.date_range(start=start_date,
+                                         end=end_offset,
+                                         periods=periods,
+                                         freq=frequency).to_pydatetime()[:-1]
+        upper_limits = pandas.date_range(start=start_offset,
+                                         end=end_date,
+                                         periods=periods,
+                                         freq=frequency).to_pydatetime()[:-1]
+    except ValueError as e_:
+        raise ValueError(
+            'The following experiment parameters combinations are possible:\n'
+            '   (start_date, end_date)\n'
+            '   (start_date, end_date, intervals)\n'
+            '   (start_date, end_date, timewindow)\n'
+            '   (start_date, intervals, timewindow)\n')
+
+    # if growth == 'incremental':
+    #     timewindows = [(i, j) for i, j in zip(timelimits[:-1],
+    #                                           timelimits[1:])]
+    # elif growth == 'cumulative':
+    #     timewindows = [(timelimits[0], i) for i in timelimits[1:]]
+
+    # return timewindows
+
+
+def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True,
+                                 plot_args=None):
     """ Produces matrix plot for comparative tests for all models
 
         Args:
@@ -64,9 +340,12 @@ def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True, plot_ar
     """
     names = [i.sim_name for i in evaluation_results]
 
-    T_value = numpy.array([Tw_i.observed_statistic for Tw_i in evaluation_results]).T
-    T_quantile = numpy.array([Tw_i.quantile[0] for Tw_i in evaluation_results]).T
-    W_quantile = numpy.array([Tw_i.quantile[1] for Tw_i in evaluation_results]).T
+    T_value = numpy.array(
+        [Tw_i.observed_statistic for Tw_i in evaluation_results]).T
+    T_quantile = numpy.array(
+        [Tw_i.quantile[0] for Tw_i in evaluation_results]).T
+    W_quantile = numpy.array(
+        [Tw_i.quantile[1] for Tw_i in evaluation_results]).T
     score = numpy.sum(T_value, axis=1) / T_value.shape[0]
 
     if order:
@@ -74,14 +353,16 @@ def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True, plot_ar
     else:
         arg_ind = numpy.arange(len(score))
 
-    data_t = T_value[arg_ind, :][:, arg_ind]  ## Flip rows/cols if ordered by value
+    data_t = T_value[arg_ind, :][:,
+             arg_ind]  ## Flip rows/cols if ordered by value
     data_w = W_quantile[arg_ind, :][:, arg_ind]
     data_tq = T_quantile[arg_ind, :][:, arg_ind]
     fig, ax = pyplot.subplots(1, 1, figsize=(7, 6))
 
     cmap = seaborn.diverging_palette(220, 20, as_cmap=True)
     seaborn.heatmap(data_t, vmin=-3, vmax=3, center=0, cmap=cmap,
-                    ax=ax, cbar_kws={'pad': 0.01, 'shrink': 0.7, 'label': 'Information Gain',
+                    ax=ax, cbar_kws={'pad': 0.01, 'shrink': 0.7,
+                                     'label': 'Information Gain',
                                      'anchor': (0., 0.)}),
     ax.set_yticklabels([names[i] for i in arg_ind], rotation='horizontal')
     ax.set_xticklabels([names[i] for i in arg_ind], rotation='vertical')
@@ -91,9 +372,12 @@ def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True, plot_ar
                 # ax.scatter(n + 0.5, m + 0.5, marker='o', s=75, facecolor='None', edgecolor='black')
                 ax.scatter(n + 0.5, m + 0.5, marker='o', s=5, color='black')
 
-    legend_elements = [Line2D([0], [0], marker='o', lw=0, label='$\mathcal{T}$ and $\mathcal{W}$ significant',
-                              markerfacecolor="black", markeredgecolor='black', markersize=4)]
-    fig.legend(handles=legend_elements, loc='lower right', bbox_to_anchor=(0.75, 0.0, 0.2, 0.2), handletextpad=0)
+    legend_elements = [Line2D([0], [0], marker='o', lw=0,
+                              label='$\mathcal{T}$ and $\mathcal{W}$ significant',
+                              markerfacecolor="black", markeredgecolor='black',
+                              markersize=4)]
+    fig.legend(handles=legend_elements, loc='lower right',
+               bbox_to_anchor=(0.75, 0.0, 0.2, 0.2), handletextpad=0)
     pyplot.tight_layout()
 
 
@@ -114,8 +398,10 @@ def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
     bounds_target = target_grid.bounds
     bounds = forecast_gridded.region.bounds
     data = forecast_gridded.data
-    data_mapped_bounds = _forecast_mapping_generic(bounds_target, bounds, data, ncpu=ncpu)
-    target_forecast = GriddedForecast(data=data_mapped_bounds, region=target_grid,
+    data_mapped_bounds = _forecast_mapping_generic(bounds_target, bounds, data,
+                                                   ncpu=ncpu)
+    target_forecast = GriddedForecast(data=data_mapped_bounds,
+                                      region=target_grid,
                                       magnitudes=forecast_gridded.magnitudes)
     return target_forecast
 
@@ -138,8 +424,10 @@ def plot_quadtree_forecast(qtree_forecast):
         ax = qtree_forecast.plot()
     else:
         print('Multi-resolution grid detected.')
-        print('Currently, we do not offer utility to plot a forecast with multi-resolution grid')
-        print('Therefore, forecast is being aggregated on a single-resolution grid (L8) for plotting')
+        print(
+            'Currently, we do not offer utility to plot a forecast with multi-resolution grid')
+        print(
+            'Therefore, forecast is being aggregated on a single-resolution grid (L8) for plotting')
 
         single_res_grid_L8 = QuadtreeGrid2D.from_single_resolution(8)
         forecast_L8 = forecast_mapping(qtree_forecast, single_res_grid_L8)
@@ -148,14 +436,17 @@ def plot_quadtree_forecast(qtree_forecast):
     return ax
 
 
-def europe_efehr20(dh_scale=1, magnitudes=None, name="europe_efehr20", use_midpoint=True):
+def europe_efehr20(dh_scale=1, magnitudes=None, name="europe_efehr20",
+                   use_midpoint=True):
     """
 
     """
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    filepath = os.path.join(root_dir, 'fecsep', 'artifacts', 'europe_efehr20.csv')
+    filepath = os.path.join(root_dir, 'fecsep', 'artifacts',
+                            'europe_efehr20.csv')
     midpoints = numpy.genfromtxt(filepath, delimiter=',')
-    europe_region = CartesianGrid2D.from_origins(midpoints, magnitudes=magnitudes)
+    europe_region = CartesianGrid2D.from_origins(midpoints,
+                                                 magnitudes=magnitudes)
 
     return europe_region
 
@@ -193,7 +484,8 @@ class MarkdownReport:
         """
         self.markdown.append('  '.join(text) + '\n\n')
 
-    def add_figure(self, title, relative_filepaths, level=2, ncols=3, add_ext=False, text='', caption=''):
+    def add_figure(self, title, relative_filepaths, level=2, ncols=3,
+                   add_ext=False, text='', caption=''):
         """
         this function expects a list of filepaths. if you want the output stacked, select a
         value of ncols. ncols should be divisible by filepaths. todo: modify formatted_paths to work when not divis.
@@ -220,7 +512,8 @@ class MarkdownReport:
             correct_paths = paths
 
         # generate new lists with size ncols
-        formatted_paths = [correct_paths[i:i + ncols] for i in range(0, len(paths), ncols)]
+        formatted_paths = [correct_paths[i:i + ncols] for i in
+                           range(0, len(paths), ncols)]
 
         # convert str into a proper list, where each potential row is an iter not str
         def build_header(row):
@@ -244,7 +537,8 @@ class MarkdownReport:
         level_string = f"{level * '#'}"
         result_cell = []
         locator = title.lower().replace(" ", "_")
-        result_cell.append(f'{level_string} {title}  <a name="{locator}"></a>\n')
+        result_cell.append(
+            f'{level_string} {title}  <a name="{locator}"></a>\n')
         result_cell.append(f'{text}\n')
 
         for i, row in enumerate(formatted_paths):
@@ -271,7 +565,8 @@ class MarkdownReport:
             for item in list(text):
                 cell.append(item)
         except:
-            raise RuntimeWarning("Unable to add document subhead, text must be iterable.")
+            raise RuntimeWarning(
+                "Unable to add document subhead, text must be iterable.")
         self.markdown.append('\n'.join(cell) + '\n')
 
         # generate metadata for TOC
@@ -401,7 +696,8 @@ def geographical_area_from_qk(quadk):
     Wrapper around function geographical_area_from_bounds
     """
     bounds = tile_bounds(quadk)
-    return geographical_area_from_bounds(bounds[0], bounds[1], bounds[2], bounds[3])
+    return geographical_area_from_bounds(bounds[0], bounds[1], bounds[2],
+                                         bounds[3])
 
 
 def tile_bounds(quad_cell_id):
@@ -427,7 +723,8 @@ def create_polygon(fg):
     """
     Required for parallel processing
     """
-    return shapely.geometry.Polygon([(fg[0], fg[1]), (fg[2], fg[1]), (fg[2], fg[3]), (fg[0], fg[3])])
+    return shapely.geometry.Polygon(
+        [(fg[0], fg[1]), (fg[2], fg[1]), (fg[2], fg[3]), (fg[0], fg[3])])
 
 
 def calc_cell_area(cell):
@@ -437,7 +734,8 @@ def calc_cell_area(cell):
     return geographical_area_from_bounds(cell[0], cell[1], cell[2], cell[3])
 
 
-def _map_overlapping_cells(fcst_grid_poly, fcst_cell_area, fcst_rate_poly, target_poly):  # ,
+def _map_overlapping_cells(fcst_grid_poly, fcst_cell_area, fcst_rate_poly,
+                           target_poly):  # ,
     """
     This functions work for Cells that do not directly conside with target polygon cells
     This function uses 3 variables, i.e. fcst_grid_poly, fcst_cell_area, fcst_rate_poly
@@ -460,9 +758,12 @@ def _map_overlapping_cells(fcst_grid_poly, fcst_cell_area, fcst_rate_poly, targe
         if target_poly.intersects(fcst_grid_poly[j]):  # overlaps
 
             intersect = target_poly.intersection(fcst_grid_poly[j])
-            shared_area = geographical_area_from_bounds(intersect.bounds[0], intersect.bounds[1], intersect.bounds[2],
+            shared_area = geographical_area_from_bounds(intersect.bounds[0],
+                                                        intersect.bounds[1],
+                                                        intersect.bounds[2],
                                                         intersect.bounds[3])
-            map_rate = map_rate + (fcst_rate_poly[j] * (shared_area / fcst_cell_area[j]))
+            map_rate = map_rate + (
+                    fcst_rate_poly[j] * (shared_area / fcst_cell_area[j]))
     return map_rate
 
 
@@ -478,8 +779,10 @@ def _map_exact_inside_cells(fcst_grid, fcst_rate, boundary):
         1 - sum of forecast_rates for cell that fall totally inside of boundary cell
         2 - Array of the corresponding cells that fall inside
     """
-    c = numpy.logical_and(numpy.logical_and(fcst_grid[:, 0] >= boundary[0], fcst_grid[:, 1] >= boundary[1]),
-                          numpy.logical_and(fcst_grid[:, 2] <= boundary[2], fcst_grid[:, 3] <= boundary[3]))
+    c = numpy.logical_and(numpy.logical_and(fcst_grid[:, 0] >= boundary[0],
+                                            fcst_grid[:, 1] >= boundary[1]),
+                          numpy.logical_and(fcst_grid[:, 2] <= boundary[2],
+                                            fcst_grid[:, 3] <= boundary[3]))
 
     exact_cells = numpy.where(c == True)
 
@@ -551,8 +854,10 @@ def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
 
     # print('--2nd Step: Start Polygon mapping--')
     pool = mp.Pool(ncpu)
-    func_overlapping = partial(_map_overlapping_cells, fcst_grid_poly, fcst_cell_area, fcst_rate_poly)
-    rate_tgt = pool.map(func_overlapping, [poly for poly in target_grid_poly])  # Uses above three Global Parameters
+    func_overlapping = partial(_map_overlapping_cells, fcst_grid_poly,
+                               fcst_cell_area, fcst_rate_poly)
+    rate_tgt = pool.map(func_overlapping, [poly for poly in
+                                           target_grid_poly])  # Uses above three Global Parameters
     pool.close()
 
     zero_pad_len = numpy.shape(fcst_rate)[1]
@@ -617,7 +922,9 @@ def _global_region(dh=0.1, name="global", magnitudes=None):
     lons = numpy.arange(-180.0, 180, dh)
     lats = numpy.arange(-90, 90, dh)
     coords = itertools.product(lons, lats)
-    region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh, name=name)
+    region = CartesianGrid2D(
+        [Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh,
+        name=name)
     if magnitudes is not None:
         region.magnitudes = magnitudes
     return region
@@ -634,7 +941,8 @@ def _check_zero_bins(exp, catalog, test_date):
         ax = catalog.plot(plot_args={'basemap': 'stock_img'})
         ax = forecast.plot(ax=ax, plot_args={'alpha': 0.8})
         ax.plot(catalog.get_longitudes()[zero_forecast.ravel()],
-                catalog.get_latitudes()[zero_forecast.ravel()], 'o', markersize=10)
+                catalog.get_latitudes()[zero_forecast.ravel()], 'o',
+                markersize=10)
         pyplot.savefig(f'{model.path}/{model.name}.png', dpi=300)
     for model in exp.models:
         forecast = model.create_forecast(exp.start_date, test_date)
@@ -642,7 +950,8 @@ def _check_zero_bins(exp, catalog, test_date):
         sbins = catalog.get_spatial_idx()
         mbins = catalog.get_mag_idx()
         zero_forecast = numpy.argwhere(forecast.data[sbins, mbins] == 0)
-        print('event', 'cell', sbins[zero_forecast], 'datum', catalog.data[zero_forecast])
+        print('event', 'cell', sbins[zero_forecast], 'datum',
+              catalog.data[zero_forecast])
         if zero_forecast:
             print(zero_forecast)
             print('cellfc', forecast.get_longitudes()[sbins[zero_forecast]],
@@ -653,5 +962,6 @@ def _check_zero_bins(exp, catalog, test_date):
         ax = catalog.plot(plot_args={'basemap': 'stock_img'})
         ax = forecast.plot(ax=ax, plot_args={'alpha': 0.8})
         ax.plot(catalog.get_longitudes()[zero_forecast.ravel()],
-                catalog.get_latitudes()[zero_forecast.ravel()], 'o', markersize=10)
+                catalog.get_latitudes()[zero_forecast.ravel()], 'o',
+                markersize=10)
         pyplot.savefig(f'{model.path}/{model.name}.png', dpi=300)
