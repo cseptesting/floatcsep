@@ -19,15 +19,18 @@ setup(
             'sphinx',
             'sphinx-gallery',
             'sphinx-rtd-theme',
+            'sphinx-autoapi',
             'pillow'
         ],
         'all': [
+            'seaborn',
             'pytest',
             'vcrpy',
             'pytest-cov',
             'sphinx',
             'sphinx-gallery',
             'sphinx-rtd-theme',
+            'sphinx-autoapi',
             'pillow'
         ]
     },

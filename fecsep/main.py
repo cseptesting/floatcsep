@@ -45,10 +45,14 @@ def fecsep():
 
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('func', type=str, choices=['run'], help='Run a calculation')
-    parser.add_argument('config', type=str, help='Experiment Configuration file')
-    parser.add_argument('-t', '--test_date', type=str, help='Date to test', default=None)
-    parser.add_argument('-s', '--use_saved', type=str, help='Use saved results', default=False)
+    parser.add_argument('func', type=str, choices=['run'],
+                        help='Run a calculation')
+    parser.add_argument('config', type=str,
+                        help='Experiment Configuration file')
+    parser.add_argument('-t', '--test_date', type=str, help='Date to test',
+                        default=None)
+    parser.add_argument('-s', '--use_saved', type=str,
+                        help='Use saved results', default=False)
 
     args = parser.parse_args()
     try:
@@ -60,7 +64,6 @@ def fecsep():
 
 
 if __name__ == '__main__':
-
     test_run = '../tests/data_tests/gefe_qtree/'
     os.chdir(test_run)
     run('config.yml')
