@@ -187,12 +187,13 @@ def read_region_config(region_config, **kwargs):
     try:
         region = parse_csep_func(region_data)() if region_data else None
     except AttributeError:
-        print('Region not implemented in pyCSEP or feCSEP.'
-              f' Reading from file {region_data}')
-        with open(region_data, 'r') as file_:
-            data = numpy.array([re.split(r'\s+|,', i.strip()) for i in
-                                file_.readlines()], dtype=float)
-            region = CartesianGrid2D.from_origins(data)
+        if isinstance(region_data, str):
+            with open(region_data, 'r') as file_:
+                data = numpy.array([re.split(r'\s+|,', i.strip()) for i in
+                                    file_.readlines()], dtype=float)
+                region = CartesianGrid2D.from_origins(data, name=region_data)
+        else:
+            region = CartesianGrid2D.from_dict(region_data)
 
     region_config.update({'depths': depths,
                           'magnitudes': magnitudes,

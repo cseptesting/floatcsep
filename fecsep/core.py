@@ -1,10 +1,9 @@
 import copy
 import os
 import json
-from pprint import pprint
+import numpy
 import cartopy.crs as ccrs
-import six
-from collections.abc import Iterable
+from collections.abc import Mapping, Sequence
 import h5py
 import yaml
 from matplotlib import pyplot
@@ -12,7 +11,6 @@ from datetime import datetime
 
 from csep import GriddedForecast
 from csep.models import EvaluationResult
-from csep.utils.calc import cleaner_range
 from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
 from csep.core.regions import QuadtreeGrid2D, CartesianGrid2D
@@ -318,6 +316,10 @@ class Experiment:
                 return self.time_config[item]
             except KeyError:
                 return self.region_config[item]
+
+    def __dir__(self):
+        return list(super().__dir__()) + list(self.time_config.keys()) + list(
+            self.region_config)
 
     @property
     def paths(self):
@@ -739,43 +741,67 @@ class Experiment:
         report.table_of_contents()
         report.save(self.run_folder)
 
-    def to_dict(self):
-        out = {}
-        excluded = ['run_results', 'magnitude_range', 'depth_range', 'region']
+    def to_dict(self, exclude=('magnitudes', 'depths'), extended=False):
+        """
+        Converts an Experiment instance into a dictionary.
+
+        Args:
+            exclude (tuple, list): Attributes, or attribute keys, to ignore
+            extended (bool): Verbose representation of pycsep objects
+            (e.g. region)
+
+        Returns:
+            A dictionary with serialized instance's attributes, which are
+            feCSEP readable
+        """
 
         def _get_value(x):
-            if hasattr(x, 'to_dict'):
+            # For each element type, transforms to desired string/output
+            if hasattr(x, 'to_dict') and extended:
+                # e.g. csep region, model, test, etc.
                 o = x.to_dict()
             else:
                 try:
-                    o = x.__name__
+                    try:
+                        o = getattr(x, '__name__')
+                    except AttributeError:
+                        o = getattr(x, 'name')
                 except AttributeError:
-                    o = x
+                    if isinstance(x, numpy.ndarray):
+                        o = x.tolist()
+                    elif isinstance(x, datetime):
+                        o = x.isoformat()
+                    else:
+                        o = x
             return o
 
-        for k, v in self.__dict__.items():
-            if k not in excluded:
-                if isinstance(v, Iterable) and not isinstance(v,
-                                                              six.string_types):
-                    out[k] = []
-                    for item in v:
-                        out[k].append(_get_value(item))
-                else:
-                    out[k] = _get_value(v)
-        return out
+        def iter_attr(val):
+            # recursive iter through nested dicts/lists
+            if isinstance(val, Mapping):
+                return {item: iter_attr(val_) for item, val_ in val.items()
+                        if item not in exclude}
+            elif isinstance(val, Sequence) and not isinstance(val, str):
+                return [iter_attr(i) for i in val]
+            else:
+                return _get_value(val)
 
-    def to_yaml(self):
+        return iter_attr(self.__dict__)
+
+    def to_yaml(self, filename, **kwargs):
+
         class NoAliasDumper(yaml.Dumper):
             def ignore_aliases(self, data):
                 return True
 
-        return yaml.dump(
-            self.to_dict(),
-            Dumper=NoAliasDumper,
-            sort_keys=False,
-            default_flow_style=False,
-            indent=1
-        )
+        with open(filename, 'w') as f_:
+            yaml.dump(
+                self.to_dict(**kwargs), f_,
+                Dumper=NoAliasDumper,
+                sort_keys=False,
+                default_flow_style=None,
+                indent=1,
+                width=70
+            )
 
     @classmethod
     def from_yaml(cls, config_yml):
