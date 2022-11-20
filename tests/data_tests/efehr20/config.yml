@@ -9,8 +9,8 @@ mag_bin: 0.2
 depth_min: -2
 depth_max: 30
 region: europe_efehr20
-models_config: models.yml
-tests_config: tests.yml
+model_config: models.yml
+eval_config: tests.yml
 default_test_kwargs:
   seed: 23
   num_simulations: 1000

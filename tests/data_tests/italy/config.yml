@@ -9,5 +9,5 @@ depth_min: 0
 depth_max: 30
 region: italy_csep_region
 model_config: models.yml
-test_config: tests.yml
+eval_config: tests.yml
 default_test_kwargs:
