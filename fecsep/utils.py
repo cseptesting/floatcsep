@@ -35,16 +35,19 @@ _PD_FORMAT = ['YS', 'MS', 'W', 'D']
 
 def parse_csep_func(func):
     """
+
     Searchs in pyCSEP and feCSEP a function or method whose name matches the
     provided string.
 
     Args:
         func (str, obj) : representing the name of the pycsep/fecsep function
-        or method
+            or method
 
     Returns:
+
         The callable function/method object. If it was already callable,
         returns the same input
+
     """
 
     def __getattr__(self, item):
@@ -78,17 +81,21 @@ def parse_csep_func(func):
 
 def parse_timedelta_string(window, exp_class='ti'):
     """
+
     Parses a float or string representing the testing time window length
 
     Note:
+
         Time-independent experiments defaults to `year` as time unit whereas
         time-dependent to `days`
 
     Args:
-        window (str, int) : length of the time window
-        exp_class (str) : experiment class
+
+        window (str, int): length of the time window
+        exp_class (str): experiment class
 
     Returns:
+
         Formatted :py:class:`str` representing the length and
         unit (year, month, week, day) of the time window
 
@@ -113,13 +120,15 @@ def parse_timedelta_string(window, exp_class='ti'):
 
 def read_time_config(time_config, **kwargs):
     """
+
     Builds the temporal configuration of an experiment.
 
     Args:
         time_config (dict): Dictionary containing the explicit temporal
-         attributes of the experiment (see `_attrs` local variable)
-        **kwargs: Keywords related to _attrs are captured, in case they are
-        passed explictly to an :fecsep:class:`Experiment` object
+            attributes of the experiment (see `_attrs` local variable)
+        **kwargs: Only the keywords contained in the local variable `_attrs`
+            are captured. This ensures to capture the keywords passed
+            to an :class:`~fecsep.core.Experiment` object
 
     Returns:
         A dictionary containing the experiment time attributes and the time
@@ -154,13 +163,15 @@ def read_time_config(time_config, **kwargs):
 
 def read_region_config(region_config, **kwargs):
     """
+
     Builds the region configuration of an experiment.
 
     Args:
         region_config (dict): Dictionary containing the explicit region
-         attributes of the experiment (see `_attrs` local variable)
-        **kwargs: Keywords related to _attrs are captured, in case they are
-        passed explictly to an :fecsep:class:`Experiment` object
+            attributes of the experiment (see `_attrs` local variable)
+        **kwargs: Only the keywords contained in the local variable `_attrs`
+            are captured. This ensures to capture the keywords passed
+            to an :class:`~fecsep.core.Experiment` object
 
     Returns:
         A dictionary containing the region attributes of the experiment
@@ -172,8 +183,8 @@ def read_region_config(region_config, **kwargs):
     if region_config is None:
         region_config = {}
     region_config.update({i: j for i, j in kwargs.items() if i in _attrs})
-    dmin = region_config['depth_min']
-    dmax = region_config['depth_max']
+    dmin = region_config.get('depth_min', -2)
+    dmax = region_config.get('depth_max', 6000)
     depths = cleaner_range(dmin, dmax, dmax - dmin)
 
     magnitudes = region_config.get('magnitudes', None)
@@ -185,7 +196,8 @@ def read_region_config(region_config, **kwargs):
 
     region_data = region_config.get('region', None)
     try:
-        region = parse_csep_func(region_data)() if region_data else None
+        region = parse_csep_func(region_data)(name=region_data) \
+            if region_data else None
     except AttributeError:
         if isinstance(region_data, str):
             with open(region_data, 'r') as file_:
@@ -209,14 +221,16 @@ def time_windows_ti(start_date=None,
                     growth='incremental',
                     **_):
     """
+
     Creates the testing intervals for a time-independent experiment.
 
-    Notes:
-        The following arg combinations are possible:\n
-        (start_date, end_date)\n
-        (start_date, end_date, timeintervals)\n
-        (start_date, end_date, timehorizon)\n
-        (start_date, timeintervals, timehorizon)\n)
+    Note:
+
+        The following argument combinations are possible:
+            - (start_date, end_date)
+            - (start_date, end_date, timeintervals)
+            - (start_date, end_date, timehorizon)
+            - (start_date, timeintervals, timehorizon)
 
     Args:
         start_date (datetime.datetime): Start of the experiment
@@ -226,6 +240,7 @@ def time_windows_ti(start_date=None,
         growth (str): incremental or cumulative time windows
 
     Returns:
+
         List of tuples containing the lower and upper boundaries of each
         testing window, as :py:class:`datetime.datetime`.
 
@@ -235,7 +250,6 @@ def time_windows_ti(start_date=None,
     if (intervals is None) and (horizon is None):
         intervals = 1
     elif horizon:
-        print(horizon)
         n, unit = horizon.split('-')
         frequency = f'{n}{_PD_FORMAT[_UNITS.index(unit)]}'
 
@@ -269,15 +283,16 @@ def time_windows_td(start_date=None,
                     timeoffset=None,
                     **_):
     """
+
     Creates the testing intervals for a time-dependent experiment.
 
-    Notes:
-        The following arg combinations are possible:\n
-        (start_date, end_date, timeintervals)\n
-        (start_date, end_date, timehorizon)\n
-        (start_date, timeintervals, timehorizon)\n
-        (start_date,  end_date, timehorizon, timeoffset)\n
-        (start_date,  timeinvervals, timehorizon, timeoffset)\n
+    Note:
+        The following arg combinations are possible:
+            - (start_date, end_date, timeintervals)
+            - (start_date, end_date, timehorizon)
+            - (start_date, timeintervals, timehorizon)
+            - (start_date,  end_date, timehorizon, timeoffset)
+            - (start_date,  timeinvervals, timehorizon, timeoffset)
 
     Args:
         start_date (datetime.datetime): Start of the experiment

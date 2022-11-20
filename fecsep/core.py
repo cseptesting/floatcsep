@@ -1,6 +1,7 @@
 import copy
-import os
 import json
+
+import git
 import numpy
 import cartopy.crs as ccrs
 from collections.abc import Mapping, Sequence
@@ -8,33 +9,36 @@ import h5py
 import yaml
 from matplotlib import pyplot
 from datetime import datetime
+import os
+import os.path
 
-from csep import GriddedForecast
 from csep.models import EvaluationResult
 from csep.core.catalogs import CSEPCatalog
+from csep.core.forecasts import GriddedForecast
 from csep.utils.time_utils import decimal_year
 from csep.core.regions import QuadtreeGrid2D, CartesianGrid2D
 from csep.models import Polygon
-import fecsep
+
 import fecsep.utils
 import fecsep.accessors
 import fecsep.evaluations
-from fecsep.utils import MarkdownReport, NoAliasLoader, _set_dockerfile, \
+from fecsep.utils import NoAliasLoader, _set_dockerfile, \
     parse_csep_func, read_time_config, read_region_config
 from fecsep.accessors import from_zenodo, from_git
 import docker
 import docker.errors
 
-client = docker.from_env()
+_client = docker.from_env()
 
 
 class Model:
-    def __init__(self, name, path, filename=None, format='quadtree',
+    def __init__(self, name, path, format='quadtree',
                  db_type=None, forecast_unit=1,
                  authors=None, doi=None, markdown=None,
                  func=None, func_args=None,
                  zenodo_id=None, giturl=None, repo_hash=None):
         """
+
         Model constructor
 
         :param name: Name of the model
@@ -46,24 +50,103 @@ class Model:
         :param kwargs:
         :return:
         """
+        '''
+        Model typologies:
+        
+            Updating
+            - Time-Independent
+            - Time-Dependent
+            Origin
+            - File
+            - Code
+            Source 
+            - Local
+            - Zenodo
+            - Git
+    
+        To implement in beta version
+            (ti - file - local)
+            (ti - file - zenodo)
+            (ti - file - git)
+            
+            (td - code - local)
+            (td - code - git)
+        '''
+
+        # todo list
+        #  - Check format
+        #  - Instantiate from source code
+
         self.name = name
         self.path = path
-        self.filename = filename
-        self.authors = authors
-        self.doi = doi
-        self.format = format
-        self.db_type = db_type if db_type else self.format
-        self.markdown = markdown
-        self.forecast_unit = forecast_unit  # Model is defined as rates per 1 year
-        self.forecasts = {}
+        self._dir = None
+
         self.zenodo_id = zenodo_id
         self.giturl = giturl
-        self.repo_hash = hash
+        self.repo_hash = repo_hash
+
+        self.get_source(zenodo_id, giturl)
+
+        self.format = format
+
+        self.authors = authors
+        self.doi = doi
+        self.db_type = db_type if db_type else self.format
+        self.markdown = markdown
+        self.forecast_unit = forecast_unit
+        self.forecasts = {}
+
         self.image = None
         self.bind = None
         self.func = func
         self.func_args = func_args
-        os.makedirs(path, exist_ok=True)
+
+    def get_source(self, zenodo_id=None, giturl=None, **kwargs):
+        """
+
+
+
+        Args:
+            zenodo_id:
+            giturl:
+            **kwargs:
+
+        Returns:
+
+        """
+
+        is_file = bool(os.path.splitext(self.path)[-1])
+        if is_file:
+            self._dir = os.path.dirname(self.path)
+        else:
+            self._dir = self.path
+
+        if not os.path.exists(self.path):
+            if zenodo_id is None and giturl is None:
+                raise FileNotFoundError(
+                    f"Model file or directory '{self.path}' not found")
+            # Model needs to be downloaded from zenodo/git
+
+        os.makedirs(self._dir, exist_ok=True)
+        try:
+            # Zenodo is the first source of retrieval
+            from_zenodo(zenodo_id, self._dir, **kwargs)
+        except KeyError or TypeError as zerror_:
+            try:
+                from_git(giturl, self._dir, **kwargs)
+            except (git.NoSuchPathError, git.CommandError) as giterror_:
+                if giturl is None:
+                    raise KeyError('Zenodo identifier is not valid')
+                else:
+                    raise git.NoSuchPathError('git url was not found')
+
+        # Check paths
+        if is_file:
+            path_exists = os.path.isfile(self.path)
+        else:
+            path_exists = os.path.isdir(self.path)
+
+        assert path_exists
 
     @staticmethod
     def build_docker(model_name, folder):
@@ -87,21 +170,6 @@ class Model:
 
         return img
 
-    def get_source(self, force=False):
-
-        if not os.path.isfile(os.path.join(self.path,
-                                           self.filename if self.filename else '')):
-            force = True
-        if force and (self.zenodo_id or self.giturl):
-            try:
-                print('Retrieving from Zenodo')
-                from_zenodo(self.zenodo_id, self.path)
-            except KeyError or TypeError:
-                print('Retrieving from git')
-                from_git(self.giturl, self.path)
-        else:
-            print('Retrieving from local')
-
     def stage_db(self, force=False):
         """
         Stage model deployment.
@@ -112,14 +180,13 @@ class Model:
         Returns:
 
         """
-
-        ## Creates one docker per repo
+        # Creates one docker per repo
         img_name = os.path.basename(self.path).lower()
         if force:
             self.image = self.build_docker(img_name, self.path)[0]
         else:
             try:
-                self.image = client.images.get(img_name)
+                self.image = _client.images.get(img_name)
             except docker.errors.ImageNotFound:
                 self.image = self.build_docker(img_name, self.path)[0]
         self.bind = self.image.attrs['Config']['WorkingDir']
@@ -132,16 +199,16 @@ class Model:
             else:
                 fecsep_bind = f'/usr/src/fecsep'
                 cmd = f'python {fecsep_bind}/dbparser.py --format {self.format} --filename {self.filename}'
-                a = client.containers.run(self.image, remove=True,
-                                          volumes={
-                                              os.path.abspath(self.path): {
-                                                  'bind': self.bind,
-                                                  'mode': 'rw'},
-                                              os.path.abspath(
-                                                  fecsep.__path__[0]): {
-                                                  'bind': fecsep_bind,
-                                                  'mode': 'ro'}},
-                                          command=cmd)
+                a = _client.containers.run(self.image, remove=True,
+                                           volumes={
+                                               os.path.abspath(self.path): {
+                                                   'bind': self.bind,
+                                                   'mode': 'rw'},
+                                               os.path.abspath(
+                                                   fecsep.__path__[0]): {
+                                                   'bind': fecsep_bind,
+                                                   'mode': 'ro'}},
+                                           command=cmd)
                 self.filename = fn_h5
 
     def create_forecast(self, start_date, test_date, name=None):
@@ -264,75 +331,215 @@ class Test:
 
 
 class Experiment:
+    """
+
+    Main class that handles an Experiment's context. Contains all the
+    specifications, instructions and methods to carry out an experiment.
+
+    Args:
+        name (str): Experiment name
+        path (str): Experiment working directory. All artifacts relative paths'
+                    are defined from here (e.g. model files, source code,
+                    catalog files, etc.)
+        time_config (dict): Contains all the temporal specifications.
+            It can contain the following keys:
+
+            - start_date (:class:`datetime.datetime`):
+              Experiment start date
+            - end_date (:class:`datetime.datetime`):
+              Experiment end date
+            - exp_class (:class:`str`):
+              `ti` (Time-Independent) or `td` (Time-Dependent)
+            - intervals (:class:`int`): Number of testing intervals/windows
+            - horizon (:class:`str`, :py:class:`float`): Time length of the
+              forecasts (e.g. 1, 10, `1 year`, `2 days`). `ti` defaults to
+              years, `td` to days.
+            - growth (:class:`str`): `incremental` or `cumulative`
+            - offset (:class:`float`): recurrence of forecast creation.
+
+            For further details, see :func:`~fecsep.utils.time_windows_ti` and
+            :func:`~fecsep.utils.time_windows_td`
+
+        region_config (dict): Contains all the spatial and magnitude
+            specifications. It must contain the following keys:
+
+            - region (:py:class:`str`,
+              :class:`csep.core.regions.CartesianGrid2D`): The geographical
+              region, specified as:
+              (i) the name of a :mod:`csep`/:mod:`fecsep` default region
+              function (e.g. :func:`~csep.core.regions.california_relm_region`)
+              (ii) the name of a user function or
+              (iii) the path to a lat/lon file
+            - mag_min (:class:`float`): Minimum magnitude of the experiment
+            - mag_max (:class:`float`): Maximum magnitude of the experiment
+            - mag_bin (:class:`float`): Magnitud bin size
+            - magnitudes (:class:`list`, :class:`numpy.ndarray`): Explicit
+              magnitude bins
+            - depth_min (:class:`float`): Minimum depth. Defaults to -2
+            - depth_max (:class:`float`): Maximum depth. Defaults to 6000
+
+        model_config (str): Path to the models' configuration file
+        test_config (str): Path to the evaluations' configuration file
+        default_test_kwargs (dict): Default values for the testing
+         (seed, number of simulations, etc.)
+        postproc_config (dict): Contains the instruction for postprocessing
+         (e.g. plot forecasts, catalogs)
+        **kwargs: see Note
+
+    Note:
+        Instead of using `time_config` and `region_config`, an Experiment can
+        be instantiated using these dicts as keywords. (e.g. ``Experiment(
+        **time_config, **region_config)``, ``Experiment(start_date=start_date,
+        intervals=1, region='csep-italy', ...)``
+    """
 
     def __init__(self,
                  name=None,
+                 path=None,
                  time_config=None,
                  region_config=None,
                  catalog_reader=None,
                  model_config=None,
-                 eval_config=None,
+                 test_config=None,
                  postproc_config=None,
                  default_test_kwargs=None,
                  **kwargs):
-        """
 
-        Args:
-            name:
-            time_config:
-            region_config:
-            model_config:
-            eval_config:
-            postproc_config:
-            default_test_kwargs:
-            **kwargs:
-        """
+        # todo
+        #  - instantiate from full experiment register (ignoring
+        #  test/models config), or self-awareness functions?
+        #  - instantiate as python objects (rethink models/tests config)
 
+        # Instantiate
         self.name = name
+        self.path = path if path else os.getcwd()
+
         self.time_config = read_time_config(time_config, **kwargs)
         self.region_config = read_region_config(region_config, **kwargs)
         self.catalog_reader = parse_csep_func(catalog_reader)
 
         self.model_config = model_config
-        self.test_config = eval_config
+        self.test_config = test_config
         self.postproc_config = postproc_config if postproc_config else {}
         self.default_test_kwargs = default_test_kwargs
 
+        # Initialize class attributes
         self.models = []
         self.tests = []
         self.run_results = {}
-
-        self.__dict__.update(**kwargs)
-
+        self.catalog = None
         self.run_folder: str = ''
         self.target_paths: dict = {}
         self.exists: dict = {}
 
+        # Update if attributes were passed explicitly
+        # todo check reinstantiation
+        # self.__dict__.update(**kwargs)
+
     def __getattr__(self, item):
+        # Gets time_config and region_config keys as Experiment's attribute
         try:
             return self.__dict__[item]
         except KeyError:
             try:
                 return self.time_config[item]
             except KeyError:
-                return self.region_config[item]
+                try:
+                    return self.region_config[item]
+                except KeyError:
+                    raise AttributeError(
+                        f"Experiment '{self.name}'"
+                        f" has no attribute '{item}'") from None
 
     def __dir__(self):
-        return list(super().__dir__()) + list(self.time_config.keys()) + list(
+        # Adds time and region configs keys to instance scope
+        _dir = list(super().__dir__()) + list(self.time_config.keys()) + list(
             self.region_config)
+        return sorted(_dir)
 
-    @property
-    def paths(self):
-        return self.paths
+    def _abspath(self, *paths):
+        # Gets the absolute path of a file, when it was defined relative to the
+        # experiment working dir.
+        # todo check redundancy when passing an actual absolute path (e.g.
+        #  when reinstantiating)
+        _path = os.path.normpath(
+            os.path.abspath(os.path.join(self.path, *paths)))
+        _dir = os.path.dirname(_path)
+        return _dir, _path
+
+    def set_models(self):
+        """
+
+        Parse the models' configuration file/dict. Instantiates all the models
+        as :class:`fecsep.core.Model` and store them into :attr:`self.models`.
+
+        """
+        # todo: handle when model cfg is a dict instead of a file.
+
+        _dir, modelcfg_path = self._abspath(self.model_config)
+
+        with open(modelcfg_path, 'r') as file_:
+            config_dict = yaml.load(file_, NoAliasLoader)
+
+        for element in config_dict:
+            # Check if the model is unique or has multiple submodels
+            if not any('flavours' in i for i in element.values()):
+
+                name_ = next(iter(element))
+                # updates path to absolute
+                model_abspath = self._abspath(_dir, element[name_]['path'])[1]
+                model_i = {name_: {**element[name_], 'path': model_abspath}}
+
+                self.models.append(Model.from_dict(model_i))
+            else:
+                model_flavours = list(element.values())[0]['flavours'].items()
+                for flav, flav_path in model_flavours:
+                    name_super = next(iter(element))
+                    # updates path to absolute
+                    path_super = element[name_super].get('path', '')
+                    path_sub = self._abspath(_dir, path_super, flav_path)[1]
+                    # updates name of submodel
+                    name_flav = f'{name_super}@{flav}'
+                    model_ = {name_flav: {**element[name_super],
+                                          'path': path_sub}}
+                    model_[name_flav].pop('flavours')
+                    self.models.append(Model.from_dict(model_))
+
+        # Checks if there is any repeated model.
+        names_ = [i.name for i in self.models]
+        if len(names_) != len(set(names_)):
+            reps = set(
+                [i for i in names_ if (sum([j == i for j in names_]) > 1)])
+            one = not bool(len(reps) - 1)
+            print(f'Warning: Model{"s" * (not one)} {reps}'
+                  f' {"is" * one + "are" * (not one)} repeated')
+
+    def set_tests(self):
+        """
+        Parse the tests' configuration file/dict. Instantiate them as
+        :class:`fecsep.core.Test` and store them into :attr:`self.tests`.
+
+        """
+
+        with open(self.test_config, 'r') as config:
+            config_dict = yaml.load(config, NoAliasLoader)
+        self.tests = [Test.from_dict(tdict) for tdict in config_dict]
 
     def prepare_paths(self, results_path=None, run_name=None):
         """
         Creates the run directory, and reads the file structure inside
 
-        :param args: Dictionary containing the Experiment object and the Run arguments
-        :return: run_folder: Path to the run
-                 exists: flag if forecasts, catalogs and test_results if they exist already
-                 target_paths: flag to each element of the gefe (catalog and evaluation results)
+
+        Args:
+            results_path:
+            run_name:
+
+        Returns:
+            run_folder: Path to the run
+            exists: flag if forecasts, catalogs and test_results if they exist
+             already
+            target_paths: flag to each element of the gefe
+                (catalog and evaluation results)
         """
 
         # todo:  extrapolate to multiple test_dates
@@ -417,78 +624,24 @@ class Experiment:
                                              name=model.name)
         return forecast
 
-    def set_models(self):
-        """
-        Loads a model and its configurations to the gefe
-
-        :param models: list of Model objects
-        :return:
-        """
-
-        # todo checks:  Repeated model? Does model file exists?
-        with open(self.model_config, 'r') as config:
-            config_dict = yaml.load(config, NoAliasLoader)
-            for element in config_dict:
-                # Check if the model has multiple submodels from its repository
-                if any('flavours' in i for i in element.values()):
-                    for flav, flav_path in list(element.values())[0][
-                        'flavours'].items():
-                        name_root = next(iter(element))
-                        name_flav = f'{name_root}_{flav}'
-                        model_ = {name_flav: {**element[name_root],
-                                              'filename': flav_path}}
-                        model_[name_flav].pop('flavours')
-                        self.models.append(Model.from_dict(model_))
-                else:
-                    self.models.append(Model.from_dict(element))
-        print(self.models[0].__dict__)
-
-    def set_tests(self):
-        """
-        Loads a test configuration file to the gefe
-
-        :param tests
-        :return:
-        """
-
-        with open(self.test_config, 'r') as config:
-            config_dict = yaml.load(config, NoAliasLoader)
-            self.tests = [Test.from_dict(tdict) for tdict in config_dict]
-
     def set_catalog_reader(self, loader):
         self.catalog_reader = loader
 
-    def set_test_date(self, date):
-        if date:
-            try:
-                self.test_date = datetime.strptime(date, '%Y-%m-%dT%H:%M:%S')
-            except:
-                raise RuntimeError(
-                    "Error parsing test date string. Should have format='%Y-%m-%dT%H:%M:%S")
-        else:
-            self.test_date = self.end_date
-
-        # def set_magnitude_range(self, mw_min, mw_max, mw_inc):
-        # self.magnitude_range = cleaner_range(mw_min, mw_max, mw_inc)
-
-    # def set_depth_range(self, min_depth, max_depth):
-    # self.depth_range =
-
     def get_catalog(self):
-        """ Returns filtered catalog either from a previous run or for a new run downloads from ISC gCMT catalogue.
+        """ Returns filtered catalog either from a previous run or for a new
+        run downloads from ISC gCMT catalogue.
 
-        This function is passively optimized for the global gefe. Meaning that no filtering needs to
-        occur aside from magnitudes.
+        This function is passively optimized for the global gefe. Meaning that
+         no filtering needs to occur aside from magnitudes.
 
-        :param region:
-        :param path:
         :return:
         """
         if hasattr(self, 'catalog'):
             catalog = self.catalog
         elif os.path.exists(self.target_paths['catalog']):
             print(
-                f"Catalog found at {self.target_paths['catalog']}. Using existing filtered catalog...")
+                f"Catalog found at {self.target_paths['catalog']}."
+                f" Using existing filtered catalog...")
             catalog = CSEPCatalog.load_json(self.target_paths['catalog'])
             self.set_catalog(catalog)
         else:
@@ -526,8 +679,10 @@ class Experiment:
             model.get_source(force)
             model.stage_db(force)
 
-    def run_test(self, test, write=True):
-        # requires that test be fully configured, probably by calling enumerate_tests() first
+    @staticmethod
+    def run_test(test, write=True):
+        # requires that test be fully configured, probably by calling
+        # enumerate_tests() first
         result = test.compute()
         if write:
             with open(test.path, 'w') as _file:
@@ -670,78 +825,8 @@ class Experiment:
 
                 pyplot.savefig(fig_path, dpi=300, facecolor=(0, 0, 0, 0))
 
-    def generate_report(self):
-        report = MarkdownReport()
-        report.add_title(
-            "Global Earthquake Forecasting Experiment -- Quadtree",
-            "The RISE (Real-time earthquake rIsk reduction for a reSilient Europe, "
-            "[http://www.rise-eu.org/](http://www.rise-eu.org/) research group in collaboration "
-            "with CSEP (Collaboratory for the Study of Earthquake Predictability, "
-            "[https://cseptesting.org/](https://cseptesting.org/) is conducting a global "
-            "earthquake forecast experiments using multi-resolution grids implemented as a quadtree."
-        )
-        report.add_heading("Objectives", level=2)
-        objs = [
-            "Describe the predictive skills of posited hypothesis about seismogenesis with earthquakes of "
-            "M5.95+ independent observations around the globe.",
-            "Identify the methods and geophysical datasets that lead to the highest information gains in "
-            "global earthquake forecasting.",
-            "Test earthquake forecast models on different grid settings.",
-            "Use Quadtree based grid to represent and evaluate earthquake forecasts."
-        ]
-        report.add_list(objs)
-        # Generate plot of the catalog
-        if self.catalog is not None:
-            figure_path = os.path.splitext(self.target_paths['catalog'])[0]
-            # relative to top-level directory
-            if self.region:
-                self.catalog.filter_spatial(self.region, in_place=True)
-            ax = self.catalog.plot(plot_args={
-                'figsize': (12, 8),
-                'markersize': 8,
-                'markercolor': 'black',
-                'grid_fontsize': 16,
-                'title': '',
-                'legend': False
-            })
-            ax.get_figure().tight_layout()
-            ax.get_figure().savefig(f"{figure_path}.png")
-            report.add_figure(
-                f"ISC gCMT Authoritative Catalog",
-                figure_path.replace(self.run_folder, '.'),
-                level=2,
-                caption="The authoritative evaluation data is the full Global CMT catalog (Ekström et al. 2012). "
-                        "We confine the hypocentral depths of earthquakes in training and testing datasets to a "
-                        f"maximum of 70km. The plot shows the catalog for the testing period which ranges from "
-                        f"{self.start_date} until {self.test_date}. "
-                        f"Earthquakes are filtered above Mw {self.magnitude_range.min()}. "
-                        "Black circles depict individual earthquakes with its radius proportional to the magnitude.",
-                add_ext=True
-            )
-        report.add_heading(
-            "Results",
-            level=2,
-            text="We apply the following tests to each of the forecasts considered in this gefe. "
-                 "More information regarding the tests can be found [here](https://docs.cseptesting.org/getting_started/theory.html)."
-        )
-        test_names = [test.name for test in self.tests]
-        report.add_list(test_names)
-
-        # Include results from Experiment
-        for test in self.tests:
-            fig_path = self.target_paths['figures'][test.name]
-            report.add_figure(
-                f"{test.name}",
-                fig_path.replace(self.run_folder, '.'),
-                level=3,
-                caption=test.markdown,
-                add_ext=True
-            )
-
-        report.table_of_contents()
-        report.save(self.run_folder)
-
-    def to_dict(self, exclude=('magnitudes', 'depths'), extended=False):
+    def to_dict(self, exclude=('magnitudes', 'depths', 'time_windows'),
+                extended=False):
         """
         Converts an Experiment instance into a dictionary.
 
@@ -769,8 +854,8 @@ class Experiment:
                 except AttributeError:
                     if isinstance(x, numpy.ndarray):
                         o = x.tolist()
-                    elif isinstance(x, datetime):
-                        o = x.isoformat()
+                    # elif isinstance(x, datetime):
+                    #     o = x.isoformat(' ')
                     else:
                         o = x
             return o
@@ -779,7 +864,7 @@ class Experiment:
             # recursive iter through nested dicts/lists
             if isinstance(val, Mapping):
                 return {item: iter_attr(val_) for item, val_ in val.items()
-                        if item not in exclude}
+                        if (item not in exclude) or extended}
             elif isinstance(val, Sequence) and not isinstance(val, str):
                 return [iter_attr(i) for i in val]
             else:
@@ -787,7 +872,23 @@ class Experiment:
 
         return iter_attr(self.__dict__)
 
-    def to_yaml(self, filename, **kwargs):
+    def to_yml(self, filename, **kwargs):
+        """
+
+        Serializes the :class:`~fecsep.core.Experiment` instance into a .yml
+        file.
+
+        Note:
+            This instance can then be reinstantiated using
+            :meth:`~fecsep.core.Experiment.from_yml`
+
+        Args:
+            filename: Name of the file onto which dump the instance
+            **kwargs: Passed to :meth:`~fecsep.core.Experiment.to_dict`
+
+        Returns:
+
+        """
 
         class NoAliasDumper(yaml.Dumper):
             def ignore_aliases(self, data):
@@ -798,14 +899,30 @@ class Experiment:
                 self.to_dict(**kwargs), f_,
                 Dumper=NoAliasDumper,
                 sort_keys=False,
-                default_flow_style=None,
+                default_flow_style=False,
                 indent=1,
                 width=70
             )
 
     @classmethod
-    def from_yaml(cls, config_yml):
+    def from_yml(cls, config_yml):
+        """
 
+        Initializes an experiment from a .yml file. It must contain the
+        attributes described in the :class:`~fecsep.core.Experiment`,
+        :func:`~fecsep.utils.read_time_config` and
+        :func:`~fecsep.utils.read_region_config` descriptions
+
+        Args:
+            config_yml (str): The path to the .yml file
+
+        Returns:
+            An :class:`~fecsep.core.Experiment` class instance
+
+        """
         with open(config_yml, 'r') as yml:
             config_dict = yaml.safe_load(yml)
+            if 'path' not in config_dict:
+                config_dict['path'] = os.path.abspath(
+                    os.path.dirname(config_yml))
         return cls(**config_dict)

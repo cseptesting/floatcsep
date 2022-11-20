@@ -1,3 +1,6 @@
+from fecsep.utils import MarkdownReport
+import os
+
 """
 Use the MarkdownReport class to create output for the gefe_qtree
 
@@ -9,6 +12,8 @@ Use the MarkdownReport class to create output for the gefe_qtree
     - evaluation results
     - metadata from run, (maybe json dump of gefe_qtree class)
 """
+
+
 # def generate_markdown_report(mdFile, result_figs_paths, experiment_configuration):
 #     """ Generates markdown report from gefe_qtree configuration
 #
@@ -178,3 +183,75 @@ Use the MarkdownReport class to create output for the gefe_qtree
 # mark_down = generate_markdown_report(mark_down, result_figs_paths, experiment_config)
 #
 # mark_down.create_md_file()
+
+
+def generate_report(self):
+    report = MarkdownReport()
+    report.add_title(
+        "Global Earthquake Forecasting Experiment -- Quadtree",
+        "The RISE (Real-time earthquake rIsk reduction for a reSilient Europe, "
+        "[http://www.rise-eu.org/](http://www.rise-eu.org/) research group in collaboration "
+        "with CSEP (Collaboratory for the Study of Earthquake Predictability, "
+        "[https://cseptesting.org/](https://cseptesting.org/) is conducting a global "
+        "earthquake forecast experiments using multi-resolution grids implemented as a quadtree."
+    )
+    report.add_heading("Objectives", level=2)
+    objs = [
+        "Describe the predictive skills of posited hypothesis about seismogenesis with earthquakes of "
+        "M5.95+ independent observations around the globe.",
+        "Identify the methods and geophysical datasets that lead to the highest information gains in "
+        "global earthquake forecasting.",
+        "Test earthquake forecast models on different grid settings.",
+        "Use Quadtree based grid to represent and evaluate earthquake forecasts."
+    ]
+    report.add_list(objs)
+    # Generate plot of the catalog
+    if self.catalog is not None:
+        figure_path = os.path.splitext(self.target_paths['catalog'])[0]
+        # relative to top-level directory
+        if self.region:
+            self.catalog.filter_spatial(self.region, in_place=True)
+        ax = self.catalog.plot(plot_args={
+            'figsize': (12, 8),
+            'markersize': 8,
+            'markercolor': 'black',
+            'grid_fontsize': 16,
+            'title': '',
+            'legend': False
+        })
+        ax.get_figure().tight_layout()
+        ax.get_figure().savefig(f"{figure_path}.png")
+        report.add_figure(
+            f"ISC gCMT Authoritative Catalog",
+            figure_path.replace(self.run_folder, '.'),
+            level=2,
+            caption="The authoritative evaluation data is the full Global CMT catalog (Ekström et al. 2012). "
+                    "We confine the hypocentral depths of earthquakes in training and testing datasets to a "
+                    f"maximum of 70km. The plot shows the catalog for the testing period which ranges from "
+                    f"{self.start_date} until {self.test_date}. "
+                    f"Earthquakes are filtered above Mw {self.magnitude_range.min()}. "
+                    "Black circles depict individual earthquakes with its radius proportional to the magnitude.",
+            add_ext=True
+        )
+    report.add_heading(
+        "Results",
+        level=2,
+        text="We apply the following tests to each of the forecasts considered in this gefe. "
+             "More information regarding the tests can be found [here](https://docs.cseptesting.org/getting_started/theory.html)."
+    )
+    test_names = [test.name for test in self.tests]
+    report.add_list(test_names)
+
+    # Include results from Experiment
+    for test in self.tests:
+        fig_path = self.target_paths['figures'][test.name]
+        report.add_figure(
+            f"{test.name}",
+            fig_path.replace(self.run_folder, '.'),
+            level=3,
+            caption=test.markdown,
+            add_ext=True
+        )
+
+    report.table_of_contents()
+    report.save(self.run_folder)

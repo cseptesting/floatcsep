@@ -7,7 +7,7 @@ import os
 
 
 def run(config, test_date=None, use_saved=False):
-    exp = core.Experiment.from_yaml(config)
+    exp = core.Experiment.from_yml(config)
     exp.set_test_date(test_date)
 
     exp.set_tests()
@@ -33,7 +33,9 @@ def run(config, test_date=None, use_saved=False):
     else:  # todo: need more elegant way of self-discovery
         run_results = defaultdict(list)
         for test in test_list:
-            run_results[test.name] = exp.read_evaluation_result(test, exp.models, exp.target_paths)
+            run_results[test.name] = exp.read_evaluation_result(test,
+                                                                exp.models,
+                                                                exp.target_paths)
 
     exp.plot_results(run_results)
 
