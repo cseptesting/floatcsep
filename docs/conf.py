@@ -5,10 +5,9 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'feCSEP'
 copyright = '2022, Pablo Iturrieta'
@@ -16,19 +15,25 @@ author = 'Pablo Iturrieta'
 release = 'v0.1.0'
 
 # -- General configuration ---------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.todo',
     'sphinx.ext.autosummary',
-    'sphinx.ext.intersphinx',
+    'sphinx.ext.coverage',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
-    'autoapi.extension'
+    'sphinx.ext.intersphinx',
+    # 'sphinx_gallery.gen_gallery', # todo
+    # 'sphinx.ext.githubpages'
 ]
 
-autoapi_dirs = ['../../fecsep']
 templates_path = ['_templates']
-exclude_patterns = []
+source_suffix = '.rst'
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+pygments_style = 'default'  # todo
+
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://docs.scipy.org/doc/numpy/", None),
@@ -42,3 +47,5 @@ intersphinx_mapping = {
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+
+todo_include_todos = False
