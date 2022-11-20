@@ -10,12 +10,12 @@ root_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def isc_gcmt_dir():
-    data_dir = os.path.join(root_dir, 'artifacts', 'ISC_GCMT')
+    data_dir = os.path.join(root_dir, 'artifacts', 'isc_gcmt')
     return data_dir
 
 
 def zenodo_dir():
-    data_dir = os.path.join(root_dir, 'artifacts', 'Zenodo')
+    data_dir = os.path.join(root_dir, 'artifacts', 'zenodo')
     return data_dir
 
 
@@ -24,9 +24,9 @@ def test_isc_gcmt_search():
     with vcr.use_cassette(tape_file):
         # Maule, Chile
         eventlist = \
-        _query_isc_gcmt(start_year=2010, start_month=2, start_day=26,
-                        end_year=2010, end_month=2, end_day=28,
-                        min_mag=8.5)[0]
+            _query_isc_gcmt(start_year=2010, start_month=2, start_day=26,
+                            end_year=2010, end_month=2, end_day=28,
+                            min_mag=8.5)[0]
         event = eventlist[0]
         assert event[0] == '14340585'
 
@@ -35,9 +35,9 @@ def test_isc_gcmt_summary():
     tape_file = os.path.join(isc_gcmt_dir(), 'vcr_summary.yaml')
     with vcr.use_cassette(tape_file):
         eventlist = \
-        _query_isc_gcmt(start_year=2010, start_month=2, start_day=26,
-                        end_year=2010, end_month=2, end_day=28,
-                        min_mag=8.5)[0]
+            _query_isc_gcmt(start_year=2010, start_month=2, start_day=26,
+                            end_year=2010, end_month=2, end_day=28,
+                            min_mag=8.5)[0]
         event = eventlist[0]
         cmp = "('14340585', 1267252513600, -35.98, -73.15, 23.2, 8.78)"
         assert str(event) == cmp

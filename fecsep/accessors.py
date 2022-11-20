@@ -10,6 +10,7 @@ import requests
 import hashlib
 import os
 import sys
+import shutil
 
 HOST_CATALOG = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
 TIMEOUT = 180
@@ -274,5 +275,8 @@ def from_git(url, path, branch=None, depth=1, **kwargs):
         repo = Repo(path)
     except (NoSuchPathError, InvalidGitRepositoryError):
         repo = Repo.clone_from(url, path, branch=branch, **kwargs)
+        git_dir = os.path.join(path, '.git')
+        if os.path.isdir(git_dir):
+            shutil.rmtree(git_dir)
 
     return repo

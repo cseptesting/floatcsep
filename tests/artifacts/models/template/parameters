@@ -1,0 +1,29 @@
+# Template of input parameters. This could be provided as txt, JSON or YML
+
+## Italy Experiment obligatory parameters. They should have a default value
+
+start_date = {datetime}  # format %Y-%M-%DT%h:%m:%s.%f.   e.g 2023-01-01T00:00:00
+end_date = {datetime}
+mag_min = {m}                    # forecast minimum magnitude
+seed = {int}
+nsims = {int}
+
+## Additional exposed parameters
+### Each parameter should have a description, data type and possible values/range as:
+
+# parameter_name: description
+# data type
+# prefered range
+{parameter_name} = {default_val}
+
+#### Examples:
+
+# mc: cutoff magnitude of input catalog
+# float
+# [0., 4.0]
+mc = 2.5
+
+# dec: declustering algorithm
+# str
+# gk, zaliapin, grunthal
+dec = gk

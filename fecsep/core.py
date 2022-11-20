@@ -76,6 +76,7 @@ class Model:
         # todo list
         #  - Check format
         #  - Instantiate from source code
+        #  - Check contents when instantiating from_git
 
         self.name = name
         self.path = path
@@ -115,6 +116,7 @@ class Model:
 
         """
 
+        # Check if the provided path is a file or dir.
         is_file = bool(os.path.splitext(self.path)[-1])
         if is_file:
             self._dir = os.path.dirname(self.path)
@@ -122,31 +124,31 @@ class Model:
             self._dir = self.path
 
         if not os.path.exists(self.path):
+            # It does not exist, get from zenodo or git
             if zenodo_id is None and giturl is None:
                 raise FileNotFoundError(
                     f"Model file or directory '{self.path}' not found")
             # Model needs to be downloaded from zenodo/git
-
-        os.makedirs(self._dir, exist_ok=True)
-        try:
-            # Zenodo is the first source of retrieval
-            from_zenodo(zenodo_id, self._dir, **kwargs)
-        except KeyError or TypeError as zerror_:
+            os.makedirs(self._dir, exist_ok=True)
             try:
-                from_git(giturl, self._dir, **kwargs)
-            except (git.NoSuchPathError, git.CommandError) as giterror_:
-                if giturl is None:
-                    raise KeyError('Zenodo identifier is not valid')
-                else:
-                    raise git.NoSuchPathError('git url was not found')
+                # Zenodo is the first source of retrieval
+                from_zenodo(zenodo_id, self._dir, **kwargs)
+            except KeyError or TypeError as zerror_:
+                try:
+                    from_git(giturl, self._dir, **kwargs)
+                except (git.NoSuchPathError, git.CommandError) as giterror_:
+                    if giturl is None:
+                        raise KeyError('Zenodo identifier is not valid')
+                    else:
+                        raise git.NoSuchPathError('git url was not found')
 
-        # Check paths
-        if is_file:
-            path_exists = os.path.isfile(self.path)
-        else:
-            path_exists = os.path.isdir(self.path)
+            # Check if file or directory exists after downloading
+            if is_file:
+                path_exists = os.path.isfile(self.path)
+            else:
+                path_exists = os.path.isdir(self.path)
 
-        assert path_exists
+            assert path_exists
 
     @staticmethod
     def build_docker(model_name, folder):
