@@ -9,6 +9,13 @@ setup(
     description='fecsep',
     packages=find_packages(),
     include_package_data=True,
+    install_requires=[
+        'requests',
+        'docker',
+        'h5py',
+        'pandas',
+        'yaml'
+    ],
     extras_require={
         'test': [
             'pytest',

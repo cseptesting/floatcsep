@@ -1,10 +1,10 @@
 from datetime import datetime
-from urllib import request
+from urllib import request as request_
 from urllib.parse import urlencode
 from csep.utils.time_utils import datetime_to_utc_epoch
 from csep.core.catalogs import CSEPCatalog
-import xml.etree.ElementTree as ET
-from git import Git, Repo, InvalidGitRepositoryError, NoSuchPathError
+import xml.etree.ElementTree as ElementTree
+from git import Repo, InvalidGitRepositoryError, NoSuchPathError
 import time
 import requests
 import hashlib
@@ -15,33 +15,36 @@ HOST_CATALOG = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
 TIMEOUT = 180
 
 
-def query_isc_gcmt(start_time, end_time, min_magnitude=5.0, min_depth=None, max_depth=None,
+def query_isc_gcmt(start_time, end_time, min_magnitude=5.0, min_depth=None,
+                   max_depth=None,
                    catalog_id=None, verbose=False,
                    min_latitude=None, max_latitude=None,
-                   min_longitude=None, max_longitude=None,
-                   **kwargs, ):
+                   min_longitude=None, max_longitude=None):
     if min_latitude:
         searchshape = 'RECT'
     else:
         searchshape = 'GLOBAL'
-    events, creation_time = _query_isc_gcmt(start_year=start_time.year,
-                                            start_month=start_time.month,
-                                            start_day=start_time.day,
-                                            searchshape=searchshape,
-                                            start_time=start_time.time().isoformat(),
-                                            end_year=end_time.year,
-                                            end_month=end_time.month,
-                                            end_day=end_time.day,
-                                            end_time=end_time.time().isoformat(),
-                                            min_mag=min_magnitude,
-                                            min_dep=min_depth,
-                                            max_dep=max_depth,
-                                            left_lon=min_longitude,
-                                            right_lon=max_longitude,
-                                            bot_lat=min_latitude,
-                                            top_lat=max_latitude,
-                                            verbose=verbose)
-    catalog = CSEPCatalog(data=events, name='ISC Bulletin - gCMT', catalog_id=catalog_id, date_accessed=creation_time)
+    events, creation_time = _query_isc_gcmt(
+        start_year=start_time.year,
+        start_month=start_time.month,
+        start_day=start_time.day,
+        searchshape=searchshape,
+        start_time=start_time.time().isoformat(),
+        end_year=end_time.year,
+        end_month=end_time.month,
+        end_day=end_time.day,
+        end_time=end_time.time().isoformat(),
+        min_mag=min_magnitude,
+        min_dep=min_depth,
+        max_dep=max_depth,
+        left_lon=min_longitude,
+        right_lon=max_longitude,
+        bot_lat=min_latitude,
+        top_lat=max_latitude,
+        verbose=verbose
+    )
+    catalog = CSEPCatalog(data=events, name='ISC Bulletin - gCMT',
+                          catalog_id=catalog_id, date_accessed=creation_time)
     # todo check why url query does not cut exactly by provided magmin
     catalog.filter([f'magnitude >= {min_magnitude}'], in_place=True)
     return catalog
@@ -103,7 +106,9 @@ def _query_isc_gcmt(out_format='QuakeML',
 
     if verbose:
         print(f'\tAccess URL: {url}')
-        print(f'\tCatalog with {len(events)} events downloaded in {(time.time() - start_time):.2f} seconds')
+        print(
+            f'\tCatalog with {len(events)} events downloaded in '
+            f'{(time.time() - start_time):.2f} seconds')
 
     return events, creation_time
 
@@ -116,12 +121,13 @@ def _search_isc_gcmt(**newargs):
     paramstr = urlencode(newargs)
     url = HOST_CATALOG + paramstr
     try:
-        fh = request.urlopen(url, timeout=TIMEOUT)
+        fh = request_.urlopen(url, timeout=TIMEOUT)
         data = fh.read().decode('utf8')
         fh.close()
-        root = ET.fromstring(data)
+        root = ElementTree.fromstring(data)
         ns = root.tag.split('}quakeml')[0] + '}'
-        creation_time = root[0].find(ns + 'creationInfo').find(ns + 'creationTime').text
+        creation_time = root[0].find(ns + 'creationInfo').find(
+            ns + 'creationTime').text
         creation_time = creation_time.replace('T', ' ')
         events_quakeml = root[0].findall(ns + 'event')
         events = []
@@ -141,7 +147,8 @@ def _parse_isc_event(node, ns, mag_author='GCMT'):
     """
     id_ = node.get('publicID').split('=')[-1]
     magnitudes = node.findall(ns + 'magnitude')
-    mag_gcmt = [i for i in magnitudes if i.find(ns + 'creationInfo')[0].text == mag_author][0]
+    mag_gcmt = [i for i in magnitudes if
+                i.find(ns + 'creationInfo')[0].text == mag_author][0]
 
     origin_id = mag_gcmt.find(ns + 'originID').text
     origins = node.findall(ns + 'origin')
@@ -155,8 +162,9 @@ def _parse_isc_event(node, ns, mag_author='GCMT'):
 
     dtstr = origin_gcmt.find(ns + 'time').find(ns + 'value').text
     date = dtstr.split('T')[0]
-    time = dtstr.split('T')[1][:-1]
-    dtime = datetime_to_utc_epoch(datetime.fromisoformat(date + ' ' + time + '0'))
+    time_ = dtstr.split('T')[1][:-1]
+    dtime = datetime_to_utc_epoch(
+        datetime.fromisoformat(date + ' ' + time_ + '0'))
 
     return id_, dtime, float(lat), float(lon), float(depth) / 1000., float(mag)
 
@@ -177,7 +185,8 @@ def _download_file(url, filename):
         total_size = int(total_size)
     download_size = 0
     if total_size:
-        print(f'Downloading file with size of {total_size / block_size:.3f} kB')
+        print(
+            f'Downloading file with size of {total_size / block_size:.3f} kB')
     else:
         print(f'Downloading file with unknown size')
     with open(filename, 'wb') as f:
@@ -185,9 +194,13 @@ def _download_file(url, filename):
             download_size += len(data)
             f.write(data)
             if total_size:
-                progress = int(progress_bar_length * download_size / total_size)
-                sys.stdout.write('\r[{}{}] {:.1f}%'.format('█' * progress, '.' * (progress_bar_length - progress),
-                                                           100 * download_size / total_size))
+                progress = int(
+                    progress_bar_length * download_size / total_size)
+                sys.stdout.write(
+                    '\r[{}{}] {:.1f}%'.format('█' * progress, '.' *
+                                              (progress_bar_length - progress),
+                                              100 * download_size / total_size)
+                )
                 sys.stdout.flush()
         sys.stdout.write('\n')
 
@@ -213,8 +226,9 @@ def _check_hash(filename, checksum):
 def from_zenodo(record_id, folder, force=False):
     """
     Download data from a Zenodo repository.
-    Downloads if file does not exist, checksum has changed in local respect to url
-    or force
+    Downloads if file does not exist, checksum has changed in local respect to
+    url or force
+
     Args:
         record_id: corresponding to the Zenodo repository
         folder: where the repository files will be downloaded
@@ -234,7 +248,9 @@ def from_zenodo(record_id, folder, force=False):
         if os.path.exists(full_path):
             value, digest = _check_hash(full_path, checksum)
             if value != digest:
-                print(f"Checksum is different: re-downloading {fname} from Zenodo...")
+                print(
+                    f"Checksum is different: re-downloading {fname}"
+                    f" from Zenodo...")
                 _download_file(url, full_path)
             elif force:
                 print(f"Re-downloading {fname} from Zenodo...")
@@ -251,10 +267,12 @@ def from_zenodo(record_id, folder, force=False):
             sys.exit(-1)
 
 
-def from_git(url, path, branch=None, force=False):
+def from_git(url, path, branch=None, depth=1, **kwargs):
+    kwargs.update({'depth': depth})
+
     try:
         repo = Repo(path)
     except (NoSuchPathError, InvalidGitRepositoryError):
-        repo = Repo.clone_from(url, path, branch=branch)
+        repo = Repo.clone_from(url, path, branch=branch, **kwargs)
 
     return repo
