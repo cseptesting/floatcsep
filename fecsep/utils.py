@@ -28,6 +28,7 @@ from csep.utils.calc import cleaner_range
 
 import fecsep.accessors
 import fecsep.evaluations
+import fecsep.dbparser
 
 _UNITS = ['years', 'months', 'weeks', 'days']
 _PD_FORMAT = ['YS', 'MS', 'W', 'D']
@@ -50,12 +51,9 @@ def parse_csep_func(func):
 
     """
 
-    def __getattr__(self, item):
-        return self[item]
-
-    def rgetattr(obj, attr, *args):
-        def _getattr(obj, attr):
-            return getattr(obj, attr, *args)
+    def recgetattr(obj, attr, *args):
+        def _getattr(obj_, attr_):
+            return getattr(obj_, attr_, *args)
 
         return functools.reduce(_getattr, [obj] + attr.split('.'))
 
@@ -68,10 +66,11 @@ def parse_csep_func(func):
                            csep.core.regions,
                            fecsep.utils,
                            fecsep.accessors,
-                           fecsep.evaluations]
+                           fecsep.evaluations,
+                           fecsep.dbparser.HDF5Serializer]
         for module in _target_modules:
             try:
-                return rgetattr(module, func)
+                return recgetattr(module, func)
             except AttributeError:
                 pass
         raise AttributeError(
@@ -347,6 +346,53 @@ def time_windows_td(start_date=None,
     #     timewindows = [(timelimits[0], i) for i in timelimits[1:]]
 
     # return timewindows
+
+
+class Task:
+
+    def __init__(self, instance, method, store=False, **kwargs):
+        self.obj = instance
+        self.method = method
+        self.kwargs = kwargs
+        self.store = store
+
+    def run(self):
+        print(f'\tRunning task {self.obj.__class__}.{self.method}')
+
+        if hasattr(self.obj, 'store'):
+            self.obj = self.obj.store
+
+        output = getattr(self.obj, self.method)
+
+        if self.store:
+            self.store = output(**self.kwargs)
+            return self.store
+        else:
+            return output(**self.kwargs)
+
+    def __call__(self, *args, **kwargs):
+        print('AAAAASDAWDASASD')
+        return self.run()
+
+    def check_exist(self):
+        pass
+
+
+class Attribute:
+
+    def __init__(self, instance, attr):
+        self.obj = instance
+        self.attr = attr
+
+    def run(self):
+        print(f'\tGetting atr {self.obj.__class__}.{self.attr}')
+
+        output = getattr(self.obj, self.attr)
+
+        return output
+
+    def check_exist(self):
+        pass
 
 
 def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True,
