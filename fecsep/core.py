@@ -191,53 +191,19 @@ class Model:
 
         """
 
-        fn_h5 = os.path.splitext(self.path)[0] + '.hdf5'
+        self.dbpath = os.path.splitext(self.path)[0] + '.hdf5'
 
-        if os.path.isfile(fn_h5):
-            self.dbpath = fn_h5
+        if not os.path.isfile(self.dbpath):
+            self.dbserializer(self.path, self.dbpath)
+
+    def rm_db(self):
+
+        if os.path.isfile(self.dbpath):
+            os.remove(self.dbpath)
+            return True
         else:
-            self.dbserializer(self.path, fn_h5)
-
-    def stage_db(self, force=False):
-        """
-        Stage model deployment.
-        Checks download and builds image container.
-        Makes a model forecast with desired params
-        Transform to desired db format if asked
-
-        Returns:
-
-        """
-        # Creates one docker per repo
-        img_name = os.path.basename(self.path).lower()
-        if force:
-            self.image = self.build_docker(img_name, self.path)[0]
-        else:
-            try:
-                self.image = _client.images.get(img_name)
-            except docker.errors.ImageNotFound:
-                self.image = self.build_docker(img_name, self.path)[0]
-        self.bind = self.image.attrs['Config']['WorkingDir']
-
-        if self.db_type in ['hdf5']:
-            fn_h5 = os.path.splitext(self.filename)[0] + '.hdf5'
-            path_h5 = os.path.join(self.path, fn_h5)
-            if os.path.isfile(path_h5):
-                self.filename = fn_h5
-            else:
-                fecsep_bind = f'/usr/src/fecsep'
-                cmd = f'python {fecsep_bind}/dbparser.py --format {self.format} --filename {self.filename}'
-                a = _client.containers.run(self.image, remove=True,
-                                           volumes={
-                                               os.path.abspath(self.path): {
-                                                   'bind': self.bind,
-                                                   'mode': 'rw'},
-                                               os.path.abspath(
-                                                   fecsep.__path__[0]): {
-                                                   'bind': fecsep_bind,
-                                                   'mode': 'ro'}},
-                                           command=cmd)
-                self.filename = fn_h5
+            print("The HDF5 file does not exist")
+            return False
 
     def forecast_path(self, win):
         return 'a'
@@ -283,7 +249,7 @@ class Model:
                     [Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
 
         forecast = GriddedForecast(
-            name=f'{self.name}_tstring',
+            name=f'{self.name}_{tstring}',
             data=rates,
             region=region,
             magnitudes=magnitudes,
@@ -595,6 +561,7 @@ class Experiment:
 
     def prepare_paths(self, results_path=None, run_name=None):
         """
+
         Creates the run directory, and reads the file structure inside
 
 
@@ -608,6 +575,7 @@ class Experiment:
              already
             target_paths: flag to each element of the gefe
                 (catalog and evaluation results)
+
         """
 
         # grab names for creating directories
@@ -696,7 +664,6 @@ class Experiment:
             filter_catalog = Task(
                 instance=self.catalog,
                 method='filter',
-                # store=True,
                 statements=[f'origin_time >= {i[0].timestamp() * 1000}',
                             f'origin_time < {i[1].timestamp() * 1000}']
             )
@@ -801,79 +768,6 @@ class Experiment:
     @catalog.setter
     def catalog(self, cat):
         self._catalog = cat
-
-    def prepare_catalogs(self, datetimes, savepath):
-
-        cat = self.catalog.filter_spatial(self.region)
-        cat.filter([f'magnitude >= {self.magnitudes.min()}',
-                    f'magnitude <= {self.magnitudes.max()}',
-                    f'depth >= {self.depths.min()}',
-                    f'depth <= {self.depths.min()}',
-                    f'origin_time >= {datetimes[0].timestamp() * 1000}',
-                    f'origin_time < {datetimes[1].timestamp() * 1000}'],
-                   in_place=True)
-        cat.write_json(savepath)
-
-    def stage_models(self, force=False):
-        for model in self.models:
-            model.get_source(force)
-            model.stage_db(force)
-
-    @staticmethod
-    def run_test(test, write=True):
-        # requires that test be fully configured, probably by calling
-        # enumerate_tests() first
-        result = test.compute()
-        if write:
-            with open(test.path, 'w') as _file:
-                json.dump(result.to_dict(), _file, indent=4)
-        return result
-
-    def prepare_all_tests(self):
-        """ Prepare test to be run for the gefe by including runtime arguments like forecasts and catalogs
-
-        :return tests: Complete list of evaluations to run for gefe
-        """
-        # prepares arguments for test
-        test_list = []
-        for model in self.models:
-            for test in self.tests:
-                # skip t-test if model is the same as ref_model
-                if test.ref_model == model.name:
-                    continue
-                # prepare args so test is callable
-                t = Test(
-                    name=test.name,
-                    func=test.func,
-                    func_args=self._prepare_test_func_args(test, model),
-                    func_kwargs=test.func_kwargs,
-                    plot_func=test.plot_func,
-                    plot_args=test.plot_args,
-                    model=model,
-                    path=self.target_paths['evaluations'][test.name][
-                        model.name],
-                    ref_model=test.ref_model
-                )
-                test_list.append(t)
-                print("Prepared...\n", t)
-        return test_list
-
-    def _prepare_test_func_args(self, test, model):
-        forecast = self.get_forecast(model)
-        catalog = copy.deepcopy(self.get_catalog())
-        catalog.region = forecast.region
-        if self.region:
-            catalog.filter_spatial(in_place=True)
-        if test.ref_model is not None:
-            ref_model = self.get_model(test.ref_model)
-            test_args = (forecast, self.get_forecast(ref_model), catalog)
-        elif test.func == fecsep.evaluations.vector_poisson_t_w_test:
-            forecast_batch = [self.get_forecast(model_i) for model_i in
-                              self.models]
-            test_args = (forecast, forecast_batch, catalog)
-        else:
-            test_args = (forecast, catalog)
-        return test_args
 
     def read_evaluation_result(self, test, models, target_paths):
         test_results = []
@@ -1066,3 +960,77 @@ class Experiment:
                 config_dict['path'] = os.path.abspath(
                     os.path.dirname(config_yml))
         return cls(**config_dict)
+
+    #
+    # def prepare_catalogs(self, datetimes, savepath):
+    #
+    #     cat = self.catalog.filter_spatial(self.region)
+    #     cat.filter([f'magnitude >= {self.magnitudes.min()}',
+    #                 f'magnitude <= {self.magnitudes.max()}',
+    #                 f'depth >= {self.depths.min()}',
+    #                 f'depth <= {self.depths.min()}',
+    #                 f'origin_time >= {datetimes[0].timestamp() * 1000}',
+    #                 f'origin_time < {datetimes[1].timestamp() * 1000}'],
+    #                in_place=True)
+    #     cat.write_json(savepath)
+    #
+    # def stage_models(self, force=False):
+    #     for model in self.models:
+    #         model.get_source(force)
+    #         model.stage_db(force)
+    #
+    # @staticmethod
+    # def run_test(test, write=True):
+    #     # requires that test be fully configured, probably by calling
+    #     # enumerate_tests() first
+    #     result = test.compute()
+    #     if write:
+    #         with open(test.path, 'w') as _file:
+    #             json.dump(result.to_dict(), _file, indent=4)
+    #     return result
+    #
+    # def prepare_all_tests(self):
+    #     """ Prepare test to be run for the gefe by including runtime arguments like forecasts and catalogs
+    #
+    #     :return tests: Complete list of evaluations to run for gefe
+    #     """
+    #     # prepares arguments for test
+    #     test_list = []
+    #     for model in self.models:
+    #         for test in self.tests:
+    #             # skip t-test if model is the same as ref_model
+    #             if test.ref_model == model.name:
+    #                 continue
+    #             # prepare args so test is callable
+    #             t = Test(
+    #                 name=test.name,
+    #                 func=test.func,
+    #                 func_args=self._prepare_test_func_args(test, model),
+    #                 func_kwargs=test.func_kwargs,
+    #                 plot_func=test.plot_func,
+    #                 plot_args=test.plot_args,
+    #                 model=model,
+    #                 path=self.target_paths['evaluations'][test.name][
+    #                     model.name],
+    #                 ref_model=test.ref_model
+    #             )
+    #             test_list.append(t)
+    #             print("Prepared...\n", t)
+    #     return test_list
+    #
+    # def _prepare_test_func_args(self, test, model):
+    #     forecast = self.get_forecast(model)
+    #     catalog = copy.deepcopy(self.get_catalog())
+    #     catalog.region = forecast.region
+    #     if self.region:
+    #         catalog.filter_spatial(in_place=True)
+    #     if test.ref_model is not None:
+    #         ref_model = self.get_model(test.ref_model)
+    #         test_args = (forecast, self.get_forecast(ref_model), catalog)
+    #     elif test.func == fecsep.evaluations.vector_poisson_t_w_test:
+    #         forecast_batch = [self.get_forecast(model_i) for model_i in
+    #                           self.models]
+    #         test_args = (forecast, forecast_batch, catalog)
+    #     else:
+    #         test_args = (forecast, catalog)
+    #     return test_args
