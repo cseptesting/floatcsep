@@ -606,9 +606,11 @@ class MarkdownReport:
                 bottom += " --- |"
             return top + '\n' + bottom
 
+        # <img src="results/20220101T170000/figures/Poisson_T.png" width=720 />
         def add_to_row(row):
             if len(row) == 1:
-                return f"![]({row[0]})"
+                return f"<img src='{row[0]}' />"
+                # return f"![]({row[0]})"
             string = '| '
             for item in row:
                 string = string + f' ![]({item}) |'
@@ -627,6 +629,8 @@ class MarkdownReport:
             result_cell.append(add_to_row(row))
         result_cell.append('\n')
         result_cell.append(f'{caption}')
+
+        print(result_cell)
         self.markdown.append('\n'.join(result_cell) + '\n')
 
         # generate metadata for TOC

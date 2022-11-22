@@ -15,13 +15,12 @@ def run(config, test_date=None, use_saved=False):
     exp.prepare_paths()
     print('Experiment is configured with the following parameters')
     print('======================================================\n')
-    print(exp.target_paths)
-    print(exp.exists)
+    print(exp._paths)
+    print(exp._exists)
     exp.prepare_tasks()
     exp.stage_models()
 
     exp.get_run_struct()
-    #
     exp.get_catalog()
 
     test_list = exp.prepare_all_tests()
@@ -35,7 +34,7 @@ def run(config, test_date=None, use_saved=False):
         for test in test_list:
             run_results[test.name] = exp.read_evaluation_result(test,
                                                                 exp.models,
-                                                                exp.target_paths)
+                                                                exp._paths)
 
     exp.plot_results(run_results)
 

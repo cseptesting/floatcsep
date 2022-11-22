@@ -1,35 +1,24 @@
-import copy
-import json
-
-import csep.core.forecasts
-import git
-import numpy
-import cartopy.crs as ccrs
-from collections.abc import Mapping, Sequence
-import h5py
-import yaml
-from matplotlib import pyplot
 import os
 import os.path
+from collections.abc import Mapping, Sequence
+
+import numpy
+import yaml
+import json
+import git
+from matplotlib import pyplot
+from cartopy import crs as ccrs
 
 from csep.models import EvaluationResult
 from csep.core.catalogs import CSEPCatalog
 from csep.core.forecasts import GriddedForecast
 from csep.utils.time_utils import decimal_year
-from csep.core.regions import QuadtreeGrid2D, CartesianGrid2D
-from csep.models import Polygon
 
-import fecsep.utils
-import fecsep.accessors
-import fecsep.evaluations
-from fecsep.utils import NoAliasLoader, _set_dockerfile, \
-    parse_csep_func, read_time_config, read_region_config, Task, timewindow_str
+import report
+from fecsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
+    read_region_config, Task, timewindow_str
 from fecsep.accessors import from_zenodo, from_git
 from fecsep.dbparser import load_from_hdf5
-import docker
-import docker.errors
-
-_client = docker.from_env()
 
 
 class Model:
@@ -164,28 +153,6 @@ class Model:
 
             assert path_exists
 
-    @staticmethod
-    def build_docker(model_name, folder):
-        dockerfile = os.path.join(folder, 'Dockerfile')
-        if os.path.isfile(dockerfile):
-            print('Dockerfile exists')
-        else:
-            with open(dockerfile, 'w') as file_:
-                file_.write(_set_dockerfile(model_name))
-        client = docker.from_env()
-        img = client.images.build(path=folder,
-                                  quiet=False,
-                                  tag=model_name,
-                                  forcerm=True,
-                                  buildargs={'USERNAME': os.environ['USER'],
-                                             'USER_UID': str(os.getuid()),
-                                             'USER_GID': str(os.getgid())},
-                                  dockerfile='Dockerfile')
-        for stream in img[1]:
-            print(stream.get('stream', '').split('\n')[0])
-
-        return img
-
     def make_db(self):
         """
 
@@ -206,9 +173,6 @@ class Model:
         else:
             print("The HDF5 file does not exist")
             return False
-
-    def forecast_path(self, win):
-        return 'a'
 
     def create_forecast(self, start_date, end_date, **kwargs):
         """
@@ -238,7 +202,7 @@ class Model:
         rates, region, magnitudes = load_from_hdf5(self.dbpath)
 
         forecast = GriddedForecast(
-            name=f'{self.name}_{tstring}',
+            name=f'{self.name}',
             data=rates,
             region=region,
             magnitudes=magnitudes,
@@ -273,6 +237,14 @@ class Test:
     """
 
     """
+    _types = {'consistency': ['number_test', 'spatial_test', 'magnitude_test',
+                              'likelihood_test', 'conditional_likelihood_test',
+                              'negative_binomial_number_test',
+                              'binary_spatial_test',
+                              'binary_conditional_likelihood_test'],
+              'comparative': ['paired_t_test', 'w_test',
+                              'binary_paired_t_test'],
+              'sequential': []}
 
     def __init__(self, name, func, markdown='', func_args=None,
                  func_kwargs=None, plot_func=None,
@@ -292,6 +264,7 @@ class Test:
         self.func = parse_csep_func(func)
         self.func_kwargs = func_kwargs  # todo set default args from exp?
         self.func_args = func_args
+
         self.plot_func = parse_csep_func(plot_func)
         self.plot_args = plot_args or {}  # todo default args?
         self.plot_kwargs = plot_kwargs or {}
@@ -300,26 +273,30 @@ class Test:
         self.path = path
         self.markdown = markdown
 
-    def compute(self, timewindow,
+        self._type = None
+
+    def compute(self,
+                timewindow,
                 catpath,
                 model,
                 path,
+                ref_model=None,
                 region=None):
 
         forecast = model.forecasts[timewindow]
         catalog = CSEPCatalog.load_json(catpath)
+        catalog.filter_spatial(region=forecast.region, in_place=True)
 
-        if region:
-            catalog.filter_spatial(in_place=True)
-        # if self.ref_model is not None:
-        #     ref_model = self.get_model(test.ref_model)
-        #     test_args = (forecast, self.get_forecast(ref_model), catalog)
+        if self.type == 'comparative':
+            ref_forecast = ref_model.forecasts[timewindow]
+            test_args = (forecast, ref_forecast, catalog)
         # elif test.func == fecsep.evaluations.vector_poisson_t_w_test:
         #     forecast_batch = [self.get_forecast(model_i) for model_i in
         #                       self.models]
         #     test_args = (forecast, forecast_batch, catalog)
-        # else:
-        test_args = (forecast, catalog)
+        else:
+            test_args = (forecast, catalog)
+
         result = self.func(*test_args, **self.func_kwargs)
 
         with open(path, 'w') as _file:
@@ -341,6 +318,16 @@ class Test:
             f"kwargs: {self.func_kwargs}\n"
             f"path: {self.path}"
         )
+
+    @property
+    def type(self):
+
+        self._type = None
+        for ty, funcs in Test._types.items():
+            if self.func.__name__ in funcs:
+                self._type = ty
+
+        return self._type
 
     @classmethod
     def from_dict(cls, record):
@@ -411,6 +398,7 @@ class Experiment:
         be instantiated using these dicts as keywords. (e.g. ``Experiment(
         **time_config, **region_config)``, ``Experiment(start_date=start_date,
         intervals=1, region='csep-italy', ...)``
+
     """
 
     def __init__(self,
@@ -453,8 +441,8 @@ class Experiment:
         self.run_results = {}
         # self.catalog = None
         self.run_folder: str = ''
-        self.target_paths: dict = {}
-        self.exists: dict = {}
+        self._paths: dict = {}
+        self._exists: dict = {}
 
         # Update if attributes were passed explicitly
         # todo check reinstantiation
@@ -614,9 +602,9 @@ class Experiment:
         } for win in windows}
 
         target_paths = {win: {
-            'models': {
+            'models': {  # todo: redo this key, is too convoluted
                 'forecasts': {
-                    model_name: self.get_model(model_name).forecast_path(win)
+                    model_name: model_name
                     for model_name in models},
                 # todo: important in time-dependent, and/or forecast storage
                 'figures': {model: os.path.join(dirtree[win]['figures'],
@@ -636,8 +624,8 @@ class Experiment:
         } for win in windows}
 
         self.run_folder = self.run_folder
-        self.target_paths = target_paths
-        self.exists = exists
+        self._paths = target_paths
+        self._exists = exists  # todo perhaps method?
 
     def prepare_tasks(self):
 
@@ -661,11 +649,12 @@ class Experiment:
             write_catalog = Task(
                 instance=filter_catalog,
                 method='write_json',
-                filename=self.target_paths[time_str]['catalog']
+                filename=self._paths[time_str]['catalog']
             )
             tasks_i = [filter_catalog, write_catalog]
             tasks.extend(tasks_i)
 
+            # Consistency Tests
             for model_j in self.models:
 
                 task_ij = Task(
@@ -677,34 +666,39 @@ class Experiment:
                 tasks.append(task_ij)
 
                 for test_k in self.tests:
-                    task_ijk = Task(
-                        instance=test_k,
-                        method='compute',
-                        timewindow=time_str,
-                        catpath=self.target_paths[time_str][
-                            'catalog'],
-                        model=model_j,
-                        path=self.target_paths[time_str][
-                            'evaluations'][test_k.name][model_j.name]
-                    )
-                    tasks.append(task_ijk)
+                    if test_k.type == 'consistency':
+                        task_ijk = Task(
+                            instance=test_k,
+                            method='compute',
+                            timewindow=time_str,
+                            catpath=self._paths[time_str]['catalog'],
+                            model=model_j,
+                            path=self._paths[time_str][
+                                'evaluations'][test_k.name][model_j.name]
+                        )
+                        tasks.append(task_ijk)
 
+            # Consistency Tests
+            for test_k in self.tests:
+                if test_k.type == 'comparative':
+                    for model_j in self.models:
+                        task_ik = Task(
+                            instance=test_k,
+                            method='compute',
+                            timewindow=time_str,
+                            catpath=self._paths[time_str]['catalog'],
+                            model=model_j,
+                            ref_model=self.get_model(test_k.ref_model),
+                            path=self._paths[time_str][
+                                'evaluations'][test_k.name][model_j.name]
+                        )
+                        tasks.append(task_ik)
         self.tasks = tasks
 
     def get_model(self, name):
         for model in self.models:
             if model.name == name:
                 return model
-
-    def get_forecast(self, model, datetimes):
-        # if already bound to model class, simply return
-        try:
-            forecast = model.forecasts[timewindow_str(datetimes)]
-        except KeyError:
-            # this call binds to model class
-            forecast = model.create_forecast(datetimes[0], datetimes[1],
-                                             name=model.name)
-        return forecast
 
     @property
     def catalog(self):
@@ -767,37 +761,50 @@ class Experiment:
         for task in self.tasks:
             task.run()
 
-    def read_evaluation_result(self, test, models, target_paths):
-        test_results = []
-        if 'T' in test.name:  # todo cleaner
-            models = [i for i in models if i.name != test.ref_model]
+    def _read_results(self, test, window=None):
 
-        for model_i in models:
-            eval_path = target_paths['evaluations'][test.name][model_i.name]
+        test_results = []
+        if not isinstance(window, str):
+            wstr_ = timewindow_str(window)
+        else:
+            wstr_ = window
+
+        if 'T' in test.name:  # todo cleaner
+            models = [i for i in self.models if i.name != test.ref_model]
+        else:
+            models = self.models
+
+        for i in models:
+            eval_path = self._paths[wstr_]['evaluations'][test.name][i.name]
             with open(eval_path, 'r') as file_:
                 model_eval = EvaluationResult.from_dict(json.load(file_))
             test_results.append(model_eval)
         return test_results
 
-    def plot_results(self, run_results, file_paths=None, dpi=300, show=False):
+    def plot_results(self, dpi=300, show=False):
         """ plots test results
         :param run_results: defaultdict(list) where keys are the test name
         :param file_paths: figure path for each test result
         :param dpi: resolution for output image
         """
-        if file_paths is None:
-            file_paths = self.target_paths
-        for test in self.tests:
-            test_result = run_results[test.name]
-            ax = test.plot_func(test_result, plot_args=test.plot_args,
-                                **test.plot_kwargs)
-            if 'code' in test.plot_args:
-                exec(test.plot_args['code'])
-            pyplot.savefig(file_paths['figures'][test.name], dpi=dpi)
-            if show:
-                pyplot.show()
+
+        for time in self.time_windows:
+            timestr = timewindow_str(time)
+            figpaths = self._paths[timestr]['figures']
+
+            for test in self.tests:
+                results = self._read_results(test, time)
+                ax = test.plot_func(results, plot_args=test.plot_args,
+                                    **test.plot_kwargs)
+                if 'code' in test.plot_args:
+                    exec(test.plot_args['code'])
+                pyplot.savefig(figpaths[test.name], dpi=dpi)
+                if show:
+                    pyplot.show()
 
         # todo create different method for forecast plotting
+
+    def plot_forecasts(self):
         plot_fc_config = self.postproc_config.get('plot_forecasts')
         if plot_fc_config:
             try:
@@ -825,37 +832,44 @@ class Experiment:
                 if isinstance(cat, dict):
                     cat_args.update(cat)
 
-            for model in self.models:
-                fig_path = self.target_paths['models']['figures'][model.name]
-                start = decimal_year(self.start_date)
-                end = decimal_year(self.test_date)
-                time = f'{round(end - start, 3)} years'
-                plot_args = {'region_border': False,
-                             'cmap': 'magma',
-                             'clabel': r'$\log_{10} N\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per '
-                                       r'$0.1^\circ\times 0.1^\circ $ per %s' %
-                                       (min(self.magnitude_range),
-                                        max(self.magnitude_range), time)}
-                if not self.region:
-                    set_global = True
-                else:
-                    set_global = False
-                plot_args.update(plot_fc_config)
-                ax = model.forecasts[self.test_date].plot(
-                    set_global=set_global, plot_args=plot_args)
+            for window in self.time_windows:
+                winstr = timewindow_str(window)
+                for model in self.models:
+                    fig_path = self._paths[winstr]['models']['figures'][
+                        model.name]
+                    start = decimal_year(window[0])
+                    end = decimal_year(window[1])
+                    time = f'{round(end - start, 3)} years'
+                    plot_args = {'region_border': False,
+                                 'cmap': 'magma',
+                                 'clabel': r'$\log_{10} N\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per '
+                                           r'$0.1^\circ\times 0.1^\circ $ per %s' %
+                                           (self.magnitudes.min(),
+                                            self.magnitudes.max(), time)}
+                    if not self.region or self.region.name == 'global':
+                        set_global = True
+                    else:
+                        set_global = False
+                    plot_args.update(plot_fc_config)
+                    ax = model.forecasts[winstr].plot(
+                        set_global=set_global, plot_args=plot_args)
 
-                if self.region:
-                    bbox = self.region.get_bbox()
-                    dh = self.region.dh
-                    extent = [bbox[0] - 3 * dh, bbox[1] + 3 * dh,
-                              bbox[2] - 3 * dh, bbox[3] + 3 * dh]
-                else:
-                    extent = None
-                if cat:
-                    self.catalog.plot(ax=ax, set_global=set_global,
-                                      extent=extent, plot_args=cat_args)
+                    if self.region:
+                        bbox = self.region.get_bbox()
+                        dh = self.region.dh
+                        extent = [bbox[0] - 3 * dh, bbox[1] + 3 * dh,
+                                  bbox[2] - 3 * dh, bbox[3] + 3 * dh]
+                    else:
+                        extent = None
+                    if cat:
+                        self.catalog.plot(ax=ax, set_global=set_global,
+                                          extent=extent, plot_args=cat_args)
 
-                pyplot.savefig(fig_path, dpi=300, facecolor=(0, 0, 0, 0))
+                    pyplot.savefig(fig_path, dpi=300, facecolor=(0, 0, 0, 0))
+
+    def generate_report(self):
+
+        report.generate_report(self)
 
     def to_dict(self, exclude=('magnitudes', 'depths', 'time_windows'),
                 extended=False):
@@ -958,77 +972,3 @@ class Experiment:
                 config_dict['path'] = os.path.abspath(
                     os.path.dirname(config_yml))
         return cls(**config_dict)
-
-    #
-    # def prepare_catalogs(self, datetimes, savepath):
-    #
-    #     cat = self.catalog.filter_spatial(self.region)
-    #     cat.filter([f'magnitude >= {self.magnitudes.min()}',
-    #                 f'magnitude <= {self.magnitudes.max()}',
-    #                 f'depth >= {self.depths.min()}',
-    #                 f'depth <= {self.depths.min()}',
-    #                 f'origin_time >= {datetimes[0].timestamp() * 1000}',
-    #                 f'origin_time < {datetimes[1].timestamp() * 1000}'],
-    #                in_place=True)
-    #     cat.write_json(savepath)
-    #
-    # def stage_models(self, force=False):
-    #     for model in self.models:
-    #         model.get_source(force)
-    #         model.stage_db(force)
-    #
-    # @staticmethod
-    # def run_test(test, write=True):
-    #     # requires that test be fully configured, probably by calling
-    #     # enumerate_tests() first
-    #     result = test.compute()
-    #     if write:
-    #         with open(test.path, 'w') as _file:
-    #             json.dump(result.to_dict(), _file, indent=4)
-    #     return result
-    #
-    # def prepare_all_tests(self):
-    #     """ Prepare test to be run for the gefe by including runtime arguments like forecasts and catalogs
-    #
-    #     :return tests: Complete list of evaluations to run for gefe
-    #     """
-    #     # prepares arguments for test
-    #     test_list = []
-    #     for model in self.models:
-    #         for test in self.tests:
-    #             # skip t-test if model is the same as ref_model
-    #             if test.ref_model == model.name:
-    #                 continue
-    #             # prepare args so test is callable
-    #             t = Test(
-    #                 name=test.name,
-    #                 func=test.func,
-    #                 func_args=self._prepare_test_func_args(test, model),
-    #                 func_kwargs=test.func_kwargs,
-    #                 plot_func=test.plot_func,
-    #                 plot_args=test.plot_args,
-    #                 model=model,
-    #                 path=self.target_paths['evaluations'][test.name][
-    #                     model.name],
-    #                 ref_model=test.ref_model
-    #             )
-    #             test_list.append(t)
-    #             print("Prepared...\n", t)
-    #     return test_list
-    #
-    # def _prepare_test_func_args(self, test, model):
-    #     forecast = self.get_forecast(model)
-    #     catalog = copy.deepcopy(self.get_catalog())
-    #     catalog.region = forecast.region
-    #     if self.region:
-    #         catalog.filter_spatial(in_place=True)
-    #     if test.ref_model is not None:
-    #         ref_model = self.get_model(test.ref_model)
-    #         test_args = (forecast, self.get_forecast(ref_model), catalog)
-    #     elif test.func == fecsep.evaluations.vector_poisson_t_w_test:
-    #         forecast_batch = [self.get_forecast(model_i) for model_i in
-    #                           self.models]
-    #         test_args = (forecast, forecast_batch, catalog)
-    #     else:
-    #         test_args = (forecast, catalog)
-    #     return test_args
