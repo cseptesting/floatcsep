@@ -312,14 +312,13 @@ class Test:
         self.path = path
         self.markdown = markdown
 
-    def compute(self):
-        print(f"Computing {self.name} for model {self.model.name}...")
-        return self.func(*self.func_args, **self.func_kwargs)
-
-    def compute_(self, timewindow, catpath, model, path, region=None):
+    def compute(self, timewindow,
+                catpath,
+                model,
+                path,
+                region=None):
 
         forecast = model.forecasts[timewindow]
-        # catalog = copy.deepcopy(catalog)
         catalog = CSEPCatalog.load_json(catpath)
 
         if region:
@@ -333,7 +332,7 @@ class Test:
         #     test_args = (forecast, forecast_batch, catalog)
         # else:
         test_args = (forecast, catalog)
-        result = self.func(*test_args)
+        result = self.func(*test_args, **self.func_kwargs)
 
         with open(path, 'w') as _file:
             json.dump(result.to_dict(), _file, indent=4)
@@ -350,7 +349,6 @@ class Test:
     def __str__(self):
         return (
             f"name: {self.name}\n"
-            f"model: {self.model.name}\n"
             f"reference model: {self.ref_model}\n"
             f"kwargs: {self.func_kwargs}\n"
             f"path: {self.path}"
@@ -450,6 +448,8 @@ class Experiment:
 
         self.time_config = read_time_config(time_config, **kwargs)
         self.region_config = read_region_config(region_config, **kwargs)
+
+        # todo: make it simple and also load catalog as file if given:
         self.catalog_reader = parse_csep_func(catalog_reader)
 
         self.model_config = model_config
@@ -679,7 +679,7 @@ class Experiment:
                                   start_date=i[0], end_date=i[1]))
                 for k in self.tests:
                     task_ijk = Task(instance=k,
-                                    method='compute_',
+                                    method='compute',
                                     timewindow=time_str,
                                     catpath=self.target_paths[time_str][
                                         'catalog'],

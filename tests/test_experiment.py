@@ -2,8 +2,23 @@ import os.path
 import tempfile
 from unittest import TestCase
 from datetime import datetime
+
+import fecsep.dbparser
 from fecsep.core import Experiment
 import numpy
+from csep.core import poisson_evaluations
+
+_dir = os.path.dirname(__file__)
+_region = os.path.join(_dir,
+                       'artifacts', 'regions', 'mock_region')
+_time_config = {'start_date': datetime(2021, 1, 1),
+                'end_date': datetime(2022, 1, 1)}
+_region_config = {'region': _region,
+                  'mag_max': 1.2,
+                  'mag_min': 1.0,
+                  'mag_bin': 0.1,
+                  'depth_min': 0,
+                  'depth_max': 1}
 
 
 class TestExperiment(TestCase):
@@ -21,21 +36,10 @@ class TestExperiment(TestCase):
         self.assertEqual(exp_a.catalog_reader, exp_b.catalog_reader)
 
     def test_init(self):
-        _region = os.path.join(os.path.dirname(__file__),
-                               'artifacts', 'regions', 'mock_region')
-        time_config = {'start_date': datetime(2021, 1, 1),
-                       'end_date': datetime(2022, 1, 1)}
-        region_config = {'region': _region,
-                         'mag_max': 1.2,
-                         'mag_min': 1.0,
-                         'mag_bin': 0.1,
-                         'depth_min': 0,
-                         'depth_max': 1}
-
-        exp_a = Experiment(**time_config, **region_config,
+        exp_a = Experiment(**_time_config, **_region_config,
                            catalog_reader='query_comcat')
-        exp_b = Experiment(time_config=time_config,
-                           region_config=region_config,
+        exp_b = Experiment(time_config=_time_config,
+                           region_config=_region_config,
                            catalog_reader='query_comcat')
         self.assertEqualExperiment(exp_a, exp_b)
 
@@ -115,3 +119,37 @@ class TestExperiment(TestCase):
         exp_a.to_yml(file_, extended=True)
         exp_c = Experiment.from_yml(file_)
         self.assertEqualExperiment(exp_a, exp_c)
+
+    def test_set_models(self):
+        model_cfg = os.path.join(_dir, 'artifacts', 'models', 'model_cfg.yml')
+        exp = Experiment(**_time_config, **_region_config,
+                         model_config=model_cfg,
+                         catalog_reader='query_comcat')
+        exp.set_models()
+
+        names = [i.name for i in exp.models]
+        self.assertEqual(['mock', 'qtree@team10', 'qtree@team25'], names)
+        m1_path = os.path.join(_dir, 'artifacts', 'models', 'qtree',
+                               'TEAM=N10L11.csv')
+        self.assertEqual(exp.models[1].path, m1_path)
+        self.assertIs(exp.models[1].dbserializer,
+                      fecsep.dbparser.HDF5Serializer.csv)
+        m1_dbpath = os.path.join(_dir, 'artifacts', 'models', 'qtree',
+                                 'TEAM=N10L11.hdf5')
+        
+        self.assertEqual(exp.models[1].dbpath, m1_dbpath)
+
+    def test_set_tests(self):
+        test_cfg = os.path.join(_dir, 'artifacts', 'evaluations',
+                                'tests_cfg.yml')
+        exp = Experiment(**_time_config, **_region_config,
+                         test_config=test_cfg,
+                         catalog_reader='query_comcat')
+        exp.set_tests()
+
+        funcs = [i.func for i in exp.tests]
+        funcs_expected = [poisson_evaluations.number_test,
+                          poisson_evaluations.spatial_test,
+                          poisson_evaluations.paired_t_test]
+        for i, j in zip(funcs, funcs_expected):
+            self.assertIs(i, j)

@@ -1,0 +1,8 @@
+- mock:
+    path: model.csv
+- qtree:
+      path: qtree
+      zenodo_id: 6289795
+      flavours:
+            team10: TEAM=N10L11.csv
+            team25: TEAM=N25L11.csv
