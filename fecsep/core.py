@@ -8,7 +8,6 @@ from collections.abc import Mapping, Sequence
 import h5py
 import yaml
 from matplotlib import pyplot
-from datetime import datetime
 import os
 import os.path
 
@@ -23,7 +22,7 @@ import fecsep.utils
 import fecsep.accessors
 import fecsep.evaluations
 from fecsep.utils import NoAliasLoader, _set_dockerfile, \
-    parse_csep_func, read_time_config, read_region_config
+    parse_csep_func, read_time_config, read_region_config, Task, timewindow_str
 from fecsep.accessors import from_zenodo, from_git
 import docker
 import docker.errors
@@ -32,24 +31,29 @@ _client = docker.from_env()
 
 
 class Model:
-    def __init__(self, name, path, format='quadtree',
-                 db_type=None, forecast_unit=1,
-                 authors=None, doi=None, markdown=None,
+    def __init__(self, name, path,
+                 forecast_unit=1,
+                 authors=None, doi=None,
                  func=None, func_args=None,
                  zenodo_id=None, giturl=None, repo_hash=None):
         """
 
-        Model constructor
-
-        :param name: Name of the model
-        :param func: Function that creates a forecast from the model
-        :param func_args: Function arguments
-        :param authors:
-        :param doi:
-        :param markdown: Template for the markdown
-        :param kwargs:
-        :return:
+        Args:
+            name (str):
+            path (str):
+            format (str):
+            db_type (str):
+            forecast_unit (str):
+            authors (str):
+            doi (str):
+            markdown:
+            func:
+            func_args:
+            zenodo_id:
+            giturl:
+            repo_hash:
         """
+
         '''
         Model typologies:
         
@@ -81,47 +85,55 @@ class Model:
         self.name = name
         self.path = path
         self._dir = None
+        self.dbpath = None
 
         self.zenodo_id = zenodo_id
         self.giturl = giturl
         self.repo_hash = repo_hash
 
+        self.format = None
         self.get_source(zenodo_id, giturl)
 
-        self.format = format
+        if self.format != 'src':
+            self.dbserializer = parse_csep_func(self.format)
+            self.make_db()
 
         self.authors = authors
         self.doi = doi
-        self.db_type = db_type if db_type else self.format
-        self.markdown = markdown
-        self.forecast_unit = forecast_unit
-        self.forecasts = {}
 
-        self.image = None
-        self.bind = None
+        self.forecast_unit = forecast_unit
+
+        self.forecasts = {}
         self.func = func
         self.func_args = func_args
 
     def get_source(self, zenodo_id=None, giturl=None, **kwargs):
         """
 
-
+        Search(and download/clone) the model source in the filesystem, zenodo
+        and git. Identifies if the instance path points to a file or to its
+        parent directory
 
         Args:
-            zenodo_id:
-            giturl:
-            **kwargs:
+            zenodo_id: Zenodo identifier of the repository. Usually as
+             `https://zenodo.org/record/{zenodo_id}`
+            giturl: git remote repository URL from which to clone the source
+            **kwargs: see :func:`~fecsep.utils.from_zenodo` and
+             :func:`~fecsep.utils.from_git`
 
         Returns:
 
         """
 
         # Check if the provided path is a file or dir.
-        is_file = bool(os.path.splitext(self.path)[-1])
-        if is_file:
+        ext = os.path.splitext(self.path)[-1]
+
+        if bool(ext):
             self._dir = os.path.dirname(self.path)
+            self.format = ext.split('.')[-1]
         else:
             self._dir = self.path
+            self.format = 'src'
 
         if not os.path.exists(self.path):
             # It does not exist, get from zenodo or git
@@ -143,7 +155,7 @@ class Model:
                         raise git.NoSuchPathError('git url was not found')
 
             # Check if file or directory exists after downloading
-            if is_file:
+            if bool(ext):
                 path_exists = os.path.isfile(self.path)
             else:
                 path_exists = os.path.isdir(self.path)
@@ -171,6 +183,20 @@ class Model:
             print(stream.get('stream', '').split('\n')[0])
 
         return img
+
+    def make_db(self):
+        """
+
+        Returns:
+
+        """
+
+        fn_h5 = os.path.splitext(self.path)[0] + '.hdf5'
+
+        if os.path.isfile(fn_h5):
+            self.dbpath = fn_h5
+        else:
+            self.dbserializer(self.path, fn_h5)
 
     def stage_db(self, force=False):
         """
@@ -213,47 +239,64 @@ class Model:
                                            command=cmd)
                 self.filename = fn_h5
 
-    def create_forecast(self, start_date, test_date, name=None):
+    def forecast_path(self, win):
+        return 'a'
+
+    def create_forecast(self, start_date, end_date, **kwargs):
         """
         Creates a forecast from a model and a time window
-        :param model: A model configuration dict
+        :param start_date: A model configuration dict
         :param test_date: A test date to calculate the horizon
         :return: A pycsep.core.forecasts.GriddedForecast object
         """
 
-        time_horizon = decimal_year(test_date) - decimal_year(start_date)
-        print(f"Loading model from {self.path}...")
-        fn = os.path.join(self.path, self.filename)
+        if self.path == self._dir:
+            # Forecasts are created from source code
+            self.make_forecast_td(start_date, end_date, **kwargs)
+        else:
+            # Forecasts are created from file
+            self.make_forecast_ti(start_date, end_date, **kwargs)
 
+    def make_forecast_td(self, start_date, end_date, **kwargs):
+        pass
+
+    def make_forecast_ti(self, start_date, end_date, **kwargs):
+
+        time_horizon = decimal_year(end_date) - decimal_year(start_date)
+        tstring = timewindow_str([start_date, end_date])
+        print(f"Loading model from {self.dbpath}...")
         # todo implement these functions in dbparser
-        if self.db_type == 'hdf5':
-            with h5py.File(fn, 'r') as db:
-                rates = db['rates'][
-                        :]  # todo check memory efficiency. Is it better to leave db open for multiple time intervals?
-                magnitudes = db['magnitudes'][:]
-                if self.format == 'quadtree':
-                    region = QuadtreeGrid2D.from_quadkeys(
-                        db['quadkeys'][:].astype(str), magnitudes=magnitudes)
-                    region.get_cell_area()
-                elif self.format in ['dat', 'csep', 'xml']:
-                    dh = db['dh'][:]
-                    bboxes = db['bboxes'][:]
-                    poly_mask = db['poly_mask'][:]
-                    region = CartesianGrid2D(
-                        [Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
+        with h5py.File(self.dbpath, 'r') as db:
+            rates = db['rates'][:]
+            # todo check memory efficiency. Is it better to leave db open for multiple time intervals?
+            magnitudes = db['magnitudes'][:]
+
+            if 'quadkeys' in db.keys():
+                region = QuadtreeGrid2D.from_quadkeys(
+                    db['quadkeys'][:].astype(str), magnitudes=magnitudes)
+                region.get_cell_area()
+            else:
+                dh = db['dh'][:]
+                bboxes = db['bboxes'][:]
+                poly_mask = db['poly_mask'][:]
+                region = CartesianGrid2D(
+                    [Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
+
         forecast = GriddedForecast(
-            name=name,
+            name=f'{self.name}_tstring',
             data=rates,
             region=region,
             magnitudes=magnitudes,
             start_time=start_date,
-            end_time=test_date
+            end_time=end_date
         )
+
         forecast = forecast.scale(time_horizon / self.forecast_unit)
         print(
-            f"Expected forecast count after scaling: {forecast.event_count} with parameter {time_horizon}.")
-        self.forecasts[test_date] = forecast
-        return forecast
+            f"Expected forecast count after scaling: {forecast.event_count} "
+            f"with scaling parameter: {time_horizon}")
+        print(tstring)
+        self.forecasts[tstring] = forecast
 
     def to_dict(self):
         # todo: modify this function to include more state from the class
@@ -306,6 +349,29 @@ class Test:
     def compute(self):
         print(f"Computing {self.name} for model {self.model.name}...")
         return self.func(*self.func_args, **self.func_kwargs)
+
+    def compute_(self, timewindow, catpath, model, path, region=None):
+
+        forecast = model.forecasts[timewindow]
+        # catalog = copy.deepcopy(catalog)
+        catalog = CSEPCatalog.load_json(catpath)
+
+        if region:
+            catalog.filter_spatial(in_place=True)
+        # if self.ref_model is not None:
+        #     ref_model = self.get_model(test.ref_model)
+        #     test_args = (forecast, self.get_forecast(ref_model), catalog)
+        # elif test.func == fecsep.evaluations.vector_poisson_t_w_test:
+        #     forecast_batch = [self.get_forecast(model_i) for model_i in
+        #                       self.models]
+        #     test_args = (forecast, forecast_batch, catalog)
+        # else:
+        test_args = (forecast, catalog)
+        result = self.func(*test_args)
+
+        with open(path, 'w') as _file:
+            json.dump(result.to_dict(), _file, indent=4)
+        # return test_args
 
     def to_dict(self):
         out = {}
@@ -544,72 +610,118 @@ class Experiment:
                 (catalog and evaluation results)
         """
 
-        # todo:  extrapolate to multiple test_dates
-        if self.test_date is None:
-            raise RuntimeError(
-                "Test date must be set before running experiment.")
-
         # grab names for creating directories
-        tests = [i.name for i in self.tests]
+        windows = timewindow_str(self.time_windows)
         models = [i.name for i in self.models]
+        tests = [i.name for i in self.tests]
 
-        # use the test date by default
         # todo create datetime parser for filenames
         if run_name is None:
-            run_name = self.test_date.isoformat().replace('-', '').replace(':',
-                                                                           '')
+            run_name = 'run'
+            # todo find better way to name paths
+            # run_name = f'run_{datetime.now().date().isoformat()}'
 
         # determine required directory structure for run
-        run_folder = os.path.join(os.getcwd(), results_path or 'results',
-                                  run_name)
+        # results > test_date > time_window > cats / evals / figures
 
-        # results > test_date > cats / evals / figures
-        folders = ['catalog', 'evaluations', 'figures']
-        folder_paths = {folder: os.path.join(run_folder, folder) for folder in
-                        folders}
+        self.run_folder = self._abspath(results_path or 'results', run_name)[1]
+        subfolders = ['catalog', 'evaluations', 'figures', 'forecasts']
+
+        dirtree = {
+            win: {folder: self._abspath(self.run_folder, win, folder)[1] for
+                  folder
+                  in subfolders} for win in windows}
 
         # create directories if they don't exist
-        for key, val in folder_paths.items():
-            os.makedirs(val, exist_ok=True)
+        for tw, tw_folder in dirtree.items():
+            for _, folder_ in tw_folder.items():
+                os.makedirs(folder_, exist_ok=True)
 
-        files = {name: list(os.listdir(path)) for name, path in
-                 folder_paths.items()}
-        exists = {
-            'models': False,  # Modify for time-dependent
-            'catalog': any(file for file in files['catalog']),
+        # Check existing files
+        files = {win: {name: list(os.listdir(path)) for name, path in
+                       windir.items()} for win, windir in dirtree.items()}
+
+        exists = {win: {
+            'forecasts': False,
+            # todo Modify for time-dependent, and/or forecast storage
+            'catalog': any(file for file in files[win]['catalog']),
             'evaluations': {
                 test: {
                     model: any(f'{test}_{model}.json' in file for file in
-                               files['evaluations'])
+                               files[win]['evaluations'])
                     for model in models
                 }
                 for test in tests
             }
-        }
+        } for win in windows}
 
-        target_paths = {
+        target_paths = {win: {
             'models': {
-                'forecasts': {model: os.path.join(model.path, model.filename)
-                              for model in models},
-                'figures': {model: os.path.join(folder_paths['figures'],
+                'forecasts': {
+                    model_name: self.get_model(model_name).forecast_path(win)
+                    for model_name in models},
+                'figures': {model: os.path.join(dirtree[win]['figures'],
                                                 f'{model}') for model in
                             models}},
-            'catalog': os.path.join(folder_paths['catalog'], 'catalog.json'),
+            'catalog': os.path.join(dirtree[win]['catalog'], 'catalog.json'),
             'evaluations': {
                 test: {
-                    model: os.path.join(folder_paths['evaluations'],
+                    model: os.path.join(dirtree[win]['evaluations'],
                                         f'{test}_{model}.json')
                     for model in models
                 }
                 for test in tests
             },
-            'figures': {test: os.path.join(folder_paths['figures'], f'{test}')
+            'figures': {test: os.path.join(dirtree[win]['figures'], f'{test}')
                         for test in tests}
-        }
+        } for win in windows}
 
-        self.run_folder = run_folder
+        self.run_folder = self.run_folder
         self.target_paths = target_paths
         self.exists = exists
+
+    def prepare_tasks(self):
+
+        tasks = []
+
+        # todo: Depth? Magnitude?
+        filter_spatial = Task(instance=self.catalog, method='filter_spatial',
+                              region=self.region, in_place=True)
+
+        tasks.append(filter_spatial)
+        for i in self.time_windows:
+
+            time_str = timewindow_str(i)
+
+            filter_catalog = Task(
+                instance=self.catalog,
+                method='filter',
+                # store=True,
+                statements=[f'origin_time >= {i[0].timestamp() * 1000}',
+                            f'origin_time < {i[1].timestamp() * 1000}']
+            )
+
+            write_catalog = Task(
+                instance=filter_catalog,
+                method='write_json',
+                filename=self.target_paths[time_str]['catalog']
+            )
+            tasks.extend([filter_catalog, write_catalog])
+            for j in self.models:
+                tasks.append(Task(j, 'create_forecast',
+                                  start_date=i[0], end_date=i[1]))
+                for k in self.tests:
+                    task_ijk = Task(instance=k,
+                                    method='compute_',
+                                    timewindow=time_str,
+                                    catpath=self.target_paths[time_str][
+                                        'catalog'],
+                                    model=j,
+                                    path=self.target_paths[time_str][
+                                        'evaluations'][k.name][j.name])
+                    tasks.append(task_ijk)
+
+        self.tasks = tasks
 
     def get_model(self, name):
         for model in self.models:
@@ -619,7 +731,7 @@ class Experiment:
     def get_forecast(self, model):
         # if already bound to model class, simply return
         try:
-            forecast = model.forecasts[self.test_date]
+            forecast = model.forecasts[self.end_date]
         except KeyError:
             # this call binds to model class
             forecast = model.create_forecast(self.start_date, self.end_date,
@@ -629,52 +741,78 @@ class Experiment:
     def set_catalog_reader(self, loader):
         self.catalog_reader = loader
 
-    def get_catalog(self):
-        """ Returns filtered catalog either from a previous run or for a new
-        run downloads from ISC gCMT catalogue.
-
-        This function is passively optimized for the global gefe. Meaning that
-         no filtering needs to occur aside from magnitudes.
-
-        :return:
+    def get_catalog(self, force=False):
         """
-        if hasattr(self, 'catalog'):
+
+        Download catalog and filters it to the region and the complete
+        experiment's time span
+
+        Returns:
+
+        """
+
+        _cat_path = self._abspath(self.run_folder, 'catalog.json')[1]
+
+        if self.catalog:
             catalog = self.catalog
-        elif os.path.exists(self.target_paths['catalog']):
+        # todo check if bounds of existing catalog coincides
+        elif os.path.exists(_cat_path) and not force:
             print(
-                f"Catalog found at {self.target_paths['catalog']}."
+                f"Catalog found at {_cat_path}."
                 f" Using existing filtered catalog...")
-            catalog = CSEPCatalog.load_json(self.target_paths['catalog'])
-            self.set_catalog(catalog)
+            catalog = CSEPCatalog.load_json(_cat_path)
+            self.catalog = catalog
         else:
             print("Downloading catalog")
-            min_mag = self.magnitude_range.min()
-            max_depth = self.depth_range.max()
+            min_mag = self.depths.min()
+            max_depth = self.depths.max()
             if self.region is not None:
-                bounds = {i: j for i, j in
-                          zip(['min_longitude', 'max_longitude',
-                               'min_latitude', 'max_latitude'],
-                              self.region.get_bbox())}
+                spatial_bounds = {i: j for i, j in
+                                  zip(['min_longitude', 'max_longitude',
+                                       'min_latitude', 'max_latitude'],
+                                      self.region.get_bbox())}
             else:
-                bounds = {}
+                spatial_bounds = {}
+            time_bounds = [min([item for sublist in self.time_windows
+                                for item in sublist]),
+                           max([item for sublist in self.time_windows
+                                for item in sublist])]
+
             catalog = self.catalog_reader(
-                catalog_id=self.test_date,
-                start_time=self.start_date,
-                end_time=self.test_date,
+                catalog_id='cat',  # todo name as run
+                start_time=time_bounds[0],
+                end_time=time_bounds[1],
                 min_magnitude=min_mag,
                 max_depth=max_depth,
                 verbose=True,
-                **bounds
+                **spatial_bounds
             )
 
-            self.set_catalog(catalog)
-        if not os.path.exists(self.target_paths['catalog']):
-            catalog.write_json(self.target_paths['catalog'])
+            self.catalog = catalog
+        if not os.path.exists(_cat_path):
+            catalog.write_json(_cat_path)
 
         return catalog
 
-    def set_catalog(self, catalog):
-        self.catalog = catalog
+    @property
+    def catalog(self):
+        return self._catalog
+
+    @catalog.setter
+    def catalog(self, cat):
+        self._catalog = cat
+
+    def prepare_catalogs(self, datetimes, savepath):
+
+        cat = self.catalog.filter_spatial(self.region)
+        cat.filter([f'magnitude >= {self.magnitudes.min()}',
+                    f'magnitude <= {self.magnitudes.max()}',
+                    f'depth >= {self.depths.min()}',
+                    f'depth <= {self.depths.min()}',
+                    f'origin_time >= {datetimes[0].timestamp() * 1000}',
+                    f'origin_time < {datetimes[1].timestamp() * 1000}'],
+                   in_place=True)
+        cat.write_json(savepath)
 
     def stage_models(self, force=False):
         for model in self.models:

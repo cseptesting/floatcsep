@@ -1,4 +1,6 @@
 # python libraries
+import datetime
+
 import numpy
 import re
 import multiprocessing as mp
@@ -350,28 +352,30 @@ def time_windows_td(start_date=None,
 
 class Task:
 
-    def __init__(self, instance, method, store=False, **kwargs):
+    def __init__(self, instance, method, **kwargs):
+
         self.obj = instance
         self.method = method
         self.kwargs = kwargs
-        self.store = store
+
+        self.store = None
 
     def run(self):
-        print(f'\tRunning task {self.obj.__class__}.{self.method}')
+        # print(f'\tRunning task {self.obj.__class__}.{self.method}')
 
         if hasattr(self.obj, 'store'):
             self.obj = self.obj.store
 
-        output = getattr(self.obj, self.method)
+        output = getattr(self.obj, self.method)(**self.kwargs)
 
-        if self.store:
-            self.store = output(**self.kwargs)
-            return self.store
-        else:
-            return output(**self.kwargs)
+        if output:
+            self.store = output
+            del self.obj
+
+        return output
 
     def __call__(self, *args, **kwargs):
-        print('AAAAASDAWDASASD')
+
         return self.run()
 
     def check_exist(self):
@@ -393,6 +397,14 @@ class Attribute:
 
     def check_exist(self):
         pass
+
+
+def timewindow_str(datetimes):
+    if isinstance(datetimes[0], datetime.datetime):
+        return '_'.join([j.date().isoformat() for j in datetimes])
+
+    elif isinstance(datetimes[0], (list, tuple)):
+        return ['_'.join([j.date().isoformat() for j in i]) for i in datetimes]
 
 
 def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True,
