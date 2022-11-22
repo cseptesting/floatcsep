@@ -37,10 +37,10 @@ class TestExperiment(TestCase):
 
     def test_init(self):
         exp_a = Experiment(**_time_config, **_region_config,
-                           catalog_reader='query_comcat')
+                           catalog='query_comcat')
         exp_b = Experiment(time_config=_time_config,
                            region_config=_region_config,
-                           catalog_reader='query_comcat')
+                           catalog='query_comcat')
         self.assertEqualExperiment(exp_a, exp_b)
 
     def test_to_dict(self):
@@ -57,7 +57,7 @@ class TestExperiment(TestCase):
                          'depth_max': 70}
 
         exp_a = Experiment(**time_config, **region_config,
-                           catalog_reader='query_comcat')
+                           catalog='query_comcat')
 
         dict_ = {'name': None,
                  'path': os.getcwd(),
@@ -108,7 +108,7 @@ class TestExperiment(TestCase):
                          'depth_max': 70}
 
         exp_a = Experiment(**time_config, **region_config,
-                           catalog_reader='query_comcat')
+                           catalog='query_comcat')
 
         file_ = tempfile.mkstemp()[1]
         exp_a.to_yml(file_)
@@ -124,7 +124,7 @@ class TestExperiment(TestCase):
         model_cfg = os.path.join(_dir, 'artifacts', 'models', 'model_cfg.yml')
         exp = Experiment(**_time_config, **_region_config,
                          model_config=model_cfg,
-                         catalog_reader='query_comcat')
+                         catalog='query_comcat')
         exp.set_models()
 
         names = [i.name for i in exp.models]
@@ -136,7 +136,7 @@ class TestExperiment(TestCase):
                       fecsep.dbparser.HDF5Serializer.csv)
         m1_dbpath = os.path.join(_dir, 'artifacts', 'models', 'qtree',
                                  'TEAM=N10L11.hdf5')
-        
+
         self.assertEqual(exp.models[1].dbpath, m1_dbpath)
 
     def test_set_tests(self):
@@ -144,7 +144,7 @@ class TestExperiment(TestCase):
                                 'tests_cfg.yml')
         exp = Experiment(**_time_config, **_region_config,
                          test_config=test_cfg,
-                         catalog_reader='query_comcat')
+                         catalog='query_comcat')
         exp.set_tests()
 
         funcs = [i.func for i in exp.tests]

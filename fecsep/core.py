@@ -1,6 +1,7 @@
 import copy
 import json
 
+import csep.core.forecasts
 import git
 import numpy
 import cartopy.crs as ccrs
@@ -24,6 +25,7 @@ import fecsep.evaluations
 from fecsep.utils import NoAliasLoader, _set_dockerfile, \
     parse_csep_func, read_time_config, read_region_config, Task, timewindow_str
 from fecsep.accessors import from_zenodo, from_git
+from fecsep.dbparser import load_from_hdf5
 import docker
 import docker.errors
 
@@ -230,23 +232,10 @@ class Model:
 
         time_horizon = decimal_year(end_date) - decimal_year(start_date)
         tstring = timewindow_str([start_date, end_date])
-        print(f"Loading model from {self.dbpath}...")
-        # todo implement these functions in dbparser
-        with h5py.File(self.dbpath, 'r') as db:
-            rates = db['rates'][:]
-            # todo check memory efficiency. Is it better to leave db open for multiple time intervals?
-            magnitudes = db['magnitudes'][:]
 
-            if 'quadkeys' in db.keys():
-                region = QuadtreeGrid2D.from_quadkeys(
-                    db['quadkeys'][:].astype(str), magnitudes=magnitudes)
-                region.get_cell_area()
-            else:
-                dh = db['dh'][:]
-                bboxes = db['bboxes'][:]
-                poly_mask = db['poly_mask'][:]
-                region = CartesianGrid2D(
-                    [Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
+        # todo implement these functions in dbparser
+
+        rates, region, magnitudes = load_from_hdf5(self.dbpath)
 
         forecast = GriddedForecast(
             name=f'{self.name}_{tstring}',
@@ -259,9 +248,8 @@ class Model:
 
         forecast = forecast.scale(time_horizon / self.forecast_unit)
         print(
-            f"Expected forecast count after scaling: {forecast.event_count} "
-            f"with scaling parameter: {time_horizon}")
-        print(tstring)
+            f"Forecast expected count: {forecast.event_count:.2f}"
+            f" with scaling parameter: {time_horizon:.1f}")
         self.forecasts[tstring] = forecast
 
     def to_dict(self):
@@ -430,7 +418,7 @@ class Experiment:
                  path=None,
                  time_config=None,
                  region_config=None,
-                 catalog_reader=None,
+                 catalog=None,
                  model_config=None,
                  test_config=None,
                  postproc_config=None,
@@ -450,7 +438,7 @@ class Experiment:
         self.region_config = read_region_config(region_config, **kwargs)
 
         # todo: make it simple and also load catalog as file if given:
-        self.catalog_reader = parse_csep_func(catalog_reader)
+        self.catalog = catalog
 
         self.model_config = model_config
         self.test_config = test_config
@@ -460,8 +448,10 @@ class Experiment:
         # Initialize class attributes
         self.models = []
         self.tests = []
+
+        self.tasks = []
         self.run_results = {}
-        self.catalog = None
+        # self.catalog = None
         self.run_folder: str = ''
         self.target_paths: dict = {}
         self.exists: dict = {}
@@ -589,7 +579,7 @@ class Experiment:
             # todo find better way to name paths
             # run_name = f'run_{datetime.now().date().isoformat()}'
 
-        # determine required directory structure for run
+        # Determine required directory structure for run
         # results > test_date > time_window > cats / evals / figures
 
         self.run_folder = self._abspath(results_path or 'results', run_name)[1]
@@ -628,9 +618,10 @@ class Experiment:
                 'forecasts': {
                     model_name: self.get_model(model_name).forecast_path(win)
                     for model_name in models},
+                # todo: important in time-dependent, and/or forecast storage
                 'figures': {model: os.path.join(dirtree[win]['figures'],
-                                                f'{model}') for model in
-                            models}},
+                                                f'{model}')
+                            for model in models}},
             'catalog': os.path.join(dirtree[win]['catalog'], 'catalog.json'),
             'evaluations': {
                 test: {
@@ -657,15 +648,14 @@ class Experiment:
                               region=self.region, in_place=True)
 
         tasks.append(filter_spatial)
-        for i in self.time_windows:
+        for time_i in self.time_windows:
 
-            time_str = timewindow_str(i)
-
+            time_str = timewindow_str(time_i)
             filter_catalog = Task(
                 instance=self.catalog,
                 method='filter',
-                statements=[f'origin_time >= {i[0].timestamp() * 1000}',
-                            f'origin_time < {i[1].timestamp() * 1000}']
+                statements=[f'origin_time >= {time_i[0].timestamp() * 1000}',
+                            f'origin_time < {time_i[1].timestamp() * 1000}']
             )
 
             write_catalog = Task(
@@ -673,19 +663,30 @@ class Experiment:
                 method='write_json',
                 filename=self.target_paths[time_str]['catalog']
             )
-            tasks.extend([filter_catalog, write_catalog])
-            for j in self.models:
-                tasks.append(Task(j, 'create_forecast',
-                                  start_date=i[0], end_date=i[1]))
-                for k in self.tests:
-                    task_ijk = Task(instance=k,
-                                    method='compute',
-                                    timewindow=time_str,
-                                    catpath=self.target_paths[time_str][
-                                        'catalog'],
-                                    model=j,
-                                    path=self.target_paths[time_str][
-                                        'evaluations'][k.name][j.name])
+            tasks_i = [filter_catalog, write_catalog]
+            tasks.extend(tasks_i)
+
+            for model_j in self.models:
+
+                task_ij = Task(
+                    instance=model_j,
+                    method='create_forecast',
+                    start_date=time_i[0],
+                    end_date=time_i[1]
+                )
+                tasks.append(task_ij)
+
+                for test_k in self.tests:
+                    task_ijk = Task(
+                        instance=test_k,
+                        method='compute',
+                        timewindow=time_str,
+                        catpath=self.target_paths[time_str][
+                            'catalog'],
+                        model=model_j,
+                        path=self.target_paths[time_str][
+                            'evaluations'][test_k.name][model_j.name]
+                    )
                     tasks.append(task_ijk)
 
         self.tasks = tasks
@@ -695,43 +696,24 @@ class Experiment:
             if model.name == name:
                 return model
 
-    def get_forecast(self, model):
+    def get_forecast(self, model, datetimes):
         # if already bound to model class, simply return
         try:
-            forecast = model.forecasts[self.end_date]
+            forecast = model.forecasts[timewindow_str(datetimes)]
         except KeyError:
             # this call binds to model class
-            forecast = model.create_forecast(self.start_date, self.end_date,
+            forecast = model.create_forecast(datetimes[0], datetimes[1],
                                              name=model.name)
         return forecast
 
-    def set_catalog_reader(self, loader):
-        self.catalog_reader = loader
+    @property
+    def catalog(self):
 
-    def get_catalog(self, force=False):
-        """
+        if callable(self._catalog):
+            if os.path.isfile(self._catpath):
+                return CSEPCatalog.load_json(self._catpath)
 
-        Download catalog and filters it to the region and the complete
-        experiment's time span
-
-        Returns:
-
-        """
-
-        _cat_path = self._abspath(self.run_folder, 'catalog.json')[1]
-
-        if self.catalog:
-            catalog = self.catalog
-        # todo check if bounds of existing catalog coincides
-        elif os.path.exists(_cat_path) and not force:
-            print(
-                f"Catalog found at {_cat_path}."
-                f" Using existing filtered catalog...")
-            catalog = CSEPCatalog.load_json(_cat_path)
-            self.catalog = catalog
-        else:
-            print("Downloading catalog")
-            min_mag = self.depths.min()
+            min_mag = self.magnitudes.min()
             max_depth = self.depths.max()
             if self.region is not None:
                 spatial_bounds = {i: j for i, j in
@@ -745,7 +727,7 @@ class Experiment:
                            max([item for sublist in self.time_windows
                                 for item in sublist])]
 
-            catalog = self.catalog_reader(
+            catalog = self._catalog(
                 catalog_id='cat',  # todo name as run
                 start_time=time_bounds[0],
                 end_time=time_bounds[1],
@@ -755,19 +737,35 @@ class Experiment:
                 **spatial_bounds
             )
 
-            self.catalog = catalog
-        if not os.path.exists(_cat_path):
-            catalog.write_json(_cat_path)
+            catalog.write_json(self._catpath)
+            return catalog
 
-        return catalog
-
-    @property
-    def catalog(self):
-        return self._catalog
+        elif os.path.isfile(self._catalog):
+            return CSEPCatalog.load_json(self._catpath)
 
     @catalog.setter
     def catalog(self, cat):
-        self._catalog = cat
+
+        if os.path.isfile(self._abspath(cat)[1]):
+            print(f"Using catalog from {cat}")
+            self._catalog = cat
+            self._catpath = cat
+
+        else:
+            # catalog can be a function
+            self._catalog = parse_csep_func(cat)
+            self._catpath = self._abspath('catalog.json')[1]
+            if os.path.isfile(self._catpath):
+                print(f"Load stored catalog "
+                      f"'{os.path.relpath(self._catpath, self.path)}', "
+                      f"obtained from function '{cat}'")
+            else:
+                print(f"Downloading catalog from function {cat}")
+
+    def run(self):
+
+        for task in self.tasks:
+            task.run()
 
     def read_evaluation_result(self, test, models, target_paths):
         test_results = []

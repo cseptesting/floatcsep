@@ -4,6 +4,28 @@ import argparse, os
 import numpy
 import xml.etree.ElementTree as et
 import itertools
+from csep.models import Polygon
+from csep.core.regions import QuadtreeGrid2D, CartesianGrid2D
+
+
+def load_from_hdf5(filename):
+    with h5py.File(filename, 'r') as db:
+        rates = db['rates'][:]
+        # todo check memory efficiency. Is it better to leave db open for multiple time intervals?
+        magnitudes = db['magnitudes'][:]
+
+        if 'quadkeys' in db.keys():
+            region = QuadtreeGrid2D.from_quadkeys(
+                db['quadkeys'][:].astype(str), magnitudes=magnitudes)
+            region.get_cell_area()
+        else:
+            dh = db['dh'][:]
+            bboxes = db['bboxes'][:]
+            poly_mask = db['poly_mask'][:]
+            region = CartesianGrid2D(
+                [Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
+
+    return rates, region, magnitudes
 
 
 class HDF5Serializer:
@@ -135,7 +157,6 @@ class HDF5Serializer:
             poly_mask = data['mask']
         except:
             poly_mask = numpy.ones(bboxes.shape[0])
-
 
         with h5py.File(hdf5_filename, 'a') as hf:
             hf.require_dataset('rates', shape=rates.shape, dtype=float)
