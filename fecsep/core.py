@@ -244,7 +244,7 @@ class Test:
                               'binary_conditional_likelihood_test'],
               'comparative': ['paired_t_test', 'w_test',
                               'binary_paired_t_test'],
-              'sequential': []}
+              'sequential': ['sequential_likelihood']}
 
     def __init__(self, name, func, markdown='', func_args=None,
                  func_kwargs=None, plot_func=None,
@@ -283,18 +283,26 @@ class Test:
                 ref_model=None,
                 region=None):
 
-        forecast = model.forecasts[timewindow]
-        catalog = CSEPCatalog.load_json(catpath)
-        catalog.filter_spatial(region=forecast.region, in_place=True)
-
         if self.type == 'comparative':
+            forecast = model.forecasts[timewindow]
+            catalog = CSEPCatalog.load_json(catpath)
+            catalog.filter_spatial(region=forecast.region, in_place=True)
             ref_forecast = ref_model.forecasts[timewindow]
             test_args = (forecast, ref_forecast, catalog)
         # elif test.func == fecsep.evaluations.vector_poisson_t_w_test:
         #     forecast_batch = [self.get_forecast(model_i) for model_i in
         #                       self.models]
         #     test_args = (forecast, forecast_batch, catalog)
-        else:
+        if self.type == 'sequential':
+            forecasts = [model.forecasts[i] for i in timewindow]
+            catalogs = [CSEPCatalog.load_json(i) for i in catpath]
+            for i in catalogs:
+                i.filter_spatial(region=forecasts[0].region, in_place=True)
+            test_args = (forecasts, catalogs, timewindow)
+        else:  # consistency
+            forecast = model.forecasts[timewindow]
+            catalog = CSEPCatalog.load_json(catpath)
+            catalog.filter_spatial(region=forecast.region, in_place=True)
             test_args = (forecast, catalog)
 
         result = self.func(*test_args, **self.func_kwargs)
@@ -693,8 +701,25 @@ class Experiment:
                                 'evaluations'][test_k.name][model_j.name]
                         )
                         tasks.append(task_ik)
+        for test_k in self.tests:
+            if test_k.type == 'sequential':
+                timestrs = timewindow_str(self.time_windows)
+                for model_j in self.models:
+                    task_k = Task(
+                        instance=test_k,
+                        method='compute',
+                        timewindow=timestrs,
+                        catpath=[self._paths[i]['catalog'] for i in timestrs],
+                        model=model_j,
+                        path=self._paths[timestrs[-1]][
+                            'evaluations'][test_k.name][model_j.name]
+                    )
+                    tasks.append(task_k)
         self.tasks = tasks
 
+    # def sequential_likelihood(gridded_forecasts, observed_catalogs, timewindows,
+    #                           num_simulations=1000, seed=None, random_numbers=None,
+    #                           verbose=False):
     def get_model(self, name):
         for model in self.models:
             if model.name == name:
@@ -792,8 +817,21 @@ class Experiment:
             timestr = timewindow_str(time)
             figpaths = self._paths[timestr]['figures']
 
+            # consistency and comparative
             for test in self.tests:
-                results = self._read_results(test, time)
+                if test.type in ['consistency', 'comparative']:
+                    results = self._read_results(test, time)
+                    ax = test.plot_func(results, plot_args=test.plot_args,
+                                        **test.plot_kwargs)
+                    if 'code' in test.plot_args:
+                        exec(test.plot_args['code'])
+                    pyplot.savefig(figpaths[test.name], dpi=dpi)
+                    if show:
+                        pyplot.show()
+        for test in self.tests:
+            if test.type in ['consistency', 'sequential']:
+                timestr = timewindow_str(self.time_windows[-1])
+                results = self._read_results(test, timestr)
                 ax = test.plot_func(results, plot_args=test.plot_args,
                                     **test.plot_kwargs)
                 if 'code' in test.plot_args:

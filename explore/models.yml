@@ -17,14 +17,15 @@
 #        SRU_MU: fs_ver09e_model_aGR_SRU_MU_fMthr.csv
 #        SRU_ML: fs_ver09e_model_aGR_SRU_ML_fMthr.csv
 - ALM:
-        path: models/gulia-wiemer.ALM.italy.10yr.2010-01-01.xml
-        forecast_unit: 10
+    path: models/gulia-wiemer.ALM.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
 - MPS04:
-        path: models/meletti.MPS04.italy.10yr.2010-01-01.xml
-        forecast_unit: 10
+    path: models/meletti.MPS04.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
 
 - TripleS:
-        path: models/zechar.TripleS-CPTI.italy.10yr.2010-01-01.xml
+    path: models/zechar.TripleS-CPTI.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
 #- Mock:
 #    zenodo_id: None
 #    path: mock

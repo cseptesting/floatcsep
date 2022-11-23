@@ -1,6 +1,7 @@
 # python libraries
 import datetime
 
+import matplotlib.pyplot as plt
 import numpy
 import re
 import multiprocessing as mp
@@ -25,6 +26,9 @@ from csep.utils.plots import plot_spatial_dataset
 from csep.models import Polygon
 from csep.core.regions import QuadtreeGrid2D, geographical_area_from_bounds
 from csep.utils.calc import cleaner_range
+from csep.core.poisson_evaluations import _poisson_likelihood_test
+from csep.models import EvaluationResult
+from csep.core.exceptions import CSEPCatalogException
 
 # feCSEP libraries
 
@@ -407,6 +411,134 @@ def timewindow_str(datetimes):
         return ['_'.join([j.date().isoformat() for j in i]) for i in datetimes]
 
 
+def sequential_likelihood(gridded_forecasts, observed_catalogs, timewindows,
+                          ref_forecasts=None,
+                          num_simulations=1000, seed=None, random_numbers=None,
+                          verbose=False):
+    """
+    Performs the likelihood test on Gridded Forecast using an Observed Catalog.
+
+    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
+    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
+    gridded forecasts that supply their forecasts as rates.
+
+    Args:
+        gridded_forecast: csep.core.forecasts.GriddedForecast
+        observed_catalog: csep.core.catalogs.Catalog
+        num_simulations (int): number of simulations used to compute the quantile score
+        seed (int): used fore reproducibility, and testing
+        random_numbers (numpy.ndarray): random numbers used to override the random number generation.
+                               injection point for testing.
+
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+
+    # grid catalog onto spatial grid
+    # grid catalog onto spatial grid
+
+    likelihoods = []
+
+    for gridded_forecast, observed_catalog in zip(gridded_forecasts,
+                                                  observed_catalogs):
+        try:
+            _ = observed_catalog.region.magnitudes
+        except CSEPCatalogException:
+            observed_catalog.region = gridded_forecast.region
+
+        gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
+
+        # simply call likelihood test on catalog and forecast
+        qs, obs_ll, simulated_ll = _poisson_likelihood_test(
+            gridded_forecast.data, gridded_catalog_data,
+            num_simulations=1,
+            seed=seed,
+            random_numbers=random_numbers,
+            use_observed_counts=False,
+            verbose=verbose,
+            normalize_likelihood=False)
+        likelihoods.append(obs_ll)
+        # populate result data structure
+    result = EvaluationResult()
+
+    result.test_distribution = timewindows
+    result.name = 'Sequential Likelihood'
+    result.observed_statistic = likelihoods
+    result.quantile = 1
+    result.sim_name = gridded_forecast.name
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(gridded_forecast.magnitudes)
+
+    return result
+
+
+def plot_sequential_likelihood(evaluation_results, plot_args={}):
+    title = plot_args.get('title', None)
+    titlesize = plot_args.get('titlesize', None)
+    ylabel = plot_args.get('ylabel', None)
+    colors = plot_args.get('colors', [None] * len(evaluation_results))
+    linestyles = plot_args.get('linestyles', [None] * len(evaluation_results))
+    markers = plot_args.get('markers', [None] * len(evaluation_results))
+    markersize = plot_args.get('markersize', 1)
+    linewidth = plot_args.get('linewidth', 0.5)
+    figsize = plot_args.get('figsize', (6, 4))
+    seaborn.set_style("white",
+                      {"axes.facecolor": ".9", 'font.family': 'Ubuntu'})
+    pyplot.rcParams.update({'xtick.bottom': True, 'axes.labelweight': 'bold',
+                            'xtick.labelsize': 8, 'ytick.labelsize': 8,
+                            'legend.fontsize': 9})
+
+    if isinstance(colors, list):
+        assert len(colors) == len(evaluation_results)
+    elif isinstance(colors, str):
+        colors = [colors] * len(evaluation_results)
+    if isinstance(linestyles, list):
+        assert len(linestyles) == len(evaluation_results)
+    elif isinstance(linestyles, str):
+        linestyles = [linestyles] * len(evaluation_results)
+    if isinstance(markers, list):
+        assert len(markers) == len(evaluation_results)
+    elif isinstance(markers, str):
+        markers = [markers] * len(evaluation_results)
+
+    fig, ax = pyplot.subplots(figsize=figsize)
+    for i, result in enumerate(evaluation_results):
+        timestrs = result.test_distribution
+        startyear = [datetime.date.fromisoformat(j.split('_')[0]) for j in
+                     timestrs][0]
+        endyears = [datetime.date.fromisoformat(j.split('_')[1]) for j in
+                    timestrs]
+        dt = endyears[1] - endyears[0]
+        midyears = [k - dt / 2. for k in endyears]
+        ax.plot(midyears, result.observed_statistic, color=colors[i],
+                linewidth=linewidth, linestyle=linestyles[i],
+                marker=markers[i],
+                markersize=markersize,
+                label=result.sim_name)
+        ax.set_ylabel(ylabel)
+        ax.set_xlim([startyear, None])
+        ax.set_title(title, fontsize=titlesize)
+        ax.grid(True)
+    ax.legend(loc=(1.04, 0), fontsize=7)
+    fig.tight_layout()
+
+
+def magnitude_vs_time(catalog):
+    mag = catalog.data['magnitude']
+    time = [datetime.datetime.fromtimestamp(i / 1000.) for i in
+            catalog.data['origin_time']]
+    print(len(catalog.data))
+
+    fig, ax = pyplot.subplots(figsize=(12, 4))
+    ax.plot(time, mag, marker='o', linewidth=0, color='r', alpha=0.2)
+    ax.set_xlabel('Date', fontsize=16)  # Assign the text label to the x axis
+    ax.set_ylabel('$M_w$', fontsize=16)  # Assign the text label to the y axis
+    ax.set_title('Magnitude vs. Time',
+                 fontsize=18)  # Of course, a title is important
+    return ax
+
+
 def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True,
                                  plot_args=None):
     """ Produces matrix plot for comparative tests for all models
@@ -631,7 +763,6 @@ class MarkdownReport:
         result_cell.append('\n')
         result_cell.append(f'{caption}')
 
-        print(result_cell)
         self.markdown.append('\n'.join(result_cell) + '\n')
 
         # generate metadata for TOC

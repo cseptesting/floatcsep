@@ -1,18 +1,57 @@
+- HAZFX_BPT:
+    path: models/akinci.HAZFX_BPT.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- HAZGRIDX:
+    path: models/akinci-lombardi.HAZGRIDX.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- HZA_TD:
+    path: models/chan.HZA_TD.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- HZA_TI:
+    path: models/chan.HZA_TI.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- LTST:
+    path: models/console-murru-falcone.LTST.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- PHM_Grid:
+    path: models/faenza.PHM_Grid.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- PHM_Zone:
+    path: models/faenza.PHM_Zone.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
 - ALM:
-      path: models
-      format: xml
-      forecast_unit: 10
-      filename: gulia-wiemer.ALM.italy.10yr.2010-01-01.xml
-      db_type: hdf5
+    path: models/gulia-wiemer.ALM.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- HALM:
+    path: models/gulia-wiemer.HALM.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- DBM:
+    path: models/lombardi.DBM.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
 - MPS04:
-      path: models
-      format: xml
-      forecast_unit: 10
-      filename: meletti.MPS04.italy.10yr.2010-01-01.xml
-      db_type: hdf5
+    path: models/meletti.MPS04.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- MPS04after:
+    path: models/meletti.MPS04after.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- RI:
+    path: models/nanjo.RI.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- ALM_IT:
+    path: models/schorlemmer-wiemer.ALM_IT.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- HRSS-m1:
+    path: models/werner.HRSS-m1.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- HRSS-m2:
+    path: models/werner.HRSS-m2.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
 - TripleS-CPTI:
-      path: models
-      format: xml
-      forecast_unit: 10
-      filename: zechar.TripleS-CPTI.italy.10yr.2010-01-01.xml
-      db_type: hdf5
+    path: models/zechar.TripleS-CPTI.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- TripleS-CSI:
+    path: models/zechar.TripleS-CSI.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
+- TripleS-hybrid:
+    path: models/zechar.TripleS-hybrid.italy.10yr.2010-01-01.xml
+    forecast_unit: 10
