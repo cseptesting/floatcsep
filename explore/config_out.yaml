@@ -1,0 +1,54 @@
+name: europe
+path: /home/pciturri/PycharmProjects/fecsep/explore
+time_config:
+  start_date: '2014-01-01T00:00:00'
+  end_date: '2022-04-01T00:00:00'
+  exp_class: ti
+  time_windows:
+  - ['2014-01-01T00:00:00', '2022-04-01T00:00:00']
+region_config:
+  region:
+    name: asd
+    dh: 1.0
+    polygons:
+    - {lat: 2.0, lon: 100.0}
+    - {lat: 2.0, lon: 101.0}
+    - {lat: 3.0, lon: 100.0}
+    - {lat: 3.0, lon: 101.0}
+    class_id: CartesianGrid2D
+  mag_min: 4.7
+  mag_max: 8.7
+  mag_bin: 0.2
+  depth_min: -2
+  depth_max: 30
+catalog_reader: query_isc_gcmt
+model_config: models.yml
+test_config: tests.yml
+postproc_config: {}
+default_test_kwargs: null
+models:
+- {name: AAAAA@team, path: /home/pciturri/PycharmProjects/fecsep/explore/asasdd/TEAM=SN50L11.csv}
+- {name: AAAAA@asd, path: /home/pciturri/PycharmProjects/fecsep/explore/asasdd/TEAM=SN100L11.csv}
+- {name: AreaSources, path: /home/pciturri/PycharmProjects/fecsep/explore/models/area_source_model.csv}
+- {name: FaultBackgroundSources, path: /home/pciturri/PycharmProjects/fecsep/explore/models/faults_backg_source_model.csv}
+- {name: FSBG@SRU_MU, path: /home/pciturri/PycharmProjects/fecsep/explore/models/FSBG/fs_ver09e_model_aGR_SRU_MU_fMthr.csv}
+- {name: FSBG@SRU_ML, path: /home/pciturri/PycharmProjects/fecsep/explore/models/FSBG/fs_ver09e_model_aGR_SRU_ML_fMthr.csv}
+tests:
+- name: Poisson_N
+  func_kwargs: {}
+- name: Poisson_S
+  func_kwargs: {}
+- name: Poisson_M
+  func_kwargs: {}
+- name: Poisson_CL
+  func_kwargs: {}
+- name: Binary_S
+  func_kwargs: {}
+- name: Poisson_T
+  func_kwargs: {}
+  ref_model: AreaSources
+run_results: {}
+catalog: null
+run_folder: ''
+target_paths: {}
+exists: {}

@@ -1,0 +1,34 @@
+#- AAAAA:
+#      path: asasdd
+#      zenodo_id: 6289795
+#      format: csep
+#      flavours:
+#            team: TEAM=SN50L11.csv
+#            asd: TEAM=SN100L11.csv
+#- AreaSources:
+#    path: models/area_source_model.csv
+#    format: csep
+#- FaultBackgroundSources:
+#    path: models/faults_backg_source_model.csv
+#    format: csep
+#- FSBG:
+#    path: models/FSBG
+#    flavours:
+#        SRU_MU: fs_ver09e_model_aGR_SRU_MU_fMthr.csv
+#        SRU_ML: fs_ver09e_model_aGR_SRU_ML_fMthr.csv
+- ALM:
+        path: models/gulia-wiemer.ALM.italy.10yr.2010-01-01.xml
+        forecast_unit: 10
+- MPS04:
+        path: models/meletti.MPS04.italy.10yr.2010-01-01.xml
+        forecast_unit: 10
+
+- TripleS:
+        path: models/zechar.TripleS-CPTI.italy.10yr.2010-01-01.xml
+#- Mock:
+#    zenodo_id: None
+#    path: mock
+#    giturl: None
+#    giturl: https://git.gfz-potasd.de/2312-group/rise_italy_experiment/models/pymock.git
+#    giturl: https://git.gfz-potsdam.de/csep-group/rise_italy_experiment/models/pymock.git
+
