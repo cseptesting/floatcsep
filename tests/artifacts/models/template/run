@@ -1,0 +1,12 @@
+### Main routine to create a forecast for a given time window and parameters
+
+### The file or command 'run' should be executable from the top directory.
+
+### It could be shell file (.sh), or a binary installed during the setup (e.g. an entrypoint in setup.py)
+
+### The experiment obligatory parameters (e.g. start date and end date) should be passed as arguments to this function,
+### along with the possibility of replacing hyperparameters (e.g minimum magnitude, completeness magnitude for training,
+### submethods, etc). See details in the file parameters of this repo.  Example:
+# run --start_date 2023-01-01T00:00:00 --end_date 2023-01-01T23:59:59 --mag_min 4.0 --mc 2.5
+
+### This script should create a forecast into the file /forecasts/{model_name}_{start_date}

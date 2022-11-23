@@ -1,0 +1,67 @@
+- Poisson_N:
+      func: poisson_evaluations.number_test
+      func_kwargs: {}
+      plot_func: plot_poisson_consistency_test
+      plot_args:
+          title: $N-$test
+          xlabel: Event counts
+          figsize: !!python/tuple [ 4, 4 ]
+          title_fontsize: 16
+- Poisson_S:
+      func: poisson_evaluations.spatial_test
+      func_kwargs: {}
+      plot_func: plot_poisson_consistency_test
+      plot_args:
+          title: $S-$test
+          xlabel: Spatial Log-Likelihood
+          figsize: !!python/tuple [4, 4]
+          title_fontsize: 16
+      plot_kwargs:
+          normalize: True
+          one_sided_lower: True
+- Poisson_M:
+      func: poisson_evaluations.magnitude_test
+      func_kwargs: {}
+      plot_func: plot_poisson_consistency_test
+      plot_args:
+          title: $M-$test
+          xlabel: Magnitude Log-Likelihood
+          figsize: !!python/tuple [4, 4]
+          title_fontsize: 16
+      plot_kwargs:
+          normalize: True
+          one_sided_lower: True
+- Poisson_CL:
+      func: poisson_evaluations.conditional_likelihood_test
+      func_kwargs: {}
+      plot_func: plot_poisson_consistency_test
+      plot_args:
+          title: $L_{N}-$test
+          xlabel: Log-Likelihood
+          figsize: !!python/tuple [4, 4]
+          title_fontsize: 16
+      plot_kwargs:
+          normalize: True
+          one_sided_lower: True
+- Binary_S:
+      func: binomial_spatial_test
+      func_kwargs: {}
+      plot_func: plot_poisson_consistency_test
+      plot_args:
+          title: $S-$Binary Test
+          xlabel: Spatial Log-Likelihood
+          figsize: !!python/tuple [ 4, 4 ]
+          title_fontsize: 16
+      plot_kwargs:
+          normalize: True
+          one_sided_lower: True
+- Poisson_T:
+    func: poisson_evaluations.paired_t_test
+    func_kwargs: {}
+    plot_func: plot_comparison_test
+    ref_model: hybrid@m
+    plot_args:
+      title: $T-$test
+      figsize: !!python/tuple [ 8, 4 ]
+      title_fontsize: 16
+      ylabel: Information Gain / EQ

@@ -1,0 +1,20 @@
+- hybrid:
+    path: models/hybrid
+    flavours:
+#        ao: ao_N5.2_b1.00.csv
+#        at: at_N5.2_b1.00.csv
+        m: m_N5.2_b1.00.csv
+- hybrid_eepas:
+    path: models/hybrid_eepas
+    flavours:
+#        ao: ao_eepas_N5.2_b1.00.csv
+#        at: at_eepas_N5.2_b1.00.csv
+        m: m_eepas_N5.2_b1.00.csv
+- floor:
+      path: models/floor
+      flavours:
+#          ao: fe_ao_N5.2_b1.00.csv
+#          at: fe_at_N5.2_b1.00.csv
+          m: fe_m_N5.2_b1.00.csv
+
+
