@@ -14,7 +14,7 @@ setup(
         'docker',
         'h5py',
         'pandas',
-        'yaml'
+        'pyyaml'
     ],
     extras_require={
         'test': [

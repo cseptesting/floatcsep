@@ -1,12 +1,12 @@
 - Poisson_N:
     func: poisson_evaluations.number_test
-    func_kwargs: {}
+    func_kwargs: { }
     plot_func: plot_poisson_consistency_test
     plot_args:
-        title: $N-$test
-        xlabel: Event counts
-        figsize: !!python/tuple [ 4, 4 ]
-        title_fontsize: 16
+      title: $N-$test
+      xlabel: Event counts
+      figsize: !!python/tuple [ 3, 4 ]
+      title_fontsize: 16
 
 #- Poisson_S:
 #    func: poisson_evaluations.spatial_test
@@ -58,11 +58,11 @@
 #        one_sided_lower: True
 - Poisson_T:
     func: poisson_evaluations.paired_t_test
-    func_kwargs: {}
+    func_kwargs: { }
     plot_func: plot_comparison_test
     ref_model: ALM
     plot_args:
       title: $T-$test
-      figsize: !!python/tuple [ 5, 4 ]
+      figsize: !!python/tuple [ 5, 3 ]
       title_fontsize: 16
       ylabel: Information Gain / Earthquake

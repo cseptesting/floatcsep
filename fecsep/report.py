@@ -41,34 +41,34 @@ def generate_report(experiment, timewindow=-1):
     report.add_list(objs)
     # Generate plot of the catalog
 
-    # if experiment.catalog is not None:
-    #     cat_path = experiment._paths[timestr]['catalog']
-    #     figure_path = os.path.splitext(cat_path)[0]
-    #     # relative to top-level directory
-    #     if experiment.region:
-    #         experiment.catalog.filter_spatial(experiment.region, in_place=True)
-    #     ax = experiment.catalog.plot(plot_args={
-    #         'figsize': (12, 8),
-    #         'markersize': 8,
-    #         'markercolor': 'black',
-    #         'grid_fontsize': 16,
-    #         'title': '',
-    #         'legend': False
-    #     })
-    #     ax.get_figure().tight_layout()
-    #     ax.get_figure().savefig(f"{figure_path}.png")
-    #     report.add_figure(
-    #         f"ISC gCMT Authoritative Catalog",
-    #         figure_path,
-    #         level=2,
-    #         caption="The authoritative evaluation data is the full Global CMT catalog (Ekström et al. 2012). "
-    #                 "We confine the hypocentral depths of earthquakes in training and testing datasets to a "
-    #                 f"maximum of 70km. The plot shows the catalog for the testing period which ranges from "
-    #                 f"{timewindow[0]} until {timewindow[1]}. "  # todo
-    #                 f"Earthquakes are filtered above Mw {experiment.magnitudes.min()}. "
-    #                 "Black circles depict individual earthquakes with its radius proportional to the magnitude.",
-    #         add_ext=True
-    #     )
+    if experiment.catalog is not None:
+        cat_path = experiment._paths[timestr]['catalog']
+        figure_path = os.path.splitext(cat_path)[0]
+        # relative to top-level directory
+        if experiment.region:
+            experiment.catalog.filter_spatial(experiment.region, in_place=True)
+        ax = experiment.catalog.plot(plot_args={
+            'figsize': (12, 8),
+            'markersize': 8,
+            'markercolor': 'black',
+            'grid_fontsize': 16,
+            'title': '',
+            'legend': False
+        })
+        ax.get_figure().tight_layout()
+        ax.get_figure().savefig(f"{figure_path}.png")
+        report.add_figure(
+            f"ISC gCMT Authoritative Catalog",
+            figure_path,
+            level=2,
+            caption="The authoritative evaluation data is the full Global CMT catalog (Ekström et al. 2012). "
+                    "We confine the hypocentral depths of earthquakes in training and testing datasets to a "
+                    f"maximum of 70km. The plot shows the catalog for the testing period which ranges from "
+                    f"{timewindow[0]} until {timewindow[1]}. "  # todo
+                    f"Earthquakes are filtered above Mw {experiment.magnitudes.min()}. "
+                    "Black circles depict individual earthquakes with its radius proportional to the magnitude.",
+            add_ext=True
+        )
     report.add_heading(
         "Results",
         level=2,
@@ -81,12 +81,14 @@ def generate_report(experiment, timewindow=-1):
     # Include results from Experiment
     for test in experiment.tests:
         fig_path = experiment._paths[timestr]['figures'][test.name]
+        width = test.plot_args['figsize'][0] * 96  # inch to pix
         report.add_figure(
             f"{test.name}",
             fig_path,
             level=3,
             caption=test.markdown,
-            add_ext=True
+            add_ext=True,
+            width=width
         )
 
     report.table_of_contents()

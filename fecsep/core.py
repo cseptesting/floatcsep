@@ -14,7 +14,7 @@ from csep.core.catalogs import CSEPCatalog
 from csep.core.forecasts import GriddedForecast
 from csep.utils.time_utils import decimal_year
 
-import report
+from fecsep import report
 from fecsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
     read_region_config, Task, timewindow_str
 from fecsep.accessors import from_zenodo, from_git

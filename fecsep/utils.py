@@ -565,7 +565,7 @@ class MarkdownReport:
         self.markdown.append('  '.join(text) + '\n\n')
 
     def add_figure(self, title, relative_filepaths, level=2, ncols=3,
-                   add_ext=False, text='', caption=''):
+                   add_ext=False, text='', caption='', width=None):
         """
         this function expects a list of filepaths. if you want the output stacked, select a
         value of ncols. ncols should be divisible by filepaths. todo: modify formatted_paths to work when not divis.
@@ -607,13 +607,14 @@ class MarkdownReport:
             return top + '\n' + bottom
 
         # <img src="results/20220101T170000/figures/Poisson_T.png" width=720 />
+        size_ = bool(width) * f'width={width}'
+
         def add_to_row(row):
             if len(row) == 1:
-                return f"<img src='{row[0]}' />"
-                # return f"![]({row[0]})"
+                return f'<img src="{row[0]}" {size_}/>'
             string = '| '
             for item in row:
-                string = string + f' ![]({item}) |'
+                string = string + f'<img src="{item}" width={width}/>'
             return string
 
         level_string = f"{level * '#'}"
