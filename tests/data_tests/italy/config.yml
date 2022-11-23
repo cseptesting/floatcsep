@@ -5,6 +5,7 @@ time_config:
   end_date: 2022-1-1T00:00:00
   intervals: 12
   growth: cumulative
+
 region_config:
   region: italy_csep_region
   mag_min: 5.0
@@ -12,18 +13,15 @@ region_config:
   mag_bin: 0.1
   depth_min: -2
   depth_max: 30
-catalog: query_isc_gcmt
 
+catalog: query_isc_gcmt
 model_config: models.yml
 test_config: tests.yml
-#default_test_kwargs:
-#  seed: 23
-#  num_simulations: 100
+
 postproc_config:
   plot_forecasts:
     region_border: True
     basemap: ESRI_terrain
-    #    projection: None
     clabel_fontsize: 14
     cticks_fontsize: 12
     alpha_exp: 0.8

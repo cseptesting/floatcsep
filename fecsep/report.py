@@ -32,11 +32,7 @@ def generate_report(experiment, timewindow=-1):
     report.add_heading("Objectives", level=2)
     objs = [
         "Describe the predictive skills of posited hypothesis about seismogenesis with earthquakes of "
-        "M5.95+ independent observations around the globe.",
-        "Identify the methods and geophysical datasets that lead to the highest information gains in "
-        "global earthquake forecasting.",
-        "Test earthquake forecast models on different grid settings.",
-        "Use Quadtree based grid to represent and evaluate earthquake forecasts."
+        "M4.95+",
     ]
     report.add_list(objs)
     # Generate plot of the catalog
@@ -47,7 +43,7 @@ def generate_report(experiment, timewindow=-1):
         # relative to top-level directory
         if experiment.region:
             experiment.catalog.filter_spatial(experiment.region, in_place=True)
-        ax = experiment.catalog.plot(plot_args={'basemap': 'stock_img',
+        ax = experiment.catalog.plot(plot_args={'basemap': 'ESRI_terrain',
                                                 'figsize': (12, 8),
                                                 'markersize': 8,
                                                 'markercolor': 'black',
@@ -77,7 +73,7 @@ def generate_report(experiment, timewindow=-1):
             level=2,
             caption="The authoritative evaluation data is the full Global CMT catalog (Ekström et al. 2012). "
                     "We confine the hypocentral depths of earthquakes in training and testing datasets to a "
-                    f"maximum of 70km. The plot shows the catalog for the testing period which ranges from "
+                    f"maximum of 30km. The plot shows the catalog for the testing period which ranges from "
                     f"{timewindow[0]} until {timewindow[1]}. "  # todo
                     f"Earthquakes are filtered above Mw {experiment.magnitudes.min()}. "
                     "Black circles depict individual earthquakes with its radius proportional to the magnitude.",
@@ -87,7 +83,7 @@ def generate_report(experiment, timewindow=-1):
     report.add_heading(
         "Results",
         level=2,
-        text="We apply the following tests to each of the forecasts considered in this gefe. "
+        text="We apply the following tests to each of the forecasts considered in this experiments. "
              "More information regarding the tests can be found [here](https://docs.cseptesting.org/getting_started/theory.html)."
     )
     test_names = [test.name for test in experiment.tests]

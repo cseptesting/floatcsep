@@ -293,7 +293,7 @@ class Test:
         #     forecast_batch = [self.get_forecast(model_i) for model_i in
         #                       self.models]
         #     test_args = (forecast, forecast_batch, catalog)
-        if self.type == 'sequential':
+        elif self.type == 'sequential':
             forecasts = [model.forecasts[i] for i in timewindow]
             catalogs = [CSEPCatalog.load_json(i) for i in catpath]
             for i in catalogs:
@@ -795,7 +795,6 @@ class Experiment:
             models = [i for i in self.models if i.name != test.ref_model]
         else:
             models = self.models
-
         for i in models:
             eval_path = self._paths[wstr_]['evaluations'][test.name][i.name]
             with open(eval_path, 'r') as file_:
@@ -817,6 +816,7 @@ class Experiment:
             # consistency and comparative
             for test in self.tests:
                 if test.type in ['consistency', 'comparative']:
+
                     results = self._read_results(test, time)
                     ax = test.plot_func(results, plot_args=test.plot_args,
                                         **test.plot_kwargs)
@@ -825,6 +825,7 @@ class Experiment:
                     pyplot.savefig(figpaths[test.name], dpi=dpi)
                     if show:
                         pyplot.show()
+
         for test in self.tests:
             if test.type in ['consistency', 'sequential']:
                 timestr = timewindow_str(self.time_windows[-1])
