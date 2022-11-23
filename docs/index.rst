@@ -6,9 +6,12 @@
 feCSEP: Floating Experiments
 ============================
 
+Preliminary documentation. Includes only the API reference
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+
 
 .. toctree::
     :maxdepth: 2

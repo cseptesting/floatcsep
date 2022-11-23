@@ -17,6 +17,7 @@ def run(config, use_saved=False):
     exp.prepare_tasks()
     exp.run()
     exp.plot_results()
+    exp.plot_forecasts()
     exp.generate_report()
 
 

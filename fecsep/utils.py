@@ -386,23 +386,6 @@ class Task:
         pass
 
 
-class Attribute:
-
-    def __init__(self, instance, attr):
-        self.obj = instance
-        self.attr = attr
-
-    def run(self):
-        print(f'\tGetting atr {self.obj.__class__}.{self.attr}')
-
-        output = getattr(self.obj, self.attr)
-
-        return output
-
-    def check_exist(self):
-        pass
-
-
 def timewindow_str(datetimes):
     if isinstance(datetimes[0], datetime.datetime):
         return '_'.join([j.date().isoformat() for j in datetimes])

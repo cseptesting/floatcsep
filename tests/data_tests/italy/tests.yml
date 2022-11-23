@@ -61,7 +61,7 @@
       #      linewidth: 0.5
       #      capsize: 0
       #    plot_kwargs:
-      one_sided_lower: True
+#      one_sided_lower: True
 
 - Sequential_LL:
     func: sequential_likelihood

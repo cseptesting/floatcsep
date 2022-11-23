@@ -8,26 +8,6 @@ from csep.models import Polygon
 from csep.core.regions import QuadtreeGrid2D, CartesianGrid2D
 
 
-def load_from_hdf5(filename):
-    with h5py.File(filename, 'r') as db:
-        rates = db['rates'][:]
-        # todo check memory efficiency. Is it better to leave db open for multiple time intervals?
-        magnitudes = db['magnitudes'][:]
-
-        if 'quadkeys' in db.keys():
-            region = QuadtreeGrid2D.from_quadkeys(
-                db['quadkeys'][:].astype(str), magnitudes=magnitudes)
-            region.get_cell_area()
-        else:
-            dh = db['dh'][:]
-            bboxes = db['bboxes'][:]
-            poly_mask = db['poly_mask'][:]
-            region = CartesianGrid2D(
-                [Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
-
-    return rates, region, magnitudes
-
-
 class HDF5Serializer:
 
     @staticmethod
@@ -250,6 +230,26 @@ class HDF5Serializer:
             hf['dh'][:] = dh
             hf.require_dataset('poly_mask', shape=poly_mask.shape, dtype=float)
             hf['poly_mask'][:] = poly_mask
+
+
+def load_from_hdf5(filename):
+    with h5py.File(filename, 'r') as db:
+        rates = db['rates'][:]
+        # todo check memory efficiency. Is it better to leave db open for multiple time intervals?
+        magnitudes = db['magnitudes'][:]
+
+        if 'quadkeys' in db.keys():
+            region = QuadtreeGrid2D.from_quadkeys(
+                db['quadkeys'][:].astype(str), magnitudes=magnitudes)
+            region.get_cell_area()
+        else:
+            dh = db['dh'][:]
+            bboxes = db['bboxes'][:]
+            poly_mask = db['poly_mask'][:]
+            region = CartesianGrid2D(
+                [Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
+
+    return rates, region, magnitudes
 
 
 def serialize():

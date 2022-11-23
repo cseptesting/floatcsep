@@ -550,17 +550,14 @@ class Experiment:
 
         Creates the run directory, and reads the file structure inside
 
-
         Args:
             results_path:
             run_name:
 
         Returns:
             run_folder: Path to the run
-            exists: flag if forecasts, catalogs and test_results if they exist
-             already
-            target_paths: flag to each element of the gefe
-                (catalog and evaluation results)
+            exists: flag if forecasts, catalogs and test_results if they exist already
+            target_paths: flag to each element of the gefe (catalog and evaluation results)
 
         """
 
@@ -840,9 +837,13 @@ class Experiment:
                 if show:
                     pyplot.show()
 
-        # todo create different method for forecast plotting
-
     def plot_forecasts(self):
+        """
+
+        Returns:
+
+        """
+
         plot_fc_config = self.postproc_config.get('plot_forecasts')
         if plot_fc_config:
             try:
@@ -870,40 +871,40 @@ class Experiment:
                 if isinstance(cat, dict):
                     cat_args.update(cat)
 
-            for window in self.time_windows:
-                winstr = timewindow_str(window)
-                for model in self.models:
-                    fig_path = self._paths[winstr]['models']['figures'][
-                        model.name]
-                    start = decimal_year(window[0])
-                    end = decimal_year(window[1])
-                    time = f'{round(end - start, 3)} years'
-                    plot_args = {'region_border': False,
-                                 'cmap': 'magma',
-                                 'clabel': r'$\log_{10} N\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per '
-                                           r'$0.1^\circ\times 0.1^\circ $ per %s' %
-                                           (self.magnitudes.min(),
-                                            self.magnitudes.max(), time)}
-                    if not self.region or self.region.name == 'global':
-                        set_global = True
-                    else:
-                        set_global = False
-                    plot_args.update(plot_fc_config)
-                    ax = model.forecasts[winstr].plot(
-                        set_global=set_global, plot_args=plot_args)
+            window = self.time_windows[-1]
+            winstr = timewindow_str(window)
+            for model in self.models:
+                fig_path = self._paths[winstr]['models']['figures'][
+                    model.name]
+                start = decimal_year(window[0])
+                end = decimal_year(window[1])
+                time = f'{round(end - start, 3)} years'
+                plot_args = {'region_border': False,
+                             'cmap': 'magma',
+                             'clabel': r'$\log_{10} N\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per '
+                                       r'$0.1^\circ\times 0.1^\circ $ per %s' %
+                                       (self.magnitudes.min(),
+                                        self.magnitudes.max(), time)}
+                if not self.region or self.region.name == 'global':
+                    set_global = True
+                else:
+                    set_global = False
+                plot_args.update(plot_fc_config)
+                ax = model.forecasts[winstr].plot(
+                    set_global=set_global, plot_args=plot_args)
 
-                    if self.region:
-                        bbox = self.region.get_bbox()
-                        dh = self.region.dh
-                        extent = [bbox[0] - 3 * dh, bbox[1] + 3 * dh,
-                                  bbox[2] - 3 * dh, bbox[3] + 3 * dh]
-                    else:
-                        extent = None
-                    if cat:
-                        self.catalog.plot(ax=ax, set_global=set_global,
-                                          extent=extent, plot_args=cat_args)
+                if self.region:
+                    bbox = self.region.get_bbox()
+                    dh = self.region.dh
+                    extent = [bbox[0] - 3 * dh, bbox[1] + 3 * dh,
+                              bbox[2] - 3 * dh, bbox[3] + 3 * dh]
+                else:
+                    extent = None
+                if cat:
+                    self.catalog.plot(ax=ax, set_global=set_global,
+                                      extent=extent, plot_args=cat_args)
 
-                    pyplot.savefig(fig_path, dpi=300, facecolor=(0, 0, 0, 0))
+                pyplot.savefig(fig_path, dpi=300, facecolor=(0, 0, 0, 0))
 
     def generate_report(self):
 
