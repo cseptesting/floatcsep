@@ -67,6 +67,78 @@ def sequential_likelihood(gridded_forecasts, observed_catalogs, timewindows,
     return result
 
 
+def sequential_information_gain(gridded_forecasts, reference_forecasts,
+                                observed_catalogs, timewindows,
+                                seed=None, random_numbers=None,
+                                verbose=False):
+    """
+    Performs the likelihood test on Gridded Forecast using an Observed Catalog.
+
+    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
+    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
+    gridded forecasts that supply their forecasts as rates.
+
+    Args:
+        gridded_forecast: csep.core.forecasts.GriddedForecast
+        observed_catalog: csep.core.catalogs.Catalog
+        num_simulations (int): number of simulations used to compute the quantile score
+        seed (int): used fore reproducibility, and testing
+        random_numbers (numpy.ndarray): random numbers used to override the random number generation.
+                               injection point for testing.
+
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+
+    # grid catalog onto spatial grid
+    # grid catalog onto spatial grid
+
+    information_gains = []
+
+    for gridded_forecast, reference_forecast, observed_catalog in zip(
+            gridded_forecasts, reference_forecasts,
+            observed_catalogs):
+        try:
+            _ = observed_catalog.region.magnitudes
+        except CSEPCatalogException:
+            observed_catalog.region = gridded_forecast.region
+
+        gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
+
+        # simply call likelihood test on catalog and forecast
+        qs, obs_ll, simulated_ll = _poisson_likelihood_test(
+            gridded_forecast.data, gridded_catalog_data,
+            num_simulations=1,
+            seed=seed,
+            random_numbers=random_numbers,
+            use_observed_counts=False,
+            verbose=verbose,
+            normalize_likelihood=False)
+        qs, ref_ll, simulated_ll = _poisson_likelihood_test(
+            reference_forecast.data, gridded_catalog_data,
+            num_simulations=1,
+            seed=seed,
+            random_numbers=random_numbers,
+            use_observed_counts=False,
+            verbose=verbose,
+            normalize_likelihood=False)
+
+        information_gains.append(obs_ll - ref_ll)
+        # populate result data structure
+    result = EvaluationResult()
+
+    result.test_distribution = timewindows
+    result.name = 'Sequential Likelihood'
+    result.observed_statistic = information_gains
+    result.quantile = 1
+    result.sim_name = gridded_forecast.name
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(gridded_forecast.magnitudes)
+
+    return result
+
+
 def vector_poisson_t_w_test(benchmark_forecast, forecasts, catalog, **kwargs):
     """ Computes Student's t-test for the information gain per earthquake over a list of forecasts and
         w-test for normality
@@ -94,8 +166,8 @@ def vector_poisson_t_w_test(benchmark_forecast, forecasts, catalog, **kwargs):
     result.test_distribution = 'normal'
     result.observed_statistic = [t.observed_statistic for t in results_t]
     result.quantile = (
-    [numpy.abs(t.quantile[0]) - t.quantile[1] for t in results_t],
-    [w.quantile for w in results_w])
+        [numpy.abs(t.quantile[0]) - t.quantile[1] for t in results_t],
+        [w.quantile for w in results_w])
     result.sim_name = benchmark_forecast.name
     result.obs_name = catalog.name
     result.status = 'normal'
@@ -632,7 +704,7 @@ def _standard_deviation(gridded_forecast1, gridded_forecast2,
     X2 = numpy.log(target_fore2)
     first_term = (numpy.sum(numpy.power((X1 - X2), 2))) / (N_obs - 1)
     second_term = numpy.power(numpy.sum(X1 - X2), 2) / (
-                numpy.power(N_obs, 2) - N_obs)
+            numpy.power(N_obs, 2) - N_obs)
     forecast_variance = first_term - second_term
 
     return forecast_variance
@@ -697,9 +769,9 @@ def paired_ttest_point_process(forecast, benchmark_forecast, observed_catalog,
 
     # Computing Information Gain Interval.
     ig_lower = information_gain - (
-                t_critical * forecast_std / numpy.sqrt(N_obs))
+            t_critical * forecast_std / numpy.sqrt(N_obs))
     ig_upper = information_gain + (
-                t_critical * forecast_std / numpy.sqrt(N_obs))
+            t_critical * forecast_std / numpy.sqrt(N_obs))
 
     # If T value greater than T critical, Then both Lower and Upper Confidence Interval limits will be greater than Zero.
     # If above Happens, Then It means that Forecasting Model 1 is better than Forecasting Model 2.

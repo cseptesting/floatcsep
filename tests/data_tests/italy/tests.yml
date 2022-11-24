@@ -1,67 +1,67 @@
-- Poisson_N:
-    func: poisson_evaluations.number_test
-    func_kwargs: { }
-    plot_func: plot_poisson_consistency_test
-    plot_args:
-      title: $\mathcal{N}-$test
-      title_fontsize: 16
-      figsize: !!python/tuple [ 5, 6 ]
-      xlabel: Event counts
-      linewidth: 0.5
-      capsize: 0
-- Poisson_S:
-    func: poisson_evaluations.spatial_test
-    func_kwargs: { }
-    plot_func: plot_poisson_consistency_test
-    plot_kwargs:
-      one_sided_lower: True
-    plot_args:
-      title: $\mathcal{S}-$test
-      title_fontsize: 16
-      figsize: !!python/tuple [ 5, 6 ]
-      xlabel: Spatial log-likelihood
-      linewidth: 0.5
-      capsize: 0
-
-- Poisson_M:
-    func: poisson_evaluations.magnitude_test
-    func_kwargs: { }
-    plot_func: plot_poisson_consistency_test
-    plot_args:
-      title: $\mathcal{M}-$test
-      xlabel: Magnitude Log-Likelihood
-      figsize: !!python/tuple [ 5, 6 ]
-      title_fontsize: 16
-      linewidth: 0.5
-      capsize: 0
-    plot_kwargs:
-      one_sided_lower: True
-- Poisson_L:
-    func: poisson_evaluations.likelihood_test
-    func_kwargs: { }
-    plot_func: plot_poisson_consistency_test
-    plot_args:
-      title: $\mathcal{L}-$test
-      xlabel: Log-Likelihood
-      figsize: !!python/tuple [ 5, 6 ]
-      title_fontsize: 16
-      linewidth: 0.5
-      capsize: 0
-    plot_kwargs:
-      one_sided_lower: True
-- Poisson_CL:
-    func: poisson_evaluations.conditional_likelihood_test
-    func_kwargs: { }
-    plot_func: plot_poisson_consistency_test
-    plot_args:
-      title: $\mathcal{L}_{N}-$test
-      xlabel: Log-Likelihood
-      figsize: !!python/tuple [ 5, 6 ]
-      title_fontsize: 16
-      linewidth: 0.5
-      capsize: 0
-    plot_kwargs:
-      one_sided_lower: True
+#- Poisson_N:
+#    func: poisson_evaluations.number_test
+#    func_kwargs: { }
+#    plot_func: plot_poisson_consistency_test
+#    plot_args:
+#      title: $\mathcal{N}-$test
+#      title_fontsize: 16
+#      figsize: !!python/tuple [ 5, 6 ]
+#      xlabel: Event counts
+#      linewidth: 0.5
+#      capsize: 0
+#- Poisson_S:
+#    func: poisson_evaluations.spatial_test
+#    func_kwargs: { }
+#    plot_func: plot_poisson_consistency_test
+#    plot_kwargs:
+#      one_sided_lower: True
+#    plot_args:
+#      title: $\mathcal{S}-$test
+#      title_fontsize: 16
+#      figsize: !!python/tuple [ 5, 6 ]
+#      xlabel: Spatial log-likelihood
+#      linewidth: 0.5
+#      capsize: 0
+#
+#- Poisson_M:
+#    func: poisson_evaluations.magnitude_test
+#    func_kwargs: { }
+#    plot_func: plot_poisson_consistency_test
+#    plot_args:
+#      title: $\mathcal{M}-$test
+#      xlabel: Magnitude Log-Likelihood
+#      figsize: !!python/tuple [ 5, 6 ]
+#      title_fontsize: 16
+#      linewidth: 0.5
+#      capsize: 0
+#    plot_kwargs:
+#      one_sided_lower: True
+#- Poisson_L:
+#    func: poisson_evaluations.likelihood_test
+#    func_kwargs: { }
+#    plot_func: plot_poisson_consistency_test
+#    plot_args:
+#      title: $\mathcal{L}-$test
+#      xlabel: Log-Likelihood
+#      figsize: !!python/tuple [ 5, 6 ]
+#      title_fontsize: 16
+#      linewidth: 0.5
+#      capsize: 0
+#    plot_kwargs:
+#      one_sided_lower: True
+#- Poisson_CL:
+#    func: poisson_evaluations.conditional_likelihood_test
+#    func_kwargs: { }
+#    plot_func: plot_poisson_consistency_test
+#    plot_args:
+#      title: $\mathcal{L}_{N}-$test
+#      xlabel: Log-Likelihood
+#      figsize: !!python/tuple [ 5, 6 ]
+#      title_fontsize: 16
+#      linewidth: 0.5
+#      capsize: 0
+#    plot_kwargs:
+#      one_sided_lower: True
 
 - Sequential_LL:
     func: sequential_likelihood
@@ -77,18 +77,33 @@
       markers: 'o'
       markersize: 1
 
-- Matrix_T:
-    func: vector_poisson_t_w_test
-    func_kwargs: {}
-    plot_func: plot_matrix_comparative_test
+- Sequential_IG:
+    func: sequential_information_gain
+    func_kwargs: { }
+    plot_func: plot_sequential_likelihood
+    ref_model:  MPS04
     plot_args:
-      code: |
-        import seaborn
-        import matplotlib.pyplot as plt
-        plt.rcParams.update({
-                            'axes.titleweight': 'bold',
-                            'xtick.bottom': True, 'axes.labelweight': 'bold',
-                            'xtick.labelsize': 8, 'ytick.labelsize': 8,
-                            'legend.fontsize': 9})
-        
-        seaborn.set_style("darkgrid", {"axes.facecolor": ".9", 'font.family': 'Ubuntu'})
+      title: Cumulative Information Gain
+      ylabel: Information Gain
+      figsize: !!python/tuple [ 6, 4 ]
+      titlesize: 14
+      linewidth: 0.5
+      linestyles: '-.'
+      markers: 'o'
+      markersize: 1
+
+#- Matrix_T:
+#    func: vector_poisson_t_w_test
+#    func_kwargs: {}
+#    plot_func: plot_matrix_comparative_test
+#    plot_args:
+#      code: |
+#        import seaborn
+#        import matplotlib.pyplot as plt
+#        plt.rcParams.update({
+#                            'axes.titleweight': 'bold',
+#                            'xtick.bottom': True, 'axes.labelweight': 'bold',
+#                            'xtick.labelsize': 8, 'ytick.labelsize': 8,
+#                            'legend.fontsize': 9})
+#
+#        seaborn.set_style("darkgrid", {"axes.facecolor": ".9", 'font.family': 'Ubuntu'})

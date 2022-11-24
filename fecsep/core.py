@@ -246,7 +246,8 @@ class Test:
               'comparative': ['paired_t_test', 'w_test',
                               'binary_paired_t_test'],
               'fullcomp': ['vector_poisson_t_w_test'],
-              'sequential': ['sequential_likelihood']}
+              'sequential': ['sequential_likelihood'],
+              'seqcomp': ['sequential_information_gain']}
 
     def __init__(self, name, func, markdown='', func_args=None,
                  func_kwargs=None, plot_func=None,
@@ -306,6 +307,15 @@ class Test:
             for i in catalogs:
                 i.filter_spatial(region=forecasts[0].region, in_place=True)
             test_args = (forecasts, catalogs, timewindow)
+
+        elif self.type == 'seqcomp':
+            forecasts = [model.forecasts[i] for i in timewindow]
+            ref_forecasts = [ref_model.forecasts[i] for i in timewindow]
+            catalogs = [CSEPCatalog.load_json(i) for i in catpath]
+            for i in catalogs:
+                i.filter_spatial(region=forecasts[0].region, in_place=True)
+            test_args = (forecasts, ref_forecasts, catalogs, timewindow)
+
         else:  # consistency
             forecast = model.forecasts[timewindow]
             catalog = CSEPCatalog.load_json(catpath)
@@ -719,6 +729,20 @@ class Experiment:
                             'evaluations'][test_k.name][model_j.name]
                     )
                     tasks.append(task_k)
+            elif test_k.type == 'seqcomp':
+                timestrs = timewindow_str(self.time_windows)
+                for model_j in self.models:
+                    task_k = Task(
+                        instance=test_k,
+                        method='compute',
+                        timewindow=timestrs,
+                        catpath=[self._paths[i]['catalog'] for i in timestrs],
+                        model=model_j,
+                        ref_model=self.get_model(test_k.ref_model),
+                        path=self._paths[timestrs[-1]][
+                            'evaluations'][test_k.name][model_j.name]
+                    )
+                    tasks.append(task_k)
             elif test_k.type == 'fullcomp':
                 timestr = timewindow_str(self.time_windows[-1])
                 for model_j in self.models:
@@ -849,9 +873,17 @@ class Experiment:
                         pyplot.show()
 
         for test in self.tests:
-            if test.type in ['consistency', 'sequential', 'fullcomp']:
+            if test.type in ['consistency', 'sequential', 'fullcomp',
+                             'seqcomp']:
                 timestr = timewindow_str(self.time_windows[-1])
                 results = self._read_results(test, timestr)
+                if test.type == 'seqcomp':
+                    results_ = []
+                    for i in results:
+                        if i.sim_name != test.ref_model:
+                            results_.append(i)
+                    results = results_
+
                 ax = test.plot_func(results, plot_args=test.plot_args,
                                     **test.plot_kwargs)
                 if 'code' in test.plot_args:

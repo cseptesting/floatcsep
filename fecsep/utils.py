@@ -430,9 +430,12 @@ def plot_sequential_likelihood(evaluation_results, plot_args={}):
                      timestrs][0]
         endyears = [datetime.date.fromisoformat(j.split('_')[1]) for j in
                     timestrs]
-        dt = endyears[1] - endyears[0]
-        midyears = [k - dt / 2. for k in endyears]
-        ax.plot(midyears, result.observed_statistic, color=colors[i],
+        years = [startyear] + endyears
+        data = [0] + result.observed_statistic
+
+        # dt = endyears[1] - endyears[0]
+        # midyears = [k - dt / 2. for k in endyears]
+        ax.plot(years, data, color=colors[i],
                 linewidth=linewidth, linestyle=linestyles[i],
                 marker=markers[i],
                 markersize=markersize,
