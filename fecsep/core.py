@@ -245,6 +245,7 @@ class Test:
                               'binary_conditional_likelihood_test'],
               'comparative': ['paired_t_test', 'w_test',
                               'binary_paired_t_test'],
+              'fullcomp': ['vector_poisson_t_w_test'],
               'sequential': ['sequential_likelihood']}
 
     def __init__(self, name, func, markdown='', func_args=None,
@@ -290,10 +291,15 @@ class Test:
             catalog.filter_spatial(region=forecast.region, in_place=True)
             ref_forecast = ref_model.forecasts[timewindow]
             test_args = (forecast, ref_forecast, catalog)
-        # elif test.func == fecsep.evaluations.vector_poisson_t_w_test:
-        #     forecast_batch = [self.get_forecast(model_i) for model_i in
-        #                       self.models]
-        #     test_args = (forecast, forecast_batch, catalog)
+
+        elif self.type == 'fullcomp':
+            ref_forecast = ref_model.forecasts[timewindow]
+            catalog = CSEPCatalog.load_json(catpath)
+            catalog.filter_spatial(region=ref_forecast.region, in_place=True)
+            forecast_batch = [model_i.forecasts[timewindow] for model_i in
+                              model]
+            test_args = (ref_forecast, forecast_batch, catalog)
+
         elif self.type == 'sequential':
             forecasts = [model.forecasts[i] for i in timewindow]
             catalogs = [CSEPCatalog.load_json(i) for i in catpath]
@@ -713,6 +719,21 @@ class Experiment:
                             'evaluations'][test_k.name][model_j.name]
                     )
                     tasks.append(task_k)
+            elif test_k.type == 'fullcomp':
+                timestr = timewindow_str(self.time_windows[-1])
+                for model_j in self.models:
+                    task_k = Task(
+                        instance=test_k,
+                        method='compute',
+                        timewindow=timestr,
+                        catpath=self._paths[timestr]['catalog'],
+                        ref_model=model_j,
+                        model=self.models,
+                        path=self._paths[timestr][
+                            'evaluations'][test_k.name][model_j.name]
+                    )
+                    tasks.append(task_k)
+
         self.tasks = tasks
 
     # def sequential_likelihood(gridded_forecasts, observed_catalogs, timewindows,
@@ -828,7 +849,7 @@ class Experiment:
                         pyplot.show()
 
         for test in self.tests:
-            if test.type in ['consistency', 'sequential']:
+            if test.type in ['consistency', 'sequential', 'fullcomp']:
                 timestr = timewindow_str(self.time_windows[-1])
                 results = self._read_results(test, timestr)
                 ax = test.plot_func(results, plot_args=test.plot_args,

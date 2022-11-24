@@ -76,3 +76,19 @@
       linestyles: '-.'
       markers: 'o'
       markersize: 1
+
+- Matrix_T:
+    func: vector_poisson_t_w_test
+    func_kwargs: {}
+    plot_func: plot_matrix_comparative_test
+    plot_args:
+      code: |
+        import seaborn
+        import matplotlib.pyplot as plt
+        plt.rcParams.update({
+                            'axes.titleweight': 'bold',
+                            'xtick.bottom': True, 'axes.labelweight': 'bold',
+                            'xtick.labelsize': 8, 'ytick.labelsize': 8,
+                            'legend.fontsize': 9})
+        
+        seaborn.set_style("darkgrid", {"axes.facecolor": ".9", 'font.family': 'Ubuntu'})
