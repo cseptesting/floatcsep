@@ -31,8 +31,8 @@ def generate_report(experiment, timewindow=-1):
     )
     report.add_heading("Objectives", level=2)
     objs = [
-        "Describe the predictive skills of posited hypothesis about seismogenesis with earthquakes of "
-        "M4.95+",
+        "Describe the predictive skills of posited hypothesis about seismogenesis with earthquakes of"
+        f" $M>{experiment.magnitudes.min()}$",
     ]
     report.add_list(objs)
     # Generate plot of the catalog
@@ -41,20 +41,25 @@ def generate_report(experiment, timewindow=-1):
         cat_path = experiment._paths[timestr]['catalog']
         figure_path = os.path.splitext(cat_path)[0]
         # relative to top-level directory
+
         if experiment.region:
-            experiment.catalog.filter_spatial(experiment.region, in_place=True)
-        ax = experiment.catalog.plot(plot_args={'basemap': 'ESRI_terrain',
-                                                'figsize': (12, 8),
-                                                'markersize': 8,
-                                                'markercolor': 'black',
-                                                'grid_fontsize': 16,
-                                                'title': '',
-                                                'legend': False
-                                                })
+            catalog = experiment.catalog.filter_spatial(
+                region=experiment.region,
+                in_place=True)
+
+        ax = catalog.plot(plot_args={'basemap': 'ESRI_terrain',
+                                     'figsize': (12, 8),
+                                     'markersize': 8,
+                                     'markercolor': 'black',
+                                     'grid_fontsize': 16,
+                                     'title': '',
+                                     'legend': True
+                                     })
+
         ax.get_figure().tight_layout()
         ax.get_figure().savefig(f"{figure_path}.png")
         report.add_figure(
-            f"ISC gCMT Authoritative Catalog",
+            f"Testing Catalog",
             figure_path,
             level=2,
             caption="",
@@ -71,9 +76,7 @@ def generate_report(experiment, timewindow=-1):
             f"",
             figure_path,
             level=2,
-            caption="The authoritative evaluation data is the full Global CMT catalog (Ekström et al. 2012). "
-                    "We confine the hypocentral depths of earthquakes in training and testing datasets to a "
-                    f"maximum of 30km. The plot shows the catalog for the testing period which ranges from "
+            caption="Evaluation catalog  from "
                     f"{timewindow[0]} until {timewindow[1]}. "  # todo
                     f"Earthquakes are filtered above Mw {experiment.magnitudes.min()}. "
                     "Black circles depict individual earthquakes with its radius proportional to the magnitude.",

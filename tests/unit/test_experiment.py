@@ -121,7 +121,8 @@ class TestExperiment(TestCase):
         self.assertEqualExperiment(exp_a, exp_c)
 
     def test_set_models(self):
-        model_cfg = os.path.join(_dir, 'artifacts', 'models', 'model_cfg.yml')
+        model_cfg = os.path.join(_dir, 'artifacts', 'models',
+                                 'model_cfg.yml')
         exp = Experiment(**_time_config, **_region_config,
                          model_config=model_cfg,
                          catalog='query_comcat')

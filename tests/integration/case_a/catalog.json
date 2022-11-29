@@ -1,0 +1,26 @@
+{
+    "catalog": [
+        [
+            "1",
+            1590962400000,
+            0.5,
+            0.5,
+            10.0,
+            6.5
+        ]
+    ],
+    "catalog_id": "cat",
+    "compute_stats": true,
+    "date_accessed": "2022-11-01 00:00:00",
+    "end_time": "2021-01-01 00:00:00.000000+00:00",
+    "max_latitude": 2.0,
+    "max_longitude": 2.0,
+    "max_magnitude": 7.0,
+    "metadata": {},
+    "min_latitude": 0.0,
+    "min_longitude": 0.0,
+    "min_magnitude": 6.0,
+    "name": "Mock catalogue",
+    "region": null,
+    "start_time": "2020-01-01 00:00:00.000000+00:00"
+}

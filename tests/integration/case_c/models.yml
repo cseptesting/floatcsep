@@ -1,0 +1,8 @@
+- Model A:
+    path: models/model_a.csv
+- Model B:
+      path: models/model_b.csv
+- Model C:
+      path: models/model_c.csv
+- Model D:
+      path: models/model_d.csv

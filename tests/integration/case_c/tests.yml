@@ -1,0 +1,28 @@
+- Poisson N:
+    func: poisson_evaluations.number_test
+    func_kwargs: { } # todo: dont make this obligatory
+    plot_func: plot_poisson_consistency_test
+- Poisson S:
+      func: poisson_evaluations.spatial_test
+      func_kwargs: { }
+      plot_func: plot_poisson_consistency_test
+      plot_kwargs:
+        one_sided_lower: True
+- Poisson M:
+      func: poisson_evaluations.magnitude_test
+      func_kwargs: { }
+      plot_func: plot_poisson_consistency_test
+      plot_kwargs:
+        one_sided_lower: True
+- Poisson CL:
+    func: poisson_evaluations.conditional_likelihood_test
+    func_kwargs: { }
+    plot_func: plot_poisson_consistency_test
+    plot_kwargs:
+      one_sided_lower: True
+- Poisson T:
+    func: poisson_evaluations.paired_t_test
+    func_kwargs: {}
+    ref_model: Model A
+    plot_func: plot_comparison_test
+
