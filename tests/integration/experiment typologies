@@ -1,0 +1,48 @@
+region: simple          RS
+        real            RR
+        from model      RM
+
+magnitudes: one                                 m1
+            equally-distributed (linspace)      ml
+            arbitrary (?)                       ma
+
+models:
+    from zenodo                 MZ
+    from git                    MG
+    from file                   MF
+        ti:
+            gridded:                -G
+            quadtree                -Q
+        td:
+            src                     -S
+
+
+catalog
+    from query                      CQ
+        from stored query           CSQ
+    from file                       CF
+
+tests:
+    consistency:                    TCS
+    comparative:                    TCM
+    batch:                          TB
+    sequential:                     TS
+
+time:
+    one window  t1
+    multiple windows  tn
+
+## Integration Tests to fabricate:
+
+1) RS / m1 / MF-G / CF / TCS (N)  ----------------- OK
+
+2) RS / ml / MF-G (many)/ CF / TCS-TCM  ----------------- OK
+
+3) RS / m1 / MF-G / CF(download) / TS   ----------------- OK
+
+4) RM /ml / MZ-Q / CQ / TB  ----------------- OK
+
+5) RR / ml / MF-G (few) / CQ / TCS-TCM-TB ----------------- OK
+
+6) Pending
+

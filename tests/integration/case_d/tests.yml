@@ -1,0 +1,26 @@
+- Poisson_S:
+    func: poisson_evaluations.spatial_test
+    func_kwargs: {}
+    plot_func: plot_poisson_consistency_test
+    plot_args:
+        title: $S-$test
+        xlabel: Spatial Log-Likelihood
+        figsize: !!python/tuple [4, 6]
+        title_fontsize: 16
+    plot_kwargs:
+        normalize: True
+        one_sided_lower: True
+- Poisson_T:
+    func: poisson_evaluations.paired_t_test
+    func_kwargs: {}
+    plot_func: plot_comparison_test
+    ref_model: TEAM@N10L11
+    plot_args:
+      title: $T-$test
+- Matrix_T:
+    func: vector_poisson_t_w_test
+    func_kwargs: { }
+    plot_func: plot_matrix_comparative_test
+
+
+

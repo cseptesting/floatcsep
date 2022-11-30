@@ -4600,6 +4600,20 @@
     "min_longitude": 0.0003228853986644298,
     "min_magnitude": 4.0,
     "name": null,
-    "region": null,
+    "region": {
+        "class_id": "CartesianGrid2D",
+        "dh": 1.0,
+        "name": "region.txt",
+        "polygons": [
+            {
+                "lat": 0.0,
+                "lon": 0.0
+            },
+            {
+                "lat": 0.0,
+                "lon": 1.0
+            }
+        ]
+    },
     "start_time": "2010-01-04 14:24:54.440000+00:00"
 }

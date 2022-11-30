@@ -1,9 +1,0 @@
-- ALM:
-    path: models/gulia-wiemer.ALM.italy.10yr.2010-01-01.xml
-    forecast_unit: 10
-- MPS04:
-    path: models/meletti.MPS04.italy.10yr.2010-01-01.xml
-    forecast_unit: 10
-- TripleS-CPTI:
-    path: models/zechar.TripleS-CPTI.italy.10yr.2010-01-01.xml
-    forecast_unit: 10
