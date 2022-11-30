@@ -6,19 +6,21 @@ import argparse
 import os
 
 
-def run(config, use_saved=False):
+def run(config, show=True):
     exp = core.Experiment.from_yml(config)
 
     exp.set_tests()
     exp.set_models()
     exp.prepare_paths()
     print('Running experiment')
-    print('======================================================\n')
+    print('==================\n')
     exp.prepare_tasks()
     exp.run()
-    exp.plot_results()
-    exp.plot_forecasts()
-    exp.generate_report()
+
+    if show:
+        exp.plot_results()
+        exp.plot_forecasts()
+        exp.generate_report()
 
 
 def plot(config, use_saved=False):

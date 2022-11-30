@@ -42,10 +42,10 @@ def generate_report(experiment, timewindow=-1):
         figure_path = os.path.splitext(cat_path)[0]
         # relative to top-level directory
 
+        catalog = experiment.catalog
         if experiment.region:
-            catalog = experiment.catalog.filter_spatial(
-                region=experiment.region,
-                in_place=True)
+            catalog = catalog.filter_spatial(
+                region=experiment.region, in_place=True)
 
         ax = catalog.plot(plot_args={'basemap': 'ESRI_terrain',
                                      'figsize': (12, 8),

@@ -289,14 +289,15 @@ class Test:
         if self.type == 'comparative':
             forecast = model.forecasts[timewindow]
             catalog = CSEPCatalog.load_json(catpath)
-            catalog.filter_spatial(region=forecast.region, in_place=True)
+            # todo: check region consistency between grid and qtree
+            catalog.region = forecast.region
             ref_forecast = ref_model.forecasts[timewindow]
             test_args = (forecast, ref_forecast, catalog)
 
         elif self.type == 'fullcomp':
             ref_forecast = ref_model.forecasts[timewindow]
             catalog = CSEPCatalog.load_json(catpath)
-            catalog.filter_spatial(region=ref_forecast.region, in_place=True)
+            catalog.region = ref_forecast.region
             forecast_batch = [model_i.forecasts[timewindow] for model_i in
                               model]
             test_args = (ref_forecast, forecast_batch, catalog)
@@ -305,7 +306,7 @@ class Test:
             forecasts = [model.forecasts[i] for i in timewindow]
             catalogs = [CSEPCatalog.load_json(i) for i in catpath]
             for i in catalogs:
-                i.filter_spatial(region=forecasts[0].region, in_place=True)
+                i.region = forecasts[0].region
             test_args = (forecasts, catalogs, timewindow)
 
         elif self.type == 'seqcomp':
@@ -313,13 +314,13 @@ class Test:
             ref_forecasts = [ref_model.forecasts[i] for i in timewindow]
             catalogs = [CSEPCatalog.load_json(i) for i in catpath]
             for i in catalogs:
-                i.filter_spatial(region=forecasts[0].region, in_place=True)
+                i.region = forecasts[0].region
             test_args = (forecasts, ref_forecasts, catalogs, timewindow)
 
         else:  # consistency
             forecast = model.forecasts[timewindow]
             catalog = CSEPCatalog.load_json(catpath)
-            catalog.filter_spatial(region=forecast.region, in_place=True)
+            catalog.region = forecast.region
             test_args = (forecast, catalog)
 
         result = self.func(*test_args, **self.func_kwargs)
@@ -428,7 +429,6 @@ class Experiment:
 
     def __init__(self,
                  name=None,
-                 path=None,
                  time_config=None,
                  region_config=None,
                  catalog=None,
@@ -445,7 +445,8 @@ class Experiment:
 
         # Instantiate
         self.name = name
-        self.path = path if path else os.getcwd()
+        self.path = kwargs.get('path') if kwargs.get('path',
+                                                     None) else os.getcwd()
 
         self.time_config = read_time_config(time_config, **kwargs)
         self.region_config = read_region_config(region_config, **kwargs)
@@ -558,7 +559,7 @@ class Experiment:
 
         """
 
-        with open(self.test_config, 'r') as config:
+        with open(self._abspath(self.test_config)[1], 'r') as config:
             config_dict = yaml.load(config, NoAliasLoader)
         self.tests = [Test.from_dict(tdict) for tdict in config_dict]
 
@@ -653,13 +654,7 @@ class Experiment:
 
         tasks = []
 
-        # todo: Depth? Magnitude?
-        filter_spatial = Task(instance=self.catalog, method='filter_spatial',
-                              region=self.region, in_place=True)
-
-        tasks.append(filter_spatial)
         for time_i in self.time_windows:
-
             time_str = timewindow_str(time_i)
             filter_catalog = Task(
                 instance=self.catalog,
@@ -667,14 +662,12 @@ class Experiment:
                 statements=[f'origin_time >= {time_i[0].timestamp() * 1000}',
                             f'origin_time < {time_i[1].timestamp() * 1000}']
             )
-
             write_catalog = Task(
                 instance=filter_catalog,
                 method='write_json',
                 filename=self._paths[time_str]['catalog']
             )
-            tasks_i = [filter_catalog, write_catalog]
-            tasks.extend(tasks_i)
+            tasks.extend([filter_catalog, write_catalog])
 
             # Consistency Tests
             for model_j in self.models:
@@ -760,9 +753,6 @@ class Experiment:
 
         self.tasks = tasks
 
-    # def sequential_likelihood(gridded_forecasts, observed_catalogs, timewindows,
-    #                           num_simulations=1000, seed=None, random_numbers=None,
-    #                           verbose=False):
     def get_model(self, name):
         for model in self.models:
             if model.name == name:
@@ -774,32 +764,28 @@ class Experiment:
         if callable(self._catalog):
             if os.path.isfile(self._catpath):
                 return CSEPCatalog.load_json(self._catpath)
-
-            min_mag = self.magnitudes.min()
-            max_depth = self.depths.max()
-            if self.region is not None:
-                spatial_bounds = {i: j for i, j in
-                                  zip(['min_longitude', 'max_longitude',
-                                       'min_latitude', 'max_latitude'],
-                                      self.region.get_bbox())}
-            else:
-                spatial_bounds = {}
-            time_bounds = [min([item for sublist in self.time_windows
-                                for item in sublist]),
-                           max([item for sublist in self.time_windows
-                                for item in sublist])]
+            bounds = {'start_time': min([item for sublist in self.time_windows
+                                         for item in sublist]),
+                      'end_time': max([item for sublist in self.time_windows
+                                       for item in sublist]),
+                      'min_magnitude': self.magnitudes.min(),
+                      'max_depth': self.depths.max()}
+            if self.region:
+                bounds.update({i: j for i, j in
+                               zip(['min_longitude', 'max_longitude',
+                                    'min_latitude', 'max_latitude'],
+                                   self.region.get_bbox())})
 
             catalog = self._catalog(
                 catalog_id='cat',  # todo name as run
-                start_time=time_bounds[0],
-                end_time=time_bounds[1],
-                min_magnitude=min_mag,
-                max_depth=max_depth,
                 verbose=True,
-                **spatial_bounds
+                **bounds
             )
 
+            catalog.filter_spatial(region=self.region)
+            catalog.region = None
             catalog.write_json(self._catpath)
+
             return catalog
 
         elif os.path.isfile(self._catalog):
@@ -810,8 +796,8 @@ class Experiment:
 
         if os.path.isfile(self._abspath(cat)[1]):
             print(f"Using catalog from {cat}")
-            self._catalog = cat
-            self._catpath = cat
+            self._catalog = self._abspath(cat)[1]
+            self._catpath = self._abspath(cat)[1]
 
         else:
             # catalog can be a function

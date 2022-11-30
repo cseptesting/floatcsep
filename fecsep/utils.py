@@ -183,7 +183,7 @@ def read_region_config(region_config, **kwargs):
 
     """
     _attrs = ['region', 'mag_min', 'mag_max', 'mag_bin', 'magnitudes',
-              'depth_min', 'depth_max']
+              'depth_min', 'depth_max', 'path']
 
     if region_config is None:
         region_config = {}
@@ -201,14 +201,19 @@ def read_region_config(region_config, **kwargs):
 
     region_data = region_config.get('region', None)
     try:
-        region = parse_csep_func(region_data)(name=region_data) \
+        region = parse_csep_func(region_data)(name=region_data,
+                                              magnitudes=magnitudes) \
             if region_data else None
     except AttributeError:
         if isinstance(region_data, str):
-            with open(region_data, 'r') as file_:
+            print(region_config['path'])
+            filename = os.path.join(region_config.get('path', ''),
+                                    region_data)
+            with open(filename, 'r') as file_:
                 data = numpy.array([re.split(r'\s+|,', i.strip()) for i in
                                     file_.readlines()], dtype=float)
-                region = CartesianGrid2D.from_origins(data, name=region_data)
+                region = CartesianGrid2D.from_origins(data, name=region_data,
+                                                      magnitudes=magnitudes)
         else:
             region = CartesianGrid2D.from_dict(region_data)
 
