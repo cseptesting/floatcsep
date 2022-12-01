@@ -77,7 +77,7 @@ def test_zenodo_files():
 
 class TestGitter(unittest.TestCase):
     @mock.patch('fecsep.accessors.Repo')
-    @mock.patch('fecsep.accessors.Git')
+    @mock.patch('git.Git')
     def runTest(self, mock_git, mock_repo):
         p = mock.PropertyMock(return_value=False)
         type(mock_repo.clone_from.return_value).bare = p

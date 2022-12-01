@@ -44,7 +44,7 @@ def fecsep():
                         help='Run a calculation')
     parser.add_argument('config', type=str,
                         help='Experiment Configuration file')
-    parser.add_argument('-s', '--use_saved', type=str,
+    parser.add_argument('-s', '--show', type=str,
                         help='Use saved results', default=False)
 
     args = parser.parse_args()
