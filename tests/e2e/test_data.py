@@ -1,3 +1,4 @@
+import fecsep
 from fecsep import main
 import unittest
 import os
@@ -8,7 +9,8 @@ class DataTest(unittest.TestCase):
     @staticmethod
     def get_path(case):
         return os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
+            os.path.join(os.path.dirname(fecsep.__path__[0]),
+                         'examples',
                          f'case_{case}',
                          f'config.yml')
         )
