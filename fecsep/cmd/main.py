@@ -1,13 +1,13 @@
 import sys
 import datetime
-from fecsep import core
+from fecsep.experiment import Experiment
 from collections import defaultdict
 import argparse
 import os
 
 
 def run(config, show=True):
-    exp = core.Experiment.from_yml(config)
+    exp = Experiment.from_yml(config)
 
     exp.set_tests()
     exp.set_models()
@@ -24,7 +24,7 @@ def run(config, show=True):
 
 
 def plot(config, use_saved=False):
-    exp = core.Experiment.from_yml(config)
+    exp = Experiment.from_yml(config)
 
     exp.set_tests()
     exp.set_models()

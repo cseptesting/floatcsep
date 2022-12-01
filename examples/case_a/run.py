@@ -1,12 +1,12 @@
 import importlib
-import fecsep.core
+import fecsep.experiment
 import fecsep.utils
 import fecsep.accessors
 
-importlib.reload(fecsep.core)
+importlib.reload(fecsep.experiment)
 importlib.reload(fecsep.utils)
 importlib.reload(fecsep.accessors)
-from fecsep.core import Experiment
+from fecsep.experiment import Experiment
 
 file_ = 'config.yml'
 

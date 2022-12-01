@@ -1,14 +1,14 @@
 import importlib
-import fecsep.core
+import fecsep.experiment
 import fecsep.utils
 import fecsep.accessors
 
-importlib.reload(fecsep.core)
+importlib.reload(fecsep.experiment)
 importlib.reload(fecsep.utils)
 importlib.reload(fecsep.accessors)
 # todo: remove pycsep warning for floats, log10 and fixed formatter
 # todo: remove pycsep 'x' from x_axis in plot comparison test
-from fecsep.core import Experiment
+from fecsep.experiment import Experiment
 
 file_ = 'config.yml'
 

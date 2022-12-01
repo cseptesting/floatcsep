@@ -8,7 +8,8 @@ import numpy.testing
 from fecsep.utils import timewindow_str
 from unittest import TestCase
 import filecmp
-from fecsep.core import Model
+
+from fecsep.model import Model
 import shutil
 
 

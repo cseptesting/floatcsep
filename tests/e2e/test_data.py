@@ -1,5 +1,5 @@
 import fecsep
-from fecsep import main
+from fecsep.cmd import main
 import unittest
 import os
 
