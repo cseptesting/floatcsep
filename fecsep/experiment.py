@@ -18,6 +18,8 @@ from fecsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
 from fecsep.model import Model
 from fecsep.test import Test
 
+numpy.seterr(all="ignore")
+
 
 class Experiment:
     """

@@ -23,7 +23,7 @@ def run(config, show=True):
         exp.generate_report()
 
 
-def plot(config, use_saved=False):
+def plot(config, show=False):
     exp = Experiment.from_yml(config)
 
     exp.set_tests()
@@ -39,18 +39,19 @@ def fecsep():
     """
 
     """
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
     parser.add_argument('func', type=str, choices=['run', 'plot'],
                         help='Run a calculation')
     parser.add_argument('config', type=str,
                         help='Experiment Configuration file')
     parser.add_argument('-s', '--show', type=str,
-                        help='Use saved results', default=False)
+                        help='Use saved results', default=True)
 
     args = parser.parse_args()
     try:
         func = globals()[args.func]
         args.__delattr__('func')
+
     except AttributeError:
         raise AttributeError('Function not implemented')
     func(**vars(args))

@@ -1,6 +1,5 @@
 import os.path
 import vcr
-import pytest
 from datetime import datetime
 from fecsep.accessors import query_isc_gcmt, _query_isc_gcmt, from_zenodo, \
     from_git, _check_hash
