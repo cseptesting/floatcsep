@@ -83,6 +83,28 @@ class Experiment:
 
     """
 
+    '''
+            
+    Data management
+    
+    Model:
+        - FILE
+            A - read from file, scale in runtime
+            B - drop to db, scale from function in runtime   (only makes sense to speed things)
+            C - drop to db, scale and drop to db
+        - SOURCE
+            D - run, read from file              (D similar to A) 
+            E - run, store in db, read from db   (E similar to C)
+    
+    TEST:
+        - use forecast from runtime (too heavy for global)
+        - read forecast from file (TD)
+                                  (does not make sense for TI (too much FS space)
+                                   unless is already dropped to DB)
+         
+    
+    '''
+
     def __init__(self,
                  name=None,
                  time_config=None,

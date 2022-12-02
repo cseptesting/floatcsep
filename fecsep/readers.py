@@ -214,7 +214,11 @@ class HDF5Serializer:
             hf.require_dataset('bboxes', shape=bboxes.shape, dtype=float)
             hf['bboxes'][:] = bboxes
             hf.require_dataset('dh', shape=(1,), dtype=float)
-            hf['dh'][:] = region.dh
+            try:
+                hf['dh'][:] = region.dh
+            except AttributeError as e_:
+                raise AttributeError('Quadtree can not be dropped to HDF5'
+                                     '(not needed, because file has already low size')
             hf.require_dataset('poly_mask', shape=region.poly_mask.shape,
                                dtype=float)
             hf['poly_mask'][:] = region.poly_mask

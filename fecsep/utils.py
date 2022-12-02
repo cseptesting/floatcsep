@@ -34,7 +34,7 @@ from csep.core.exceptions import CSEPCatalogException
 
 import fecsep.accessors
 import fecsep.evaluations
-import fecsep.dbparser
+import fecsep.readers
 
 _UNITS = ['years', 'months', 'weeks', 'days']
 _PD_FORMAT = ['YS', 'MS', 'W', 'D']
@@ -73,7 +73,8 @@ def parse_csep_func(func):
                            fecsep.utils,
                            fecsep.accessors,
                            fecsep.evaluations,
-                           fecsep.dbparser.HDF5Serializer]
+                           fecsep.readers.HDF5Serializer,
+                           fecsep.readers.ForecastParsers]
         for module in _target_modules:
             try:
                 return recgetattr(module, func)

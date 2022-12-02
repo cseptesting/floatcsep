@@ -3,7 +3,7 @@ import tempfile
 from unittest import TestCase
 from datetime import datetime
 
-import fecsep.dbparser
+import fecsep.readers
 from fecsep.experiment import Experiment
 import numpy
 from csep.core import poisson_evaluations
