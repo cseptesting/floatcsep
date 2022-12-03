@@ -189,7 +189,7 @@ class Experiment:
         """
 
         Parse the models' configuration file/dict. Instantiates all the models
-        as :class:`fecsep.core.Model` and store them into :attr:`self.models`.
+        as :class:`fecsep.model.Model` and store them into :attr:`self.models`.
 
         """
         # todo: handle when model cfg is a dict instead of a file.
@@ -235,7 +235,7 @@ class Experiment:
     def set_tests(self):
         """
         Parse the tests' configuration file/dict. Instantiate them as
-        :class:`fecsep.core.Test` and store them into :attr:`self.tests`.
+        :class:`fecsep.test.Test` and store them into :attr:`self.tests`.
 
         """
 
@@ -681,16 +681,16 @@ class Experiment:
     def to_yml(self, filename, **kwargs):
         """
 
-        Serializes the :class:`~fecsep.core.Experiment` instance into a .yml
-        file.
+        Serializes the :class:`~fecsep.experiment.Experiment` instance into a
+        .yml file.
 
         Note:
             This instance can then be reinstantiated using
-            :meth:`~fecsep.core.Experiment.from_yml`
+            :meth:`~fecsep.experiment.Experiment.from_yml`
 
         Args:
             filename: Name of the file onto which dump the instance
-            **kwargs: Passed to :meth:`~fecsep.core.Experiment.to_dict`
+            **kwargs: Passed to :meth:`~fecsep.experiment.Experiment.to_dict`
 
         Returns:
 
@@ -715,7 +715,7 @@ class Experiment:
         """
 
         Initializes an experiment from a .yml file. It must contain the
-        attributes described in the :class:`~fecsep.core.Experiment`,
+        attributes described in the :class:`~fecsep.experiment.Experiment`,
         :func:`~fecsep.utils.read_time_config` and
         :func:`~fecsep.utils.read_region_config` descriptions
 
@@ -723,7 +723,7 @@ class Experiment:
             config_yml (str): The path to the .yml file
 
         Returns:
-            An :class:`~fecsep.core.Experiment` class instance
+            An :class:`~fecsep.experiment.Experiment` class instance
 
         """
         with open(config_yml, 'r') as yml:

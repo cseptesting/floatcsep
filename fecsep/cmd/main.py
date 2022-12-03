@@ -1,7 +1,4 @@
-import sys
-import datetime
 from fecsep.experiment import Experiment
-from collections import defaultdict
 import argparse
 import os
 

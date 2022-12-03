@@ -7,9 +7,9 @@ This contains a reference document to the feCSEP API.
 Experiment
 ----------
 
-.. :currentmodule:: fecsep.core
+.. :currentmodule:: fecsep.experiment
 
-.. automodule:: fecsep.core
+.. automodule:: fecsep.experiment
 
 
 The experiment is defined using the :class:`Experiment` class.
@@ -34,6 +34,9 @@ The experiment is defined using the :class:`Experiment` class.
 Model
 -----
 
+.. :currentmodule:: fecsep.model
+
+.. automodule:: fecsep.model
 
 A model is defined using the :class:`Model` class.
 
@@ -45,8 +48,9 @@ A model is defined using the :class:`Model` class.
     Model.make_db
     Model.rm_db
     Model.create_forecast
-    Model.make_forecast_td
-    Model.make_forecast_ti
+    Model.forecast_from_func
+    Model.forecast_from_file
+    Model.get_forecast
     Model.to_dict
     Model.from_dict
 
@@ -54,6 +58,9 @@ A model is defined using the :class:`Model` class.
 Test
 ----
 
+.. :currentmodule:: fecsep.test
+
+.. automodule:: fecsep.test
 
 A test is defined using the :class:`Test` class.
 
@@ -62,6 +69,7 @@ A test is defined using the :class:`Test` class.
 
     Test
     Test.compute
+    Test.type
     Test.to_dict
     Test.from_dict
 
@@ -71,9 +79,9 @@ A test is defined using the :class:`Test` class.
 Running an Experiment
 ----------------------
 
-.. :currentmodule:: fecsep.main
+.. :currentmodule:: fecsep.cmd.main
 
-.. automodule:: fecsep.main
+.. automodule:: fecsep.cmd.main
 
 .. autosummary::
    :toctree: generated
@@ -97,6 +105,34 @@ Accessors
     from_git
 
 
+
+Evaluations
+-----------
+
+Additional `pyCSEP` evaluations
+
+
+.. :currentmodule:: fecsep.evaluations
+
+.. automodule:: fecsep.evaluations
+
+.. autosummary::
+   :toctree: generated
+
+    sequential_likelihood
+    sequential_information_gain
+    vector_poisson_t_w_test
+    brier_score
+    negative_binomial_number_test
+    binomial_joint_log_likelihood_ndarray
+    binomial_spatial_test
+    binomial_conditional_likelihood_test
+    binary_paired_t_test
+    log_likelihood_point_process
+    paired_ttest_point_process
+
+
+
 Utilities
 ---------
 
@@ -117,7 +153,6 @@ Utilities
     Task.run
     Task.check_exist
     timewindow_str
-    sequential_likelihood
     plot_sequential_likelihood
     magnitude_vs_time
 
@@ -126,17 +161,19 @@ Utilities
 Database parsers
 ----------------
 
-.. :currentmodule:: fecsep.dbparser
+.. :currentmodule:: fecsep.readers
 
-.. automodule:: fecsep.dbparser
+.. automodule:: fecsep.readers
 
 .. autosummary::
    :toctree: generated
 
-    HDF5Serializer.quadtree
-    HDF5Serializer.dat
-    HDF5Serializer.csv
-    HDF5Serializer.xml
-    load_from_hdf5
+    ForecastParsers.dat
+    ForecastParsers.xml
+    ForecastParsers.quadtree
+    ForecastParsers.csv
+    ForecastParsers.hdf5
+    HDF5Serializer.grid2hdf5
+    serialize
 
 
