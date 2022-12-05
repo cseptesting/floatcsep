@@ -16,7 +16,7 @@ from fecsep import report
 from fecsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
     read_region_config, Task, timewindow_str
 from fecsep.model import Model
-from fecsep.test import Test
+from fecsep.evaluation import Evaluation
 
 numpy.seterr(all="ignore")
 
@@ -241,7 +241,7 @@ class Experiment:
 
         with open(self._abspath(self.test_config)[1], 'r') as config:
             config_dict = yaml.load(config, NoAliasLoader)
-        self.tests = [Test.from_dict(tdict) for tdict in config_dict]
+        self.tests = [Evaluation.from_dict(tdict) for tdict in config_dict]
 
     def prepare_paths(self, results_path=None, run_name=None):
         """
