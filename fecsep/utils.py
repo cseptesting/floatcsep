@@ -375,7 +375,6 @@ class Task:
 
         if hasattr(self.obj, 'store'):
             self.obj = self.obj.store
-
         output = getattr(self.obj, self.method)(**self.kwargs)
 
         if output:

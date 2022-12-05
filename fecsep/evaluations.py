@@ -139,7 +139,7 @@ def sequential_information_gain(gridded_forecasts, reference_forecasts,
     return result
 
 
-def vector_poisson_t_w_test(benchmark_forecast, forecasts, catalog, **kwargs):
+def vector_poisson_t_w_test(forecasts, benchmark_forecast, catalog, **kwargs):
     """ Computes Student's t-test for the information gain per earthquake over a list of forecasts and
         w-test for normality
         

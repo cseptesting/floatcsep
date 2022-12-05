@@ -1,4 +1,5 @@
 import json
+from functools import partial
 from datetime import datetime
 from typing import List, Dict, Callable, Union
 
@@ -6,6 +7,26 @@ import csep.models
 from csep.core.catalogs import CSEPCatalog
 from fecsep.model import Model
 from fecsep.utils import parse_csep_func
+
+
+def prepare_test_args(func):
+    def funcwrap(*args, **kwargs):
+        if 'Sequential' in args[0].type:
+            if not isinstance(kwargs.get('cat_path'), list):
+                raise TypeError(
+                    'A list of catalog paths should be provided'
+                    ' for a sequential evaluation')
+            if not isinstance(kwargs.get('time_window'), list):
+                raise TypeError('A list of time_window pairs should be'
+                                ' provided for a sequential evaluation')
+        if 'Comparative' in args[0].type:
+            if isinstance(kwargs.get('ref_model'), None):
+                raise TypeError('None is not valid as reference model')
+        if 'Batch' in args[0].type:
+            raise isinstance(kwargs.get('forecast'), list)
+        return func(*args, **kwargs)
+
+    return funcwrap
 
 
 class Evaluation:
@@ -39,6 +60,8 @@ class Evaluation:
             Incremental (Metrics of sequential time windows):  
             Sequential: 
     '''
+
+    # todo: Typology characterization should be done within pycsep
     _TYPES = {
         'number_test': ['Test', 'Absolute', 'Discrete'],
         'spatial_test': ['Test', 'Absolute', 'Discrete'],
@@ -58,47 +81,79 @@ class Evaluation:
         'sequential_information_gain': ['Score', 'Comparative', 'Sequential']
     }
 
-    _types = {'consistency': ['number_test', 'spatial_test', 'magnitude_test',
-                              'likelihood_test', 'conditional_likelihood_test',
-                              'negative_binomial_number_test',
-                              'binary_spatial_test', 'binomial_spatial_test',
-                              'brier_score',
-                              'binary_conditional_likelihood_test'],
-              'comparative': ['paired_t_test', 'w_test',
-                              'binary_paired_t_test'],
-              'batch': ['vector_poisson_t_w_test'],
-              'sequential': ['sequential_likelihood'],
-              'seqcomp': ['sequential_information_gain']}
-    _funcs = {key: f'compute_{key}' for key in _types.keys()}
-
     def __init__(self, name: str, func: Union[str, Callable],
                  func_args: List = None, func_kwargs: Dict = None,
-                 plot_func: Callable = None, plot_args: List = None,
-                 plot_kwargs: Dict = None) -> None:
+                 ref_model: (str, Model) = None, plot_func: Callable = None,
+                 plot_args: List = None, plot_kwargs: Dict = None,
+                 markdown: str = '') -> None:
 
         self.name = name
 
         self.func = parse_csep_func(func)
         self.func_args = func_args
         self.func_kwargs = func_kwargs  # todo set default args from exp?
+        self.ref_model = ref_model
 
         self.plot_func = parse_csep_func(plot_func)
-        self.plot_args = plot_args or {}  # todo default args?
+        self.plot_args = plot_args or {}  # todo default args from exp?
         self.plot_kwargs = plot_kwargs or {}
 
-        self._type = None
+        self.markdown = markdown
 
-    def compute(self, timewindow: List[datetime], catpath: str,
-                model: Union[Model, List[Model]], path: str,
-                ref_model: Model = None) -> None:
+        self.type = Evaluation._TYPES[self.func.__name__]
+
+    @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, type_list):
+        if 'Comparative' in type_list and self.ref_model is None:
+            raise TypeError('A comparative-type test should have a'
+                            ' reference model assigned')
+        self._type = type_list
+
+    def discrete_args(self, time_window, cat_path, model, ref_model=None):
+
+        if isinstance(model, Model):
+            forecast = model.forecasts[time_window]  # One Forecast
+        else:
+            forecast = [model_i.forecasts[time_window] for model_i in model]
+
+        catalog = CSEPCatalog.load_json(cat_path)  # One Catalog
+        catalog.region = forecast.region  # F.Reg > Cat.Reg
+
+        if isinstance(ref_model, Model):
+            ref_forecast = ref_model.forecasts[time_window]  # REF.FORECAST
+            test_args = (forecast, ref_forecast, catalog)  # Args: (Fc, Cat)
+        else:
+            test_args = (forecast, catalog)
+        return test_args
+
+    def sequential_args(self, time_windows, cat_paths, model, ref_model=None):
+        forecasts = [model.forecasts[i] for i in time_windows]
+        catalogs = [CSEPCatalog.load_json(i) for i in cat_paths]
+        for i in catalogs:
+            i.region = forecasts[0].region
+        if ref_model:
+            ref_forecasts = [ref_model.forecasts[i] for i in time_windows]
+            test_args = (forecasts, ref_forecasts, catalogs, time_windows)
+        else:
+            test_args = (forecasts, catalogs, time_windows)
+        return test_args
+
+    @prepare_test_args
+    def compute(self, time_window: Union[List[datetime], List[List[datetime]]],
+                cat_path: str, model: Union[Model, List[Model]],
+                path: str, ref_model: Model = None) -> None:
         """
 
         Runs the test, structuring the arguments according to the test typology
 
         Args:
-            timewindow (list[datetime, datetime]): Pair of datetime objects
+            time_window (list[datetime, datetime]): Pair of datetime objects
              representing the testing time span
-            catpath (str):  Path to the filtered catalog
+            cat_path (str):  Path to the filtered catalog
             model (Model, list[Model]): Model(s) to be evaluated
             ref_model: Model to be used as reference
             path: Path to store the Evaluation result
@@ -107,55 +162,21 @@ class Evaluation:
 
         """
 
-        #  If Comparative  >>>> Ref_model
-        #  If Sequential >>>>> Forecasts = [List of FC]
-        #  If Batch   >>>> List of Models
+        test_args = None
+        print(self.type)
+        if 'Discrete' in self.type:
+            test_args = self.discrete_args(time_window, cat_path,
+                                           model, ref_model)
+        elif 'Sequential' in self.type:
+            test_args = self.sequential_args(time_window, cat_path,
+                                             model, ref_model)
 
-        if self.type == 'consistency':
-            forecast = model.forecasts[timewindow]  # One Forecast
-            catalog = CSEPCatalog.load_json(catpath)  # One Catalog
-            catalog.region = forecast.region  # F.Reg > Cat.Reg
-            test_args = (forecast, catalog)  # Args: (Fc, Cat)
-
-        if self.type == 'comparative':
-            forecast = model.forecasts[timewindow]  # One Forecast
-            catalog = CSEPCatalog.load_json(catpath)  # One Catalog
-            catalog.region = forecast.region  # F.reg >  Cat.Reg
-            ref_forecast = ref_model.forecasts[timewindow]  # REF.FORECAST
-            test_args = (
-                forecast, ref_forecast, catalog)  # Args: (Fc, RefFC, Cat)
-
-        elif self.type == 'batch':
-            ref_forecast = ref_model.forecasts[timewindow]  # One Ref. Forecast
-            catalog = CSEPCatalog.load_json(catpath)  # One Catalog
-            catalog.region = ref_forecast.region  # RefF.Reg >  Cat.reg
-            forecast_batch = [model_i.forecasts[timewindow] for model_i in
-                              # Multiple FCS
-                              model]
-            test_args = (ref_forecast, forecast_batch,
-                         catalog)  # Args (RefFC, FCBatch, Cat)
-
-        elif self.type == 'sequential':
-            forecasts = [model.forecasts[i] for i in timewindow]
-            catalogs = [CSEPCatalog.load_json(i) for i in catpath]
-            for i in catalogs:
-                i.region = forecasts[0].region
-            test_args = (forecasts, catalogs, timewindow)
-
-        elif self.type == 'seqcomp':
-            forecasts = [model.forecasts[i] for i in timewindow]
-            ref_forecasts = [ref_model.forecasts[i] for i in timewindow]
-            catalogs = [CSEPCatalog.load_json(i) for i in catpath]
-            for i in catalogs:
-                i.region = forecasts[0].region
-            test_args = (forecasts, ref_forecasts, catalogs, timewindow)
-
-        self.write_result(self.func(*test_args, **self.func_kwargs))
+        evaluation_result = self.func(*test_args, **self.func_kwargs)
+        self.write_result(evaluation_result, path)
 
     @staticmethod
-    def write_result(self, result: csep.models.EvaluationResult,
+    def write_result(result: csep.models.EvaluationResult,
                      path: str) -> None:
-
         with open(path, 'w') as _file:
             json.dump(result.to_dict(), _file, indent=4)
 
@@ -174,16 +195,6 @@ class Evaluation:
             f"kwargs: {self.func_kwargs}\n"
             f"path: {self.path}"
         )
-
-    @property
-    def type(self):
-
-        self._type = None
-        for ty, funcs in Evaluation._types.items():
-            if self.func.__name__ in funcs:
-                self._type = ty
-
-        return self._type
 
     @classmethod
     def from_dict(cls, record):

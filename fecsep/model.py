@@ -9,6 +9,7 @@ from csep.utils.time_utils import decimal_year
 from fecsep.accessors import from_zenodo, from_git
 from fecsep.readers import ForecastParsers, HDF5Serializer
 from fecsep.utils import parse_csep_func, timewindow_str
+from fecsep.registry import model_registry
 
 
 class Model:
@@ -77,6 +78,7 @@ class Model:
                                
     '''
 
+    @model_registry
     def __init__(self, name: str, path: str,
                  forecast_unit: float = 1, use_db: bool = False,
                  func: Union[str, Callable] = None, func_kwargs: dict = None,
@@ -116,18 +118,20 @@ class Model:
         # MODEL SELF-DISCOVER ATTRS
         self._src = None
         self._fmt = None
-        self.get_source(zenodo_id, giturl)
-
-        if self.use_db:
-            self.make_db()
 
         # INSTANTIATE ATTRIBUTES TO BE POPULATED IN runtime
         self.forecasts = {}
 
+    def stage(self):
+
+        self.reg.add_obj(self)
+        self.get_source(self.zenodo_id, self.giturl)
+        if self.use_db:
+            self.make_db()
+
     @property
     def path(self) -> str:
         """
-        (to be deprecated in following versions)
 
         Returns:
             The path pointing to the source file, or to the HDF5 database
@@ -136,10 +140,28 @@ class Model:
         if self.dbpath:
             return self.dbpath
         else:
-            return self._path
+            return self.reg.tree[self.name]['path']
+
+    @property
+    def ext(self) -> str:
+        """
+
+        Returns:
+            Extension of the provided file.
+        """
+
+        return self.reg.tree[self.name]['ext']
+
+    @property
+    def dir(self) -> str:
+        """
+        Returns:
+            The directory containing the model source.
+        """
+        return self.reg.tree[self.name]['dir']
 
     def get_source(self, zenodo_id: int = None, giturl: str = None,
-                   **kwargs) -> None:
+                   force: bool = False, **kwargs) -> None:
         """
 
         Search (or download/clone) the model source in the filesystem, zenodo
@@ -157,43 +179,32 @@ class Model:
 
         """
 
-        # Check if the provided path is a file or dir.
-        ext = os.path.splitext(self.path)[-1]
+        if os.path.exists(self.path) and not force:
+            return
 
-        if bool(ext):  # model is a file
-            self._dir = os.path.dirname(self.path)  # todo reg
-            self._fmt = ext.split('.')[-1]
-            self._src = 'file'
-        else:  # model is bin
-            self._dir = self.path  # todo reg
-            self._src = 'bin'
+        if zenodo_id is None and giturl is None:
+            raise FileNotFoundError(
+                f"Model file or directory '{self.path}' not found")
 
-        # Folder nor file exists -> get from zenodo or git
-        if not os.path.exists(self.path):  # todo reg
-            if zenodo_id is None and giturl is None:
-                raise FileNotFoundError(
-                    f"Model file or directory '{self.path}' not found")  # todo reg
-
-            os.makedirs(self._dir, exist_ok=True)
+        os.makedirs(self._dir, exist_ok=True)
+        try:
+            # Zenodo is the first source of retrieval
+            from_zenodo(zenodo_id, self._dir, force=force,
+                        **kwargs)  # todo reg
+        except KeyError or TypeError as zerror_:
             try:
-                # Zenodo is the first source of retrieval
-                from_zenodo(zenodo_id, self._dir, **kwargs)  # todo reg
-            except KeyError or TypeError as zerror_:
-                try:
-                    from_git(giturl, self._dir, **kwargs)  # todo reg
-                except (git.NoSuchPathError, git.CommandError) as giterror_:
-                    if giturl is None:
-                        raise KeyError('Zenodo identifier is not valid')
-                    else:
-                        raise git.NoSuchPathError('git url was not found')
+                from_git(giturl, self._dir, **kwargs)  # todo reg
+            except (git.NoSuchPathError, git.CommandError) as giterror_:
+                if giturl is None:
+                    raise KeyError('Zenodo identifier is not valid')
+                else:
+                    raise git.NoSuchPathError('git url was not found')
 
-            # Check if file or directory exists after downloading
-            if bool(ext):
-                path_exists = os.path.isfile(self.path)  # todo reg
-            else:
-                path_exists = os.path.isdir(self.path)  # todo reg
-
-            assert path_exists
+        # Check if file or directory exists after downloading
+        if bool(self.ext):
+            path_exists = os.path.isfile(self.path)  # todo reg
+        else:
+            path_exists = os.path.isdir(self.path)  # todo reg
 
     def make_db(self, force: bool = False) -> None:
         """

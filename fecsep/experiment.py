@@ -13,6 +13,7 @@ from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
 
 from fecsep import report
+from fecsep.registry import exp_registry, Registry
 from fecsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
     read_region_config, Task, timewindow_str
 from fecsep.model import Model
@@ -107,6 +108,7 @@ class Experiment:
     
     '''
 
+    @exp_registry
     def __init__(self,
                  name=None,
                  time_config=None,
@@ -175,11 +177,20 @@ class Experiment:
             self.region_config)
         return sorted(_dir)
 
+    def add_model(self, model):
+
+        model.reg = self.reg
+        self.models.append(model)
+
+    def stage_models(self):
+        for i in self.models:
+            i.stage()
+
     def _abspath(self, *paths):
         # Gets the absolute path of a file, when it was defined relative to the
         # experiment working dir.
         # todo check redundancy when passing an actual absolute path (e.g.
-        #  when reinstantiating)
+        #  when re-instantiating)
         _path = os.path.normpath(
             os.path.abspath(os.path.join(self.path, *paths)))
         _dir = os.path.dirname(_path)
@@ -207,8 +218,8 @@ class Experiment:
                 # updates path to absolute
                 model_abspath = self._abspath(_dir, element[name_]['path'])[1]
                 model_i = {name_: {**element[name_], 'path': model_abspath}}
-
-                self.models.append(Model.from_dict(model_i))
+                model = Model.from_dict(model_i)
+                self.add_model(model)
             else:
                 model_flavours = list(element.values())[0]['flavours'].items()
                 for flav, flav_path in model_flavours:
@@ -221,7 +232,8 @@ class Experiment:
                     model_ = {name_flav: {**element[name_super],
                                           'path': path_sub}}
                     model_[name_flav].pop('flavours')
-                    self.models.append(Model.from_dict(model_))
+                    model = Model.from_dict(model_)
+                    self.add_model(model)
 
         # Checks if there is any repeated model.
         names_ = [i.name for i in self.models]
@@ -361,27 +373,27 @@ class Experiment:
                 tasks.append(task_ij)
 
                 for test_k in self.tests:
-                    if test_k.type == 'consistency':
+                    if 'Discrete' in test_k.type and 'Absolute' in test_k.type:
                         task_ijk = Task(
                             instance=test_k,
                             method='compute',
-                            timewindow=time_str,
-                            catpath=self._paths[time_str]['catalog'],
+                            time_window=time_str,
+                            cat_path=self._paths[time_str]['catalog'],
                             model=model_j,
                             path=self._paths[time_str][
                                 'evaluations'][test_k.name][model_j.name]
                         )
                         tasks.append(task_ijk)
 
-            # Consistency Tests
+            # Comparative Tests
             for test_k in self.tests:
-                if test_k.type == 'comparative':
+                if 'Discrete' in test_k.type and 'Comparative' in test_k.type:
                     for model_j in self.models:
                         task_ik = Task(
                             instance=test_k,
                             method='compute',
-                            timewindow=time_str,
-                            catpath=self._paths[time_str]['catalog'],
+                            time_window=time_str,
+                            cat_path=self._paths[time_str]['catalog'],
                             model=model_j,
                             ref_model=self.get_model(test_k.ref_model),
                             path=self._paths[time_str][
@@ -389,41 +401,44 @@ class Experiment:
                         )
                         tasks.append(task_ik)
         for test_k in self.tests:
-            if test_k.type == 'sequential':
-                timestrs = timewindow_str(self.time_windows)
-                for model_j in self.models:
-                    task_k = Task(
-                        instance=test_k,
-                        method='compute',
-                        timewindow=timestrs,
-                        catpath=[self._paths[i]['catalog'] for i in timestrs],
-                        model=model_j,
-                        path=self._paths[timestrs[-1]][
-                            'evaluations'][test_k.name][model_j.name]
-                    )
-                    tasks.append(task_k)
-            elif test_k.type == 'seqcomp':
-                timestrs = timewindow_str(self.time_windows)
-                for model_j in self.models:
-                    task_k = Task(
-                        instance=test_k,
-                        method='compute',
-                        timewindow=timestrs,
-                        catpath=[self._paths[i]['catalog'] for i in timestrs],
-                        model=model_j,
-                        ref_model=self.get_model(test_k.ref_model),
-                        path=self._paths[timestrs[-1]][
-                            'evaluations'][test_k.name][model_j.name]
-                    )
-                    tasks.append(task_k)
-            elif test_k.type == 'fullcomp':
+            if 'Sequential' in test_k.type:
+                if 'Absolute' in test_k.type:
+                    timestrs = timewindow_str(self.time_windows)
+                    for model_j in self.models:
+                        task_k = Task(
+                            instance=test_k,
+                            method='compute',
+                            time_window=timestrs,
+                            cat_path=[self._paths[i]['catalog'] for i in
+                                      timestrs],
+                            model=model_j,
+                            path=self._paths[timestrs[-1]][
+                                'evaluations'][test_k.name][model_j.name]
+                        )
+                        tasks.append(task_k)
+                elif 'Comparative' in test_k.type:
+                    timestrs = timewindow_str(self.time_windows)
+                    for model_j in self.models:
+                        task_k = Task(
+                            instance=test_k,
+                            method='compute',
+                            time_window=timestrs,
+                            cat_path=[self._paths[i]['catalog'] for i in
+                                      timestrs],
+                            model=model_j,
+                            ref_model=self.get_model(test_k.ref_model),
+                            path=self._paths[timestrs[-1]][
+                                'evaluations'][test_k.name][model_j.name]
+                        )
+                        tasks.append(task_k)
+            elif 'Discrete' in test_k.type and 'Batch' in test_k.type:
                 timestr = timewindow_str(self.time_windows[-1])
                 for model_j in self.models:
                     task_k = Task(
                         instance=test_k,
                         method='compute',
-                        timewindow=timestr,
-                        catpath=self._paths[timestr]['catalog'],
+                        time_window=timestr,
+                        cat_path=self._paths[timestr]['catalog'],
                         ref_model=model_j,
                         model=self.models,
                         path=self._paths[timestr][
@@ -462,8 +477,9 @@ class Experiment:
                 **bounds
             )
 
-            catalog.filter_spatial(region=self.region)
-            catalog.region = None
+            if self.region:
+                catalog.filter_spatial(region=self.region)
+                catalog.region = None
             catalog.write_json(self._catpath)
 
             return catalog
@@ -527,8 +543,7 @@ class Experiment:
 
             # consistency and comparative
             for test in self.tests:
-                if test.type in ['consistency', 'comparative']:
-
+                if 'Discrete' in test.type and 'Absolute' in test.type:
                     results = self._read_results(test, time)
                     ax = test.plot_func(results, plot_args=test.plot_args,
                                         **test.plot_kwargs)
@@ -539,24 +554,23 @@ class Experiment:
                         pyplot.show()
 
         for test in self.tests:
-            if test.type in ['consistency', 'sequential', 'fullcomp',
-                             'seqcomp']:
-                timestr = timewindow_str(self.time_windows[-1])
-                results = self._read_results(test, timestr)
-                if test.type == 'seqcomp':
-                    results_ = []
-                    for i in results:
-                        if i.sim_name != test.ref_model:
-                            results_.append(i)
-                    results = results_
 
-                ax = test.plot_func(results, plot_args=test.plot_args,
-                                    **test.plot_kwargs)
-                if 'code' in test.plot_args:
-                    exec(test.plot_args['code'])
-                pyplot.savefig(figpaths[test.name], dpi=dpi)
-                if show:
-                    pyplot.show()
+            timestr = timewindow_str(self.time_windows[-1])
+            results = self._read_results(test, timestr)
+            if test.type == 'seqcomp':
+                results_ = []
+                for i in results:
+                    if i.sim_name != test.ref_model:
+                        results_.append(i)
+                results = results_
+
+            ax = test.plot_func(results, plot_args=test.plot_args,
+                                **test.plot_kwargs)
+            if 'code' in test.plot_args:
+                exec(test.plot_args['code'])
+            pyplot.savefig(figpaths[test.name], dpi=dpi)
+            if show:
+                pyplot.show()
 
     def plot_forecasts(self):
         """
