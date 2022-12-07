@@ -74,9 +74,8 @@ class Model:
                  repo_hash: str = None, authors: List[str] = None,
                  doi: str = None) -> None:
 
-        # todo: list
+        # todo:
         #  - Instantiate from source code
-        #  - Check contents when instantiating from_git
 
         # Initialize path
         self.path = path
@@ -114,7 +113,8 @@ class Model:
                     f"nor its Registry, has attribute {name}")
         else:
             raise AttributeError(
-                f"'{self.__class__.__name__} 'object has no attribute '{name}'")
+                f"'{self.__class__.__name__} 'object has no "
+                f"attribute '{name}'")
 
     @property
     def path(self) -> str:
@@ -127,7 +127,6 @@ class Model:
             return self.reg.path
         else:
             return self._path
-        return self.reg.path
 
     @path.setter
     def path(self, new_path) -> None:
@@ -185,15 +184,21 @@ class Model:
         try:
             # Zenodo is the first source of retrieval
             from_zenodo(zenodo_id, self.dir, force=force)
-        except KeyError or TypeError:
+        except (KeyError, TypeError):
             try:
                 from_git(giturl, self.dir, **kwargs)
+
             except (git.NoSuchPathError, git.CommandError):
                 if giturl is None:
                     raise KeyError('Zenodo identifier is not valid')
                 else:
                     raise git.NoSuchPathError('git url was not found')
-        # todo Check if file/directory/bin exists after downloading
+
+        if not os.path.exists(self.dir) or not os.path.exists(self.path):
+            raise FileNotFoundError(
+                f"Directory '{self.dir}' or file {self.path}' do not exist. "
+                f"Please check the specified 'path' matches the repo "
+                f"structure")
 
     def init_db(self, dbpath: str = '', force: bool = False) -> None:
         """
@@ -244,15 +249,15 @@ class Model:
         Not implemented """
         pass
 
-    def get_forecast(self, start: datetime, end: datetime) -> None:
+    def get_forecast(self, start_date: datetime, end_date: datetime) -> None:
         """ Wrapper that just returns a forecast,
          hiding the processing (db storage, ti_td, etc.) under the hood"""
-        tstring = timewindow_str([start, end])
+        tstring = timewindow_str([start_date, end_date])
 
         if tstring in self.forecasts.keys():
             return self.forecasts[tstring]
         else:
-            self.create_forecast(start, end)
+            self.create_forecast(start_date, end_date)
             return self.forecasts[tstring]
 
     def create_forecast(self, start_date: datetime, end_date: datetime,
@@ -320,7 +325,7 @@ class Model:
                            **kwargs) -> None:
         raise NotImplementedError('TBI for time-dependent models')
 
-    def to_dict(self):
+    def to_dict(self, excluded=('forecasts', 'reg')):
         """
 
         Returns:
@@ -329,7 +334,7 @@ class Model:
 
         """
         out = {'path': self.path}
-        excluded = ['forecasts', 'reg']
+
         for k, v in self.__dict__.items():
             if k not in excluded and v:
                 out[k] = v

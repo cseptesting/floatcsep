@@ -7,9 +7,10 @@ import numpy
 from csep.core import poisson_evaluations
 
 _dir = os.path.dirname(__file__)
-_model_cfg = os.path.join(_dir, 'artifacts', 'models',
-                          'model_cfg.yml')
-_region = os.path.join(_dir, 'artifacts', 'regions', 'mock_region')
+_model_cfg = os.path.normpath(os.path.join(_dir, '../artifacts', 'models',
+                                           'model_cfg.yml'))
+_region = os.path.normpath(os.path.join(_dir, '../artifacts', 'regions',
+                                        'mock_region'))
 _time_config = {'start_date': datetime(2021, 1, 1),
                 'end_date': datetime(2022, 1, 1)}
 _region_config = {'region': _region,
@@ -18,7 +19,7 @@ _region_config = {'region': _region,
                   'mag_bin': 0.1,
                   'depth_min': 0,
                   'depth_max': 1}
-_cat = os.path.join(_dir, 'artifacts', 'catalog.json')
+_cat = os.path.normpath(os.path.join(_dir, '../artifacts', 'catalog.json'))
 
 
 class TestExperiment(TestCase):
@@ -117,23 +118,27 @@ class TestExperiment(TestCase):
 
         names = [i.name for i in exp.models]
         self.assertEqual(['mock', 'qtree@team10', 'qtree@team25'], names)
-        m1_path = os.path.join(_dir, 'artifacts', 'models', 'qtree',
-                               'TEAM=N10L11.csv')
+        m1_path = os.path.normpath(
+            os.path.join(_dir, '../artifacts', 'models', 'qtree',
+                         'TEAM=N10L11.csv'))
         self.assertEqual(exp.models[1].reg.meta['path'], m1_path)
 
     def test_stage_models(self):
         exp = Experiment(**_time_config, **_region_config,
                          model_config=_model_cfg,
                          catalog=_cat)
+
         exp.set_models()
         exp.stage_models()
 
-        dbpath = os.path.join(_dir, 'artifacts', 'models', 'model.hdf5')
+        dbpath = os.path.normpath(
+            os.path.join(_dir, '../artifacts', 'models', 'model.hdf5'))
         self.assertEqual(exp.models[0].path, dbpath)
 
     def test_set_tests(self):
-        test_cfg = os.path.join(_dir, 'artifacts', 'evaluations',
-                                'tests_cfg.yml')
+        test_cfg = os.path.normpath(
+            os.path.join(_dir, '../artifacts', 'evaluations',
+                         'tests_cfg.yml'))
         exp = Experiment(**_time_config, **_region_config,
                          test_config=test_cfg,
                          catalog=_cat)
@@ -148,6 +153,6 @@ class TestExperiment(TestCase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        path_ = os.path.join(_dir, 'artifacts', 'models', 'model.hdf5')
+        path_ = os.path.join(_dir, '../artifacts', 'models', 'model.hdf5')
         if os.path.isfile(path_):
             os.remove(path_)

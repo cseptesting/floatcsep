@@ -10,12 +10,12 @@ root_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def isc_gcmt_dir():
-    data_dir = os.path.join(root_dir, 'artifacts', 'isc_gcmt')
+    data_dir = os.path.join(root_dir, '../artifacts', 'isc_gcmt')
     return data_dir
 
 
 def zenodo_dir():
-    data_dir = os.path.join(root_dir, 'artifacts', 'zenodo')
+    data_dir = os.path.join(root_dir, '../artifacts', 'zenodo')
     return data_dir
 
 

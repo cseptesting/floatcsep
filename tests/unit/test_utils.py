@@ -138,7 +138,7 @@ class RegionUtilsTest(unittest.TestCase):
                                       [0.1, 0],
                                       [0.1, 0.1],
                                       [0, 0.1]])
-        region_path = os.path.join(os.path.dirname(__file__), 'artifacts',
+        region_path = os.path.join(os.path.dirname(__file__), '../artifacts',
                                    'regions', 'mock_region')
         config = {'region': region_path,
                   'mag_min': 1,
@@ -158,7 +158,7 @@ class RegionUtilsTest(unittest.TestCase):
                   'mag_bin': 0.1,
                   'depth_min': 0,
                   'depth_max': 1}
-        region_path = os.path.join(os.path.dirname(__file__), 'artifacts',
+        region_path = os.path.join(os.path.dirname(__file__), '../artifacts',
                                    'regions', 'italy_midpoints')
         midpoints = numpy.genfromtxt(region_path)
         region_config = read_region_config(config)

@@ -15,7 +15,7 @@ class TestForecastParsers(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls._path = os.path.dirname(__file__)
-        cls._dir = os.path.join(cls._path, 'artifacts', 'models')
+        cls._dir = os.path.join(cls._path, '../artifacts', 'models')
 
     def test_parse_csv(self):
         fname = os.path.join(self._dir, 'model.csv')
