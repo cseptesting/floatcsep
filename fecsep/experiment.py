@@ -175,19 +175,6 @@ class Experiment:
             self.region_config)
         return sorted(_dir)
 
-    def add_model(self, model_i: dict) -> None:
-        """ Add experiment reg to Model class, to share between model
-        instances """
-
-        model = Model.from_dict(model_i)
-        self.reg.add_reg(model.reg)
-        self.models.append(model)
-
-    def stage_models(self) -> None:
-        """ Stages all the experiment's models"""
-        for i in self.models:
-            i.stage()
-
     def _abspath(self, *paths: Sequence[str]) -> Tuple[str, str]:
         """ Gets the absolute path of a file, when it was defined relative to the
         experiment working dir."""
@@ -197,6 +184,19 @@ class Experiment:
             os.path.abspath(os.path.join(self.path, *paths)))
         _dir = os.path.dirname(_path)
         return _dir, _path
+
+    def stage_models(self) -> None:
+        """ Stages all the experiment's models"""
+        for i in self.models:
+            i.stage()
+
+    def add_model(self, model_i: dict) -> None:
+        """ Add experiment reg to Model class, to share between model
+        instances """
+
+        model = Model.from_dict(model_i)
+        self.reg.add_reg(model.reg)
+        self.models.append(model)
 
     def set_models(self) -> None:
         """
@@ -244,6 +244,14 @@ class Experiment:
             print(f'Warning: Model{"s" * (not one)} {reps}'
                   f' {"is" * one + "are" * (not one)} repeated')
 
+    def add_evaluation(self, eval_i: dict) -> None:
+        """ Add evaluation to Experiment class, and share the registry
+        """
+
+        evaluation = Evaluation.from_dict(eval_i)
+        self.reg.add_reg(evaluation.reg)
+        self.tests.append(evaluation)
+
     def set_tests(self) -> None:
         """
         Parse the tests' configuration file/dict. Instantiate them as
@@ -253,7 +261,9 @@ class Experiment:
 
         with open(self._abspath(self.test_config)[1], 'r') as config:
             config_dict = yaml.load(config, NoAliasLoader)
-        self.tests = [Evaluation.from_dict(tdict) for tdict in config_dict]
+
+        for evaldict in config_dict:
+            self.add_evaluation(evaldict)
 
     def prepare_paths(self, results_path: str = None,
                       run_name: str = None) -> None:

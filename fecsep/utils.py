@@ -61,6 +61,8 @@ def parse_csep_func(func):
 
     if callable(func):
         return func
+    elif func is None:
+        return func
     else:
         _target_modules = [csep,
                            csep.utils,

@@ -1,15 +1,17 @@
 import json
 from datetime import datetime
+from functools import singledispatchmethod
 from typing import Dict, Callable, Union, Sequence
 
 import csep.models
 from csep.core.catalogs import CSEPCatalog
+
+from fecsep.registry import register
 from fecsep.model import Model
 from fecsep.utils import parse_csep_func
-from functools import singledispatchmethod
 
 
-def prepare_test_args(func):
+def check_eval_args(func):
     def funcwrap(*args, **kwargs):
         if 'Sequential' in args[0].type:
             if not isinstance(kwargs.get('cat_path'), list):
@@ -84,6 +86,7 @@ class Evaluation:
         'sequential_information_gain': ['Comparative', 'Sequential']
     }
 
+    @register
     def __init__(self, name: str, func: Union[str, Callable],
                  func_kwargs: Dict = None,
                  ref_model: (str, Model) = None,
@@ -104,17 +107,20 @@ class Evaluation:
 
         self.markdown = markdown
 
-        self.type = Evaluation._TYPES[self.func.__name__]
+        self.type = Evaluation._TYPES.get(self.func.__name__)
 
     @property
     def type(self):
         return self._type
 
     @type.setter
-    def type(self, type_list):
-        if 'Comparative' in type_list and self.ref_model is None:
-            raise TypeError('A comparative-type test should have a'
-                            ' reference model assigned')
+    def type(self, type_list: Union[str, Sequence[str]]):
+
+        if isinstance(type_list, Sequence):
+            if ('Comparative' in type_list) and (self.ref_model is None):
+                raise TypeError('A comparative-type test should have a'
+                                ' reference model assigned')
+
         self._type = type_list
 
     def is_type(self, test_type: str):
@@ -177,7 +183,7 @@ class Evaluation:
             test_args = (forecasts, catalogs, time_windows)
         return test_args
 
-    @prepare_test_args
+    @check_eval_args
     def compute(self, time_window: Union[str, list],
                 cat_path: str, model: Union[Model, Sequence[Model]],
                 path: str, ref_model: Model = None) -> None:
@@ -213,18 +219,19 @@ class Evaluation:
 
     def to_dict(self):
         out = {}
-        included = ['name', 'model', 'ref_model', 'path', 'func_kwargs']
+        included = ['name', 'model', 'func', 'ref_model', 'path',
+                    'func_kwargs']
         for k, v in self.__dict__.items():
-            if k in included and v is not None:
+            if k in included and v:
                 out[k] = v
         return out
 
     def __str__(self):
         return (
             f"name: {self.name}\n"
+            f"function: {self.func.__name__}\n"
             f"reference model: {self.ref_model}\n"
             f"kwargs: {self.func_kwargs}\n"
-            f"path: {self.path}"
         )
 
     @classmethod

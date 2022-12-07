@@ -15,7 +15,8 @@ class DataTest(unittest.TestCase):
                          f'config.yml')
         )
 
-    def run_evaluation(self, cfg_file):
+    @staticmethod
+    def run_evaluation(cfg_file):
         main.run(cfg_file, show=False)
 
     def get_eval_dist(self):

@@ -1,30 +1,16 @@
-# from fecsep import experiment, registry, model, evaluation
-from fecsep import experiment
-import h5py
-# reload(experiment)
-# reload(registry)
-# reload(model)
-# reload(evaluation)
-from fecsep.experiment import Experiment
-from fecsep.model import Model
-from datetime import datetime
-import numpy
+from functools import singledispatch
 
-exp = Experiment.from_yml('examples/case_f/config.yml')
 
-exp.set_models()
-exp.stage_models()
-# print(exp.models[0].reg)
-# print(exp.reg.tree['Model C'])
-model = exp.models[0]
+class Argh:
 
-# with h5py.File(model.path) as f_:
-#     print(f_.keys())
-# print('START1')
-start = datetime(2020, 1, 1)
-end = datetime(2021, 1, 1)
-model.create_forecast(start, end)
+    def __init__(self):
+        self.x = 1
 
-# aa = model.to_dict()
-# b = Model.from_dict(aa)
-# print(b.path)
+    @property
+    def y(self, a=1):
+        return 2 * self.x * a
+
+
+a = Argh()
+a.y(2)
+print(a.y(2))
