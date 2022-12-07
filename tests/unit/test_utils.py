@@ -1,12 +1,17 @@
 import os.path
+import unittest
+import numpy
 from datetime import datetime
 
+import csep
+import csep.utils.plots
+import csep.core.regions
+
+import fecsep
+import fecsep.accessors
+import fecsep.extra
 from fecsep.utils import parse_timedelta_string, time_windows_ti, \
     read_time_config, read_region_config, parse_csep_func
-import unittest
-import fecsep
-import csep
-import numpy
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -27,7 +32,7 @@ class CsepFunctionTest(unittest.TestCase):
         self.assertIsInstance(parse_csep_func('from_zenodo'),
                               fecsep.accessors.from_zenodo.__class__)
         self.assertIsInstance(parse_csep_func('from_zenodo'),
-                              fecsep.evaluations.vector_poisson_t_w_test.__class__)
+                              fecsep.extra.vector_poisson_t_w_test.__class__)
         self.assertRaises(AttributeError, parse_csep_func, 'panic_button')
 
 
@@ -129,10 +134,10 @@ class RegionUtilsTest(unittest.TestCase):
                                    region_config['depths'])
 
     def test_region(self):
-        region_origins = numpy.array([[1, 1],
-                                      [2, 1],
-                                      [2, 2],
-                                      [1, 2]])
+        region_origins = numpy.array([[0, 0],
+                                      [0.1, 0],
+                                      [0.1, 0.1],
+                                      [0, 0.1]])
         region_path = os.path.join(os.path.dirname(__file__), 'artifacts',
                                    'regions', 'mock_region')
         config = {'region': region_path,
