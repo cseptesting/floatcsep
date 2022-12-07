@@ -1,8 +1,6 @@
 # python libraries
 import copy
 import datetime
-
-import matplotlib.pyplot as plt
 import numpy
 import re
 import multiprocessing as mp
@@ -27,14 +25,11 @@ from csep.utils.plots import plot_spatial_dataset
 from csep.models import Polygon
 from csep.core.regions import QuadtreeGrid2D, geographical_area_from_bounds
 from csep.utils.calc import cleaner_range
-from csep.core.poisson_evaluations import _poisson_likelihood_test
-from csep.models import EvaluationResult
-from csep.core.exceptions import CSEPCatalogException
 
 # feCSEP libraries
 
 import fecsep.accessors
-import fecsep.extra
+import fecsep.extras
 import fecsep.readers
 
 _UNITS = ['years', 'months', 'weeks', 'days']
@@ -73,7 +68,7 @@ def parse_csep_func(func):
                            csep.core.regions,
                            fecsep.utils,
                            fecsep.accessors,
-                           fecsep.extra,
+                           fecsep.extras,
                            fecsep.readers.HDF5Serializer,
                            fecsep.readers.ForecastParsers]
         for module in _target_modules:

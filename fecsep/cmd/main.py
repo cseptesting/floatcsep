@@ -21,14 +21,14 @@ def run(config, show=True):
         exp.generate_report()
 
 
-def plot(config, show=False):
+def plot(config, **_):
     exp = Experiment.from_yml(config)
 
     exp.set_tests()
     exp.set_models()
     exp.prepare_paths()
-    print('Running experiment')
-    print('======================================================\n')
+    print("Plotting experiment's results")
+    print('=============================\n')
     exp.plot_results()
     exp.generate_report()
 

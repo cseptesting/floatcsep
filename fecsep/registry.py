@@ -1,9 +1,5 @@
 import os
-import h5py
-import numpy
-from datetime import datetime
 from dataclasses import dataclass, field
-from csep.utils.time_utils import decimal_year
 from functools import wraps
 
 
@@ -43,7 +39,7 @@ class Registry:
             The directory containing the model source.
         """
         if os.path.isdir(self.path):
-            return self.reg.path
+            return self.path
         else:
             return os.path.dirname(self.path)
 

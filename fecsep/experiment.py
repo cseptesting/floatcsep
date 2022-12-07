@@ -1,10 +1,12 @@
 import os
 import os.path
 from collections.abc import Mapping, Sequence
+from typing import Union, List, Tuple, Callable
 
 import numpy
 import yaml
 import json
+from datetime import datetime
 from matplotlib import pyplot
 from cartopy import crs as ccrs
 
@@ -89,42 +91,35 @@ class Experiment:
     """
 
     '''
-            
     Data management
     
     Model:
-        - FILE
-            A - read from file, scale in runtime
-            B - drop to db, scale from function in runtime   (only makes sense to speed things)
-            C - drop to db, scale and drop to db
-        - SOURCE
-            D - run, read from file              (D similar to A) 
-            E - run, store in db, read from db   (E similar to C)
+        - FILE   - read from file, scale in runtime             
+                 - drop to db, scale from function in runtime   
+        - CODE  - run, read from file              
+                - run, store in db, read from db   
     
     TEST:
-        - use forecast from runtime (too heavy for global)
+        - use forecast from runtime
         - read forecast from file (TD)
-                                  (does not make sense for TI (too much FS space)
-                                   unless is already dropped to DB)
-         
-    
+          (does not make sense for TI (too much FS space) unless is already
+           dropped to DB)
     '''
 
     @register
     def __init__(self,
-                 name=None,
-                 time_config=None,
-                 region_config=None,
-                 catalog=None,
-                 model_config=None,
-                 test_config=None,
-                 postproc_config=None,
-                 default_test_kwargs=None,
-                 **kwargs):
-
+                 name: str = None,
+                 time_config: dict = None,
+                 region_config: dict = None,
+                 catalog: str = None,
+                 model_config: str = None,
+                 test_config: str = None,
+                 postproc_config: str = None,
+                 default_test_kwargs: dict = None,
+                 **kwargs) -> None:
         # todo
-        #  - instantiate from full experiment register (ignoring
-        #  test/models config), or self-awareness functions?
+        #  - instantiate from full experiment register (ignoring test/models
+        #  config), or self-awareness functions?
         #  - instantiate as python objects (rethink models/tests config)
 
         # Instantiate
@@ -157,7 +152,7 @@ class Experiment:
         # todo check reinstantiation
         # self.__dict__.update(**kwargs)
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> object:
         # Gets time_config and region_config keys as Experiment's attribute
         try:
             return self.__dict__[item]
@@ -179,29 +174,30 @@ class Experiment:
             self.region_config)
         return sorted(_dir)
 
-    def add_model(self, model_i):
-
-        # Add experiment reg to Model class, to share between model instances
+    def add_model(self, model_i: dict) -> None:
+        """ Add experiment reg to Model class, to share between model
+        instances """
 
         model = Model.from_dict(model_i)
         self.reg.add_reg(model.reg)
         self.models.append(model)
 
-    def stage_models(self):
+    def stage_models(self) -> None:
+        """ Stages all the experiment's models"""
         for i in self.models:
             i.stage()
 
-    def _abspath(self, *paths):
-        # Gets the absolute path of a file, when it was defined relative to the
-        # experiment working dir.
+    def _abspath(self, *paths: Sequence[str]) -> Tuple[str, str]:
+        """ Gets the absolute path of a file, when it was defined relative to the
+        experiment working dir."""
         # todo check redundancy when passing an actual absolute path (e.g.
-        #  when re-instantiating)
+        #  when re-instantiating). Pass to self.Registry()
         _path = os.path.normpath(
             os.path.abspath(os.path.join(self.path, *paths)))
         _dir = os.path.dirname(_path)
         return _dir, _path
 
-    def set_models(self):
+    def set_models(self) -> None:
         """
 
         Parse the models' configuration file/dict. Instantiates all the models
@@ -247,7 +243,7 @@ class Experiment:
             print(f'Warning: Model{"s" * (not one)} {reps}'
                   f' {"is" * one + "are" * (not one)} repeated')
 
-    def set_tests(self):
+    def set_tests(self) -> None:
         """
         Parse the tests' configuration file/dict. Instantiate them as
         :class:`fecsep.test.Test` and store them into :attr:`self.tests`.
@@ -258,19 +254,22 @@ class Experiment:
             config_dict = yaml.load(config, NoAliasLoader)
         self.tests = [Evaluation.from_dict(tdict) for tdict in config_dict]
 
-    def prepare_paths(self, results_path=None, run_name=None):
+    def prepare_paths(self, results_path: str = None,
+                      run_name: str = None) -> None:
         """
 
         Creates the run directory, and reads the file structure inside
 
         Args:
-            results_path:
+            results_path: # todo: fix run structure
             run_name:
 
         Returns:
             run_folder: Path to the run
-            exists: flag if forecasts, catalogs and test_results if they exist already
-            target_paths: flag to each element of the gefe (catalog and evaluation results)
+            exists: flag if forecasts, catalogs and test_results if they exist 
+             already
+            target_paths: flag to each element of the gefe (catalog and
+             evaluation results)
 
         """
 
@@ -345,7 +344,17 @@ class Experiment:
         self._paths = target_paths
         self._exists = exists  # todo perhaps method?
 
-    def prepare_tasks(self):
+    def prepare_tasks(self) -> None:
+        """
+        Implements the Experiment's run logic, as depth-search.
+        Time-Window >
+            Catalog Preparation >
+                Forecast Creation >
+                    Individual Tests |
+                Comparative Tests |
+        Sequential Tests |
+
+        """
 
         tasks = []
 
@@ -451,13 +460,13 @@ class Experiment:
 
         self.tasks = tasks
 
-    def get_model(self, name):
+    def get_model(self, name: str) -> Model:
         for model in self.models:
             if model.name == name:
                 return model
 
     @property
-    def catalog(self):
+    def catalog(self) -> CSEPCatalog:
 
         if callable(self._catalog):
             if os.path.isfile(self._catpath):
@@ -491,7 +500,7 @@ class Experiment:
             return CSEPCatalog.load_json(self._catpath)
 
     @catalog.setter
-    def catalog(self, cat):
+    def catalog(self, cat: Union[Callable, CSEPCatalog, str]) -> None:
 
         if os.path.isfile(self._abspath(cat)[1]):
             print(f"Using catalog from {cat}")
@@ -525,7 +534,8 @@ class Experiment:
         for task in self.tasks:
             task.run()
 
-    def _read_results(self, test, window=None):
+    def _read_results(self, test: Evaluation,
+                      window: List[datetime, datetime] = None) -> List:
 
         test_results = []
         if not isinstance(window, str):
@@ -544,11 +554,15 @@ class Experiment:
             test_results.append(model_eval)
         return test_results
 
-    def plot_results(self, dpi=300, show=False):
-        """ plots test results
-        :param run_results: defaultdict(list) where keys are the test name
-        :param file_paths: figure path for each test result
-        :param dpi: resolution for output image
+    def plot_results(self, dpi: int = 300, show: bool = False) -> None:
+        """
+        
+        Plots all evaluation results
+ 
+        Args:
+            dpi: Figure resolution with which to save
+            show: show in runtime
+
         """
 
         for time in self.time_windows:
@@ -577,7 +591,6 @@ class Experiment:
                     if i.sim_name != test.ref_model:
                         results_.append(i)
                 results = results_
-
             ax = test.plot_func(results, plot_args=test.plot_args,
                                 **test.plot_kwargs)
             if 'code' in test.plot_args:
@@ -586,10 +599,10 @@ class Experiment:
             if show:
                 pyplot.show()
 
-    def plot_forecasts(self):
+    def plot_forecasts(self) -> None:
         """
 
-        Returns:
+        Plots and saves all the generated forecasts
 
         """
 
@@ -605,11 +618,12 @@ class Experiment:
                     proj_args = {}
                 plot_fc_config['projection'] = getattr(ccrs, proj_name)(
                     **proj_args)
-            except:
+            except (IndexError, KeyError):
                 plot_fc_config['projection'] = ccrs.PlateCarree(
                     central_longitude=0.0)
 
             cat = plot_fc_config.get('catalog')
+            cat_args = {}
             if cat:
                 cat_args = {'markersize': 7, 'markercolor': 'black',
                             'title': None,
@@ -630,7 +644,8 @@ class Experiment:
                 time = f'{round(end - start, 3)} years'
                 plot_args = {'region_border': False,
                              'cmap': 'magma',
-                             'clabel': r'$\log_{10} N\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per '
+                             'clabel': r'$\log_{10} N\left(M_w \in [{%.2f},'
+                                       r'\,{%.2f}]\right)$ per '
                                        r'$0.1^\circ\times 0.1^\circ $ per %s' %
                                        (self.magnitudes.min(),
                                         self.magnitudes.max(), time)}
@@ -655,12 +670,18 @@ class Experiment:
 
                 pyplot.savefig(fig_path, dpi=300, facecolor=(0, 0, 0, 0))
 
-    def generate_report(self):
+    def generate_report(self) -> None:
+        """
+
+        Creates a report summarizing the Experiment's results
+
+        """
 
         report.generate_report(self)
 
-    def to_dict(self, exclude=('magnitudes', 'depths', 'time_windows', 'reg'),
-                extended=False):
+    def to_dict(self, exclude: Sequence = ('magnitudes', 'depths',
+                                           'time_windows', 'reg'),
+                extended: bool = False) -> dict:
         """
         Converts an Experiment instance into a dictionary.
 
@@ -708,7 +729,7 @@ class Experiment:
 
         return iter_attr(dictwalk)
 
-    def to_yml(self, filename, **kwargs):
+    def to_yml(self, filename: str, **kwargs) -> None:
         """
 
         Serializes the :class:`~fecsep.experiment.Experiment` instance into a
@@ -741,7 +762,7 @@ class Experiment:
             )
 
     @classmethod
-    def from_yml(cls, config_yml):
+    def from_yml(cls, config_yml: str):
         """
 
         Initializes an experiment from a .yml file. It must contain the

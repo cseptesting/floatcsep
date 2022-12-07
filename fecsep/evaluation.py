@@ -1,5 +1,4 @@
 import json
-from functools import partial
 from datetime import datetime
 from typing import List, Dict, Callable, Union
 

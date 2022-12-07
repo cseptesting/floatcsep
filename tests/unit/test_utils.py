@@ -9,7 +9,7 @@ import csep.core.regions
 
 import fecsep
 import fecsep.accessors
-import fecsep.extra
+import fecsep.extras
 from fecsep.utils import parse_timedelta_string, time_windows_ti, \
     read_time_config, read_region_config, parse_csep_func
 
