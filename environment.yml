@@ -13,6 +13,6 @@ dependencies:
   - shapely=1.8.0
   - pandas=1.4.1
   - scipy=1.8.0
-  - matplotlib=d3.5.1
+  - matplotlib=3.5.1
   - obspy=1.2.2
   - mercantile=1.2.1

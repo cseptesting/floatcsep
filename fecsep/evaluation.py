@@ -20,10 +20,13 @@ def prepare_test_args(func):
                 raise TypeError('A list of time_window pairs should be'
                                 ' provided for a sequential evaluation')
         if 'Comparative' in args[0].type:
-            if isinstance(kwargs.get('ref_model'), None):
+            if kwargs.get('ref_model') is None:
                 raise TypeError('None is not valid as reference model')
         if 'Batch' in args[0].type:
-            raise isinstance(kwargs.get('forecast'), list)
+
+            if not isinstance(kwargs.get('model'), list):
+                raise TypeError('Model batch should be passed as a list of '
+                                'models')
         return func(*args, **kwargs)
 
     return funcwrap
@@ -113,15 +116,19 @@ class Evaluation:
                             ' reference model assigned')
         self._type = type_list
 
-    def discrete_args(self, time_window, cat_path, model, ref_model=None):
+    @staticmethod
+    def discrete_args(time_window, cat_path, model, ref_model=None):
 
         if isinstance(model, Model):
             forecast = model.forecasts[time_window]  # One Forecast
+            reg = forecast.region
         else:
             forecast = [model_i.forecasts[time_window] for model_i in model]
+            reg = forecast[0].region
 
         catalog = CSEPCatalog.load_json(cat_path)  # One Catalog
-        catalog.region = forecast.region  # F.Reg > Cat.Reg
+
+        catalog.region = reg  # F.Reg > Cat.Reg
 
         if isinstance(ref_model, Model):
             ref_forecast = ref_model.forecasts[time_window]  # REF.FORECAST
@@ -130,7 +137,8 @@ class Evaluation:
             test_args = (forecast, catalog)
         return test_args
 
-    def sequential_args(self, time_windows, cat_paths, model, ref_model=None):
+    @staticmethod
+    def sequential_args(time_windows, cat_paths, model, ref_model=None):
         forecasts = [model.forecasts[i] for i in time_windows]
         catalogs = [CSEPCatalog.load_json(i) for i in cat_paths]
         for i in catalogs:
@@ -163,7 +171,6 @@ class Evaluation:
         """
 
         test_args = None
-        print(self.type)
         if 'Discrete' in self.type:
             test_args = self.discrete_args(time_window, cat_path,
                                            model, ref_model)

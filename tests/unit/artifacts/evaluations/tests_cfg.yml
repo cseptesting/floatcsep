@@ -1,0 +1,16 @@
+- Poisson_N:
+    func: poisson_evaluations.number_test
+    func_kwargs: {}
+    plot_func: plot_poisson_consistency_test
+
+- Poisson_S:
+    func: poisson_evaluations.spatial_test
+    func_kwargs: {}
+    plot_func: plot_poisson_consistency_test
+
+- Poisson_T:
+    func: poisson_evaluations.paired_t_test
+    func_kwargs: {}
+    plot_func: plot_comparison_test
+    ref_model: mock
+

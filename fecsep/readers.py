@@ -172,21 +172,23 @@ class ForecastParsers:
         return rates, region, magnitudes
 
     @staticmethod
-    def hdf5(filename):
+    def hdf5(filename, group=''):
         start = time.process_time()
 
+        print(f'{group}/rates')
         with h5py.File(filename, 'r') as db:
-            rates = db['rates'][:]
-            magnitudes = db['magnitudes'][:]
+            rates = db[f'{group}/rates'][:]
+            magnitudes = db[f'{group}/magnitudes'][:]
 
             if 'quadkeys' in db.keys():
                 region = QuadtreeGrid2D.from_quadkeys(
-                    db['quadkeys'][:].astype(str), magnitudes=magnitudes)
+                    db[f'{group}/quadkeys'][:].astype(str),
+                    magnitudes=magnitudes)
                 region.get_cell_area()
             else:
-                dh = db['dh'][:][0]
-                bboxes = db['bboxes'][:]
-                poly_mask = db['poly_mask'][:]
+                dh = db[f'{group}/dh'][:][0]
+                bboxes = db[f'{group}/bboxes'][:]
+                poly_mask = db[f'{group}/poly_mask'][:]
                 region = CartesianGrid2D(
                     [Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
 
@@ -196,32 +198,48 @@ class ForecastParsers:
 
 
 class HDF5Serializer:
-
     @staticmethod
-    def grid2hdf5(filename, ext, hdf5_filename=None):
+    def grid2hdf5(rates, region, mag, group_name='src', hdf5_filename=None,
+                  **kwargs):
         start = time.process_time()
-        parser = getattr(ForecastParsers, ext)
 
-        rates, region, mag = parser(filename)
         bboxes = numpy.array([i.points for i in region.polygons])
 
         with h5py.File(hdf5_filename, 'a') as hf:
-            hf.require_dataset('rates', shape=rates.shape, dtype=float)
-            hf['rates'][:] = rates
-            hf.require_dataset('magnitudes', shape=mag.shape,
+            hf.require_group(group_name)
+            hg = hf[group_name]
+            hg.require_dataset('rates', shape=rates.shape, dtype=float)
+            hg['rates'][:] = rates
+            hg.require_dataset('magnitudes', shape=mag.shape,
                                dtype=float)
-            hf['magnitudes'][:] = mag
-            hf.require_dataset('bboxes', shape=bboxes.shape, dtype=float)
-            hf['bboxes'][:] = bboxes
-            hf.require_dataset('dh', shape=(1,), dtype=float)
+            hg['magnitudes'][:] = mag
+            hg.require_dataset('bboxes', shape=bboxes.shape, dtype=float)
+            hg['bboxes'][:] = bboxes
+            hg.require_dataset('dh', shape=(1,), dtype=float)
             try:
-                hf['dh'][:] = region.dh
+                hg['dh'][:] = region.dh
             except AttributeError as e_:
                 raise AttributeError('Quadtree can not be dropped to HDF5'
                                      '(not needed, because file is already low sized')
-            hf.require_dataset('poly_mask', shape=region.poly_mask.shape,
+            hg.require_dataset('poly_mask', shape=region.poly_mask.shape,
                                dtype=float)
-            hf['poly_mask'][:] = region.poly_mask
+            hg['poly_mask'][:] = region.poly_mask
+
+            if kwargs:
+                for key, v in kwargs.items():
+                    if isinstance(v, (float, int, str)):
+                        dtype = type(v)
+                        shape = (1,)
+                    elif isinstance(v, numpy.ndarray):
+                        shape = v.shape
+                        dtype = v.dtype
+                    else:
+                        shape = len(v)
+                        dtype = type(v[0])
+                    print(key, v)
+                    hg.require_dataset(key, shape=shape, dtype=dtype)
+                    hg[key][:] = v
+
         print(f'Serializing from csv took: {time.process_time() - start}')
 
 

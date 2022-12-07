@@ -8,6 +8,7 @@ def run(config, show=True):
 
     exp.set_tests()
     exp.set_models()
+    exp.stage_models()
     exp.prepare_paths()
     print('Running experiment')
     print('==================\n')

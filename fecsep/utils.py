@@ -1,4 +1,5 @@
 # python libraries
+import copy
 import datetime
 
 import matplotlib.pyplot as plt
@@ -33,7 +34,7 @@ from csep.core.exceptions import CSEPCatalogException
 # feCSEP libraries
 
 import fecsep.accessors
-import fecsep.evaluations
+import fecsep.extra
 import fecsep.readers
 
 _UNITS = ['years', 'months', 'weeks', 'days']
@@ -72,7 +73,7 @@ def parse_csep_func(func):
                            csep.core.regions,
                            fecsep.utils,
                            fecsep.accessors,
-                           fecsep.evaluations,
+                           fecsep.extra,
                            fecsep.readers.HDF5Serializer,
                            fecsep.readers.ForecastParsers]
         for module in _target_modules:
@@ -143,7 +144,7 @@ def read_time_config(time_config, **kwargs):
     """
     _attrs = ['start_date', 'end_date', 'intervals', 'horizon', 'offset',
               'growth', 'exp_class']
-
+    time_config = copy.deepcopy(time_config)
     if time_config is None:
         time_config = {}
 
@@ -183,6 +184,7 @@ def read_region_config(region_config, **kwargs):
         A dictionary containing the region attributes of the experiment
 
     """
+    region_config = copy.deepcopy(region_config)
     _attrs = ['region', 'mag_min', 'mag_max', 'mag_bin', 'magnitudes',
               'depth_min', 'depth_max', 'path']
 
@@ -207,7 +209,6 @@ def read_region_config(region_config, **kwargs):
             if region_data else None
     except AttributeError:
         if isinstance(region_data, str):
-            print(region_config['path'])
             filename = os.path.join(region_config.get('path', ''),
                                     region_data)
             with open(filename, 'r') as file_:

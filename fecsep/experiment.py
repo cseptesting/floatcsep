@@ -13,13 +13,15 @@ from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
 
 from fecsep import report
-from fecsep.registry import exp_registry, Registry
+from fecsep.registry import register
 from fecsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
     read_region_config, Task, timewindow_str
 from fecsep.model import Model
 from fecsep.evaluation import Evaluation
+import warnings
 
 numpy.seterr(all="ignore")
+warnings.filterwarnings("ignore")
 
 
 class Experiment:
@@ -108,7 +110,7 @@ class Experiment:
     
     '''
 
-    @exp_registry
+    @register
     def __init__(self,
                  name=None,
                  time_config=None,
@@ -126,13 +128,12 @@ class Experiment:
         #  - instantiate as python objects (rethink models/tests config)
 
         # Instantiate
-        self.name = name
+        self.name = name if name else 'floatingExp'
         self.path = kwargs.get('path') if kwargs.get('path',
                                                      None) else os.getcwd()
 
         self.time_config = read_time_config(time_config, **kwargs)
         self.region_config = read_region_config(region_config, **kwargs)
-
         # todo: make it simple and also load catalog as file if given:
         self.catalog = catalog
 
@@ -172,14 +173,18 @@ class Experiment:
                         f" has no attribute '{item}'") from None
 
     def __dir__(self):
+        # todo add time_windows
         # Adds time and region configs keys to instance scope
         _dir = list(super().__dir__()) + list(self.time_config.keys()) + list(
             self.region_config)
         return sorted(_dir)
 
-    def add_model(self, model):
+    def add_model(self, model_i):
 
-        model.reg = self.reg
+        # Add experiment reg to Model class, to share between model instances
+
+        model = Model.from_dict(model_i)
+        self.reg.add_reg(model.reg)
         self.models.append(model)
 
     def stage_models(self):
@@ -218,8 +223,7 @@ class Experiment:
                 # updates path to absolute
                 model_abspath = self._abspath(_dir, element[name_]['path'])[1]
                 model_i = {name_: {**element[name_], 'path': model_abspath}}
-                model = Model.from_dict(model_i)
-                self.add_model(model)
+                self.add_model(model_i)
             else:
                 model_flavours = list(element.values())[0]['flavours'].items()
                 for flav, flav_path in model_flavours:
@@ -232,8 +236,7 @@ class Experiment:
                     model_ = {name_flav: {**element[name_super],
                                           'path': path_sub}}
                     model_[name_flav].pop('flavours')
-                    model = Model.from_dict(model_)
-                    self.add_model(model)
+                    self.add_model(model_)
 
         # Checks if there is any repeated model.
         names_ = [i.name for i in self.models]
@@ -366,7 +369,7 @@ class Experiment:
 
                 task_ij = Task(
                     instance=model_j,
-                    method='create_forecast',
+                    method='get_forecast',
                     start_date=time_i[0],
                     end_date=time_i[1]
                 )
@@ -506,7 +509,18 @@ class Experiment:
             else:
                 print(f"Downloading catalog from function {cat}")
 
-    def run(self):
+    def run(self) -> None:
+        """
+        Run the task tree
+
+        todo:
+         - Cleanup forecast (perhaps add a clean task in self.prepare_tasks,
+            after all test had been run for a given forecast)
+         - Task dependence graph
+         - Memory monitor?
+         - Queuer?
+
+        """
 
         for task in self.tasks:
             task.run()
@@ -645,7 +659,7 @@ class Experiment:
 
         report.generate_report(self)
 
-    def to_dict(self, exclude=('magnitudes', 'depths', 'time_windows'),
+    def to_dict(self, exclude=('magnitudes', 'depths', 'time_windows', 'reg'),
                 extended=False):
         """
         Converts an Experiment instance into a dictionary.
@@ -674,8 +688,6 @@ class Experiment:
                 except AttributeError:
                     if isinstance(x, numpy.ndarray):
                         o = x.tolist()
-                    # elif isinstance(x, datetime):
-                    #     o = x.isoformat(' ')
                     else:
                         o = x
             return o
@@ -684,13 +696,17 @@ class Experiment:
             # recursive iter through nested dicts/lists
             if isinstance(val, Mapping):
                 return {item: iter_attr(val_) for item, val_ in val.items()
-                        if (item not in exclude) or extended}
+                        if ((item not in exclude) and val_) or extended}
             elif isinstance(val, Sequence) and not isinstance(val, str):
                 return [iter_attr(i) for i in val]
             else:
                 return _get_value(val)
 
-        return iter_attr(self.__dict__)
+        dictwalk = {i: j for i, j in self.__dict__.items() if
+                    not i.startswith('_')}
+        dictwalk.update({'catalog': self._catpath})
+
+        return iter_attr(dictwalk)
 
     def to_yml(self, filename, **kwargs):
         """

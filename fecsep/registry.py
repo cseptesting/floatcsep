@@ -1,63 +1,73 @@
 import os
+import h5py
+import numpy
+from datetime import datetime
 from dataclasses import dataclass, field
-from typing import ClassVar, Union, List, Dict, Protocol, Type
+from csep.utils.time_utils import decimal_year
 
 
 @dataclass()
-class DirectoryTree:
-    path: str
+class ModelTree:
+    path: None
     dir: str = None
-    ext: str = None
     fmt: str = None
-
-    def __getattr__(self, item):
-        return self.__dict__[item]
 
 
 @dataclass
 class Registry:
-    path: str = os.getcwd()
+    _path: str = None
+    _class: str = None
+    meta: dict = field(default_factory=dict)
     tree: dict = field(default_factory=dict)
 
-    def __call__(self, *args, **kwargs):
-        print(id(self))
+    @property
+    def name(self):
+        return self.meta['name']
 
-    def add_obj(self, obj):
-        if hasattr(obj, 'create_forecast'):  # < Model signature
-            ext = os.path.splitext(obj._path)[-1]
-            if bool(ext):  # model is a file
-                dir_ = os.path.dirname(obj._path)
-                fmt = ext.split('.')[-1]
-                obj._src = 'file'
-            else:  # model is bin
-                dir_ = obj.path
-                fmt = ''
-                obj._src = 'bin'
+    @property
+    def path(self):
+        if self._path is None:
+            return self.meta['path']
+        else:
+            return self._path
 
-            self.tree[obj.name] = DirectoryTree(path=obj._path,
-                                                dir=dir_,
-                                                ext=ext.split('.')[-1],
-                                                fmt=fmt)
+    @path.setter
+    def path(self, new_path):
+        self._path = new_path
 
-    def get_path(self, obj):
-        if hasattr(obj, 'create_forecast'):  # < Model signature
-            return self.tree[obj]['path']
+    @property
+    def dir(self) -> str:
+        """
+        Returns:
+            The directory containing the model source.
+        """
+        if os.path.isdir(self.path):
+            return self.reg.path
+        else:
+            return os.path.dirname(self.path)
+
+    @property
+    def fmt(self) -> str:
+        return os.path.splitext(self.path)[1][1:]
+
+    def add_reg(self, reg):
+        self.tree[reg.name] = reg
+
+    def exists(self, tstring, **kwargs):
+        if self._class == 'Model':
+            return self.forecast_exists(tstring)
+
+    def forecast_exists(self, tstring):
+        return tstring
 
 
-def exp_registry(exp_init):
-    def exp_wrapper(*args, **kwargs):
-        try:
-            path = kwargs.get('path', args[3])
-        except IndexError:
-            path = os.getcwd()
-        args[0].reg = Registry(path)
-        exp_init(*args, **kwargs)
+def register(init_func):
+    def init_with_reg(obj, *args, **kwargs):
+        reg = Registry()
+        obj.__setattr__('reg', reg)
+        init_func(obj, *args, **kwargs)
+        reg.meta = obj.to_dict()
+        reg._class = obj.__class__.__name__
+        print(f'Initialized {obj.name} with reg')
 
-    return exp_wrapper
-
-
-def model_registry(model_init):
-    def model_wrapper(*args, **kwargs):
-        model_init(*args, **kwargs)
-
-    return model_wrapper
+    return init_with_reg
