@@ -1,9 +1,10 @@
+import os.path
+
 import h5py
 import pandas
-import csep
-import argparse, os
+import argparse
 import numpy
-import xml.etree.ElementTree as et
+import xml.etree.ElementTree as eTree
 import itertools
 from csep.models import Polygon
 from csep.core.regions import QuadtreeGrid2D, CartesianGrid2D
@@ -41,34 +42,42 @@ class ForecastParsers:
         return rates, region, mws
 
     @staticmethod
-    def xml(filename):
-        name = filename.split('.')[1]
-        author = filename.split('.')[0].split('-')[0].capitalize()
-        print('Processing model %s of author %s' % (name, author))
-        tree = et.parse(filename)
+    def xml(filename, verbose=False):
+        tree = eTree.parse(filename)
         root = tree.getroot()
-
-        data_Hij = []
+        metadata = {}
+        data_ijm = []
         m_bins = []
-
-        for children in list(root[0]):
+        cells = []
+        cell_dim = {}
+        for k, children in enumerate(list(root[0])):
             if 'modelName' in children.tag:
                 name_xml = children.text
+                metadata['name'] = name_xml
             elif 'author' in children.tag:
                 author_xml = children.text
+                metadata['author'] = author_xml
             elif 'forecastStartDate' in children.tag:
                 start_date = children.text.replace('Z', '')
+                metadata['forecastStartDate'] = start_date
             elif 'forecastEndDate' in children.tag:
                 end_date = children.text.replace('Z', '')
+                metadata['forecastEndDate'] = end_date
             elif 'defaultMagBinDimension' in children.tag:
                 m_bin_width = float(children.text)
+                metadata['defaultMagBinDimension'] = m_bin_width
             elif 'lastMagBinOpen' in children.tag:
                 lastmbin = float(children.text)
+                metadata['lastMagBinOpen'] = lastmbin
             elif 'defaultCellDimension' in children.tag:
                 cell_dim = {i[0]: float(i[1]) for i in children.attrib.items()}
+                metadata['defaultCellDimension'] = cell_dim
             elif 'depthLayer' in children.tag:
-                depth = {i[0]: float(i[1]) for i in root[0][9].attrib.items()}
-                cells = root[0][9]
+                depth = {i[0]: float(i[1]) for i in root[0][k].attrib.items()}
+                cells = root[0][k]
+                metadata['depthLayer'] = depth
+        if verbose:
+            print(f'Forecast with metadata:\n{metadata}')
 
         for cell in cells:
             cell_data = []
@@ -80,20 +89,20 @@ class ForecastParsers:
                 else:
                     cell_data.append(float(m.text))
                     m_cell_bins.append(float(m.attrib['m']))
-            data_Hij.append(cell_data)
+            data_ijm.append(cell_data)
             m_bins.append(m_cell_bins)
         try:
-            data_Hij = numpy.array(data_Hij)
+            data_ijm = numpy.array(data_ijm)
             m_bins = numpy.array(m_bins)
-        except:
-            raise Exception('Data is not square ')
+        except (TypeError, ValueError):
+            raise Exception('Data is not square')
 
         magnitudes = m_bins[0, :]
-        rates = data_Hij[:, -len(magnitudes):]
-        all_polys = numpy.vstack((data_Hij[:, 0] - cell_dim['lonRange'] / 2.,
-                                  data_Hij[:, 0] + cell_dim['lonRange'] / 2.,
-                                  data_Hij[:, 1] - cell_dim['latRange'] / 2.,
-                                  data_Hij[:, 1] + cell_dim[
+        rates = data_ijm[:, -len(magnitudes):]
+        all_polys = numpy.vstack((data_ijm[:, 0] - cell_dim['lonRange'] / 2.,
+                                  data_ijm[:, 0] + cell_dim['lonRange'] / 2.,
+                                  data_ijm[:, 1] - cell_dim['latRange'] / 2.,
+                                  data_ijm[:, 1] + cell_dim[
                                       'latRange'] / 2.)).T
         bboxes = numpy.array(
             [tuple(itertools.product(bbox[:2], bbox[2:])) for bbox in
@@ -110,12 +119,15 @@ class ForecastParsers:
     def quadtree(filename):
         with open(filename, 'r') as file_:
             qt_header = file_.readline().split(',')
-            fmts = [str] + [float] * (len(qt_header) - 1)
-        qt_formats = {i: j for i, j in zip(qt_header, fmts)}
+            formats = [str]
+            for i in range(len(qt_header) - 1):
+                formats.append(float)
+
+        qt_formats = {i: j for i, j in zip(qt_header, formats)}
         data = pandas.read_csv(filename, header=0, dtype=qt_formats)
 
-        quadkeys = numpy.array(
-            [i.encode('ascii', 'ignore') for i in data.tile])
+        quadkeys = numpy.array([i.encode('ascii', 'ignore')
+                                for i in data.tile])
         magnitudes = numpy.array(data.keys()[3:]).astype(float)
         rates = data[magnitudes.astype(str)].to_numpy()
 
@@ -130,7 +142,7 @@ class ForecastParsers:
         def is_mag(num):
             try:
                 m = float(num)
-                if m > -1 and m < 12.:
+                if -1 < m < 12.:
                     return True
                 else:
                     return False
@@ -163,7 +175,7 @@ class ForecastParsers:
 
         try:
             poly_mask = data['mask']
-        except:
+        except KeyError:
             poly_mask = numpy.ones(bboxes.shape[0])
 
         region = CartesianGrid2D(
@@ -175,7 +187,6 @@ class ForecastParsers:
     def hdf5(filename, group=''):
         start = time.process_time()
 
-        print(f'{group}/rates')
         with h5py.File(filename, 'r') as db:
             rates = db[f'{group}/rates'][:]
             magnitudes = db[f'{group}/magnitudes'][:]
@@ -199,31 +210,34 @@ class ForecastParsers:
 
 class HDF5Serializer:
     @staticmethod
-    def grid2hdf5(rates, region, mag, group_name='src', hdf5_filename=None,
+    def grid2hdf5(rates, region, mag, grp='', hdf5_filename=None,
                   **kwargs):
         start = time.process_time()
 
         bboxes = numpy.array([i.points for i in region.polygons])
 
-        with h5py.File(hdf5_filename, 'a') as hf:
-            hf.require_group(group_name)
-            hg = hf[group_name]
-            hg.require_dataset('rates', shape=rates.shape, dtype=float)
-            hg['rates'][:] = rates
-            hg.require_dataset('magnitudes', shape=mag.shape,
-                               dtype=float)
-            hg['magnitudes'][:] = mag
-            hg.require_dataset('bboxes', shape=bboxes.shape, dtype=float)
-            hg['bboxes'][:] = bboxes
-            hg.require_dataset('dh', shape=(1,), dtype=float)
+        with h5py.File(hdf5_filename, 'a') as hfile:
+
+            hfile.require_dataset(f'{grp}/rates', shape=rates.shape,
+                                  dtype=float)
+            hfile[f'{grp}/rates'][:] = rates
+            hfile.require_dataset(f'{grp}/magnitudes', shape=mag.shape,
+                                  dtype=float)
+            hfile[f'{grp}/magnitudes'][:] = mag
+            hfile.require_dataset(f'{grp}/bboxes', shape=bboxes.shape,
+                                  dtype=float)
+            hfile[f'{grp}/bboxes'][:] = bboxes
+            hfile.require_dataset(f'{grp}/dh', shape=(1,), dtype=float)
             try:
-                hg['dh'][:] = region.dh
-            except AttributeError as e_:
+                hfile[f'{grp}/dh'][:] = region.dh
+            except AttributeError:
                 raise AttributeError('Quadtree can not be dropped to HDF5'
-                                     '(not needed, because file is already low sized')
-            hg.require_dataset('poly_mask', shape=region.poly_mask.shape,
-                               dtype=float)
-            hg['poly_mask'][:] = region.poly_mask
+                                     '(not needed, because file is already'
+                                     ' low sized')
+            hfile.require_dataset(f'{grp}/poly_mask',
+                                  shape=region.poly_mask.shape,
+                                  dtype=float)
+            hfile[f'{grp}/poly_mask'][:] = region.poly_mask
 
             if kwargs:
                 for key, v in kwargs.items():
@@ -236,11 +250,63 @@ class HDF5Serializer:
                     else:
                         shape = len(v)
                         dtype = type(v[0])
-                    print(key, v)
-                    hg.require_dataset(key, shape=shape, dtype=dtype)
-                    hg[key][:] = v
+                    hfile.require_dataset(f'{grp}/{key}', shape=shape,
+                                          dtype=dtype)
+                    hfile[f'{grp}/{key}'][:] = v
 
         print(f'Serializing from csv took: {time.process_time() - start}')
+
+
+def check_format(filename, fmt=None, func=None):
+    if fmt is None:
+        fmt = os.path.splitext(filename)[-1][1:]
+
+    if fmt == 'xml':
+        max_lines = 40
+        bin_ = False
+        with open(filename, 'r') as f_:
+            for i in range(max_lines):
+                line_ = f_.readline()
+                if '<bin' in line_ and '</bin>' in line_:
+                    bin_ = True
+
+        error_msg = "File does not specify rates per magnitude bin." \
+                    " Example correct format:\n <cell lat='0'" \
+                    " lon'0'>\n <bin m='5.0'>1.0e-1</bin>\n </cell>"
+        if not bin_:
+            raise LookupError(error_msg)
+        tree = eTree.parse(filename)
+        root = tree.getroot()
+        index = False
+        try:
+            for i, j in enumerate(list(root[0])):
+                if 'depthLayer' in j.tag:
+                    index = i
+        except IndexError:
+            raise IndentationError('Attribute "forecastData" is not found at '
+                                   'the correct tree indentation level (1)"')
+        if isinstance(index, int):
+            cell_keys = list(root[0][index][0].attrib.keys())
+            bin_ = root[0][index][0][0].attrib
+
+            if 'lat' not in cell_keys or 'lon' not in cell_keys:
+                raise KeyError(error_msg)
+            if 'm' not in bin_:
+                raise LookupError(error_msg)
+
+        else:
+            raise AttributeError(error_msg)
+
+    elif fmt == 'csv':
+        pass
+    elif fmt == 'qtree':
+        pass
+    elif fmt == 'dat':
+        pass
+    elif fmt == 'hdf5':
+        pass
+    elif func:
+        print('Model func check has not been implemented yet')
 
 
 def serialize():
@@ -250,13 +316,13 @@ def serialize():
     args = parser.parse_args()
 
     if args.format == 'quadtree':
-        HDF5Serializer.quadtree(args.filename)
+        ForecastParsers.quadtree(args.filename)
     if args.format == 'dat':
-        HDF5Serializer.dat(args.filename)
+        ForecastParsers.dat(args.filename)
     if args.format == 'csep' or args.format == 'csv':
-        HDF5Serializer.csv(args.filename)
+        ForecastParsers.csv(args.filename)
     if args.format == 'xml':
-        HDF5Serializer.xml(args.filename)
+        ForecastParsers.xml(args.filename)
 
 
 if __name__ == '__main__':

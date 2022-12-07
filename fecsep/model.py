@@ -7,8 +7,8 @@ from csep.core.forecasts import GriddedForecast
 from csep.utils.time_utils import decimal_year
 
 from fecsep.accessors import from_zenodo, from_git
-from fecsep.readers import ForecastParsers, HDF5Serializer
-from fecsep.utils import parse_csep_func, timewindow_str
+from fecsep.readers import ForecastParsers, HDF5Serializer, check_format
+from fecsep.utils import timewindow_str
 from fecsep.registry import register
 
 
@@ -28,53 +28,41 @@ class Model:
                                years in time-independent models and days
                                in time-dependent
         use_db (bool): Flag the use of a database for speed/memory purposes
-        func (str, ~collections.abc.Callable): Forecast generating func (for code models)
+        func (str, ~collections.abc.Callable): Forecast generating function
+                                               (for code models)
         func_kwargs (dict): Arguments to pass into `func`
         zenodo_id (int): Zenodo ID or record of the Model
-        giturl (float): Link to a git repository
-        repo_hash (float): Specific commit/branch/tag hash.
+        giturl (str): Link to a git repository
+        repo_hash (str): Specific commit/branch/tag hash.
         authors (list[str]): Authors' names metadata
         doi: Digital Object Identifier metadata:
+
     """
 
     '''
-    Model typologies:
+    Model characteristics:
+        Forecast:   - Gridded
+                    - Catalog
+        Updating:   - Time-Independent
+                    - Time-Dependent
+        Source:     - File
+                    - Code
+    Model typology:
     
-        Updating
-        - Time-Independent
-        - Time-Dependent
-        Origin
-        - File
-        - Code
-        Source 
-        - Local
-        - Zenodo
-        - Git
+    To implement in beta version:       
+        - (grid - ti - file): e.g. CSEP1 style gridded forecasts
+    To implement in further versions:
+        - (grid - ti - code):  e.g. smoothed-seismicity model
+        - (grid - td - code): e.g. EEPAS, STEP, Italy-NZ OEF models
+        - (cat - td - code): e.g. ETAS model code
+        - (cat - td - file): e.g OEF-ready Forecasts
+        - (grid - td - file): e.g OEF-ready Forecasts
 
-    To implement in beta version
-        (ti - file - local)
-        (ti - file - zenodo)
-        (ti - file - git)
-            (ti - code)  >>> TBI, but probably out of the scope.
-            
-        (td - code - local)
-        (td - code - git)
-        (td - code - zenodo)
-        
-    Get forecasts:
-        - FILE
-            A - read from file, scale in runtime
-            B - drop to db, scale from function in runtime   (only makes sense to speed things)
-            C - drop to db, scale and drop to db
-        - SOURCE
-            D - run, read from file              (D similar to A) 
-            E - run, store in db, read from db   (E similar to C)
-
-    OPTIONS:
-        - TI <-> FROM FILE     - SCALE IN RT
-                               - SCALE and drop to DB
-        - TD <-> FROM FILE     - TO DB 
-                 FROM SRC      - TO DB
+    Get forecasts options:
+        - FILE   - read from file, scale in runtime             
+                 - drop to db, scale from function in runtime   
+        - CODE  - run, read from file              
+                - run, store in db, read from db   
 
     '''
 
@@ -83,17 +71,18 @@ class Model:
                  forecast_unit: float = 1, use_db: bool = False,
                  func: Union[str, Callable] = None, func_kwargs: dict = None,
                  zenodo_id: int = None, giturl: str = None,
-                 repo_hash: str = None,
-                 authors: List[str] = None,
-                 doi: str = None,
-                 **kwargs) -> None:
+                 repo_hash: str = None, authors: List[str] = None,
+                 doi: str = None) -> None:
 
         # todo list
         #  - Check format
         #  - Instantiate from source code
         #  - Check contents when instantiating from_git
 
-        # INIT ATTRIBUTES
+        # Initialize path
+        self.path = path
+
+        # Instantiate attributes
         self.name = name
         self.zenodo_id = zenodo_id
         self.giturl = giturl
@@ -102,54 +91,54 @@ class Model:
         self.doi = doi
         self.forecast_unit = forecast_unit
         self.func = func
-        self.func_args = func_kwargs
+        self.func_kwargs = func_kwargs
         self.use_db = use_db
 
-        # SET MODEL CLASS
+        # Set model temporal class default
         if self.func:
             self._class = 'td'  # Time-Dependent todo: implement for TI
         else:
             self._class = 'ti'  # Time-Independent
 
-        # PATHS
-        self.path = path
-
-        # INSTANTIATE ATTRIBUTES TO BE POPULATED IN runtime
+        # Instantiate attributes to be filled in run-time
         self.forecasts = {}
 
-    def __getattr__(self, name):
+    def __getattr__(self, name) -> object:
+        """ If fails to get an attribute, tries to get from Registry """
         try:
             return getattr(self.reg, name)
         except AttributeError:
-            raise AttributeError
+            raise AttributeError(
+                f"{self.__class__.__name__} object named '{self.name}', "
+                f"nor its Registry, has attribute {name}")
 
     @property
     def path(self) -> str:
         """
 
         Returns:
-            The path pointing to the source file, or to the HDF5 database
-         if this exists
+            Path pointing to the source file, the HDF5 database, or src ode.
         """
 
         return self.reg.path
 
     @path.setter
     def path(self, new_path) -> None:
-        """
-        Returns:
-            The path pointing to the source file, or to the HDF5 database
-         if this exists
-
-        """
+        """ Path setter. Original path passed when instantiated, is found at
+         self.reg.meta['path']"""
         self.reg.path = new_path
 
     def stage(self) -> None:
         """
-        Pre-steps to make the model runnable before integrating to the
-
+        Pre-steps to make the model runnable before integrating
+            - Get from filesystem, Zenodo or Git
+            - Pre-check model fileformat
+            - Initialize database
+            - Run model quality assurance (unit tests, runnable from fecsep)
         """
+
         self.get_source(self.zenodo_id, self.giturl)
+        check_format(self.path, self.fmt, self.func)
         if self.use_db:
             self.init_db()
         self.model_qa()
@@ -158,15 +147,16 @@ class Model:
                    force: bool = False, **kwargs) -> None:
         """
 
-        Search (or download/clone) the model source in the filesystem, zenodo
-        and git. Identifies if the instance path points to a file or to its
-        parent directory
+        Search, download or clone the model source in the filesystem, zenodo
+        and git, respectively. Identifies if the instance path points to a file
+        or to its parent directory
 
         Args:
             zenodo_id (int): Zenodo identifier of the repository. Usually as
              `https://zenodo.org/record/{zenodo_id}`
             giturl (str): git remote repository URL from which to clone the
              source
+            force (bool): Forces to re-query the model from a web repository
             **kwargs: see :func:`~fecsep.utils.from_zenodo` and
              :func:`~fecsep.utils.from_git`
 
@@ -183,12 +173,11 @@ class Model:
         os.makedirs(self.dir, exist_ok=True)
         try:
             # Zenodo is the first source of retrieval
-            from_zenodo(zenodo_id, self.dir, force=force,
-                        **kwargs)
-        except KeyError or TypeError as zerror_:
+            from_zenodo(zenodo_id, self.dir, force=force)
+        except KeyError or TypeError:
             try:
                 from_git(giturl, self.dir, **kwargs)
-            except (git.NoSuchPathError, git.CommandError) as giterror_:
+            except (git.NoSuchPathError, git.CommandError):
                 if giturl is None:
                     raise KeyError('Zenodo identifier is not valid')
                 else:
@@ -197,17 +186,19 @@ class Model:
 
     def init_db(self, dbpath: str = '', force: bool = False) -> None:
         """
-        Seralizes a forecast file into a HDF5 file, widh identical name
-        but different extension.
+        Initializes the database if `use_db` is True. If the model source is a
+        file, seralizes the forecast into a HDF5 file. If source is a
+        generating function or code, creates an empty DB
 
         Args:
-            dbpath (str): Path to drop the HDF5 database
+            dbpath (str): Path to drop the HDF5 database. Defaults to same path
+             replaced with an `hdf5` extension
             force (bool): Forces the serialization even if the DB already
              exists
 
         """
         # todo Think about distinction btwn 'TI' and 'Gridded' models.
-        if self._class == 'ti':
+        if self.fmt and self._class == 'ti':
 
             parser = getattr(ForecastParsers, self.fmt)
             rates, region, mag = parser(self.path)
@@ -242,6 +233,17 @@ class Model:
         Not implemented """
         pass
 
+    def get_forecast(self, start: datetime, end: datetime) -> None:
+        """ Wrapper that just returns a forecast,
+         hiding the processing (db storage, ti_td, etc.) under the hood"""
+        tstring = timewindow_str([start, end])
+
+        if tstring in self.forecasts.keys():
+            return self.forecasts[tstring]
+        else:
+            self.create_forecast(start, end)
+            return self.forecasts[tstring]
+
     def create_forecast(self, start_date: datetime, end_date: datetime,
                         **kwargs) -> None:
         """
@@ -262,17 +264,12 @@ class Model:
         else:
             self.forecast_from_func(start_date, end_date, **kwargs)
 
-    def forecast_from_func(self, start_date: datetime, end_date: datetime,
-                           **kwargs) -> None:
-        raise NotImplementedError('TBI for time-dependent models')
-
     def forecast_from_file(self, start_date: datetime, end_date: datetime,
                            **kwargs) -> None:
         """
 
         Generates a forecast from a file, by parsing and scaling it to
-        the desired time window. Handles if the model or the forecast were
-        already dumped to a DB previously.
+        the desired time window. H
 
         Args:
             start_date (~datetime.datetime): Start of the forecast
@@ -308,28 +305,22 @@ class Model:
 
         self.forecasts[tstring] = forecast
 
-    def get_forecast(self, start: datetime, end: datetime) -> None:
-        """ Wrapper that just returns a forecast,
-         hiding the processing (db storage, ti_td, etc.) under the hood"""
-        tstring = timewindow_str([start, end])
-
-        if tstring in self.forecasts.keys():
-            return self.forecasts[tstring]
-        else:
-            self.create_forecast(start, end)
-            return self.forecasts[tstring]
+    def forecast_from_func(self, start_date: datetime, end_date: datetime,
+                           **kwargs) -> None:
+        raise NotImplementedError('TBI for time-dependent models')
 
     def to_dict(self):
-        out = {'path': self.path}
-        included = [
-            'name', 'zenodo_id', 'giturl',
-            'repo_hash', 'authors', 'doi',
-            'forecast_unit', 'func', 'func_kwargs',
-            'use_db', 'func', '_class'
-        ]
+        """
 
+        Returns:
+            Dictionary with relevant attributes. Model can be reinstantiated
+            from this dict
+
+        """
+        out = {'path': self.path}
+        excluded = ['forecasts', 'reg']
         for k, v in self.__dict__.items():
-            if k in included and v:
+            if k not in excluded and v:
                 out[k] = v
         return out
 
