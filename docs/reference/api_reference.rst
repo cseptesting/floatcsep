@@ -31,8 +31,8 @@ The experiment is defined using the :class:`Experiment` class.
     Experiment.to_yml
 
 
-Model
------
+Models
+------
 
 .. :currentmodule:: fecsep.model
 
@@ -55,8 +55,8 @@ A model is defined using the :class:`Model` class.
     Model.from_dict
 
 
-Test
-----
+Evaluations
+-----------
 
 .. :currentmodule:: fecsep.evaluation
 
@@ -106,15 +106,15 @@ Accessors
 
 
 
-Evaluations
------------
+Extras
+------
 
-Additional `pyCSEP` evaluations
+Additional `pyCSEP` functionalities
 
 
-.. :currentmodule:: fecsep.extra
+.. :currentmodule:: fecsep.extras
 
-.. automodule:: fecsep.extra
+.. automodule:: fecsep.extras
 
 .. autosummary::
    :toctree: generated

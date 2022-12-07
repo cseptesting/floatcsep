@@ -272,14 +272,14 @@ class Experiment:
         Creates the run directory, and reads the file structure inside
 
         Args:
-            results_path: # todo: fix run structure
-            run_name:
+            results_path: path to store
+            run_name: name of run
 
         Returns:
-            run_folder: Path to the run
-            exists: flag if forecasts, catalogs and test_results if they exist 
-             already
-            target_paths: flag to each element of the gefe (catalog and
+            run_folder: Path to the run.
+             exists: flag if forecasts, catalogs and test_results if they
+             exist already
+             target_paths: flag to each element of the gefe (catalog and
              evaluation results)
 
         """
@@ -358,14 +358,15 @@ class Experiment:
     def prepare_tasks(self) -> None:
         """
         Implements the Experiment's run logic, as depth-search.
-        Time-Window >
+        """
+        '''
+        Time-Window 
             Catalog Preparation >
                 Forecast Creation >
                     Individual Tests |
                 Comparative Tests |
         Sequential Tests |
-
-        """
+        '''
 
         tasks = []
 
