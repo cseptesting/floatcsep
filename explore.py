@@ -18,29 +18,13 @@ exp.stage_models()
 # print(exp.reg.tree['Model C'])
 model = exp.models[0]
 
-print('START1')
+# with h5py.File(model.path) as f_:
+#     print(f_.keys())
+# print('START1')
 start = datetime(2020, 1, 1)
 end = datetime(2021, 1, 1)
 model.create_forecast(start, end)
 
-with h5py.File('examples/case_f/model.hdf5', 'r') as a_:
-    print(a_.keys())
-
-print('START2')
-start = datetime(2021, 1, 1)
-end = datetime(2022, 1, 1)
-model.create_forecast(start, end)
-
-with h5py.File('examples/case_a/model.hdf5', 'r') as a_:
-    key = a_.keys()
-    print(key)
-#
-print('START3')
-start = datetime(2021, 1, 1)
-end = datetime(2023, 1, 1)
-model.create_forecast(start, end)
-
-with h5py.File('examples/case_a/model.hdf5', 'r') as a_:
-    print(a_.keys())
-
-model.rm_db()
+# aa = model.to_dict()
+# b = Model.from_dict(aa)
+# print(b.path)

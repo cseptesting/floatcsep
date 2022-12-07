@@ -1,8 +1,13 @@
+import copy
+import tempfile
 import unittest
 import os
 import numpy
 import csep.utils.datasets
+import pytest
+
 from fecsep import readers
+from readers import check_format
 
 
 class TestForecastParsers(unittest.TestCase):
@@ -93,8 +98,11 @@ class TestForecastParsers(unittest.TestCase):
     def test_serialize_hdf5(self):
         numpy.seterr(all="ignore")
         fname = os.path.join(self._dir, 'model.csv')
+        rates, region, mags = readers.ForecastParsers.csv(fname)
+
         fname_db = os.path.join(self._dir, 'model.hdf5')
-        readers.HDF5Serializer.grid2hdf5(fname, 'csv', fname_db)
+        readers.HDF5Serializer.grid2hdf5(rates, region, mags,
+                                         hdf5_filename=fname_db)
         self.assertTrue(os.path.isfile(fname_db))
         size = os.path.getsize(fname_db)
         self.assertEqual(4640, size)
@@ -116,6 +124,66 @@ class TestForecastParsers(unittest.TestCase):
         numpy.testing.assert_almost_equal(0.1, region.dh)
         numpy.testing.assert_allclose([5., 5.1], mags)
         numpy.testing.assert_allclose(poly_3, region.polygons[3].points)
+
+    def test_checkformat_xml(self):
+        def save(xml_list):
+            name_ = os.path.join(tempfile.tempdir, 'tmpxml.xml')
+            with open(name_, 'w') as file_:
+                for i in xml_list:
+                    file_.write(i + '\n')
+            return name_
+
+        forecast_xml = [
+            "<?xml version='1.0' encoding='UTF-8'?>",
+            "<CSEPForecast xmlns=''>",
+            "<forecastData publicID=''>",
+            "<depthLayer max='30.0' min='0.0'>",
+            "<cell lat='0.1' lon='0.1'>",
+            "<bin m='5.0' mk='1'>1.6773966e-008</bin>",
+            "</cell>",
+            "</depthLayer>",
+            "</forecastData>",
+            "</CSEPForecast>",
+        ]
+
+        filename = save(forecast_xml)
+
+        try:
+            check_format(filename, fmt='xml')
+        except (IndentationError, IndexError, KeyError):
+            self.fail('Format check failed')
+
+        xml_fail = copy.deepcopy(forecast_xml)
+        xml_fail[3] = "<depthayer max='30.0' min='0.0'>"
+        xml_fail[-3] = "</depthayer>"
+        filename = save(xml_fail)
+        with pytest.raises(LookupError):
+            check_format(filename, fmt='xml')
+
+        xml_fail = copy.deepcopy(forecast_xml)
+        xml_fail[4] = "<cell Lat='0.1' Lon='0.1'>"
+        filename = save(xml_fail)
+        with pytest.raises(KeyError):
+            check_format(filename, fmt='xml')
+
+        xml_fail = copy.deepcopy(forecast_xml)
+        xml_fail[5] = "<mbin m='5.0'>1.6773966e-008</mbin>"
+        filename = save(xml_fail)
+        with pytest.raises(LookupError):
+            check_format(filename, fmt='xml')
+
+        xml_fail = copy.deepcopy(forecast_xml)
+        xml_fail[5] = "<bin a='5.0'>1.6773966e-008</bin>"
+        filename = save(xml_fail)
+        with pytest.raises(KeyError):
+            check_format(filename, fmt='xml')
+
+        xml_fail = copy.deepcopy(forecast_xml)
+        xml_fail[2] = ""
+        xml_fail[-2] = ""
+        filename = save(xml_fail)
+        with pytest.raises(IndentationError):
+            check_format(filename)
 
     @classmethod
     def tearDownClass(cls) -> None:

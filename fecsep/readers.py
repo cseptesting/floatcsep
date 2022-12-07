@@ -271,31 +271,35 @@ def check_format(filename, fmt=None, func=None):
                     bin_ = True
 
         error_msg = "File does not specify rates per magnitude bin." \
-                    " Example correct format:\n <cell lat='0'" \
-                    " lon'0'>\n <bin m='5.0'>1.0e-1</bin>\n </cell>"
+                    " Example correct format:\n <cell lat='0.1'" \
+                    " lon'0.1'>\n <bin m='5.0'>1.0e-1</bin>\n" \
+                    "<bin m='5.1'>1.0e-1</bin>\n </cell>"
         if not bin_:
             raise LookupError(error_msg)
         tree = eTree.parse(filename)
         root = tree.getroot()
         index = False
-        try:
-            for i, j in enumerate(list(root[0])):
-                if 'depthLayer' in j.tag:
-                    index = i
-        except IndexError:
+
+        if 'forecastData' not in root[0].tag:
             raise IndentationError('Attribute "forecastData" is not found at '
                                    'the correct tree indentation level (1)"')
-        if isinstance(index, int):
+
+        for i, j in enumerate(list(root[0])):
+            if 'depthLayer' in j.tag:
+                index = i
+
+        if isinstance(index, int) and (index is not False):
             cell_keys = list(root[0][index][0].attrib.keys())
             bin_ = root[0][index][0][0].attrib
 
             if 'lat' not in cell_keys or 'lon' not in cell_keys:
                 raise KeyError(error_msg)
             if 'm' not in bin_:
-                raise LookupError(error_msg)
+                raise KeyError(error_msg)
 
         else:
-            raise AttributeError(error_msg)
+            raise LookupError("Attribute 'depthLayer' not present in"
+                              " 'forecastData' node")
 
     elif fmt == 'csv':
         pass
