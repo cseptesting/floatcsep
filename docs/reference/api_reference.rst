@@ -45,12 +45,12 @@ A model is defined using the :class:`Model` class.
 
     Model
     Model.get_source
-    Model.make_db
+    Model.init_db
     Model.rm_db
+    Model.get_forecast
     Model.create_forecast
     Model.forecast_from_func
     Model.forecast_from_file
-    Model.get_forecast
     Model.to_dict
     Model.from_dict
 
@@ -58,20 +58,20 @@ A model is defined using the :class:`Model` class.
 Test
 ----
 
-.. :currentmodule:: fecsep.test
+.. :currentmodule:: fecsep.evaluation
 
-.. automodule:: fecsep.test
+.. automodule:: fecsep.evaluation
 
-A test is defined using the :class:`Test` class.
+A test is defined using the :class:`Evaluation` class.
 
 .. autosummary::
    :toctree: generated
 
-    Test
-    Test.compute
-    Test.type
-    Test.to_dict
-    Test.from_dict
+    Evaluation
+    Evaluation.compute
+    Evaluation.type
+    Evaluation.to_dict
+    Evaluation.from_dict
 
 
 
@@ -112,9 +112,9 @@ Evaluations
 Additional `pyCSEP` evaluations
 
 
-.. :currentmodule:: fecsep.evaluations
+.. :currentmodule:: fecsep.extra
 
-.. automodule:: fecsep.evaluations
+.. automodule:: fecsep.extra
 
 .. autosummary::
    :toctree: generated

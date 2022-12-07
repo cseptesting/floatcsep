@@ -4,6 +4,7 @@ import numpy
 from datetime import datetime
 from dataclasses import dataclass, field
 from csep.utils.time_utils import decimal_year
+from functools import wraps
 
 
 @dataclass()
@@ -62,6 +63,7 @@ class Registry:
 
 
 def register(init_func):
+    @wraps(init_func)
     def init_with_reg(obj, *args, **kwargs):
         reg = Registry()
         obj.__setattr__('reg', reg)

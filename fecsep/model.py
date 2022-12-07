@@ -74,8 +74,7 @@ class Model:
                  repo_hash: str = None, authors: List[str] = None,
                  doi: str = None) -> None:
 
-        # todo list
-        #  - Check format
+        # todo: list
         #  - Instantiate from source code
         #  - Check contents when instantiating from_git
 
@@ -105,12 +104,17 @@ class Model:
 
     def __getattr__(self, name) -> object:
         """ If fails to get an attribute, tries to get from Registry """
-        try:
-            return getattr(self.reg, name)
-        except AttributeError:
+
+        if name != 'reg' and hasattr(self, 'reg'):
+            try:
+                return getattr(self.reg, name)
+            except AttributeError:
+                raise AttributeError(
+                    f"{self.__class__.__name__} object named "
+                    f"nor its Registry, has attribute {name}")
+        else:
             raise AttributeError(
-                f"{self.__class__.__name__} object named '{self.name}', "
-                f"nor its Registry, has attribute {name}")
+                f"'{self.__class__.__name__} 'object has no attribute '{name}'")
 
     @property
     def path(self) -> str:
@@ -119,14 +123,21 @@ class Model:
         Returns:
             Path pointing to the source file, the HDF5 database, or src ode.
         """
-
+        if hasattr(self, 'reg'):
+            return self.reg.path
+        else:
+            return self._path
         return self.reg.path
 
     @path.setter
     def path(self, new_path) -> None:
         """ Path setter. Original path passed when instantiated, is found at
          self.reg.meta['path']"""
-        self.reg.path = new_path
+
+        if hasattr(self, 'reg'):
+            self.reg.path = new_path
+        else:
+            self._path = new_path
 
     def stage(self) -> None:
         """

@@ -19,11 +19,11 @@ class TestModel(TestCase):
         cls._path = os.path.dirname(__file__)
         cls._dir = os.path.join(cls._path, 'artifacts', 'models')
         cls._alm_fn = os.path.join(
-                               cls._path, '../../examples',
-                               'case_e',
-                               'models',
-                               'gulia-wiemer.ALM.italy.10yr.2010-01-01.xml'
-                                   )
+            cls._path, '../../examples',
+            'case_e',
+            'models',
+            'gulia-wiemer.ALM.italy.10yr.2010-01-01.xml'
+        )
 
     @staticmethod
     def assertEqualModel(exp_a, exp_b):
@@ -42,16 +42,15 @@ class TestModel(TestCase):
         """ init from file, check attributes"""
         name = 'mock'
         fname = os.path.join(self._dir, 'model.csv')
-        model = Model(name, fname, use_db=False)
+
+        # Initialize without Registry
+        model = Model.__new__(Model)
+        Model.__init__.__wrapped__(self=model, name=name, path=fname)
+
         self.assertEqual(name, model.name)
         self.assertEqual(fname, model.path)
         self.assertEqual('ti', model._class)
-        self.assertEqual('csv', model._fmt)
-        self.assertEqual('file', model._src)
-        self.assertEqual(self._dir, model._dir)
         self.assertEqual(1, model.forecast_unit)
-
-        self.assertIs(None, model.db_func)
 
     def test_from_filesystem_DB(self):
         """ init from file, check for hdf5 db atrrs """
@@ -108,13 +107,13 @@ class TestModel(TestCase):
         fname = os.path.join(self._dir, 'model.csv')
 
         dict_ = {'mock':
-                 {'path': fname,
-                  'forecast_unit': 5,
-                  'authors': ['Darwin, C.', 'Bell, J.', 'Et, Al.'],
-                  'doi': '10.1010/10101010',
-                  'giturl': 'should not be accessed, bc filesystem exists',
-                  'zenodo_id': 'should not be accessed, bc filesystem exists'
-                  }
+                     {'path': fname,
+                      'forecast_unit': 5,
+                      'authors': ['Darwin, C.', 'Bell, J.', 'Et, Al.'],
+                      'doi': '10.1010/10101010',
+                      'giturl': 'should not be accessed, bc filesystem exists',
+                      'zenodo_id': 'should not be accessed, bc filesystem exists'
+                      }
                  }
 
         # Similar to import from YML
@@ -215,4 +214,5 @@ class TestModel(TestCase):
         alm_db = os.path.join(cls._path, '../../examples', 'case_e',
                               'models',
                               'gulia-wiemer.ALM.italy.10yr.2010-01-01.hdf5')
-        os.remove(alm_db)
+        if os.path.isfile(alm_db):
+            os.remove(alm_db)
