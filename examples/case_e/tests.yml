@@ -1,6 +1,5 @@
 - Poisson_S:
     func: poisson_evaluations.spatial_test
-    func_kwargs: { }
     plot_func: plot_poisson_consistency_test
     plot_kwargs:
       one_sided_lower: True
@@ -13,7 +12,6 @@
       capsize: 0
 - Poisson_CL:
     func: poisson_evaluations.conditional_likelihood_test
-    func_kwargs: { }
     plot_func: plot_poisson_consistency_test
     plot_args:
       title: $\mathcal{L}_{N}-$test
@@ -26,7 +24,6 @@
 
 - Sequential_LL:
     func: sequential_likelihood
-    func_kwargs: { }
     plot_func: plot_sequential_likelihood
     plot_args:
       title: Cumulative Log-Likelihood

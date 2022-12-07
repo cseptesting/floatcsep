@@ -1,11 +1,12 @@
 import json
 from datetime import datetime
-from typing import List, Dict, Callable, Union
+from typing import Dict, Callable, Union, Sequence
 
 import csep.models
 from csep.core.catalogs import CSEPCatalog
 from fecsep.model import Model
 from fecsep.utils import parse_csep_func
+from functools import singledispatchmethod
 
 
 def prepare_test_args(func):
@@ -50,7 +51,7 @@ class Evaluation:
 
     '''
     Evaluation Typology
-        Class:
+        Class >> Not distinguished in fecsep:
             Score (Single metric)
             Test (Metric and p-val)
         Mapping:
@@ -65,39 +66,40 @@ class Evaluation:
 
     # todo: Typology characterization should be done within pycsep
     _TYPES = {
-        'number_test': ['Test', 'Absolute', 'Discrete'],
-        'spatial_test': ['Test', 'Absolute', 'Discrete'],
-        'magnitude_test': ['Test', 'Absolute', 'Discrete'],
-        'likelihood_test': ['Test', 'Absolute', 'Discrete'],
-        'conditional_likelihood_test': ['Test', 'Absolute', 'Discrete'],
-        'negative_binomial_number_test': ['Test', 'Absolute', 'Discrete'],
-        'binary_spatial_test': ['Test', 'Absolute', 'Discrete'],
-        'binomial_spatial_test': ['Test', 'Absolute', 'Discrete'],
-        'brier_score': ['Score', 'Absolute', 'Discrete'],
-        'binary_conditional_likelihood_test': ['Test', 'Absolute', 'Discrete'],
-        'paired_t_test': ['Test', 'Comparative', 'Discrete'],
-        'w_test': ['Test', 'Comparative', 'Discrete'],
-        'binary_paired_t_test': ['Test', 'Comparative', 'Discrete'],
-        'vector_poisson_t_w_test': ['Test', 'Batch', 'Discrete'],
-        'sequential_likelihood': ['Score', 'Absolute', 'Sequential'],
-        'sequential_information_gain': ['Score', 'Comparative', 'Sequential']
+        'number_test': ['Absolute', 'Discrete'],
+        'spatial_test': ['Absolute', 'Discrete'],
+        'magnitude_test': ['Absolute', 'Discrete'],
+        'likelihood_test': ['Absolute', 'Discrete'],
+        'conditional_likelihood_test': ['Absolute', 'Discrete'],
+        'negative_binomial_number_test': ['Absolute', 'Discrete'],
+        'binary_spatial_test': ['Absolute', 'Discrete'],
+        'binomial_spatial_test': ['Absolute', 'Discrete'],
+        'brier_score': ['Absolute', 'Discrete'],
+        'binary_conditional_likelihood_test': ['Absolute', 'Discrete'],
+        'paired_t_test': ['Comparative', 'Discrete'],
+        'w_test': ['Comparative', 'Discrete'],
+        'binary_paired_t_test': ['Comparative', 'Discrete'],
+        'vector_poisson_t_w_test': ['Batch', 'Discrete'],
+        'sequential_likelihood': ['Absolute', 'Sequential'],
+        'sequential_information_gain': ['Comparative', 'Sequential']
     }
 
     def __init__(self, name: str, func: Union[str, Callable],
-                 func_args: List = None, func_kwargs: Dict = None,
-                 ref_model: (str, Model) = None, plot_func: Callable = None,
-                 plot_args: List = None, plot_kwargs: Dict = None,
+                 func_kwargs: Dict = None,
+                 ref_model: (str, Model) = None,
+                 plot_func: Callable = None,
+                 plot_args: Sequence = None,
+                 plot_kwargs: Dict = None,
                  markdown: str = '') -> None:
 
         self.name = name
 
         self.func = parse_csep_func(func)
-        self.func_args = func_args
-        self.func_kwargs = func_kwargs  # todo set default args from exp?
+        self.func_kwargs = func_kwargs or {}  # todo set default args from exp?
         self.ref_model = ref_model
 
         self.plot_func = parse_csep_func(plot_func)
-        self.plot_args = plot_args or {}  # todo default args from exp?
+        self.plot_args = plot_args or []  # todo default args from exp?
         self.plot_kwargs = plot_kwargs or {}
 
         self.markdown = markdown
@@ -115,43 +117,69 @@ class Evaluation:
                             ' reference model assigned')
         self._type = type_list
 
-    @staticmethod
-    def discrete_args(time_window, cat_path, model, ref_model=None):
+    def is_type(self, test_type: str):
+        return (test_type in self.type) or (
+                test_type in [i.lower() for i in self.type])
 
+    @singledispatchmethod
+    def prepare_args(self, timewindow, **__):
+
+        # If arguments does not match dispatch patterns:
+        raise NotImplementedError('Test type not implemented')
+
+    @prepare_args.register
+    def discrete_args(self, time_window: str, cat_path: str,
+                      model: Union[Model, list],
+                      ref_model: Model = None) -> tuple:
+
+        catalog = CSEPCatalog.load_json(cat_path)
         if isinstance(model, Model):
-            forecast = model.forecasts[time_window]  # One Forecast
-            reg = forecast.region
+            # Single Forecast
+            forecast = model.forecasts[time_window]
+            region = forecast.region
         else:
+            # Forecast Batch
             forecast = [model_i.forecasts[time_window] for model_i in model]
-            reg = forecast[0].region
+            region = forecast[0].region
 
-        catalog = CSEPCatalog.load_json(cat_path)  # One Catalog
-
-        catalog.region = reg  # F.Reg > Cat.Reg
+        # One Catalog
+        catalog.region = region  # F.Reg -> Cat.Reg
 
         if isinstance(ref_model, Model):
-            ref_forecast = ref_model.forecasts[time_window]  # REF.FORECAST
-            test_args = (forecast, ref_forecast, catalog)  # Args: (Fc, Cat)
+            if self.is_type('Absolute'):
+                raise AttributeError('Absolute/Single test does not require '
+                                     'reference model')
+            # Args: (Fc, RFc, Cat)
+            ref_forecast = ref_model.forecasts[time_window]
+            test_args = (forecast, ref_forecast, catalog)
         else:
+            # Args: (Fc, Cat)
             test_args = (forecast, catalog)
+
         return test_args
 
-    @staticmethod
-    def sequential_args(time_windows, cat_paths, model, ref_model=None):
+    @prepare_args.register
+    def sequential_args(self, time_windows: list, cat_path: list,
+                        model: list, ref_model: list = None) -> tuple:
         forecasts = [model.forecasts[i] for i in time_windows]
-        catalogs = [CSEPCatalog.load_json(i) for i in cat_paths]
+        catalogs = [CSEPCatalog.load_json(i) for i in cat_path]
+
         for i in catalogs:
             i.region = forecasts[0].region
-        if ref_model:
+
+        # Comparative Model
+        if isinstance(ref_model, Model) and self.is_type('Comparative'):
+            # Args: ([Fc_i], [RFc_i], [Cat_i])
             ref_forecasts = [ref_model.forecasts[i] for i in time_windows]
             test_args = (forecasts, ref_forecasts, catalogs, time_windows)
         else:
+            # Args: ([Fc_i], [Cat_i])
             test_args = (forecasts, catalogs, time_windows)
         return test_args
 
     @prepare_test_args
-    def compute(self, time_window: Union[List[datetime], List[List[datetime]]],
-                cat_path: str, model: Union[Model, List[Model]],
+    def compute(self, time_window: Union[str, list],
+                cat_path: str, model: Union[Model, Sequence[Model]],
                 path: str, ref_model: Model = None) -> None:
         """
 
@@ -169,13 +197,10 @@ class Evaluation:
 
         """
 
-        test_args = None
-        if 'Discrete' in self.type:
-            test_args = self.discrete_args(time_window, cat_path,
-                                           model, ref_model)
-        elif 'Sequential' in self.type:
-            test_args = self.sequential_args(time_window, cat_path,
-                                             model, ref_model)
+        test_args = self.prepare_args(time_window,
+                                      cat_path=cat_path,
+                                      model=model,
+                                      ref_model=ref_model)
 
         evaluation_result = self.func(*test_args, **self.func_kwargs)
         self.write_result(evaluation_result, path)

@@ -121,7 +121,8 @@ class Experiment:
         #  - instantiate from full experiment register (ignoring test/models
         #  config), or self-awareness functions?
         #  - instantiate as python objects (rethink models/tests config)
-
+        #  - check if model region matches experiment region for nonQuadTree?
+        #    Or filter region
         # Instantiate
         self.name = name if name else 'floatingExp'
         self.path = kwargs.get('path') if kwargs.get('path',
@@ -535,7 +536,7 @@ class Experiment:
             task.run()
 
     def _read_results(self, test: Evaluation,
-                      window: List[datetime, datetime] = None) -> List:
+                      window: str = None) -> List:
 
         test_results = []
         if not isinstance(window, str):

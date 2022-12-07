@@ -1,6 +1,5 @@
 - Sequential_IG:
     func: sequential_information_gain
-    func_kwargs: { }
     plot_func: plot_sequential_likelihood
     ref_model: Model A
     plot_args:

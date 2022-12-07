@@ -1,4 +1,3 @@
 - Poisson_N:
     func: poisson_evaluations.number_test
-    func_kwargs: { }
     plot_func: plot_poisson_consistency_test
