@@ -6,7 +6,8 @@ from csep.core.poisson_evaluations import _simulate_catalog, paired_t_test, \
 from csep.core.exceptions import CSEPCatalogException
 
 
-def sequential_likelihood(gridded_forecasts, observed_catalogs, timewindows,
+def sequential_likelihood(gridded_forecasts, observed_catalogs,
+                          timewindows=None,
                           seed=None, random_numbers=None,
                           verbose=False):
     """
@@ -68,7 +69,7 @@ def sequential_likelihood(gridded_forecasts, observed_catalogs, timewindows,
 
 
 def sequential_information_gain(gridded_forecasts, reference_forecasts,
-                                observed_catalogs, timewindows,
+                                observed_catalogs, timewindows=None,
                                 seed=None, random_numbers=None,
                                 verbose=False):
     """
