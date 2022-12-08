@@ -1,14 +1,27 @@
 import json
+from inspect import signature, Parameter
 from datetime import datetime
 from functools import singledispatchmethod
 from typing import Dict, Callable, Union, Sequence
 
 import csep.models
 from csep.core.catalogs import CSEPCatalog
+from csep.core.forecasts import GriddedForecast, CatalogForecast
 
 from fecsep.registry import register
 from fecsep.model import Model
 from fecsep.utils import parse_csep_func
+
+_ARGTYPES = {GriddedForecast: ['forecast',
+                               'gridded_forecast',
+                               'gridded_forecast1',
+                               'gridded_forecast2',
+                               'benchmark_forecast'],
+             CSEPCatalog: ['catalog', 'observed_catalog'],
+             Sequence[GriddedForecast]: ['forecasts',
+                                         'gridded_forecasts',
+                                         'benchmark_forecasts'],
+             Sequence[CSEPCatalog]: ['observed_catalogs']}
 
 
 def check_eval_args(func):
@@ -108,6 +121,40 @@ class Evaluation:
         self.markdown = markdown
 
         self.type = Evaluation._TYPES.get(self.func.__name__)
+
+    @property
+    def arg_signature(self):
+        """
+
+        Finds the Evaluation function signature (type of the arguments).
+        From this, the Experiment class can (1) Identify which args must be
+        passed to the Evaluation.compute() (2) Determine the Task structure
+        logic.
+
+        Returns:
+            An list with the Types representing the function positional
+            arguments' types.
+
+        """
+
+        args = [param for param in signature(self.func).parameters.values()
+                if param.default == Parameter.empty]
+        names = [a.name for a in args]
+        annotations = [a.annotation for a in args]
+        func_sign = []
+        for n, a in zip(names, annotations):
+            if a == Parameter.empty:
+                try:
+                    argtype = [i for i, k in _ARGTYPES.items() if n in k][0]
+                except IndexError:
+                    raise TypeError(
+                        f"The argument '{n}' of function "
+                        f"'{self.func.__name__}' has no type specified,"
+                        f" and was not found in 'evaluation._ARGTYPES'")
+            else:
+                argtype = a
+            func_sign.append(argtype)
+        return func_sign
 
     @property
     def type(self):

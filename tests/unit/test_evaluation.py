@@ -1,13 +1,8 @@
-import numpy
 import unittest
-from unittest import mock
-from fecsep.evaluation import check_eval_args, Evaluation
-
-
-def test_check_eval_args():
-    eval = mock.MagicMock(type=['Sequential', ])
-
-    pass
+from typing import Sequence, List
+from fecsep.evaluation import Evaluation
+from csep.core.forecasts import GriddedForecast
+from csep.core.catalogs import CSEPCatalog
 
 
 class TestEvaluation(unittest.TestCase):
@@ -46,64 +41,45 @@ class TestEvaluation(unittest.TestCase):
                  '_type': None}
         self.assertEqual(dict_, eval_.__dict__)
 
-    def test_Evaluation_type(self):
+    def test_arg_signature(self):
+        """ Test Evaluation.func signature catch """
         name = 'test'
         eval_ = self.init_noreg(name=name,
                                 func='poisson_evaluations.number_test')
-        self.assertEqual(['Absolute', 'Discrete'], eval_.type)
-        eval_ = self.init_noreg(name=name,
-                                func='w_test',
-                                ref_model='SSSSSM')
-        self.assertTrue(eval_.is_type('Discrete'))
-        self.assertTrue(eval_.is_type('Comparative'))
+        expected = [GriddedForecast, CSEPCatalog]
+        self.assertEqual(expected, eval_.arg_signature)
 
         eval_ = self.init_noreg(name=name,
-                                func='sequential_information_gain',
-                                ref_model='SuperETAS')
-        self.assertTrue(eval_.is_type('sequential'))
-        self.assertTrue(eval_.is_type('comparative'))
+                                ref_model='None',
+                                func='poisson_evaluations.paired_t_test')
+        expected = [GriddedForecast, GriddedForecast, CSEPCatalog]
+        self.assertEqual(expected, eval_.arg_signature)
 
-        with self.assertRaises(TypeError) as e_:
-            eval_ = self.init_noreg(name=name,
-                                    func='w_test',
-                                    ref_model=None)
-            eval_.is_type('Comparative')
+        eval_ = self.init_noreg(name=name,
+                                ref_model='None',
+                                func='vector_poisson_t_w_test')
+        expected = [GriddedForecast, Sequence[GriddedForecast], CSEPCatalog]
+        self.assertEqual(expected, eval_.arg_signature)
 
-    def test_prepargs_abs_disc(self):
-        pass
-        # forecast = Model[timewindow]
-        # reg = forecast.region
-        # cat = load(catpath)
-        # cat.region = reg
-        #
-        # return (forecast: csepfore, cat:csepcat)
-        # pass
+        eval_ = self.init_noreg(name=name,
+                                ref_model='None',
+                                func='sequential_information_gain')
+        expected = [Sequence[GriddedForecast], Sequence[GriddedForecast],
+                    Sequence[CSEPCatalog]]
+        self.assertEqual(expected, eval_.arg_signature)
 
-    def test_prepargs_comp_disc(self):
-        pass
-        # forecast = Model[timewindow]
-        # reg = forecast.region
-        # cat = load(catpath)
-        # cat.region = reg
-        # ref_forecast = ref_model[time_window]
-        #
-        # return (forecast: csepfore, ref_forecast:csepfore, cat:csepcat)
+        eval_ = self.init_noreg(name=name,
+                                ref_model='None',
+                                func='sequential_likelihood')
+        expected = [Sequence[GriddedForecast], Sequence[CSEPCatalog]]
+        self.assertEqual(expected, eval_.arg_signature)
 
-    def test_prepargs_batch_disc(self):
-        pass
-        # forecasts = [Model[timewindow] for MOdel in MOdels]
-        # reg = forecast.region
-        # cat = load(catpath)
-        # cat.region = reg
-        # ref_forecast = ref_model[time_window]
-        #
-        # return (forecast: List[csepfore], ref_forecast:csepfore, cat:csepcat)
+        def test_func(a: CSEPCatalog, b: str, c: List[GriddedForecast]):
+            print(a, b, c)
 
-    def test_prepargs_abs_seq(self):
-        pass
-
-    def test_prepargs_comp_seq(self):
-        pass
+        eval_ = self.init_noreg(name=name, func=test_func)
+        expected = [CSEPCatalog, str, List[GriddedForecast]]
+        self.assertEqual(expected, eval_.arg_signature)
 
     def test_discrete_args(self):
         pass

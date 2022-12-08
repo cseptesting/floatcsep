@@ -4,12 +4,128 @@ from csep.models import EvaluationResult
 from csep.core.poisson_evaluations import _simulate_catalog, paired_t_test, \
     w_test, _poisson_likelihood_test
 from csep.core.exceptions import CSEPCatalogException
+from typing import List, Union, Sequence, Tuple
+from csep.core.forecasts import GriddedForecast
+from csep.core.catalogs import CSEPCatalog
+from datetime import datetime
 
 
-def sequential_likelihood(gridded_forecasts, observed_catalogs,
-                          timewindows=None,
-                          seed=None, random_numbers=None,
-                          verbose=False):
+def binomial_spatial_test(
+        gridded_forecast: GriddedForecast,
+        observed_catalog: CSEPCatalog,
+        num_simulations=1000,
+        seed=None,
+        random_numbers=None,
+        verbose=False):
+    """
+    Performs the binary spatial test on the Forecast using the Observed Catalogs.
+    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
+    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
+    gridded forecasts that supply their forecasts as rates.
+    Args:
+        gridded_forecast: csep.core.forecasts.GriddedForecast
+        observed_catalog: csep.core.catalogs.Catalog
+        num_simulations (int): number of simulations used to compute the quantile score
+        seed (int): used fore reproducibility, and testing
+        random_numbers (numpy.ndarray): random numbers used to override the random number generation. injection point for testing.
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+
+    # grid catalog onto spatial grid
+    gridded_catalog_data = observed_catalog.spatial_counts()
+
+    # simply call likelihood test on catalog data and forecast
+    qs, obs_ll, simulated_ll = _binomial_likelihood_test(
+        gridded_forecast.spatial_counts(), gridded_catalog_data,
+        num_simulations=num_simulations,
+        seed=seed,
+        random_numbers=random_numbers,
+        use_observed_counts=True,
+        verbose=verbose, normalize_likelihood=True)
+
+    # populate result data structure
+    result = EvaluationResult()
+    result.test_distribution = simulated_ll
+    result.name = 'Binary S-Test'
+    result.observed_statistic = obs_ll
+    result.quantile = qs
+    result.sim_name = gridded_forecast.name
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    try:
+        result.min_mw = numpy.min(gridded_forecast.magnitudes)
+    except AttributeError:
+        result.min_mw = -1
+    return result
+
+
+def binary_paired_t_test(forecast: GriddedForecast,
+                         benchmark_forecast: GriddedForecast,
+                         observed_catalog: CSEPCatalog,
+                         alpha=0.05, scale=False):
+    """
+    Computes the binary t-test for gridded earthquake forecasts.
+
+    This score is positively oriented, meaning that positive values of the information gain indicate that the
+    forecast is performing better than the benchmark forecast.
+
+    Args:
+        forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
+        benchmark_forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude
+        column
+        observed_catalog (csep.core.catalogs.AbstractBaseCatalog): number of observed earthquakes, should be whole number and >= zero.
+        alpha (float): tolerance level for the type-i error rate of the statistical test
+        scale (bool): if true, scale forecasted rates down to a single day
+
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+
+    # needs some pre-processing to put the forecasts in the context that is required for the t-test. this is different
+    # for cumulative forecasts (eg, multiple time-horizons) and static file-based forecasts.
+    target_event_rate_forecast1p, n_fore1 = forecast.target_event_rates(
+        observed_catalog, scale=scale)
+    target_event_rate_forecast2p, n_fore2 = benchmark_forecast.target_event_rates(
+        observed_catalog, scale=scale)
+
+    target_event_rate_forecast1 = forecast.data.ravel()[
+        numpy.unique(numpy.nonzero(
+            observed_catalog.spatial_magnitude_counts().ravel()))]
+    target_event_rate_forecast2 = benchmark_forecast.data.ravel()[
+        numpy.unique(numpy.nonzero(
+            observed_catalog.spatial_magnitude_counts().ravel()))]
+
+    # call the primative version operating on ndarray
+    out = _binary_t_test_ndarray(
+        target_event_rate_forecast1,
+        target_event_rate_forecast2,
+        observed_catalog.event_count,
+        n_fore1,
+        n_fore2,
+        observed_catalog,
+        alpha=alpha
+    )
+
+    # storing this for later
+    result = EvaluationResult()
+    result.name = 'binary paired T-Test'
+    result.test_distribution = (out['ig_lower'], out['ig_upper'])
+    result.observed_statistic = out['information_gain']
+    result.quantile = (out['t_statistic'], out['t_critical'])
+    result.sim_name = (forecast.name, benchmark_forecast.name)
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(forecast.magnitudes)
+    return result
+
+
+def sequential_likelihood(
+        gridded_forecasts: Sequence[GriddedForecast],
+        observed_catalogs: Sequence[CSEPCatalog],
+        timewindows: Union[List[str], Sequence[Sequence[datetime]]] = None,
+        seed: int = None,
+        random_numbers=None, ):
     """
     Performs the likelihood test on Gridded Forecast using an Observed Catalog.
 
@@ -18,13 +134,12 @@ def sequential_likelihood(gridded_forecasts, observed_catalogs,
     gridded forecasts that supply their forecasts as rates.
 
     Args:
-        gridded_forecast: csep.core.forecasts.GriddedForecast
-        observed_catalog: csep.core.catalogs.Catalog
-        num_simulations (int): number of simulations used to compute the quantile score
+        gridded_forecasts: list csep.core.forecasts.GriddedForecast
+        observed_catalogs: list csep.core.catalogs.Catalog
+        timewindows: list str.
         seed (int): used fore reproducibility, and testing
         random_numbers (numpy.ndarray): random numbers used to override the random number generation.
                                injection point for testing.
-
     Returns:
         evaluation_result: csep.core.evaluations.EvaluationResult
     """
@@ -50,12 +165,11 @@ def sequential_likelihood(gridded_forecasts, observed_catalogs,
             seed=seed,
             random_numbers=random_numbers,
             use_observed_counts=False,
-            verbose=verbose,
             normalize_likelihood=False)
         likelihoods.append(obs_ll)
         # populate result data structure
-    result = EvaluationResult()
 
+    result = EvaluationResult()
     result.test_distribution = timewindows
     result.name = 'Sequential Likelihood'
     result.observed_statistic = likelihoods
@@ -68,21 +182,20 @@ def sequential_likelihood(gridded_forecasts, observed_catalogs,
     return result
 
 
-def sequential_information_gain(gridded_forecasts, reference_forecasts,
-                                observed_catalogs, timewindows=None,
-                                seed=None, random_numbers=None,
-                                verbose=False):
+def sequential_information_gain(
+        gridded_forecasts: Sequence[GriddedForecast],
+        benchmark_forecasts: Sequence[GriddedForecast],
+        observed_catalogs: Sequence[CSEPCatalog],
+        timewindows: Union[Sequence[str], Sequence[Sequence[datetime]]] = None,
+        seed: int = None,
+        random_numbers: Sequence = None):
     """
-    Performs the likelihood test on Gridded Forecast using an Observed Catalog.
-
-    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
-    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
-    gridded forecasts that supply their forecasts as rates.
 
     Args:
-        gridded_forecast: csep.core.forecasts.GriddedForecast
-        observed_catalog: csep.core.catalogs.Catalog
-        num_simulations (int): number of simulations used to compute the quantile score
+        gridded_forecasts: list csep.core.forecasts.GriddedForecast
+        benchmark_forecasts: list csep.core.forecasts.GriddedForecast
+        observed_catalogs: list csep.core.catalogs.Catalog
+        timewindows: list str.
         seed (int): used fore reproducibility, and testing
         random_numbers (numpy.ndarray): random numbers used to override the random number generation.
                                injection point for testing.
@@ -97,7 +210,7 @@ def sequential_information_gain(gridded_forecasts, reference_forecasts,
     information_gains = []
 
     for gridded_forecast, reference_forecast, observed_catalog in zip(
-            gridded_forecasts, reference_forecasts,
+            gridded_forecasts, benchmark_forecasts,
             observed_catalogs):
         try:
             _ = observed_catalog.region.magnitudes
@@ -113,7 +226,6 @@ def sequential_information_gain(gridded_forecasts, reference_forecasts,
             seed=seed,
             random_numbers=random_numbers,
             use_observed_counts=False,
-            verbose=verbose,
             normalize_likelihood=False)
         qs, ref_ll, simulated_ll = _poisson_likelihood_test(
             reference_forecast.data, gridded_catalog_data,
@@ -121,11 +233,10 @@ def sequential_information_gain(gridded_forecasts, reference_forecasts,
             seed=seed,
             random_numbers=random_numbers,
             use_observed_counts=False,
-            verbose=verbose,
             normalize_likelihood=False)
 
         information_gains.append(obs_ll - ref_ll)
-        # populate result data structure
+
     result = EvaluationResult()
 
     result.test_distribution = timewindows
@@ -140,16 +251,21 @@ def sequential_information_gain(gridded_forecasts, reference_forecasts,
     return result
 
 
-def vector_poisson_t_w_test(forecasts, benchmark_forecast, catalog, **kwargs):
-    """ Computes Student's t-test for the information gain per earthquake over a list of forecasts and
-        w-test for normality
-        
-        Uses all forecasts to perform pair-wise t-tests against ref forecast
-        provided to the function. 
+def vector_poisson_t_w_test(
+        forecast: GriddedForecast,
+        benchmark_forecasts: Sequence[GriddedForecast],
+        catalog: CSEPCatalog):
+    """
+
+        Computes Student's t-test for the information gain per earthquake over
+        a list of forecasts and w-test for normality
+
+        Uses all ref_forecasts to perform pair-wise t-tests against the
+        forecast provided to the function.
 
         Args:
-            benchmark_forecast (csep.GriddedForecast): reference forecast to evaluate
-            forecasts (list of csep.GriddedForecast): list of forecasts to evaluate
+            forecast (csep.GriddedForecast): forecast to evaluate
+            benchmark_forecasts (list of csep.GriddedForecast): list of forecasts to evaluate
             catalog (csep.AbstractBaseCatalog): evaluation catalog filtered consistent with forecast
             **kwargs: additional default arguments
 
@@ -159,9 +275,9 @@ def vector_poisson_t_w_test(forecasts, benchmark_forecast, catalog, **kwargs):
     results_t = []
     results_w = []
 
-    for f_j in forecasts:
-        results_t.append(paired_t_test(f_j, benchmark_forecast, catalog))
-        results_w.append(w_test(f_j, benchmark_forecast, catalog))
+    for bmf_j in benchmark_forecasts:
+        results_t.append(paired_t_test(forecast, bmf_j, catalog))
+        results_w.append(w_test(forecast, bmf_j, catalog))
     result = EvaluationResult()
     result.name = 'Paired T-Test'
     result.test_distribution = 'normal'
@@ -169,10 +285,10 @@ def vector_poisson_t_w_test(forecasts, benchmark_forecast, catalog, **kwargs):
     result.quantile = (
         [numpy.abs(t.quantile[0]) - t.quantile[1] for t in results_t],
         [w.quantile for w in results_w])
-    result.sim_name = benchmark_forecast.name
+    result.sim_name = forecast.name
     result.obs_name = catalog.name
     result.status = 'normal'
-    result.min_mw = numpy.min(benchmark_forecast.magnitudes)
+    result.min_mw = numpy.min(forecast.magnitudes)
 
     return result
 
@@ -409,55 +525,11 @@ def _binomial_likelihood_test(forecast_data, observed_data,
     return qs, obs_ll, simulated_ll
 
 
-def binomial_spatial_test(gridded_forecast, observed_catalog,
-                          num_simulations=1000, seed=None, random_numbers=None,
-                          verbose=False):
-    """
-    Performs the binary spatial test on the Forecast using the Observed Catalogs.
-    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
-    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
-    gridded forecasts that supply their forecasts as rates.
-    Args:
-        gridded_forecast: csep.core.forecasts.GriddedForecast
-        observed_catalog: csep.core.catalogs.Catalog
-        num_simulations (int): number of simulations used to compute the quantile score
-        seed (int): used fore reproducibility, and testing
-        random_numbers (numpy.ndarray): random numbers used to override the random number generation. injection point for testing.
-    Returns:
-        evaluation_result: csep.core.evaluations.EvaluationResult
-    """
-
-    # grid catalog onto spatial grid
-    gridded_catalog_data = observed_catalog.spatial_counts()
-
-    # simply call likelihood test on catalog data and forecast
-    qs, obs_ll, simulated_ll = _binomial_likelihood_test(
-        gridded_forecast.spatial_counts(), gridded_catalog_data,
-        num_simulations=num_simulations,
-        seed=seed,
-        random_numbers=random_numbers,
-        use_observed_counts=True,
-        verbose=verbose, normalize_likelihood=True)
-
-    # populate result data structure
-    result = EvaluationResult()
-    result.test_distribution = simulated_ll
-    result.name = 'Binary S-Test'
-    result.observed_statistic = obs_ll
-    result.quantile = qs
-    result.sim_name = gridded_forecast.name
-    result.obs_name = observed_catalog.name
-    result.status = 'normal'
-    try:
-        result.min_mw = numpy.min(gridded_forecast.magnitudes)
-    except AttributeError:
-        result.min_mw = -1
-    return result
-
-
-def binomial_conditional_likelihood_test(gridded_forecast, observed_catalog,
-                                         num_simulations=1000, seed=None,
-                                         random_numbers=None, verbose=False):
+def binomial_conditional_likelihood_test(
+        gridded_forecast: GriddedForecast,
+        observed_catalog: CSEPCatalog,
+        num_simulations=1000, seed=None,
+        random_numbers=None, verbose=False):
     """
     Performs the binary conditional likelihood test on Gridded Forecast using an Observed Catalog.
 
@@ -469,14 +541,14 @@ def binomial_conditional_likelihood_test(gridded_forecast, observed_catalog,
     gridded forecasts that supply their forecasts as rates.
 
     Args:
-        gridded_forecast: csep.core.forecasts.GriddedForecast
-        observed_catalog: csep.core.catalogs.Catalog
-        num_simulations (int): number of simulations used to compute the quantile score
-        seed (int): used fore reproducibility, and testing
-        random_numbers (numpy.ndarray): random numbers used to override the random number generation. injection point for testing.
+    gridded_forecast: csep.core.forecasts.GriddedForecast
+    observed_catalog: csep.core.catalogs.Catalog
+    num_simulations (int): number of simulations used to compute the quantile score
+    seed (int): used fore reproducibility, and testing
+    random_numbers (numpy.ndarray): random numbers used to override the random number generation. injection point for testing.
 
     Returns:
-        evaluation_result: csep.core.evaluations.EvaluationResult
+    evaluation_result: csep.core.evaluations.EvaluationResult
     """
 
     # grid catalog onto spatial grid
@@ -484,6 +556,7 @@ def binomial_conditional_likelihood_test(gridded_forecast, observed_catalog,
         _ = observed_catalog.region.magnitudes
     except CSEPCatalogException:
         observed_catalog.region = gridded_forecast.region
+
     gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
 
     # simply call likelihood test on catalog data and forecast
@@ -571,64 +644,6 @@ def _binary_t_test_ndarray(target_event_rates1, target_event_rates2, n_obs,
             'ig_upper': ig_upper}
 
 
-def binary_paired_t_test(forecast, benchmark_forecast, observed_catalog,
-                         alpha=0.05, scale=False):
-    """ 
-    Computes the binary t-test for gridded earthquake forecasts.
-
-    This score is positively oriented, meaning that positive values of the information gain indicate that the
-    forecast is performing better than the benchmark forecast.
-
-    Args:
-        forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
-        benchmark_forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude 
-        column
-        observed_catalog (csep.core.catalogs.AbstractBaseCatalog): number of observed earthquakes, should be whole number and >= zero.
-        alpha (float): tolerance level for the type-i error rate of the statistical test
-        scale (bool): if true, scale forecasted rates down to a single day
-
-    Returns:
-        evaluation_result: csep.core.evaluations.EvaluationResult
-    """
-
-    # needs some pre-processing to put the forecasts in the context that is required for the t-test. this is different
-    # for cumulative forecasts (eg, multiple time-horizons) and static file-based forecasts.
-    target_event_rate_forecast1p, n_fore1 = forecast.target_event_rates(
-        observed_catalog, scale=scale)
-    target_event_rate_forecast2p, n_fore2 = benchmark_forecast.target_event_rates(
-        observed_catalog, scale=scale)
-
-    target_event_rate_forecast1 = forecast.data.ravel()[
-        numpy.unique(numpy.nonzero(
-            observed_catalog.spatial_magnitude_counts().ravel()))]
-    target_event_rate_forecast2 = benchmark_forecast.data.ravel()[
-        numpy.unique(numpy.nonzero(
-            observed_catalog.spatial_magnitude_counts().ravel()))]
-
-    # call the primative version operating on ndarray
-    out = _binary_t_test_ndarray(
-        target_event_rate_forecast1,
-        target_event_rate_forecast2,
-        observed_catalog.event_count,
-        n_fore1,
-        n_fore2,
-        observed_catalog,
-        alpha=alpha
-    )
-
-    # storing this for later
-    result = EvaluationResult()
-    result.name = 'binary paired T-Test'
-    result.test_distribution = (out['ig_lower'], out['ig_upper'])
-    result.observed_statistic = out['information_gain']
-    result.quantile = (out['t_statistic'], out['t_critical'])
-    result.sim_name = (forecast.name, benchmark_forecast.name)
-    result.obs_name = observed_catalog.name
-    result.status = 'normal'
-    result.min_mw = numpy.min(forecast.magnitudes)
-    return result
-
-
 def log_likelihood_point_process(observation, forecast, cell_area):
     """
     Log-likelihood for point process
@@ -711,8 +726,11 @@ def _standard_deviation(gridded_forecast1, gridded_forecast2,
     return forecast_variance
 
 
-def paired_ttest_point_process(forecast, benchmark_forecast, observed_catalog,
-                               alpha=0.05):
+def paired_ttest_point_process(
+        forecast: GriddedForecast,
+        benchmark_forecast: GriddedForecast,
+        observed_catalog: CSEPCatalog,
+        alpha=0.05):
     """
     Function for T test based on Point process LL.
     Works for comparing forecasts for different grids
