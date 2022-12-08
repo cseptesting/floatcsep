@@ -123,7 +123,7 @@ class Evaluation:
         self.type = Evaluation._TYPES.get(self.func.__name__)
 
     @property
-    def arg_signature(self):
+    def func_signature(self):
         """
 
         Finds the Evaluation function signature (type of the arguments).

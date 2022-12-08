@@ -68,8 +68,8 @@ A test is defined using the :class:`Evaluation` class.
    :toctree: generated
 
     Evaluation
+    Evaluation.func_signature
     Evaluation.compute
-    Evaluation.type
     Evaluation.to_dict
     Evaluation.from_dict
 
