@@ -1,20 +1,21 @@
 # python libraries
 import copy
-import datetime
 import numpy
 import re
-import multiprocessing as mp
+import multiprocessing
 import os
 import mercantile
 import shapely.geometry
-from functools import partial
 import itertools
 import functools
 import yaml
 import pandas
+import seaborn
+from datetime import datetime
+from functools import partial
+from typing import Sequence, Union
 from matplotlib import pyplot
 from matplotlib.lines import Line2D
-import seaborn
 
 # pyCSEP libraries
 import six
@@ -158,10 +159,10 @@ def read_time_config(time_config, **kwargs):
         time_config['offset'] = parse_timedelta_string(time_config['offset'])
 
     if experiment_class == 'ti':
-        time_config['time_windows'] = time_windows_ti(**time_config)
+        time_config['timewindows'] = timewindows_ti(**time_config)
         return time_config
     elif experiment_class == 'td':
-        time_config['time_windows'] = time_windows_td(**time_config)
+        time_config['timewindows'] = timewindows_td(**time_config)
         return time_config
 
 
@@ -223,12 +224,12 @@ def read_region_config(region_config, **kwargs):
     return region_config
 
 
-def time_windows_ti(start_date=None,
-                    end_date=None,
-                    intervals=None,
-                    horizon=None,
-                    growth='incremental',
-                    **_):
+def timewindows_ti(start_date=None,
+                   end_date=None,
+                   intervals=None,
+                   horizon=None,
+                   growth='incremental',
+                   **_):
     """
 
     Creates the testing intervals for a time-independent experiment.
@@ -285,12 +286,12 @@ def time_windows_ti(start_date=None,
         return [(timelimits[0], i) for i in timelimits[1:]]
 
 
-def time_windows_td(start_date=None,
-                    end_date=None,
-                    timeintervals=None,
-                    timehorizon=None,
-                    timeoffset=None,
-                    **_):
+def timewindows_td(start_date=None,
+                   end_date=None,
+                   timeintervals=None,
+                   timehorizon=None,
+                   timeoffset=None,
+                   **_):
     """
 
     Creates the testing intervals for a time-dependent experiment.
@@ -389,12 +390,30 @@ class Task:
         pass
 
 
-def timewindow_str(datetimes):
-    if isinstance(datetimes[0], datetime.datetime):
+def timewindow2str(
+        datetimes: Union[Sequence[datetime],
+                         Sequence[Sequence[datetime]]]):
+    """"""
+    if isinstance(datetimes[0], datetime):
         return '_'.join([j.date().isoformat() for j in datetimes])
 
     elif isinstance(datetimes[0], (list, tuple)):
         return ['_'.join([j.date().isoformat() for j in i]) for i in datetimes]
+
+
+def str2timewindow(tw_string: Union[str, Sequence[str]]):
+    if isinstance(tw_string, str):
+        start_date, end_date = [datetime.fromisoformat(i) for i in
+                                tw_string.split('_')]
+        return start_date, end_date
+
+    elif isinstance(tw_string, (list, tuple)):
+        datetimes = []
+        for twstr in tw_string:
+            start_date, end_date = [datetime.fromisoformat(i) for i in
+                                    twstr.split('_')]
+            datetimes.append([start_date, end_date])
+        return twstr
 
 
 def plot_sequential_likelihood(evaluation_results, plot_args={}):
@@ -453,7 +472,7 @@ def plot_sequential_likelihood(evaluation_results, plot_args={}):
 
 def magnitude_vs_time(catalog):
     mag = catalog.data['magnitude']
-    time = [datetime.datetime.fromtimestamp(i / 1000.) for i in
+    time = [datetime.fromtimestamp(i / 1000.) for i in
             catalog.data['origin_time']]
     fig, ax = pyplot.subplots(figsize=(12, 4))
     ax.plot(time, mag, marker='o', linewidth=0, color='r', alpha=0.2)
@@ -956,10 +975,10 @@ def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
     """
 
     if ncpu == None:
-        ncpu = mp.cpu_count()
-        pool = mp.Pool(ncpu)
+        ncpu = multiprocessing.cpu_count()
+        pool = multiprocessing.Pool(ncpu)
     else:
-        pool = mp.Pool(ncpu)  # mp.cpu_count()
+        pool = multiprocessing.Pool(ncpu)  # mp.cpu_count()
     print('Number of CPUs :', ncpu)
 
     func_exact = partial(_map_exact_inside_cells, fcst_grid, fcst_rate)
@@ -979,22 +998,22 @@ def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
 
     # play now only with those cells are overlapping with multiple target cells
     ##Get the polygon of Remaining Forecast grid Cells
-    pool = mp.Pool(ncpu)
+    pool = multiprocessing.Pool(ncpu)
     fcst_grid_poly = pool.map(create_polygon, [i for i in lft_fcst_grid])
     pool.close()
 
     # Get the Cell Area of forecast grid
-    pool = mp.Pool(ncpu)
+    pool = multiprocessing.Pool(ncpu)
     fcst_cell_area = pool.map(calc_cell_area, [i for i in lft_fcst_grid])
     pool.close()
 
     # print('Calculate target polygons')
-    pool = mp.Pool(ncpu)
+    pool = multiprocessing.Pool(ncpu)
     target_grid_poly = pool.map(create_polygon, [i for i in target_grid])
     pool.close()
 
     # print('--2nd Step: Start Polygon mapping--')
-    pool = mp.Pool(ncpu)
+    pool = multiprocessing.Pool(ncpu)
     func_overlapping = partial(_map_overlapping_cells, fcst_grid_poly,
                                fcst_cell_area, fcst_rate_poly)
     rate_tgt = pool.map(func_overlapping, [poly for poly in

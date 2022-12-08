@@ -1,4 +1,4 @@
-from fecsep.utils import MarkdownReport, timewindow_str
+from fecsep.utils import MarkdownReport, timewindow2str
 import os
 
 """
@@ -16,13 +16,13 @@ Use the MarkdownReport class to create output for the gefe_qtree
 
 def generate_report(experiment, timewindow=-1):
     if isinstance(timewindow, int):
-        timewindow = experiment.time_windows[timewindow]
-        timestr = timewindow_str(timewindow)
+        timewindow = experiment.timewindows[timewindow]
+        timestr = timewindow2str(timewindow)
     elif isinstance(timewindow, (list, tuple)):
-        timestr = timewindow_str(timewindow)
+        timestr = timewindow2str(timewindow)
     else:
         timestr = timewindow
-        timewindow = [i for i in experiment.time_windows if
+        timewindow = [i for i in experiment.timewindows if
                       timewindow(i) == timestr][0]
 
     report = MarkdownReport()

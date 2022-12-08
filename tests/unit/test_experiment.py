@@ -33,7 +33,7 @@ class TestExperiment(TestCase):
         self.assertEqual(exp_a.path, os.getcwd())
         self.assertEqual(exp_a.path, exp_b.path)
         self.assertEqual(exp_a.start_date, exp_b.start_date)
-        self.assertEqual(exp_a.time_windows, exp_b.time_windows)
+        self.assertEqual(exp_a.timewindows, exp_b.timewindows)
         self.assertEqual(exp_a.exp_class, exp_b.exp_class)
         self.assertEqual(exp_a.region, exp_b.region)
         numpy.testing.assert_equal(exp_a.magnitudes, exp_b.magnitudes)

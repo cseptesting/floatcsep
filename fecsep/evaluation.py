@@ -24,29 +24,6 @@ _ARGTYPES = {GriddedForecast: ['forecast',
              Sequence[CSEPCatalog]: ['observed_catalogs']}
 
 
-def check_eval_args(func):
-    def funcwrap(*args, **kwargs):
-        if 'Sequential' in args[0].type:
-            if not isinstance(kwargs.get('cat_path'), list):
-                raise TypeError(
-                    'A list of catalog paths should be provided'
-                    ' for a sequential evaluation')
-            if not isinstance(kwargs.get('time_window'), list):
-                raise TypeError('A list of time_window pairs should be'
-                                ' provided for a sequential evaluation')
-        if 'Comparative' in args[0].type:
-            if kwargs.get('ref_model') is None:
-                raise TypeError('None is not valid as reference model')
-        if 'Batch' in args[0].type:
-
-            if not isinstance(kwargs.get('model'), list):
-                raise TypeError('Model batch should be passed as a list of '
-                                'models')
-        return func(*args, **kwargs)
-
-    return funcwrap
-
-
 class Evaluation:
     """
 
@@ -175,36 +152,45 @@ class Evaluation:
                 test_type in [i.lower() for i in self.type])
 
     @singledispatchmethod
-    def prepare_args(self, timewindow, **__):
+    def prepare_args(self, timewindow, **__) -> tuple:
+        """
+        Discerns between argument `timewindow` types and dispatchs
+        Args:
+            timewindow (str, list(datetime), list(str), list(list(datetime))
+            **__: Remaining args to pass directly to func.
 
-        # If arguments does not match dispatch patterns:
+        Returns:
+            The arguments to pass to the testing functions
+        """
         raise NotImplementedError('Test type not implemented')
 
     @prepare_args.register
-    def discrete_args(self, time_window: str, cat_path: str,
-                      model: Union[Model, list],
-                      ref_model: Model = None) -> tuple:
+    def single_tspan(self,
+                     timewindow: str,
+                     catalog: str,
+                     model: Union[Model, Sequence[Model]],
+                     ref_model: Model = None) -> tuple:
 
-        catalog = CSEPCatalog.load_json(cat_path)
-        if isinstance(model, Model):
-            # Single Forecast
-            forecast = model.forecasts[time_window]
-            region = forecast.region
-        else:
-            # Forecast Batch
-            forecast = [model_i.forecasts[time_window] for model_i in model]
-            region = forecast[0].region
+        #### Subtasks
+        # Read Catalog
+        # Get forecast from model
+        #   todo: TI should get from memory (since it was already created)
+        #    so check that it doesn't read/scale the forecast again
+        # Share forecast region with catalog
+        # Check if ref_model is None, Model or List[Model]
 
-        # One Catalog
-        catalog.region = region  # F.Reg -> Cat.Reg
+        catalog = CSEPCatalog.load_json(catalog)
+        forecast = model.get_forecast(timewindow)
+        catalog.region = forecast.region  # Add ref from F.Reg -> Cat.Reg
 
         if isinstance(ref_model, Model):
-            if self.is_type('Absolute'):
-                raise AttributeError('Absolute/Single test does not require '
-                                     'reference model')
             # Args: (Fc, RFc, Cat)
-            ref_forecast = ref_model.forecasts[time_window]
+            ref_forecast = ref_model.get_forecast(timewindow)
             test_args = (forecast, ref_forecast, catalog)
+        elif isinstance(ref_model, list):
+            # Args: (Fc, [RFc], Cat)
+            ref_forecasts = [i.get_forecast(timewindow) for i in ref_model]
+            test_args = (forecast, ref_forecasts, catalog)
         else:
             # Args: (Fc, Cat)
             test_args = (forecast, catalog)
@@ -212,36 +198,58 @@ class Evaluation:
         return test_args
 
     @prepare_args.register
-    def sequential_args(self, time_windows: list, cat_path: list,
-                        model: list, ref_model: list = None) -> tuple:
-        forecasts = [model.forecasts[i] for i in time_windows]
-        catalogs = [CSEPCatalog.load_json(i) for i in cat_path]
-
-        for i in catalogs:
-            i.region = forecasts[0].region
-
-        # Comparative Model
-        if isinstance(ref_model, Model) and self.is_type('Comparative'):
-            # Args: ([Fc_i], [RFc_i], [Cat_i])
-            ref_forecasts = [ref_model.forecasts[i] for i in time_windows]
-            test_args = (forecasts, ref_forecasts, catalogs, time_windows)
-        else:
-            # Args: ([Fc_i], [Cat_i])
-            test_args = (forecasts, catalogs, time_windows)
-        return test_args
-
-    @check_eval_args
-    def compute(self, time_window: Union[str, list],
-                cat_path: str, model: Union[Model, Sequence[Model]],
-                path: str, ref_model: Model = None) -> None:
+    def sequential_tspan(
+            self,
+            timewindow: list,
+            catalog: Sequence[str],
+            model: Sequence[Model],
+            ref_model: Sequence[Model] = None) -> tuple:
         """
-
-        Runs the test, structuring the arguments according to the test typology
+        Subtasks
+         - Get forecast for each timewindow_i from model
+         - Read Catalog for each timewindow_i
+         - Share forecast_i region with catalog_i
+         - Check if ref_model is None, Model or List[Model]
 
         Args:
-            time_window (list[datetime, datetime]): Pair of datetime objects
+            timewindow:
+            catalog:
+            model:
+            ref_model:
+
+        Returns:
+
+        """
+        forecasts = [model.get_forecast(i) for i in timewindow]
+        catalogs = [CSEPCatalog.load_json(i) for i in catalog]
+
+        for i, j in zip(catalogs, forecasts):
+            i.region = j.region
+
+        if isinstance(ref_model, Model):
+            # Args: ([Fc_i], [RFc_i], [Cat_i])
+            ref_forecasts = [ref_model.forecasts[i] for i in timewindow]
+            test_args = (forecasts, ref_forecasts, catalogs, timewindow)
+        else:
+            # Args: ([Fc_i], [Cat_i])
+            test_args = (forecasts, catalogs, timewindow)
+        return test_args
+
+    def compute(self,
+                timewindow: Union[str, list],
+                catalog: str,
+                model: Union[Model, Sequence[Model]],
+                path: str,
+                ref_model: Model = None) -> None:
+        """
+
+        Runs the test, structuring the arguments according to the
+         test-typology/function-signature
+
+        Args:
+            timewindow (list[datetime, datetime]): Pair of datetime objects
              representing the testing time span
-            cat_path (str):  Path to the filtered catalog
+            catalog (str):  Path to the filtered catalog
             model (Model, list[Model]): Model(s) to be evaluated
             ref_model: Model to be used as reference
             path: Path to store the Evaluation result
@@ -250,8 +258,8 @@ class Evaluation:
 
         """
 
-        test_args = self.prepare_args(time_window,
-                                      cat_path=cat_path,
+        test_args = self.prepare_args(timewindow,
+                                      catalog=catalog,
                                       model=model,
                                       ref_model=ref_model)
 

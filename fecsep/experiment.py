@@ -17,7 +17,7 @@ from csep.utils.time_utils import decimal_year
 from fecsep import report
 from fecsep.registry import register
 from fecsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
-    read_region_config, Task, timewindow_str
+    read_region_config, Task, timewindow2str
 from fecsep.model import Model
 from fecsep.evaluation import Evaluation
 import warnings
@@ -53,8 +53,8 @@ class Experiment:
             - growth (:class:`str`): `incremental` or `cumulative`
             - offset (:class:`float`): recurrence of forecast creation.
 
-            For further details, see :func:`~fecsep.utils.time_windows_ti` and
-            :func:`~fecsep.utils.time_windows_td`
+            For further details, see :func:`~fecsep.utils.timewindows_ti` and
+            :func:`~fecsep.utils.timewindows_td`
 
         region_config (dict): Contains all the spatial and magnitude
             specifications. It must contain the following keys:
@@ -169,7 +169,7 @@ class Experiment:
                         f" has no attribute '{item}'") from None
 
     def __dir__(self):
-        # todo add time_windows
+        # todo add timewindows
         # Adds time and region configs keys to instance scope
         _dir = list(super().__dir__()) + list(self.time_config.keys()) + list(
             self.region_config)
@@ -285,7 +285,7 @@ class Experiment:
         """
 
         # grab names for creating directories
-        windows = timewindow_str(self.time_windows)
+        windows = timewindow2str(self.timewindows)
         models = [i.name for i in self.models]
         tests = [i.name for i in self.tests]
 
@@ -370,8 +370,8 @@ class Experiment:
 
         tasks = []
 
-        for time_i in self.time_windows:
-            time_str = timewindow_str(time_i)
+        for time_i in self.timewindows:
+            time_str = timewindow2str(time_i)
             filter_catalog = Task(
                 instance=self.catalog,
                 method='filter',
@@ -401,8 +401,8 @@ class Experiment:
                         task_ijk = Task(
                             instance=test_k,
                             method='compute',
-                            time_window=time_str,
-                            cat_path=self._paths[time_str]['catalog'],
+                            timewindow=time_str,
+                            catalog=self._paths[time_str]['catalog'],
                             model=model_j,
                             path=self._paths[time_str][
                                 'evaluations'][test_k.name][model_j.name]
@@ -416,8 +416,8 @@ class Experiment:
                         task_ik = Task(
                             instance=test_k,
                             method='compute',
-                            time_window=time_str,
-                            cat_path=self._paths[time_str]['catalog'],
+                            timewindow=time_str,
+                            catalog=self._paths[time_str]['catalog'],
                             model=model_j,
                             ref_model=self.get_model(test_k.ref_model),
                             path=self._paths[time_str][
@@ -427,28 +427,28 @@ class Experiment:
         for test_k in self.tests:
             if 'Sequential' in test_k.type:
                 if 'Absolute' in test_k.type:
-                    timestrs = timewindow_str(self.time_windows)
+                    timestrs = timewindow2str(self.timewindows)
                     for model_j in self.models:
                         task_k = Task(
                             instance=test_k,
                             method='compute',
-                            time_window=timestrs,
-                            cat_path=[self._paths[i]['catalog'] for i in
-                                      timestrs],
+                            timewindow=timestrs,
+                            catalog=[self._paths[i]['catalog'] for i in
+                                     timestrs],
                             model=model_j,
                             path=self._paths[timestrs[-1]][
                                 'evaluations'][test_k.name][model_j.name]
                         )
                         tasks.append(task_k)
                 elif 'Comparative' in test_k.type:
-                    timestrs = timewindow_str(self.time_windows)
+                    timestrs = timewindow2str(self.timewindows)
                     for model_j in self.models:
                         task_k = Task(
                             instance=test_k,
                             method='compute',
-                            time_window=timestrs,
-                            cat_path=[self._paths[i]['catalog'] for i in
-                                      timestrs],
+                            timewindow=timestrs,
+                            catalog=[self._paths[i]['catalog'] for i in
+                                     timestrs],
                             model=model_j,
                             ref_model=self.get_model(test_k.ref_model),
                             path=self._paths[timestrs[-1]][
@@ -456,15 +456,15 @@ class Experiment:
                         )
                         tasks.append(task_k)
             elif 'Discrete' in test_k.type and 'Batch' in test_k.type:
-                timestr = timewindow_str(self.time_windows[-1])
+                timestr = timewindow2str(self.timewindows[-1])
                 for model_j in self.models:
                     task_k = Task(
                         instance=test_k,
                         method='compute',
-                        time_window=timestr,
-                        cat_path=self._paths[timestr]['catalog'],
-                        ref_model=model_j,
-                        model=self.models,
+                        timewindow=timestr,
+                        catalog=self._paths[timestr]['catalog'],
+                        ref_model=self.models,
+                        model=model_j,
                         path=self._paths[timestr][
                             'evaluations'][test_k.name][model_j.name]
                     )
@@ -483,9 +483,9 @@ class Experiment:
         if callable(self._catalog):
             if os.path.isfile(self._catpath):
                 return CSEPCatalog.load_json(self._catpath)
-            bounds = {'start_time': min([item for sublist in self.time_windows
+            bounds = {'start_time': min([item for sublist in self.timewindows
                                          for item in sublist]),
-                      'end_time': max([item for sublist in self.time_windows
+                      'end_time': max([item for sublist in self.timewindows
                                        for item in sublist]),
                       'min_magnitude': self.magnitudes.min(),
                       'max_depth': self.depths.max()}
@@ -551,7 +551,7 @@ class Experiment:
 
         test_results = []
         if not isinstance(window, str):
-            wstr_ = timewindow_str(window)
+            wstr_ = timewindow2str(window)
         else:
             wstr_ = window
 
@@ -577,8 +577,8 @@ class Experiment:
 
         """
 
-        for time in self.time_windows:
-            timestr = timewindow_str(time)
+        for time in self.timewindows:
+            timestr = timewindow2str(time)
             figpaths = self._paths[timestr]['figures']
 
             # consistency and comparative
@@ -595,7 +595,7 @@ class Experiment:
 
         for test in self.tests:
 
-            timestr = timewindow_str(self.time_windows[-1])
+            timestr = timewindow2str(self.timewindows[-1])
             results = self._read_results(test, timestr)
             if test.type == 'seqcomp':
                 results_ = []
@@ -646,8 +646,8 @@ class Experiment:
                 if isinstance(cat, dict):
                     cat_args.update(cat)
 
-            window = self.time_windows[-1]
-            winstr = timewindow_str(window)
+            window = self.timewindows[-1]
+            winstr = timewindow2str(window)
             for model in self.models:
                 fig_path = self._paths[winstr]['models']['figures'][
                     model.name]
@@ -692,7 +692,7 @@ class Experiment:
         report.generate_report(self)
 
     def to_dict(self, exclude: Sequence = ('magnitudes', 'depths',
-                                           'time_windows', 'reg'),
+                                           'timewindows', 'reg'),
                 extended: bool = False) -> dict:
         """
         Converts an Experiment instance into a dictionary.

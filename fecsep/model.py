@@ -3,12 +3,12 @@ import git
 from typing import List, Callable, Union
 from datetime import datetime
 
-from csep.core.forecasts import GriddedForecast
+from csep.core.forecasts import GriddedForecast, CatalogForecast
 from csep.utils.time_utils import decimal_year
 
 from fecsep.accessors import from_zenodo, from_git
 from fecsep.readers import ForecastParsers, HDF5Serializer, check_format
-from fecsep.utils import timewindow_str
+from fecsep.utils import timewindow2str, str2timewindow
 from fecsep.registry import register
 
 
@@ -249,10 +249,17 @@ class Model:
         Not implemented """
         pass
 
-    def get_forecast(self, start_date: datetime, end_date: datetime) -> None:
-        """ Wrapper that just returns a forecast,
-         hiding the processing (db storage, ti_td, etc.) under the hood"""
-        tstring = timewindow_str([start_date, end_date])
+    def get_forecast(self,
+                     tstring: str = None,
+                     start_date: datetime = None,
+                     end_date: datetime = None
+                     ) -> Union[GriddedForecast, CatalogForecast]:
+        """ Wrapper that just returns a forecast, hiding the processing
+        (db storage, ti_td, etc.) under the hood"""
+        if tstring:
+            start_date, end_date = str2timewindow(tstring)
+        else:
+            tstring = timewindow2str([start_date, end_date])
 
         if tstring in self.forecasts.keys():
             return self.forecasts[tstring]
@@ -296,7 +303,7 @@ class Model:
         """
 
         time_horizon = decimal_year(end_date) - decimal_year(start_date)
-        tstring = timewindow_str([start_date, end_date])
+        tstring = timewindow2str([start_date, end_date])
 
         f_parser = getattr(ForecastParsers, self.fmt)
         rates, region, mags = f_parser(self.path)

@@ -10,7 +10,7 @@ import csep.core.regions
 import fecsep
 import fecsep.accessors
 import fecsep.extras
-from fecsep.utils import parse_timedelta_string, time_windows_ti, \
+from fecsep.utils import parse_timedelta_string, timewindows_ti, \
     read_time_config, read_region_config, parse_csep_func
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -50,24 +50,24 @@ class TimeUtilsTest(unittest.TestCase):
         dt = '1decade'
         self.assertRaises(ValueError, parse_timedelta_string, dt)
 
-    def test_time_windows_ti(self):
+    def test_timewindows_ti(self):
         start = datetime(2014, 1, 1)
         end = datetime(2022, 1, 1)
 
-        self.assertEqual(time_windows_ti(start_date=start,
-                                         end_date=end), [(start, end)])
+        self.assertEqual(timewindows_ti(start_date=start,
+                                        end_date=end), [(start, end)])
 
         t1 = [(datetime(2014, 1, 1), datetime(2018, 1, 1)),
               (datetime(2018, 1, 1), datetime(2022, 1, 1))]
-        self.assertEqual(time_windows_ti(start_date=start,
-                                         end_date=end,
-                                         intervals=2), t1)
-        self.assertEqual(time_windows_ti(start_date=start,
-                                         end_date=end,
-                                         horizon='4-years'), t1)
-        self.assertEqual(time_windows_ti(start_date=start,
-                                         intervals=2,
-                                         horizon='4-years'), t1)
+        self.assertEqual(timewindows_ti(start_date=start,
+                                        end_date=end,
+                                        intervals=2), t1)
+        self.assertEqual(timewindows_ti(start_date=start,
+                                        end_date=end,
+                                        horizon='4-years'), t1)
+        self.assertEqual(timewindows_ti(start_date=start,
+                                        intervals=2,
+                                        horizon='4-years'), t1)
 
         t2 = [(datetime(2014, 1, 1, 0, 0),
                datetime(2015, 2, 22, 10, 17, 8, 571428)),
@@ -83,11 +83,11 @@ class TimeUtilsTest(unittest.TestCase):
                datetime(2020, 11, 9, 13, 42, 51, 428571)),
               (datetime(2020, 11, 9, 13, 42, 51, 428571),
                datetime(2022, 1, 1, 0, 0))]
-        self.assertEqual(time_windows_ti(start_date=start,
-                                         end_date=end,
-                                         intervals=7), t2)
+        self.assertEqual(timewindows_ti(start_date=start,
+                                        end_date=end,
+                                        intervals=7), t2)
 
-    def test_time_windows_td(self):
+    def test_timewindows_ti_td(self):
         pass
 
     def test_read_time_config(self):

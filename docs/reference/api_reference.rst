@@ -147,12 +147,12 @@ Utilities
     parse_timedelta_string
     read_time_config
     read_region_config
-    time_windows_ti
-    time_windows_td
+    timewindows_ti
+    timewindows_td
     Task
     Task.run
     Task.check_exist
-    timewindow_str
+    timewindow2str
     plot_sequential_likelihood
     magnitude_vs_time
 
