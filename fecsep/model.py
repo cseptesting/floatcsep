@@ -250,36 +250,44 @@ class Model:
         pass
 
     def get_forecast(self,
-                     tstring: str = None,
-                     start_date: datetime = None,
-                     end_date: datetime = None
-                     ) -> Union[GriddedForecast, CatalogForecast]:
-        """ Wrapper that just returns a forecast, hiding the processing
-        (db storage, ti_td, etc.) under the hood"""
-        if tstring:
-            start_date, end_date = str2timewindow(tstring)
-        else:
-            tstring = timewindow2str([start_date, end_date])
+                     tstring: Union[str, list] = None
+                     ) -> Union[GriddedForecast, CatalogForecast,
+                                List[GriddedForecast], List[CatalogForecast]]:
 
-        if tstring in self.forecasts.keys():
+        """ Wrapper that just returns a forecast, which should hide the
+         access method (db storage, ti_td, etc.) under the hood"""
+
+        if isinstance(tstring, str):
             return self.forecasts[tstring]
         else:
-            self.create_forecast(start_date, end_date)
-            return self.forecasts[tstring]
+            forecasts = []
+            for tw in tstring:
+                if tw in self.forecasts.keys():
+                    forecasts.append(self.forecasts[tw])
+            if not forecasts:
+                raise KeyError(
+                    f'Forecasts {*tstring,} have not been created yet')
+            return forecasts
 
-    def create_forecast(self, start_date: datetime, end_date: datetime,
+    def create_forecast(self, tstring: str,
                         **kwargs) -> None:
         """
 
         Creates a forecast from the model source and a given time window
 
+        Note:
+            The argument `tstring` is formatted according to how the Experiment
+            handles timewindows, specified in the functions
+            :func:'fecsep.utils.timewindow2str` and
+            :func:'fecsep.utils.str2timewindow`
+
         Args:
-            start_date (~datetime.datetime): Start of the forecast
-            end_date (~datetime.datetime): End of the forecast
+            tstring: String representing the start and end of the forecast,
+                formatted as 'YY1-MM1-DD1_YY2-MM2-DD2'.
             **kwargs:
 
         """
-
+        start_date, end_date = str2timewindow(tstring)
         # Model src is a file
         if self.fmt:
             self.forecast_from_file(start_date, end_date, **kwargs)
@@ -353,8 +361,14 @@ class Model:
         Returns a Model instance from a dictionary containing the required
         atrributes. Can be used to quickly instantiate from a .yml file.
 
+
         Args:
-            record (dict): Contains the keywords from the `__init__` method.
+            record (dict): Contains the keywords from the ``__init__`` method.
+
+                Note:
+                    Must have either an explicit key `name`, or it must have
+                    exactly one key with the model's name, whose values are
+                    the remaining ``__init__`` keywords.
 
         Returns:
             A Model instance

@@ -19,7 +19,8 @@ class TestModel(TestCase):
     def setUpClass(cls) -> None:
         path = os.path.dirname(__file__)
         cls._path = path
-        cls._dir = os.path.join(path, '../artifacts', 'models')
+        cls._dir = os.path.normpath(
+            os.path.join(path, '../artifacts', 'models'))
         cls._alm_fn = os.path.join(
             path, '../../examples',
             'case_e',
@@ -112,7 +113,7 @@ class TestModel(TestCase):
     def test_from_git(self):
         """ clones model from git, checks with test artifacts"""
         name = 'mock_git'
-        _dir = 'template_'
+        _dir = 'git_template'
         path_ = os.path.join(tempfile.tempdir, _dir)
         giturl = 'https://git.gfz-potsdam.de/csep-group/' \
                  'rise_italy_experiment/models/template.git'
@@ -152,14 +153,14 @@ class TestModel(TestCase):
         fname = os.path.join(self._dir, 'model.csv')
 
         dict_ = {'mock':
-                 {'path': fname,
-                  'forecast_unit': 5,
-                  'authors': ['Darwin, C.', 'Bell, J.', 'Et, Al.'],
-                  'doi': '10.1010/10101010',
-                  'giturl': 'should not be accessed, bc filesystem exists',
-                  'zenodo_id': 'should not be accessed, bc filesystem '
-                               'exists'
-                  }
+                     {'path': fname,
+                      'forecast_unit': 5,
+                      'authors': ['Darwin, C.', 'Bell, J.', 'Et, Al.'],
+                      'doi': '10.1010/10101010',
+                      'giturl': 'should not be accessed, bc filesystem exists',
+                      'zenodo_id': 'should not be accessed, bc filesystem '
+                                   'exists'
+                      }
                  }
 
         # Has to be instantiated with registry
@@ -176,7 +177,25 @@ class TestModel(TestCase):
 
         self.assertEqualModel(model_a, model_b)
 
-    def test_create_forecasts(self):
+        with self.assertRaises(IndexError):
+            Model.from_dict({'model': 1, 'no_name': 2})
+        with self.assertRaises(IndexError):
+            Model.from_dict({'model_1': {'name': 'quack'},
+                             'model_2': {'name': 'moo'}})
+
+    @patch('fecsep.model.Model.forecast_from_func')
+    @patch('fecsep.model.Model.forecast_from_file')
+    def test_create_forecast(self, mock_file, mock_func):
+
+        model = self.initmodel_noreg('mock', 'mockfile.csv')
+        model.create_forecast('2020-01-01_2021-01-01')
+        self.assertTrue(mock_file.called)
+
+        model = self.initmodel_noreg('mock', 'mockbin')
+        model.create_forecast('2020-01-01_2021-01-01')
+        self.assertTrue(mock_func.called)
+
+    def test_forecast_from_file(self):
         """ reads from file, scale in runtime """
         _rates = numpy.array([[1., 0.1],
                               [1., 0.1]])
@@ -198,6 +217,25 @@ class TestModel(TestCase):
             model.forecast_from_file(start, end)
             numpy.testing.assert_almost_equal(220., model.forecasts[
                 '1900-01-01_2000-01-01'].data.sum())
+
+    def test_forecast_from_func(self):
+        model = self.initmodel_noreg('a', 'func')
+        start = datetime(1900, 1, 1)
+        end = datetime(2000, 1, 1)
+        with self.assertRaises(NotImplementedError):
+            model.forecast_from_func(start, end)
+
+    def test_get_forecast(self):
+
+        model = self.initmodel_noreg('mock', 'mockfile.csv')
+        model.forecasts = {'a': 1, 'moo': 1, 'cuack': 1}
+
+        self.assertEqual(1, model.get_forecast('a'))
+        self.assertEqual([1, 1], model.get_forecast(['moo', 'cuack']))
+        with self.assertRaises(KeyError):
+            model.get_forecast(['woof'])
+        with self.assertRaises(KeyError):
+            model.get_forecast('meaow')
 
     def test_todict(self):
 
@@ -227,5 +265,8 @@ class TestModel(TestCase):
                 eq = False
         self.assertTrue(eq)
 
-    def test_make_forecast_td(self):
+    def test_init_db(self):
+        pass
+
+    def test_rm_db(self):
         pass

@@ -135,11 +135,12 @@ class Evaluation:
 
     @property
     def type(self):
+        # todo deprecate
         return self._type
 
     @type.setter
     def type(self, type_list: Union[str, Sequence[str]]):
-
+        # todo deprecate
         if isinstance(type_list, Sequence):
             if ('Comparative' in type_list) and (self.ref_model is None):
                 raise TypeError('A comparative-type test should have a'
@@ -169,7 +170,7 @@ class Evaluation:
                      timewindow: str,
                      catalog: str,
                      model: Union[Model, Sequence[Model]],
-                     ref_model: Model = None) -> tuple:
+                     ref_model: Union[Model, Sequence] = None) -> tuple:
 
         #### Subtasks
         # Read Catalog
