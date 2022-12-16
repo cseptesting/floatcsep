@@ -2,7 +2,7 @@ import os
 import os.path
 from collections.abc import Mapping, Sequence
 from typing import Union, List, Tuple, Callable
-
+from functools import singledispatchmethod
 import numpy
 import yaml
 import json
@@ -13,14 +13,16 @@ from cartopy import crs as ccrs
 from csep.models import EvaluationResult
 from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
+from csep.core.forecasts import GriddedForecast
 
 from fecsep import report
 from fecsep.registry import register
 from fecsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
-    read_region_config, Task, timewindow2str
+    read_region_config, Task, timewindow2str, str2timewindow
 from fecsep.model import Model
 from fecsep.evaluation import Evaluation
 import warnings
+import csep
 
 numpy.seterr(all="ignore")
 warnings.filterwarnings("ignore")
@@ -355,6 +357,22 @@ class Experiment:
         self._paths = target_paths
         self._exists = exists  # todo perhaps method?
 
+    def prepare_subcatalog(self, tstring: str) -> None:
+        """
+
+        Filters the experiment catalog to a single time window and writes it
+        in the corresponding directory.
+
+        Args:
+            tstring (str): Time window string
+
+        """
+        start, end = str2timewindow(tstring)
+        subcat = self.catalog.filter(
+            [f'origin_time < {end.timestamp() * 1000}',
+             f'origin_time >= {start.timestamp() * 1000}'])
+        subcat.write_json(filename=self._paths[tstring]['catalog'])
+
     def prepare_tasks(self) -> None:
         """
         Implements the Experiment's run logic, as depth-search.
@@ -372,28 +390,13 @@ class Experiment:
 
         for time_i in self.timewindows:
             time_str = timewindow2str(time_i)
-            filter_catalog = Task(
-                instance=self.catalog,
-                method='filter',
-                statements=[f'origin_time >= {time_i[0].timestamp() * 1000}',
-                            f'origin_time < {time_i[1].timestamp() * 1000}']
-            )
-            write_catalog = Task(
-                instance=filter_catalog,
-                method='write_json',
-                filename=self._paths[time_str]['catalog']
-            )
-            tasks.extend([filter_catalog, write_catalog])
-
+            task_i = Task(instance=self, method='prepare_subcatalog',
+                          tstring=time_str)
+            tasks.append(task_i)
             # Consistency Tests
             for model_j in self.models:
-
-                task_ij = Task(
-                    instance=model_j,
-                    method='get_forecast',
-                    start_date=time_i[0],
-                    end_date=time_i[1]
-                )
+                task_ij = Task(instance=model_j, method='create_forecast',
+                               tstring=time_str)
                 tasks.append(task_ij)
 
                 for test_k in self.tests:
@@ -524,7 +527,7 @@ class Experiment:
             self._catalog = parse_csep_func(cat)
             self._catpath = self._abspath('catalog.json')[1]
             if os.path.isfile(self._catpath):
-                print(f"Load stored catalog "
+                print(f"Using stored catalog "
                       f"'{os.path.relpath(self._catpath, self.path)}', "
                       f"obtained from function '{cat}'")
             else:
@@ -546,8 +549,7 @@ class Experiment:
         for task in self.tasks:
             task.run()
 
-    def _read_results(self, test: Evaluation,
-                      window: str = None) -> List:
+    def _read_results(self, test: Evaluation, window: str) -> List:
 
         test_results = []
         if not isinstance(window, str):

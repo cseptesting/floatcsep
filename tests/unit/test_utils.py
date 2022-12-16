@@ -32,7 +32,7 @@ class CsepFunctionTest(unittest.TestCase):
         self.assertIsInstance(parse_csep_func('from_zenodo'),
                               fecsep.accessors.from_zenodo.__class__)
         self.assertIsInstance(parse_csep_func('from_zenodo'),
-                              fecsep.extra.vector_poisson_t_w_test.__class__)
+                              fecsep.extras.vector_poisson_t_w_test.__class__)
         self.assertRaises(AttributeError, parse_csep_func, 'panic_button')
 
 

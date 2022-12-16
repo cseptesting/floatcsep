@@ -1,10 +1,12 @@
 import os.path
 import tempfile
+import numpy
 from unittest import TestCase
+from unittest.mock import patch
 from datetime import datetime
 from fecsep.experiment import Experiment
-import numpy
 from csep.core import poisson_evaluations
+from csep.core.catalogs import CSEPCatalog
 
 _dir = os.path.dirname(__file__)
 _model_cfg = os.path.normpath(os.path.join(_dir, '../artifacts', 'models',
@@ -150,6 +152,20 @@ class TestExperiment(TestCase):
                           poisson_evaluations.paired_t_test]
         for i, j in zip(funcs, funcs_expected):
             self.assertIs(i, j)
+
+    def test_prepare_subcatalog(self):
+
+        time_config = {**_time_config}
+        exp = Experiment(**time_config, **_region_config,
+                         catalog=_cat)
+        tstring = '2020-08-01_2021-01-02'
+
+        with tempfile.NamedTemporaryFile() as file_:
+            with patch.object(exp, '_paths',
+                              {tstring: {'catalog': file_.name}}):
+                exp.prepare_subcatalog(tstring)
+                cat = CSEPCatalog.load_json(file_.name)
+                numpy.testing.assert_equal(1609455600000, cat.data[0][1])
 
     @classmethod
     def tearDownClass(cls) -> None:

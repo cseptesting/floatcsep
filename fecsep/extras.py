@@ -239,7 +239,7 @@ def sequential_information_gain(
 
     result = EvaluationResult()
 
-    result.test_distribution = timewindows
+    result.test_distribution = numpy.arange(len(gridded_forecasts))
     result.name = 'Sequential Likelihood'
     result.observed_statistic = information_gains
     result.quantile = 1
@@ -247,7 +247,6 @@ def sequential_information_gain(
     result.obs_name = observed_catalog.name
     result.status = 'normal'
     result.min_mw = numpy.min(gridded_forecast.magnitudes)
-
     return result
 
 
