@@ -1,16 +1,14 @@
 from functools import singledispatch
 
 
-class Argh:
+class A:
 
     def __init__(self):
-        self.x = 1
-
-    @property
-    def y(self, a=1):
-        return 2 * self.x * a
+        self.b = {1: 10, 2: 20, 3: 30, 4: 40, 5: 50}
+        self.c = 1
 
 
-a = Argh()
-a.y(2)
-print(a.y(2))
+a = A()
+
+c = getattr(a, 'cc', 'hola')
+print(c)

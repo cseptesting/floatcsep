@@ -87,13 +87,43 @@ class TestEvaluation(unittest.TestCase):
     def test_sequential_args(self):
         pass
 
+    def test_prepare_catalog(self):
+        from unittest.mock import MagicMock, Mock, patch
+
+        def read_cat(_):
+            cat = Mock()
+            cat.name = 'csep'
+            return cat
+
+        with patch('csep.core.catalogs.CSEPCatalog.load_json', read_cat):
+            region = 'CSEPRegion'
+            forecast = MagicMock(name='forecast', region=region)
+
+            catt = Evaluation.get_catalog('path_to_cat', forecast)
+            self.assertEqual('csep', catt.name)
+            self.assertEqual(region, catt.region)
+
+            region2 = 'definitelyNotCSEPregion'
+            forecast2 = Mock(name='forecast', region=region2)
+            cats = Evaluation.get_catalog(['path1', 'path2'],
+                                          [forecast, forecast2])
+
+            self.assertIsInstance(cats, list)
+            self.assertEqual(cats[0].name, 'csep')
+            self.assertEqual(cats[0].region, 'CSEPRegion')
+            self.assertEqual(cats[1].region, 'definitelyNotCSEPregion')
+
+            with self.assertRaises(AttributeError):
+                Evaluation.get_catalog('path1', [forecast, forecast2])
+            with self.assertRaises(IndexError):
+                Evaluation.get_catalog(['path1', 'path2'],
+                                       forecast)
+        assert True
+
     def test_write_result(self):
         pass
 
     def to_dict(self):
-        pass
-
-    def test_2str(self):
         pass
 
     @classmethod

@@ -1,8 +1,7 @@
 import json
 from inspect import signature, Parameter
 from datetime import datetime
-from functools import singledispatchmethod
-from typing import Dict, Callable, Union, Sequence
+from typing import Dict, Callable, Union, Sequence, List
 
 import csep.models
 from csep.core.catalogs import CSEPCatalog
@@ -33,7 +32,6 @@ class Evaluation:
     Args:
         name (str): Name of the Test
         func (str, ~collections.abc.Callable): Test function/callable
-        func_args (list): Positional arguments of the test function
         func_kwargs (dict): Keyword arguments of the test function
         plot_func (str, ~collections.abc.Callable): Test's plotting function
         plot_args (list): Positional arguments of the plotting function
@@ -152,37 +150,39 @@ class Evaluation:
         return (test_type in self.type) or (
                 test_type in [i.lower() for i in self.type])
 
-    @singledispatchmethod
-    def prepare_args(self, timewindow, **__) -> tuple:
-        """
-        Discerns between argument `timewindow` types and dispatchs
-        Args:
-            timewindow (str, list(datetime), list(str), list(list(datetime))
-            **__: Remaining args to pass directly to func.
-
-        Returns:
-            The arguments to pass to the testing functions
-        """
-        raise NotImplementedError('Test type not implemented')
-
-    @prepare_args.register
-    def single_tspan(self,
+    def prepare_args(self,
                      timewindow: str,
-                     catalog: str,
+                     catpath: str,
                      model: Union[Model, Sequence[Model]],
                      ref_model: Union[Model, Sequence] = None) -> tuple:
+        """
 
-        #### Subtasks
-        # Read Catalog
+        Prepares the positional argument for the Evaluation function.
+
+        Args:
+            timewindow (str):  Time window string formatted from
+             `fecsep.utils.timewindow2str`
+            catpath (str): Path pointing to the filtered catalog to the
+             timewindow
+            model (:class:`fecsep:model.Model`): Model to be evaluated
+            ref_model (:class:`fecsep:model.Model`, list): Model (or models)
+             reference for the evaluation.
+
+        Returns:
+            A tuple of the positional arguments required by the evaluation
+            function `Evaluation.func`.
+
+        """
+        # Subtasks
+        # ========
         # Get forecast from model
-        #   todo: TI should get from memory (since it was already created)
-        #    so check that it doesn't read/scale the forecast again
+        # Read Catalog
         # Share forecast region with catalog
         # Check if ref_model is None, Model or List[Model]
+        # Prepare argument tuple
 
-        catalog = CSEPCatalog.load_json(catalog)
         forecast = model.get_forecast(timewindow)
-        catalog.region = forecast.region  # Add ref from F.Reg -> Cat.Reg
+        catalog = self.get_catalog(catpath, forecast)
 
         if isinstance(ref_model, Model):
             # Args: (Fc, RFc, Cat)
@@ -198,50 +198,44 @@ class Evaluation:
 
         return test_args
 
-    @prepare_args.register
-    def sequential_tspan(
-            self,
-            timewindow: list,
-            catalog: Sequence[str],
-            model: Sequence[Model],
-            ref_model: Sequence[Model] = None) -> tuple:
+    @staticmethod
+    def get_catalog(
+            catalog_path: Union[str, Sequence[str]],
+            forecast: Union[GriddedForecast, Sequence[GriddedForecast]]
+    ) -> Union[CSEPCatalog, List[CSEPCatalog]]:
         """
-        Subtasks
-         - Get forecast for each timewindow_i from model
-         - Read Catalog for each timewindow_i
-         - Share forecast_i region with catalog_i
-         - Check if ref_model is None, Model or List[Model]
+
+        Reads the catalog(s) from given path(s). Reference the catalog region
+        to the forecast region.
 
         Args:
-            timewindow:
-            catalog:
-            model:
-            ref_model:
+            catalog_path (str, list(str)): Path to the existing catalog
+            forecast (:class:`~csep.core.forecasts.GriddedForecast`): Forecast
+             object, onto which the catalog will be confronted.
 
         Returns:
 
         """
-        forecasts = [model.get_forecast(i) for i in timewindow]
-        catalogs = [CSEPCatalog.load_json(i) for i in catalog]
-
-        for i, j in zip(catalogs, forecasts):
-            i.region = j.region
-
-        if isinstance(ref_model, Model):
-            # Args: ([Fc_i], [RFc_i], [Cat_i])
-            ref_forecasts = [ref_model.forecasts[i] for i in timewindow]
-            test_args = (forecasts, ref_forecasts, catalogs, timewindow)
+        if isinstance(catalog_path, str):
+            eval_cat = CSEPCatalog.load_json(catalog_path)
+            eval_cat.region = getattr(forecast, 'region')
         else:
-            # Args: ([Fc_i], [Cat_i])
-            test_args = (forecasts, catalogs, timewindow)
-        return test_args
+            eval_cat = [CSEPCatalog.load_json(i) for i in catalog_path]
+            if (len(forecast) != len(eval_cat)) or (not isinstance(forecast,
+                                                                   Sequence)):
+                raise IndexError('Amount of passed catalogs and forecats must '
+                                 'be the same')
+            for cat, fc in zip(eval_cat, forecast):
+                cat.region = getattr(fc, 'region', None)
+
+        return eval_cat
 
     def compute(self,
                 timewindow: Union[str, list],
                 catalog: str,
-                model: Union[Model, Sequence[Model]],
+                model: Model,
                 path: str,
-                ref_model: Model = None) -> None:
+                ref_model: Union[Model, Sequence[Model]] = None) -> None:
         """
 
         Runs the test, structuring the arguments according to the
@@ -260,7 +254,7 @@ class Evaluation:
         """
 
         test_args = self.prepare_args(timewindow,
-                                      catalog=catalog,
+                                      catpath=catalog,
                                       model=model,
                                       ref_model=ref_model)
 
