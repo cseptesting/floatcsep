@@ -259,6 +259,7 @@ class Evaluation:
                                       ref_model=ref_model)
 
         evaluation_result = self.func(*test_args, **self.func_kwargs)
+        print(evaluation_result)
         self.write_result(evaluation_result, path)
 
     @staticmethod

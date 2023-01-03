@@ -123,7 +123,6 @@ def binary_paired_t_test(forecast: GriddedForecast,
 def sequential_likelihood(
         gridded_forecasts: Sequence[GriddedForecast],
         observed_catalogs: Sequence[CSEPCatalog],
-        timewindows: Union[List[str], Sequence[Sequence[datetime]]] = None,
         seed: int = None,
         random_numbers=None, ):
     """
@@ -170,7 +169,7 @@ def sequential_likelihood(
         # populate result data structure
 
     result = EvaluationResult()
-    result.test_distribution = timewindows
+    result.test_distribution = numpy.arange(len(gridded_forecasts))
     result.name = 'Sequential Likelihood'
     result.observed_statistic = likelihoods
     result.quantile = 1
@@ -186,7 +185,6 @@ def sequential_information_gain(
         gridded_forecasts: Sequence[GriddedForecast],
         benchmark_forecasts: Sequence[GriddedForecast],
         observed_catalogs: Sequence[CSEPCatalog],
-        timewindows: Union[Sequence[str], Sequence[Sequence[datetime]]] = None,
         seed: int = None,
         random_numbers: Sequence = None):
     """
