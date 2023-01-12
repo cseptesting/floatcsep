@@ -151,8 +151,8 @@ class Evaluation:
                 test_type in [i.lower() for i in self.type])
 
     def prepare_args(self,
-                     timewindow: str,
-                     catpath: str,
+                     timewindow: Union[str, list],
+                     catpath: Union[str, list],
                      model: Union[Model, Sequence[Model]],
                      ref_model: Union[Model, Sequence] = None) -> tuple:
         """
@@ -160,10 +160,9 @@ class Evaluation:
         Prepares the positional argument for the Evaluation function.
 
         Args:
-            timewindow (str):  Time window string formatted from
-             `fecsep.utils.timewindow2str`
-            catpath (str): Path pointing to the filtered catalog to the
-             timewindow
+            timewindow (str/list): Time window string (or list of str)
+             formatted from `fecsep.utils.timewindow2str`
+            catpath (str/list): Path(s) pointing to the filtered catalog (s)
             model (:class:`fecsep:model.Model`): Model to be evaluated
             ref_model (:class:`fecsep:model.Model`, list): Model (or models)
              reference for the evaluation.

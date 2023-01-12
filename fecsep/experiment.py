@@ -373,6 +373,114 @@ class Experiment:
              f'origin_time >= {start.timestamp() * 1000}'])
         subcat.write_json(filename=self._paths[tstring]['catalog'])
 
+    # def prepare_tasks(self):
+    #
+    #     tasks = []
+    #     tw_strings = timewindow2str(self.timewindows)
+    #     # Prepare testing catalogs
+    #
+    #     for time_str in tw_strings:
+    #         task_i = Task(instance=self, method='prepare_subcatalog',
+    #                       tstring=time_str)
+    #         tasks.append(task_i)
+    #
+    #     # Prepare input catalogs for time-dependent
+    #
+    #     # Create Forecasts
+    #     for i, time_str in enumerate(tw_strings):
+    #         for model_j in self.models:
+    #             task_ij = Task(instance=model_j, method='create_forecast',
+    #                            tstring=time_str, prenode=i)
+    #             tasks.append(task_ij)
+    #     tasks_idx = {**{i: n for n, i in enumerate(tw_strings)},
+    #                  **{(i, j): n + len(tw_strings) for n, (i, j) in
+    #                     enumerate(itertools.product(tw_strings, self.models))}}
+    #
+    #     # Compute tests
+    #     for test in self.tests:
+    #         # Consistency tests
+    #         if 'Discrete' in test.type and 'Absolute' in test.type:
+    #             for time_str in enumerate(tw_strings):
+    #                 for model_j in enumerate(self.models):
+    #                     task_ijk = Task(
+    #                         instance=test,
+    #                         method='compute',
+    #                         prenode=(tasks_idx[time_str],
+    #                                  tasks_idx[(time_str, model_j)]),
+    #                         timewindow=time_str,
+    #                         catalog=self._paths[time_str]['catalog'],
+    #                         model=model_j,
+    #                         path=self._paths[time_str][
+    #                             'evaluations'][test.name][model_j.name])
+    #                     tasks.append(task_ijk)
+    #
+    #         # Comparative Tests
+    #         elif 'Discrete' in test.type and 'Comparative' in test.type:
+    #             for time_str in enumerate(tw_strings):
+    #                 for model_j in self.models:
+    #                     task_ik = Task(
+    #                         instance=test,
+    #                         method='compute',
+    #                         prenode=(tasks_idx[time_str],
+    #                                  tasks_idx[(time_str, model_j)],
+    #                                  tasks_idx[(time_str,
+    #                                             self.get_model(test.ref_model))]),
+    #                         timewindow=time_str,
+    #                         catalog=self._paths[time_str]['catalog'],
+    #                         model=model_j,
+    #                         ref_model=self.get_model(test.ref_model),
+    #                         path=self._paths[time_str][
+    #                             'evaluations'][test.name][model_j.name]
+    #                     )
+    #                     tasks.append(task_ik)
+    #
+    #         elif 'Sequential' in test.type and 'Absolute' in test.type:
+    #             for model_j in self.models:
+    #                 task_k = Task(
+    #                     instance=test,
+    #                     method='compute',
+    #                     prenode=(*[tasks_idx[i] for i in tw_strings],
+    #                              *[*tasks_idx[(i, j)]) f],
+    #                     timewindow=tw_strings,
+    #                     catalog=[self._paths[i]['catalog'] for i in
+    #                              tw_strings],
+    #                     model=model_j,
+    #                     path=self._paths[tw_strings[-1]][
+    #                         'evaluations'][test.name][model_j.name]
+    #                 )
+    #                 tasks.append(task_k)
+    #         elif 'Comparative' in test_k.type:
+    #             timestrs = timewindow2str(self.timewindows)
+    #             for model_j in self.models:
+    #                 task_k = Task(
+    #                     instance=test_k,
+    #                     method='compute',
+    #                     timewindow=timestrs,
+    #                     catalog=[self._paths[i]['catalog'] for i in
+    #                              timestrs],
+    #                     model=model_j,
+    #                     ref_model=self.get_model(test_k.ref_model),
+    #                     path=self._paths[timestrs[-1]][
+    #                         'evaluations'][test_k.name][model_j.name]
+    #                 )
+    #                 tasks.append(task_k)
+    #     elif 'Discrete' in test_k.type and 'Batch' in test_k.type:
+    #         timestr = timewindow2str(self.timewindows[-1])
+    #         for model_j in self.models:
+    #             task_k = Task(
+    #                 instance=test_k,
+    #                 method='compute',
+    #                 timewindow=timestr,
+    #                 catalog=self._paths[timestr]['catalog'],
+    #                 ref_model=self.models,
+    #                 model=model_j,
+    #                 path=self._paths[timestr][
+    #                     'evaluations'][test_k.name][model_j.name]
+    #             )
+    #             tasks.append(task_k)
+    #
+    # self.tasks = tasks
+
     def prepare_tasks(self) -> None:
         """
         Implements the Experiment's run logic, as depth-search.
@@ -605,6 +713,10 @@ class Experiment:
                     if i.sim_name != test.ref_model:
                         results_.append(i)
                 results = results_
+            if 'Sequential' in test.type:
+                test.plot_args['timestrs'] = timewindow2str(self.timewindows)
+            import matplotlib
+            print(matplotlib.__version__)
             ax = test.plot_func(results, plot_args=test.plot_args,
                                 **test.plot_kwargs)
             if 'code' in test.plot_args:

@@ -11,7 +11,7 @@ import functools
 import yaml
 import pandas
 import seaborn
-from datetime import datetime
+from datetime import datetime, date
 from functools import partial
 from typing import Sequence, Union
 from matplotlib import pyplot
@@ -202,6 +202,7 @@ def read_region_config(region_config, **kwargs):
 
     region_data = region_config.get('region', None)
     try:
+        print(region_data)
         region = parse_csep_func(region_data)(name=region_data,
                                               magnitudes=magnitudes) \
             if region_data else None
@@ -361,12 +362,12 @@ def timewindows_td(start_date=None,
 
 class Task:
 
-    def __init__(self, instance, method, **kwargs):
+    def __init__(self, instance, method, prenode=0, **kwargs):
 
         self.obj = instance
         self.method = method
         self.kwargs = kwargs
-
+        self.prenode = prenode
         self.store = None
 
     def run(self):
@@ -426,6 +427,18 @@ def plot_sequential_likelihood(evaluation_results, plot_args={}):
     markersize = plot_args.get('markersize', 1)
     linewidth = plot_args.get('linewidth', 0.5)
     figsize = plot_args.get('figsize', (6, 4))
+    timestrs = plot_args.get('timestrs', None)
+    if timestrs:
+        startyear = [date.fromisoformat(j.split('_')[0]) for j in
+                     timestrs][0]
+        endyears = [date.fromisoformat(j.split('_')[1]) for j in
+                    timestrs]
+        years = [startyear] + endyears
+    else:
+        startyear = 0
+        years = numpy.arange(0, len(evaluation_results[0].observed_statistic)
+                             + 1)
+
     seaborn.set_style("white",
                       {"axes.facecolor": ".9", 'font.family': 'Ubuntu'})
     pyplot.rcParams.update({'xtick.bottom': True, 'axes.labelweight': 'bold',
@@ -447,16 +460,7 @@ def plot_sequential_likelihood(evaluation_results, plot_args={}):
 
     fig, ax = pyplot.subplots(figsize=figsize)
     for i, result in enumerate(evaluation_results):
-        timestrs = result.test_distribution
-        startyear = [datetime.date.fromisoformat(j.split('_')[0]) for j in
-                     timestrs][0]
-        endyears = [datetime.date.fromisoformat(j.split('_')[1]) for j in
-                    timestrs]
-        years = [startyear] + endyears
         data = [0] + result.observed_statistic
-
-        # dt = endyears[1] - endyears[0]
-        # midyears = [k - dt / 2. for k in endyears]
         ax.plot(years, data, color=colors[i],
                 linewidth=linewidth, linestyle=linestyles[i],
                 marker=markers[i],
