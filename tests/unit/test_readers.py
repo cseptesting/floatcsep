@@ -7,7 +7,6 @@ import csep.utils.datasets
 import pytest
 
 from fecsep import readers
-from readers import check_format
 
 
 class TestForecastParsers(unittest.TestCase):
@@ -149,7 +148,7 @@ class TestForecastParsers(unittest.TestCase):
         filename = save(forecast_xml)
 
         try:
-            check_format(filename, fmt='xml')
+            readers.check_format(filename, fmt='xml')
         except (IndentationError, IndexError, KeyError):
             self.fail('Format check failed')
 
@@ -158,32 +157,32 @@ class TestForecastParsers(unittest.TestCase):
         xml_fail[-3] = "</depthayer>"
         filename = save(xml_fail)
         with pytest.raises(LookupError):
-            check_format(filename, fmt='xml')
+            readers.check_format(filename, fmt='xml')
 
         xml_fail = copy.deepcopy(forecast_xml)
         xml_fail[4] = "<cell Lat='0.1' Lon='0.1'>"
         filename = save(xml_fail)
         with pytest.raises(KeyError):
-            check_format(filename, fmt='xml')
+            readers.check_format(filename, fmt='xml')
 
         xml_fail = copy.deepcopy(forecast_xml)
         xml_fail[5] = "<mbin m='5.0'>1.6773966e-008</mbin>"
         filename = save(xml_fail)
         with pytest.raises(LookupError):
-            check_format(filename, fmt='xml')
+            readers.check_format(filename, fmt='xml')
 
         xml_fail = copy.deepcopy(forecast_xml)
         xml_fail[5] = "<bin a='5.0'>1.6773966e-008</bin>"
         filename = save(xml_fail)
         with pytest.raises(KeyError):
-            check_format(filename, fmt='xml')
+            readers.check_format(filename, fmt='xml')
 
         xml_fail = copy.deepcopy(forecast_xml)
         xml_fail[2] = ""
         xml_fail[-2] = ""
         filename = save(xml_fail)
         with pytest.raises(IndentationError):
-            check_format(filename)
+            readers.check_format(filename)
 
     @classmethod
     def tearDownClass(cls) -> None:

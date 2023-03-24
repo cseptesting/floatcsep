@@ -126,7 +126,7 @@ def _search_isc_gcmt(**newargs):
         data = fh.read().decode('utf8')
         fh.close()
         root = ElementTree.fromstring(data)
-        ns = root.tag.split('}quakeml')[0] + '}'
+        ns = root[0].tag.split('}')[0] + '}'
         creation_time = root[0].find(ns + 'creationInfo').find(
             ns + 'creationTime').text
         creation_time = creation_time.replace('T', ' ')
@@ -134,6 +134,9 @@ def _search_isc_gcmt(**newargs):
         events = []
         for feature in events_quakeml:
             events.append(_parse_isc_event(feature, ns))
+
+    except ElementTree.ParseError as msg:
+        raise Exception('Badly-formed URL. "%s"' % msg)
 
     except Exception as msg:
         raise Exception(

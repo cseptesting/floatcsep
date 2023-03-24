@@ -7,7 +7,7 @@ dependencies:
   - cartopy=0.20.2
   - geos=3.10.2
   - numpy=1.21.5
-  - pycsep=0.6.0
+  - pycsep=0.6.1
   - pyproj=3.3.0
   - pyshp=2.2.0
   - shapely=1.8.0
