@@ -47,7 +47,7 @@ def generate_report(experiment, timewindow=-1):
             catalog = catalog.filter_spatial(
                 region=experiment.region, in_place=True)
 
-        ax = catalog.plot(plot_args={'basemap': 'ESRI_terrain',
+        ax = catalog.plot(plot_args={'basemap': 'stock_img', #todo change
                                      'figsize': (12, 8),
                                      'markersize': 8,
                                      'markercolor': 'black',
