@@ -31,8 +31,8 @@ class TestForecastParsers(unittest.TestCase):
                             [0.1, 0.1]])
         poly_2 = numpy.array([[0., 0.1],
                               [0., 0.2],
-                              [0.1, 0.1],
-                              [0.1, 0.2]])
+                              [0.1, 0.2],
+                              [0.1, 0.1]])
 
         numpy.testing.assert_allclose(rts, rates)
         numpy.testing.assert_allclose(orgs, region.origins())
@@ -83,8 +83,8 @@ class TestForecastParsers(unittest.TestCase):
         orgs = numpy.array([12.6, 38.3])
         poly = numpy.array([[12.6, 38.3],
                             [12.6, 38.4],
-                            [12.7, 38.3],
-                            [12.7, 38.4]])
+                            [12.7, 38.4],
+                            [12.7, 38.3]])
         mags_ = numpy.arange(5, 9.05, 0.1)
 
         numpy.testing.assert_allclose(16.185424321406536, rates.sum())
@@ -116,8 +116,8 @@ class TestForecastParsers(unittest.TestCase):
                             [0.1, 0.1]])
         poly_3 = numpy.array([[0.1, 0.1],
                               [0.1, 0.2],
-                              [0.2, 0.1],
-                              [0.2, 0.2]])
+                              [0.2, 0.2],
+                              [0.2, 0.1]])
         numpy.testing.assert_allclose(4.4, rates.sum())
         numpy.testing.assert_allclose(orgs, region.origins())
         numpy.testing.assert_almost_equal(0.1, region.dh)
@@ -184,9 +184,9 @@ class TestForecastParsers(unittest.TestCase):
         with pytest.raises(IndentationError):
             readers.check_format(filename)
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        fname = os.path.join(cls._dir, 'model.hdf5')
-
-        if os.path.isfile(fname):
-            os.remove(fname)
+    # @classmethod
+    # def tearDownClass(cls) -> None:
+    #     fname = os.path.join(cls._dir, 'model.hdf5')
+    #
+    #     if os.path.isfile(fname):
+    #         os.remove(fname)
