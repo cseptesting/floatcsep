@@ -4,15 +4,15 @@ channels:
   - defaults
 dependencies:
   - python>=3.8
-  - cartopy=0.21.0
-  - geos=3.10.2
-  - numpy=1.21.5
-  - pycsep=0.6.1
-  - pyproj=3.3.0
-  - pyshp=2.2.0
-  - shapely=1.8.0
-  - pandas=1.4.1
-  - scipy=1.8.0
-  - matplotlib=3.5.1
-  - obspy=1.2.2
-  - mercantile=1.2.1
+  - numpy=1.22.0
+  - cartopy
+  - geos
+  - pycsep
+  - pyproj
+  - pyshp
+  - shapely
+  - pandas
+  - scipy
+  - matplotlib
+  - obspy
+  - mercantile
