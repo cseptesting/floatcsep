@@ -28,9 +28,8 @@ class ForecastParsers:
         sorted_idx = numpy.sort(numpy.unique(all_mws, return_index=True)[1],
                                 kind='stable')
         mws = all_mws[sorted_idx]
-        bboxes = numpy.array(
-            [tuple(itertools.product(bbox[:2], bbox[2:])) for bbox in
-             unique_poly])
+        bboxes = [((i[0], i[2]), (i[0], i[3]), (i[1], i[3]), (i[1], i[2]))
+                  for i in unique_poly]
         dh = float(unique_poly[0, 3] - unique_poly[0, 2])
 
         n_mag_bins = len(mws)
@@ -104,11 +103,10 @@ class ForecastParsers:
                                   data_ijm[:, 1] - cell_dim['latRange'] / 2.,
                                   data_ijm[:, 1] + cell_dim[
                                       'latRange'] / 2.)).T
-        bboxes = numpy.array(
-            [tuple(itertools.product(bbox[:2], bbox[2:])) for bbox in
-             all_polys])
+        bboxes = [((i[0], i[2]), (i[0], i[3]), (i[1], i[3]), (i[1], i[2]))
+                  for i in all_polys]
         dh = float(all_polys[0, 3] - all_polys[0, 2])
-        poly_mask = numpy.ones(bboxes.shape[0])
+        poly_mask = numpy.ones(len(bboxes))
 
         region = CartesianGrid2D(
             [Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
@@ -168,15 +166,14 @@ class ForecastParsers:
         rates = data[[i for i in data.columns if is_mag(i)]].to_numpy()
         all_polys = data[
             ['lon_min', 'lon_max', 'lat_min', 'lat_max']].to_numpy()
-        bboxes = numpy.array(
-            [tuple(itertools.product(bbox[:2], bbox[2:])) for bbox in
-             all_polys])
+        bboxes = [((i[0], i[2]), (i[0], i[3]), (i[1], i[3]), (i[1], i[2]))
+                  for i in all_polys]
         dh = float(all_polys[0, 3] - all_polys[0, 2])
 
         try:
             poly_mask = data['mask']
         except KeyError:
-            poly_mask = numpy.ones(bboxes.shape[0])
+            poly_mask = numpy.ones(len(bboxes))
 
         region = CartesianGrid2D(
             [Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
