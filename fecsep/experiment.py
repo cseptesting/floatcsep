@@ -716,7 +716,6 @@ class Experiment:
             if 'Sequential' in test.type:
                 test.plot_args['timestrs'] = timewindow2str(self.timewindows)
             import matplotlib
-            print(matplotlib.__version__)
             ax = test.plot_func(results, plot_args=test.plot_args,
                                 **test.plot_kwargs)
             if 'code' in test.plot_args:

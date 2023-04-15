@@ -8,16 +8,26 @@
 
 ## Installing computational environment
 
+Create a `conda` environment
+
 ```
-conda env create -f environment.yml
-conda activate fecsep
-pip install -e .
+conda env create -n $NAME
+conda activate $NAME
 ```
 
-Installs pyCSEP and other dependencies to run the experiment. See `environment.yml` file for details.
+Install `pyCSEP` and its dependencies from `conda`
+```
+conda install -c conda-forge pycsep
+```
+
+Install feCSEP source using `pip`
+```
+pip install .
+```
 
 ## Run experiment
-Access the experiment directory
+
+Access an experiment directory (e.g. fecsep/examples) and type
 ```
 fecsep run <config> 
 ```

@@ -10,6 +10,7 @@ def run(config, show=True):
     exp.set_models()
     exp.stage_models()
     exp.prepare_paths()
+    print('\n==================')
     print('Running experiment')
     print('==================\n')
     exp.prepare_tasks()
@@ -19,6 +20,9 @@ def run(config, show=True):
         exp.plot_results()
         exp.plot_forecasts()
         exp.generate_report()
+    print('\n================')
+    print('Calculation done')
+    print('================\n')
 
 
 def plot(config, **_):

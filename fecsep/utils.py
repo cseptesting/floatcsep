@@ -501,11 +501,11 @@ def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True,
     names = [i.sim_name for i in evaluation_results]
 
     T_value = numpy.array(
-        [Tw_i.observed_statistic for Tw_i in evaluation_results]).T
+        [Tw_i.observed_statistic for Tw_i in evaluation_results])
     T_quantile = numpy.array(
-        [Tw_i.quantile[0] for Tw_i in evaluation_results]).T
+        [Tw_i.quantile[0] for Tw_i in evaluation_results])
     W_quantile = numpy.array(
-        [Tw_i.quantile[1] for Tw_i in evaluation_results]).T
+        [Tw_i.quantile[1] for Tw_i in evaluation_results])
     score = numpy.sum(T_value, axis=1) / T_value.shape[0]
 
     if order:
