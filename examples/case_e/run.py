@@ -1,21 +1,14 @@
-import importlib
-import fecsep.experiment
-import fecsep.utils
-import fecsep.accessors
 
-importlib.reload(fecsep.experiment)
-importlib.reload(fecsep.utils)
-importlib.reload(fecsep.accessors)
 from fecsep.experiment import Experiment
 
 file_ = 'config.yml'
 
-a = Experiment.from_yml(file_)
-a.set_models()
-a.set_tests()
-a.set_paths()
-a.set_tasks()
-a.run()
-a.plot_results()
-# a.plot_forecasts()
-a.generate_report()
+exp_e = Experiment.from_yml(file_)
+exp_e.set_models()
+exp_e.set_tests()
+exp_e.set_paths()
+exp_e.set_tasks()
+exp_e.run()
+exp_e.plot_results()
+exp_e.plot_forecasts()
+exp_e.generate_report()

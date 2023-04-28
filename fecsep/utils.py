@@ -16,6 +16,7 @@ from functools import partial
 from typing import Sequence, Union
 from matplotlib import pyplot
 from matplotlib.lines import Line2D
+from collections import OrderedDict
 
 # pyCSEP libraries
 import six
@@ -223,6 +224,49 @@ def read_region_config(region_config, **kwargs):
                           'region': region})
 
     return region_config
+
+
+def timewindow2str(
+        datetimes: Union[Sequence[datetime],
+                         Sequence[Sequence[datetime]]]):
+    """
+    Converts a time window (list/tuple of datetimes) to a string that
+    represents it.  Can be a single timewindow or a list of time windows.
+    Args:
+        datetimes:
+
+    Returns:
+
+    """
+    if isinstance(datetimes[0], datetime):
+        return '_'.join([j.date().isoformat() for j in datetimes])
+
+    elif isinstance(datetimes[0], (list, tuple)):
+        return ['_'.join([j.date().isoformat() for j in i]) for i in datetimes]
+
+
+def str2timewindow(tw_string: Union[str, Sequence[str]]):
+    """
+    Converts a string representation of a time window into a list of datetimes
+    representing the time window edges.
+    Args:
+        tw_string:
+
+    Returns:
+
+    """
+    if isinstance(tw_string, str):
+        start_date, end_date = [datetime.fromisoformat(i) for i in
+                                tw_string.split('_')]
+        return start_date, end_date
+
+    elif isinstance(tw_string, (list, tuple)):
+        datetimes = []
+        for twstr in tw_string:
+            start_date, end_date = [datetime.fromisoformat(i) for i in
+                                    twstr.split('_')]
+            datetimes.append([start_date, end_date])
+        return datetimes
 
 
 def timewindows_ti(start_date=None,
@@ -445,7 +489,7 @@ class TaskGraph:
 
     def __init__(self):
 
-        self.tasks = {}
+        self.tasks = OrderedDict()
         self._ntasks = 0
 
     @property
@@ -511,33 +555,10 @@ class TaskGraph:
         pass
 
 
-def timewindow2str(
-        datetimes: Union[Sequence[datetime],
-                         Sequence[Sequence[datetime]]]):
-    """"""
-    if isinstance(datetimes[0], datetime):
-        return '_'.join([j.date().isoformat() for j in datetimes])
+def plot_sequential_likelihood(evaluation_results, plot_args=None):
 
-    elif isinstance(datetimes[0], (list, tuple)):
-        return ['_'.join([j.date().isoformat() for j in i]) for i in datetimes]
-
-
-def str2timewindow(tw_string: Union[str, Sequence[str]]):
-    if isinstance(tw_string, str):
-        start_date, end_date = [datetime.fromisoformat(i) for i in
-                                tw_string.split('_')]
-        return start_date, end_date
-
-    elif isinstance(tw_string, (list, tuple)):
-        datetimes = []
-        for twstr in tw_string:
-            start_date, end_date = [datetime.fromisoformat(i) for i in
-                                    twstr.split('_')]
-            datetimes.append([start_date, end_date])
-        return datetimes
-
-
-def plot_sequential_likelihood(evaluation_results, plot_args={}):
+    if plot_args is None:
+        plot_args = {}
     title = plot_args.get('title', None)
     titlesize = plot_args.get('titlesize', None)
     ylabel = plot_args.get('ylabel', None)
@@ -600,43 +621,44 @@ def magnitude_vs_time(catalog):
             catalog.data['origin_time']]
     fig, ax = pyplot.subplots(figsize=(12, 4))
     ax.plot(time, mag, marker='o', linewidth=0, color='r', alpha=0.2)
-    ax.set_xlabel('Date', fontsize=16)  # Assign the text label to the x axis
-    ax.set_ylabel('$M_w$', fontsize=16)  # Assign the text label to the y axis
-    ax.set_title('Magnitude vs. Time',
-                 fontsize=18)  # Of course, a title is important
+    ax.set_xlabel('Date', fontsize=16)
+    ax.set_ylabel('$M_w$', fontsize=16)
+    ax.set_title('Magnitude vs. Time', fontsize=18)
     return ax
 
 
-def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True,
-                                 plot_args=None):
+def plot_matrix_comparative_test(evaluation_results,
+                                 p=0.05,
+                                 order=True):
     """ Produces matrix plot for comparative tests for all models
 
         Args:
             evaluation_results (list of result objects): paired t-test results
-            plot_args (dict): plotting arguments for function
+            p (float): significance level
+            order (bool): columns/rows ordered by ranking
 
         Returns:
             ax (matplotlib.Axes): handle for figure
     """
     names = [i.sim_name for i in evaluation_results]
 
-    T_value = numpy.array(
+    t_value = numpy.array(
         [Tw_i.observed_statistic for Tw_i in evaluation_results])
-    T_quantile = numpy.array(
+    t_quantile = numpy.array(
         [Tw_i.quantile[0] for Tw_i in evaluation_results])
-    W_quantile = numpy.array(
+    w_quantile = numpy.array(
         [Tw_i.quantile[1] for Tw_i in evaluation_results])
-    score = numpy.sum(T_value, axis=1) / T_value.shape[0]
+    score = numpy.sum(t_value, axis=1) / t_value.shape[0]
 
     if order:
         arg_ind = numpy.flip(numpy.argsort(score))
     else:
         arg_ind = numpy.arange(len(score))
 
-    data_t = T_value[arg_ind, :][:,
-             arg_ind]  ## Flip rows/cols if ordered by value
-    data_w = W_quantile[arg_ind, :][:, arg_ind]
-    data_tq = T_quantile[arg_ind, :][:, arg_ind]
+    # Flip rows/cols if ordered by value
+    data_t = t_value[arg_ind, :][:, arg_ind]
+    data_w = w_quantile[arg_ind, :][:, arg_ind]
+    data_tq = t_quantile[arg_ind, :][:, arg_ind]
     fig, ax = pyplot.subplots(1, 1, figsize=(7, 6))
 
     cmap = seaborn.diverging_palette(220, 20, as_cmap=True)
@@ -649,11 +671,11 @@ def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True,
     for n, i in enumerate(data_tq):
         for m, j in enumerate(i):
             if j > 0 and data_w[n, m] < p:
-                # ax.scatter(n + 0.5, m + 0.5, marker='o', s=75, facecolor='None', edgecolor='black')
                 ax.scatter(n + 0.5, m + 0.5, marker='o', s=5, color='black')
 
     legend_elements = [Line2D([0], [0], marker='o', lw=0,
-                              label='$\mathcal{T}$ and $\mathcal{W}$ significant',
+                              label=r'$\mathcal{T}$ and $\mathcal{W}$ '
+                                    'significant',
                               markerfacecolor="black", markeredgecolor='black',
                               markersize=4)]
     fig.legend(handles=legend_elements, loc='lower right',
@@ -671,8 +693,9 @@ def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
     forecast_gridded: csep.core.forecast with other grid.
     target_grid: csep.core.region.CastesianGrid2D or QuadtreeGrid2D
     only_de-aggregate: Flag (True or False)
-        Note: set the flag "only_deagregate = True" Only if one is sure that both grids are Quadtree and
-        Target grid is high-resolution at every level than the other grid.
+        Note: set the flag "only_deagregate = True" Only if one is sure that
+         both grids are Quadtree and Target grid is high-resolution at every
+         level than the other grid.
     """
     from csep.core.forecasts import GriddedForecast
     bounds_target = target_grid.bounds
@@ -688,47 +711,35 @@ def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
 
 def plot_quadtree_forecast(qtree_forecast):
     """
-    Currently, only a single-resolution plotting capability is available. So we aggregate multi-resolution forecast on a single-resolution grid and then plot it
+    Currently, only a single-resolution plotting capability is available.
+    So we aggregate multi-resolution forecast on a single-resolution grid
+    and then plot it
 
     Args: csep.core.models.GriddedForecast
 
     Returns: class:`matplotlib.pyplot.ax` object
     """
-    quadkeys = qtree_forecast.region.quadkeys
-    l = []
-    for qk in quadkeys:
-        l.append(len(qk))
 
-    if l.count(l[0]) == len(l):
+    quadkeys = qtree_forecast.region.quadkeys
+    qk_sizes = []
+    for qk in quadkeys:
+        qk_sizes.append(len(qk))
+
+    if qk_sizes.count(qk_sizes[0]) == len(qk_sizes):
         # single-resolution grid
         ax = qtree_forecast.plot()
     else:
         print('Multi-resolution grid detected.')
-        print(
-            'Currently, we do not offer utility to plot a forecast with multi-resolution grid')
-        print(
-            'Therefore, forecast is being aggregated on a single-resolution grid (L8) for plotting')
+        print('Currently, we do not offer utility to plot a forecast with '
+              'multi-resolution grid')
+        print('Therefore, forecast is being aggregated on a single-resolution '
+              'grid (L8) for plotting')
 
-        single_res_grid_L8 = QuadtreeGrid2D.from_single_resolution(8)
-        forecast_L8 = forecast_mapping(qtree_forecast, single_res_grid_L8)
-        ax = forecast_L8.plot()
+        single_res_grid_l8 = QuadtreeGrid2D.from_single_resolution(8)
+        forecast_l8 = forecast_mapping(qtree_forecast, single_res_grid_l8)
+        ax = forecast_l8.plot()
 
     return ax
-
-
-def europe_efehr20(dh_scale=1, magnitudes=None, name="europe_efehr20",
-                   use_midpoint=True):
-    """
-
-    """
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    filepath = os.path.join(root_dir, 'fecsep', 'artifacts',
-                            'europe_efehr20.csv')
-    midpoints = numpy.genfromtxt(filepath, delimiter=',')
-    europe_region = CartesianGrid2D.from_origins(midpoints,
-                                                 magnitudes=magnitudes)
-
-    return europe_region
 
 
 class MarkdownReport:
@@ -738,6 +749,7 @@ class MarkdownReport:
         self.outname = outname
         self.toc = []
         self.has_title = True
+        self.has_introduction = False
         self.markdown = []
 
     def add_introduction(self, adict):
@@ -749,15 +761,18 @@ class MarkdownReport:
                 f"**Catalog Source:** {adict['catalog_source']}  \n" \
                 f"**Number Simulations:** {adict['num_simulations']}\n"
 
-        # used to determine to place TOC at beginning of document or after introduction.
+        # used to determine to place TOC at beginning of document or after
+        # introduction.
+
         self.has_introduction = True
         self.markdown.append(first)
         return first
 
     def add_text(self, text):
         """
-        text should be a list of strings where each string will be on its own line.
-        each add_text command represents a paragraph.
+        Text should be a list of strings where each string will be on its own
+        line. Each add_text command represents a paragraph.
+
         Args:
             text (list): lines to write
         Returns:
@@ -767,12 +782,15 @@ class MarkdownReport:
     def add_figure(self, title, relative_filepaths, level=2, ncols=3,
                    add_ext=False, text='', caption='', width=None):
         """
-        this function expects a list of filepaths. if you want the output stacked, select a
-        value of ncols. ncols should be divisible by filepaths. todo: modify formatted_paths to work when not divis.
+        This function expects a list of filepaths. If you want the output
+        stacked, select a value of ncols. ncols should be divisible by
+        filepaths. todo: modify formatted_paths to work when not divis.
+
         Args:
             title: name of the figure
             level (int): value 1-6 depending on the heading
-            relative_filepaths (str or List[Tuple[str]]): list of paths in order to make table
+            relative_filepaths (str or List[Tuple[str]]): list of paths in
+                order to make table
         Returns:
         """
         # verify filepaths have proper extension should always be png
@@ -795,11 +813,11 @@ class MarkdownReport:
         formatted_paths = [correct_paths[i:i + ncols] for i in
                            range(0, len(paths), ncols)]
 
-        # convert str into a proper list, where each potential row is an iter not str
-        def build_header(row):
+        # convert str into a list, where each potential row is an iter not str
+        def build_header(_row):
             top = "|"
             bottom = "|"
-            for i, _ in enumerate(row):
+            for i, _ in enumerate(_row):
                 if i == ncols:
                     break
                 top += " |"
@@ -809,11 +827,11 @@ class MarkdownReport:
         # <img src="results/20220101T170000/figures/Poisson_T.png" width=720 />
         size_ = bool(width) * f'width={width}'
 
-        def add_to_row(row):
-            if len(row) == 1:
-                return f'<img src="{row[0]}" {size_}/>'
+        def add_to_row(_row):
+            if len(_row) == 1:
+                return f'<img src="{_row[0]}" {size_}/>'
             string = '| '
-            for item in row:
+            for item in _row:
                 string = string + f'<img src="{item}" width={width}/>'
             return string
 
@@ -848,7 +866,7 @@ class MarkdownReport:
         try:
             for item in list(text):
                 cell.append(item)
-        except:
+        except Exception as ex:
             raise RuntimeWarning(
                 "Unable to add document subhead, text must be iterable.")
         self.markdown.append('\n'.join(cell) + '\n')
@@ -857,9 +875,9 @@ class MarkdownReport:
         if add_toc:
             self.toc.append((title, level, locator))
 
-    def add_list(self, list):
+    def add_list(self, _list):
         cell = []
-        for item in list:
+        for item in _list:
             cell.append(f"* {item}")
         self.markdown.append('\n'.join(cell) + '\n')
 
@@ -882,14 +900,14 @@ class MarkdownReport:
         """
         Generates table from HTML and styles using bootstrap class
         Args:
-           data List[Tuple[str]]: should be (nrows, ncols) in size. all rows should be the
-                         same sizes
+           data List[Tuple[str]]: should be (nrows, ncols) in size. all rows
+            should be the same sizes
         Returns:
-            table (str): this can be added to subheading or other cell if desired.
+            table (str): this can be added to subheading or other cell if
+                desired.
         """
-        table = []
-        table.append('<div class="table table-striped">')
-        table.append(f'<table>')
+        table = ['<div class="table table-striped">', f'<table>']
+
 
         def make_header(row):
             header = []
@@ -924,13 +942,15 @@ class MarkdownReport:
 
 
 class NoAliasLoader(yaml.Loader):
+    @staticmethod
     def ignore_aliases(self):
         return True
 
 
 def plot_forecast_lowres(forecast, plot_args, k=4):
     """
-    Plot a reduced resolution plot. The forecast values are kept the same, but cells are enlarged
+    Plot a reduced resolution plot. The forecast values are kept the same,
+    but cells are enlarged
     :param forecast: GriddedForecast object
     :param plot_args: arguments to be passed to plot_spatial_dataset
     :param k: Resampling factor. Selects cells every k row and k columns.
@@ -949,19 +969,22 @@ def plot_forecast_lowres(forecast, plot_args, k=4):
 
 def quadtree_csv_loader(csv_fname):
     """ Load quadtree forecasted stored as csv file
-        The format expects forecast as a comma separated file, in which first column corresponds to quadtree grid cell (quadkey).
+        The format expects forecast as a comma separated file, in which first
+        column corresponds to quadtree grid cell (quadkey).
         The second and thrid columns indicate depth range.
-        The corresponding enteries in the respective row are forecast rates corresponding to the magnitude bins.
+        The corresponding enteries in the respective row are forecast rates
+        corresponding to the magnitude bins.
         The first line of forecast is a header, and its format is listed here:
             'Quadkey', depth_min, depth_max, Mag_0, Mag_1, Mag_2, Mag_3 , ....
              Quadkey is a string. Rest of the values are floats.
         For the purposes of defining region objects quadkey is used.
-        We assume that the starting value of magnitude bins are provided in the header.
+        We assume that the starting value of magnitude bins are provided in the
+         header.
         Args:
             csv_fname: file name of csep forecast in csv format
         Returns:
-            rates, region, mws (numpy.ndarray, QuadtreeRegion2D, numpy.ndarray): rates, region, and magnitude bins needed
-                                                                                 to define QuadTree models
+            rates, region, mws (np.ndarray, QuadtreeRegion2D, np.ndarray):
+             rates, region, and magnitude bins needed to define QuadTree models
      """
 
     data = numpy.genfromtxt(csv_fname, dtype='str', delimiter=',')
@@ -986,7 +1009,8 @@ def geographical_area_from_qk(quadk):
 
 def tile_bounds(quad_cell_id):
     """
-    It takes in a single Quadkkey and returns lat,longs of two diagonal corners using mercantile
+    It takes in a single Quadkkey and returns lat,longs of two diagonal corners
+     using mercantile
     Parameters
     ----------
     quad_cell_id : Stirng
@@ -1021,14 +1045,18 @@ def calc_cell_area(cell):
 def _map_overlapping_cells(fcst_grid_poly, fcst_cell_area, fcst_rate_poly,
                            target_poly):  # ,
     """
-    This functions work for Cells that do not directly conside with target polygon cells
-    This function uses 3 variables, i.e. fcst_grid_poly, fcst_cell_area, fcst_rate_poly
+    This functions work for Cells that do not directly conside with target
+     polygon cells. This function uses 3 variables i.e. fcst_grid_poly,
+     fcst_cell_area, fcst_rate_poly
 
-    This function takes 1 target polygon, upon which models are to be mapped. Finds all the cells of forecast grid that
-    match with this polygon and then maps the forecast rate of those cells according to area.
+    This function takes 1 target polygon, upon which models are to be mapped.
+    Finds all the cells of forecast grid that match with this polygon and then
+     maps the forecast rate of those cells according to area.
 
-    fcst_grid_polygon (variable in memory): The grid that needs to be mapped on target_poly
-    fcst_rate_poly (variable in memory): The forecast that needs to be mapped on target grid polygon
+    fcst_grid_polygon (variable in memory): The grid that needs to be mapped on
+     target_poly
+    fcst_rate_poly (variable in memory): The forecast that needs to be mapped
+     on target grid polygon
     fcst_cell_area (variable in memory): The cell area of forecast grid
 
     Args:
@@ -1038,7 +1066,8 @@ def _map_overlapping_cells(fcst_grid_poly, fcst_cell_area, fcst_rate_poly,
     """
     map_rate = numpy.array([0])
     for j in range(len(fcst_grid_poly)):
-        # Iterates over ALL the cells of Forecast grid and find the cells that overlap with target cell (poly).
+        # Iterates over ALL the cells of Forecast grid and find the cells
+        # that overlap with target cell (poly).
         if target_poly.intersects(fcst_grid_poly[j]):  # overlaps
 
             intersect = target_poly.intersection(fcst_grid_poly[j])
@@ -1054,13 +1083,15 @@ def _map_overlapping_cells(fcst_grid_poly, fcst_cell_area, fcst_rate_poly,
 def _map_exact_inside_cells(fcst_grid, fcst_rate, boundary):
     """
     Uses 2 Global variables. fcst_grid, fcst_rate
-    Takes a cell_boundary and finds all those fcst_grid cells that fit exactly inside of it
-    And then sum-up the rates of all those cells fitting inside it to get forecast rate for boundary_cell
+    Takes a cell_boundary and finds all those fcst_grid cells that fit exactly
+    inside it and then sum-up the rates of all those cells fitting inside it
+    to get forecast rate for boundary_cell
 
     Args:
         boundary: 1 cell with [lon1, lat1, lon2, lat2]
     returns:
-        1 - sum of forecast_rates for cell that fall totally inside of boundary cell
+        1 - sum of forecast_rates for cell that fall totally inside of
+         boundary cell
         2 - Array of the corresponding cells that fall inside
     """
     c = numpy.logical_and(numpy.logical_and(fcst_grid[:, 0] >= boundary[0],
@@ -1077,12 +1108,15 @@ def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
     """
     This function can perofrmns both aggregation and de-aggregation/
     It is a wrapper function that uses 4 functions in respective order
-    i.e. _map_exact_cells, _map_overlapping_cells, calc_cell_area, create_polygon
+    i.e. _map_exact_cells, _map_overlapping_cells, calc_cell_area,
+    create_polygon
 
-    Maps the forecast rates of one grid to another grid using parallel processing
+    Maps the forecast rates of one grid to another grid using parallel
+    processing
     Works in two steps:
         1 - Maps all those cells that fall entirely on target cells
-        2 - The cells that overlap with multiple cells, map them according to cell area
+        2 - The cells that overlap with multiple cells, map them according to
+         cell area
     Inumpyuts:
         target_grid: Target grid bounds, upon which forecast is to be mapped.
                         [n x 4] array, Bottom left and Top Right corners
@@ -1116,12 +1150,13 @@ def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
         exact_rate_tgt.append(exact_rate[i][0])
 
     exact_cells = numpy.concatenate(exact_cells)
-    # Exclude all those cells from Grid that have already fallen entirely inside any cell of Target Grid
+    # Exclude all those cells from Grid that have already fallen entirely
+    # inside any cell of Target Grid
     fcst_rate_poly = numpy.delete(fcst_rate, exact_cells, axis=0)
     lft_fcst_grid = numpy.delete(fcst_grid, exact_cells, axis=0)
 
     # play now only with those cells are overlapping with multiple target cells
-    ##Get the polygon of Remaining Forecast grid Cells
+    # Get the polygon of Remaining Forecast grid Cells
     pool = multiprocessing.Pool(ncpu)
     fcst_grid_poly = pool.map(create_polygon, [i for i in lft_fcst_grid])
     pool.close()
@@ -1140,8 +1175,9 @@ def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
     pool = multiprocessing.Pool(ncpu)
     func_overlapping = partial(_map_overlapping_cells, fcst_grid_poly,
                                fcst_cell_area, fcst_rate_poly)
+    # Uses above three Global Parameters
     rate_tgt = pool.map(func_overlapping, [poly for poly in
-                                           target_grid_poly])  # Uses above three Global Parameters
+                                           target_grid_poly])
     pool.close()
 
     zero_pad_len = numpy.shape(fcst_rate)[1]
@@ -1189,7 +1225,8 @@ USER $USERNAME
 
 
 def _global_region(dh=0.1, name="global", magnitudes=None):
-    """ Creates a global region used for evaluating gridded models on the global scale.
+    """ Creates a global region used for evaluating gridded models on the
+    global scale.
 
     Modified from csep.core.regions.global_region
 
