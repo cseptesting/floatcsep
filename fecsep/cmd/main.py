@@ -1,6 +1,5 @@
 from fecsep.experiment import Experiment
 import argparse
-import os
 
 
 def run(config, show=True):
@@ -15,14 +14,17 @@ def run(config, show=True):
     print('==================\n')
     exp.set_tasks()
     exp.run()
+    print('\n================')
+    print('Calculation done')
+    print('================\n')
 
     if show:
         exp.plot_results()
         exp.plot_forecasts()
         exp.generate_report()
-    print('\n================')
-    print('Calculation done')
-    print('================\n')
+    print('\n=============================')
+    print("Plotting experiment's results")
+    print('=============================\n')
 
 
 def plot(config, **_):
@@ -31,6 +33,7 @@ def plot(config, **_):
     exp.set_tests()
     exp.set_models()
     exp.set_paths()
+    print('\n=============================')
     print("Plotting experiment's results")
     print('=============================\n')
     exp.plot_results()
@@ -58,8 +61,3 @@ def fecsep():
         raise AttributeError('Function not implemented')
     func(**vars(args))
 
-
-if __name__ == '__main__':
-    test_run = '../tests/data_tests/gefe_qtree/'
-    os.chdir(test_run)
-    run('config.yml')
