@@ -163,7 +163,7 @@ class TestExperiment(TestCase):
         with tempfile.NamedTemporaryFile() as file_:
             with patch.object(exp, '_paths',
                               {tstring: {'catalog': file_.name}}):
-                exp.prepare_subcatalog(tstring)
+                exp.set_testcat(tstring)
                 cat = CSEPCatalog.load_json(file_.name)
                 numpy.testing.assert_equal(1609455600000, cat.data[0][1])
 

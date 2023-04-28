@@ -18,7 +18,7 @@ from csep.core.forecasts import GriddedForecast
 from fecsep import report
 from fecsep.registry import register
 from fecsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
-    read_region_config, Task, timewindow2str, str2timewindow
+    read_region_config, Task, TaskGraph, timewindow2str, str2timewindow
 from fecsep.model import Model
 from fecsep.evaluation import Evaluation
 import warnings
@@ -145,6 +145,7 @@ class Experiment:
         self.tests = []
 
         self.tasks = []
+        self.task_graph = None
         self.run_results = {}
         # self.catalog = None
         self.run_folder: str = ''
@@ -267,8 +268,8 @@ class Experiment:
         for evaldict in config_dict:
             self.add_evaluation(evaldict)
 
-    def prepare_paths(self, results_path: str = None,
-                      run_name: str = None) -> None:
+    def set_paths(self, results_path: str = None,
+                  run_name: str = None) -> None:
         """
 
         Creates the run directory, and reads the file structure inside
@@ -357,11 +358,11 @@ class Experiment:
         self._paths = target_paths
         self._exists = exists  # todo perhaps method?
 
-    def prepare_subcatalog(self, tstring: str) -> None:
+    def set_testcat(self, tstring: str) -> None:
         """
 
-        Filters the experiment catalog to a single time window and writes it
-        in the corresponding directory.
+        Filters the experiment catalog to a test catalog bounded by
+        the testtime window. Writes it to filepath defined in self._paths
 
         Args:
             tstring (str): Time window string
@@ -373,199 +374,140 @@ class Experiment:
              f'origin_time >= {start.timestamp() * 1000}'])
         subcat.write_json(filename=self._paths[tstring]['catalog'])
 
-    # def prepare_tasks(self):
-    #
-    #     tasks = []
-    #     tw_strings = timewindow2str(self.timewindows)
-    #     # Prepare testing catalogs
-    #
-    #     for time_str in tw_strings:
-    #         task_i = Task(instance=self, method='prepare_subcatalog',
-    #                       tstring=time_str)
-    #         tasks.append(task_i)
-    #
-    #     # Prepare input catalogs for time-dependent
-    #
-    #     # Create Forecasts
-    #     for i, time_str in enumerate(tw_strings):
-    #         for model_j in self.models:
-    #             task_ij = Task(instance=model_j, method='create_forecast',
-    #                            tstring=time_str, prenode=i)
-    #             tasks.append(task_ij)
-    #     tasks_idx = {**{i: n for n, i in enumerate(tw_strings)},
-    #                  **{(i, j): n + len(tw_strings) for n, (i, j) in
-    #                     enumerate(itertools.product(tw_strings, self.models))}}
-    #
-    #     # Compute tests
-    #     for test in self.tests:
-    #         # Consistency tests
-    #         if 'Discrete' in test.type and 'Absolute' in test.type:
-    #             for time_str in enumerate(tw_strings):
-    #                 for model_j in enumerate(self.models):
-    #                     task_ijk = Task(
-    #                         instance=test,
-    #                         method='compute',
-    #                         prenode=(tasks_idx[time_str],
-    #                                  tasks_idx[(time_str, model_j)]),
-    #                         timewindow=time_str,
-    #                         catalog=self._paths[time_str]['catalog'],
-    #                         model=model_j,
-    #                         path=self._paths[time_str][
-    #                             'evaluations'][test.name][model_j.name])
-    #                     tasks.append(task_ijk)
-    #
-    #         # Comparative Tests
-    #         elif 'Discrete' in test.type and 'Comparative' in test.type:
-    #             for time_str in enumerate(tw_strings):
-    #                 for model_j in self.models:
-    #                     task_ik = Task(
-    #                         instance=test,
-    #                         method='compute',
-    #                         prenode=(tasks_idx[time_str],
-    #                                  tasks_idx[(time_str, model_j)],
-    #                                  tasks_idx[(time_str,
-    #                                             self.get_model(test.ref_model))]),
-    #                         timewindow=time_str,
-    #                         catalog=self._paths[time_str]['catalog'],
-    #                         model=model_j,
-    #                         ref_model=self.get_model(test.ref_model),
-    #                         path=self._paths[time_str][
-    #                             'evaluations'][test.name][model_j.name]
-    #                     )
-    #                     tasks.append(task_ik)
-    #
-    #         elif 'Sequential' in test.type and 'Absolute' in test.type:
-    #             for model_j in self.models:
-    #                 task_k = Task(
-    #                     instance=test,
-    #                     method='compute',
-    #                     prenode=(*[tasks_idx[i] for i in tw_strings],
-    #                              *[*tasks_idx[(i, j)]) f],
-    #                     timewindow=tw_strings,
-    #                     catalog=[self._paths[i]['catalog'] for i in
-    #                              tw_strings],
-    #                     model=model_j,
-    #                     path=self._paths[tw_strings[-1]][
-    #                         'evaluations'][test.name][model_j.name]
-    #                 )
-    #                 tasks.append(task_k)
-    #         elif 'Comparative' in test_k.type:
-    #             timestrs = timewindow2str(self.timewindows)
-    #             for model_j in self.models:
-    #                 task_k = Task(
-    #                     instance=test_k,
-    #                     method='compute',
-    #                     timewindow=timestrs,
-    #                     catalog=[self._paths[i]['catalog'] for i in
-    #                              timestrs],
-    #                     model=model_j,
-    #                     ref_model=self.get_model(test_k.ref_model),
-    #                     path=self._paths[timestrs[-1]][
-    #                         'evaluations'][test_k.name][model_j.name]
-    #                 )
-    #                 tasks.append(task_k)
-    #     elif 'Discrete' in test_k.type and 'Batch' in test_k.type:
-    #         timestr = timewindow2str(self.timewindows[-1])
-    #         for model_j in self.models:
-    #             task_k = Task(
-    #                 instance=test_k,
-    #                 method='compute',
-    #                 timewindow=timestr,
-    #                 catalog=self._paths[timestr]['catalog'],
-    #                 ref_model=self.models,
-    #                 model=model_j,
-    #                 path=self._paths[timestr][
-    #                     'evaluations'][test_k.name][model_j.name]
-    #             )
-    #             tasks.append(task_k)
-    #
-    # self.tasks = tasks
-
-    def prepare_tasks(self) -> None:
+    def set_tasks(self):
         """
-        Implements the Experiment's run logic, as depth-search.
+        Lazy definition of the experiment core tasks by wrapping instances,
+        methods and arguments. Creats a graph with task nodes, while assigning
+        task-parents to each node, depending on the Evaluation signatures.
+        The tasks can then be run sequentially as a list or asynchronous
+        using the graph's node dependencies.
+        For instance:
+            - Forecast can only be made if catalog is filtered to its window
+            - A consistency test can be run if the forecast exists in a window
+            - A comparison test requires the forecast and ref forecast
+            - A sequential test requires the forecasts exist for all windows
+            - A batch test requires all forecast exist for a given window.
+
+        Returns:
+
         """
-        '''
-        Time-Window 
-            Catalog Preparation >
-                Forecast Creation >
-                    Individual Tests |
-                Comparative Tests |
-        Sequential Tests |
-        '''
+        # Get the time windows strings
+        tw_strings = timewindow2str(self.timewindows)
 
-        tasks = []
+        # Prepare the testing catalogs
+        task_graph = TaskGraph()
+        for time_i in tw_strings:
+            # The method call Experiment.set_testcat(time_i) is created lazily
+            task_i = Task(instance=self,
+                          method='set_testcat',
+                          tstring=time_i)
+            # An is added to the task graph
+            task_graph.add(task_i)
+            # the task is executed later with Experiment.run()
+            # once all the tasks are defined
 
-        for time_i in self.timewindows:
-            time_str = timewindow2str(time_i)
-            task_i = Task(instance=self, method='prepare_subcatalog',
-                          tstring=time_str)
-            tasks.append(task_i)
-            # Consistency Tests
+        # todo Prepare input catalogs for time-dependent
+
+        # Set up the Forecasts creation
+        for time_i in tw_strings:
             for model_j in self.models:
-                task_ij = Task(instance=model_j, method='create_forecast',
-                               tstring=time_str)
-                tasks.append(task_ij)
+                task_ij = Task(instance=model_j,
+                               method='create_forecast',
+                               tstring=time_i)
+                task_graph.add(task=task_ij)
+                # A catalog needs to have been filtered
+                task_graph.add_dependency(task_ij,
+                                          dinst=self,
+                                          dmeth='set_testcat',
+                                          dkw=time_i)
 
-                for test_k in self.tests:
-                    if 'Discrete' in test_k.type and 'Absolute' in test_k.type:
+        # Set up the Consistency Tests
+        for test_k in self.tests:
+            if 'Discrete' in test_k.type and 'Absolute' in test_k.type:
+                for time_i in tw_strings:
+                    for model_j in self.models:
                         task_ijk = Task(
                             instance=test_k,
                             method='compute',
-                            timewindow=time_str,
-                            catalog=self._paths[time_str]['catalog'],
+                            timewindow=time_i,
+                            catalog=self._paths[time_i]['catalog'],
                             model=model_j,
-                            path=self._paths[time_str][
-                                'evaluations'][test_k.name][model_j.name]
-                        )
-                        tasks.append(task_ijk)
-
-            # Comparative Tests
-            for test_k in self.tests:
-                if 'Discrete' in test_k.type and 'Comparative' in test_k.type:
+                            path=self._paths[time_i][
+                                'evaluations'][test_k.name][model_j.name])
+                        task_graph.add(task_ijk)
+                        # the forecast needs to have been created
+                        task_graph.add_dependency(task_ijk,
+                                                  dinst=model_j,
+                                                  dmeth='create_forecast',
+                                                  dkw=time_i)
+            # Set up the Comparative Tests
+            elif 'Discrete' in test_k.type and 'Comparative' in test_k.type:
+                for time_i in tw_strings:
                     for model_j in self.models:
                         task_ik = Task(
                             instance=test_k,
                             method='compute',
-                            timewindow=time_str,
-                            catalog=self._paths[time_str]['catalog'],
+                            timewindow=time_i,
+                            catalog=self._paths[time_i]['catalog'],
                             model=model_j,
                             ref_model=self.get_model(test_k.ref_model),
-                            path=self._paths[time_str][
+                            path=self._paths[time_i][
                                 'evaluations'][test_k.name][model_j.name]
                         )
-                        tasks.append(task_ik)
-        for test_k in self.tests:
-            if 'Sequential' in test_k.type:
-                if 'Absolute' in test_k.type:
-                    timestrs = timewindow2str(self.timewindows)
-                    for model_j in self.models:
-                        task_k = Task(
-                            instance=test_k,
-                            method='compute',
-                            timewindow=timestrs,
-                            catalog=[self._paths[i]['catalog'] for i in
-                                     timestrs],
-                            model=model_j,
-                            path=self._paths[timestrs[-1]][
-                                'evaluations'][test_k.name][model_j.name]
-                        )
-                        tasks.append(task_k)
-                elif 'Comparative' in test_k.type:
-                    timestrs = timewindow2str(self.timewindows)
-                    for model_j in self.models:
-                        task_k = Task(
-                            instance=test_k,
-                            method='compute',
-                            timewindow=timestrs,
-                            catalog=[self._paths[i]['catalog'] for i in
-                                     timestrs],
-                            model=model_j,
-                            ref_model=self.get_model(test_k.ref_model),
-                            path=self._paths[timestrs[-1]][
-                                'evaluations'][test_k.name][model_j.name]
-                        )
-                        tasks.append(task_k)
+                        task_graph.add(task_ik)
+                        task_graph.add_dependency(task_ik,
+                                          dinst=model_j,
+                                          dmeth='create_forecast',
+                                          dkw=time_i)
+                        task_graph.add_dependency(task_ik,
+                                              dinst=self.get_model(test_k.ref_model),
+                                              dmeth='create_forecast',
+                                              dkw=time_i)
+            # Set up the Sequential Scores
+            elif 'Sequential' in test_k.type and 'Absolute' in test_k.type:
+                for model_j in self.models:
+                    task_k = Task(
+                        instance=test_k,
+                        method='compute',
+                        timewindow=tw_strings,
+                        catalog=[self._paths[i]['catalog'] for i in
+                                 tw_strings],
+                        model=model_j,
+                        path=self._paths[tw_strings[-1]][
+                            'evaluations'][test_k.name][model_j.name]
+                    )
+                    task_graph.add(task_k)
+                    for tw_i in tw_strings:
+                        task_graph.add_dependency(task_k,
+                                              dinst=model_j,
+                                              dmeth='create_forecast',
+                                              dkw=tw_i)
+            # Set up the Sequential_Comparative Scores
+            elif 'Comparative' in test_k.type:
+                timestrs = timewindow2str(self.timewindows)
+                for model_j in self.models:
+                    task_k = Task(
+                        instance=test_k,
+                        method='compute',
+                        timewindow=timestrs,
+                        catalog=[self._paths[i]['catalog'] for i in
+                                 timestrs],
+                        model=model_j,
+                        ref_model=self.get_model(test_k.ref_model),
+                        path=self._paths[timestrs[-1]][
+                            'evaluations'][test_k.name][model_j.name]
+                    )
+                    task_graph.add(task_k)
+                    for tw_i in tw_strings:
+                        task_graph.add_dependency(task_k,
+                                              dinst=model_j,
+                                              dmeth='create_forecast',
+                                              dkw=tw_i)
+                        task_graph.add_dependency(task_k,
+                                              dinst=self.get_model(test_k.ref_model),
+                                              dmeth='create_forecast',
+                                              dkw=tw_i)
+            # Set up the Batch comparative Scores
             elif 'Discrete' in test_k.type and 'Batch' in test_k.type:
                 timestr = timewindow2str(self.timewindows[-1])
                 for model_j in self.models:
@@ -579,9 +521,14 @@ class Experiment:
                         path=self._paths[timestr][
                             'evaluations'][test_k.name][model_j.name]
                     )
-                    tasks.append(task_k)
+                    task_graph.add(task_k)
+                    for m_j in self.models:
+                        task_graph.add_dependency(task_k,
+                                              dinst=m_j,
+                                              dmeth='create_forecast',
+                                              dkw=timestr)
 
-        self.tasks = tasks
+        self.task_graph = task_graph
 
     def get_model(self, name: str) -> Model:
         for model in self.models:
@@ -653,9 +600,7 @@ class Experiment:
          - Queuer?
 
         """
-
-        for task in self.tasks:
-            task.run()
+        self.task_graph.run()
 
     def _read_results(self, test: Evaluation, window: str) -> List:
 
@@ -704,7 +649,7 @@ class Experiment:
                         pyplot.show()
 
         for test in self.tests:
-
+            # todo improve the logic of this plots
             timestr = timewindow2str(self.timewindows[-1])
             results = self._read_results(test, timestr)
             if test.type == 'seqcomp':
@@ -743,7 +688,7 @@ class Experiment:
                     proj_args = {}
                 plot_fc_config['projection'] = getattr(ccrs, proj_name)(
                     **proj_args)
-            except (IndexError, KeyError):
+            except (IndexError, KeyError, TypeError):
                 plot_fc_config['projection'] = ccrs.PlateCarree(
                     central_longitude=0.0)
 

@@ -9,11 +9,11 @@ def run(config, show=True):
     exp.set_tests()
     exp.set_models()
     exp.stage_models()
-    exp.prepare_paths()
+    exp.set_paths()
     print('\n==================')
     print('Running experiment')
     print('==================\n')
-    exp.prepare_tasks()
+    exp.set_tasks()
     exp.run()
 
     if show:
@@ -30,7 +30,7 @@ def plot(config, **_):
 
     exp.set_tests()
     exp.set_models()
-    exp.prepare_paths()
+    exp.set_paths()
     print("Plotting experiment's results")
     print('=============================\n')
     exp.plot_results()

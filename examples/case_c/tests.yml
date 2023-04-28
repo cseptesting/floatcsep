@@ -1,3 +1,10 @@
+- Sequential_LL:
+    func: sequential_likelihood
+    plot_func: plot_sequential_likelihood
+    plot_args:
+      title: Cumulative Log-Likelihood
+      ylabel: Information Gain
+
 - Sequential_IG:
     func: sequential_information_gain
     plot_func: plot_sequential_likelihood
