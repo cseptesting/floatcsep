@@ -90,7 +90,7 @@ class Evaluation:
         self.ref_model = ref_model
 
         self.plot_func = parse_csep_func(plot_func)
-        self.plot_args = plot_args or {}  # todo default args from exp?
+        self.plot_args = plot_args or {}      # todo default args from exp?
         self.plot_kwargs = plot_kwargs or {}
 
         self.markdown = markdown

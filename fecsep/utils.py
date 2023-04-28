@@ -683,65 +683,6 @@ def plot_matrix_comparative_test(evaluation_results,
     pyplot.tight_layout()
 
 
-def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
-    """
-    Aggregates conventional forecast onto quadtree region
-    This is generic function, which can map any forecast on to another grid.
-    Wrapper function over "_forecat_mapping_generic"
-    Forecast mapping onto Target Grid
-
-    forecast_gridded: csep.core.forecast with other grid.
-    target_grid: csep.core.region.CastesianGrid2D or QuadtreeGrid2D
-    only_de-aggregate: Flag (True or False)
-        Note: set the flag "only_deagregate = True" Only if one is sure that
-         both grids are Quadtree and Target grid is high-resolution at every
-         level than the other grid.
-    """
-    from csep.core.forecasts import GriddedForecast
-    bounds_target = target_grid.bounds
-    bounds = forecast_gridded.region.bounds
-    data = forecast_gridded.data
-    data_mapped_bounds = _forecast_mapping_generic(bounds_target, bounds, data,
-                                                   ncpu=ncpu)
-    target_forecast = GriddedForecast(data=data_mapped_bounds,
-                                      region=target_grid,
-                                      magnitudes=forecast_gridded.magnitudes)
-    return target_forecast
-
-
-def plot_quadtree_forecast(qtree_forecast):
-    """
-    Currently, only a single-resolution plotting capability is available.
-    So we aggregate multi-resolution forecast on a single-resolution grid
-    and then plot it
-
-    Args: csep.core.models.GriddedForecast
-
-    Returns: class:`matplotlib.pyplot.ax` object
-    """
-
-    quadkeys = qtree_forecast.region.quadkeys
-    qk_sizes = []
-    for qk in quadkeys:
-        qk_sizes.append(len(qk))
-
-    if qk_sizes.count(qk_sizes[0]) == len(qk_sizes):
-        # single-resolution grid
-        ax = qtree_forecast.plot()
-    else:
-        print('Multi-resolution grid detected.')
-        print('Currently, we do not offer utility to plot a forecast with '
-              'multi-resolution grid')
-        print('Therefore, forecast is being aggregated on a single-resolution '
-              'grid (L8) for plotting')
-
-        single_res_grid_l8 = QuadtreeGrid2D.from_single_resolution(8)
-        forecast_l8 = forecast_mapping(qtree_forecast, single_res_grid_l8)
-        ax = forecast_l8.plot()
-
-    return ax
-
-
 class MarkdownReport:
     """ Class to generate a Markdown report from a study """
 
@@ -945,6 +886,69 @@ class NoAliasLoader(yaml.Loader):
     @staticmethod
     def ignore_aliases(self):
         return True
+
+
+#########################
+# Below needs refactoring
+#########################
+
+def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
+    """
+    Aggregates conventional forecast onto quadtree region
+    This is generic function, which can map any forecast on to another grid.
+    Wrapper function over "_forecat_mapping_generic"
+    Forecast mapping onto Target Grid
+
+    forecast_gridded: csep.core.forecast with other grid.
+    target_grid: csep.core.region.CastesianGrid2D or QuadtreeGrid2D
+    only_de-aggregate: Flag (True or False)
+        Note: set the flag "only_deagregate = True" Only if one is sure that
+         both grids are Quadtree and Target grid is high-resolution at every
+         level than the other grid.
+    """
+    from csep.core.forecasts import GriddedForecast
+    bounds_target = target_grid.bounds
+    bounds = forecast_gridded.region.bounds
+    data = forecast_gridded.data
+    data_mapped_bounds = _forecast_mapping_generic(bounds_target, bounds, data,
+                                                   ncpu=ncpu)
+    target_forecast = GriddedForecast(data=data_mapped_bounds,
+                                      region=target_grid,
+                                      magnitudes=forecast_gridded.magnitudes)
+    return target_forecast
+
+
+def plot_quadtree_forecast(qtree_forecast):
+    """
+    Currently, only a single-resolution plotting capability is available.
+    So we aggregate multi-resolution forecast on a single-resolution grid
+    and then plot it
+
+    Args: csep.core.models.GriddedForecast
+
+    Returns: class:`matplotlib.pyplot.ax` object
+    """
+
+    quadkeys = qtree_forecast.region.quadkeys
+    qk_sizes = []
+    for qk in quadkeys:
+        qk_sizes.append(len(qk))
+
+    if qk_sizes.count(qk_sizes[0]) == len(qk_sizes):
+        # single-resolution grid
+        ax = qtree_forecast.plot()
+    else:
+        print('Multi-resolution grid detected.')
+        print('Currently, we do not offer utility to plot a forecast with '
+              'multi-resolution grid')
+        print('Therefore, forecast is being aggregated on a single-resolution '
+              'grid (L8) for plotting')
+
+        single_res_grid_l8 = QuadtreeGrid2D.from_single_resolution(8)
+        forecast_l8 = forecast_mapping(qtree_forecast, single_res_grid_l8)
+        ax = forecast_l8.plot()
+
+    return ax
 
 
 def plot_forecast_lowres(forecast, plot_args, k=4):

@@ -15,7 +15,6 @@ class ForecastParsers:
 
     @staticmethod
     def dat(filename):
-
         data = numpy.loadtxt(filename)
         all_polys = data[:, :4]
         all_poly_mask = data[:, -1]

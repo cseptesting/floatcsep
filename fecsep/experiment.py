@@ -1,19 +1,16 @@
 import os
 import os.path
-from collections.abc import Mapping, Sequence
-from typing import Union, List, Tuple, Callable
-from functools import singledispatchmethod
 import numpy
 import yaml
 import json
-from datetime import datetime
+from collections.abc import Mapping, Sequence
+from typing import Union, List, Tuple, Callable
 from matplotlib import pyplot
 from cartopy import crs as ccrs
 
 from csep.models import EvaluationResult
 from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
-from csep.core.forecasts import GriddedForecast
 
 from fecsep import report
 from fecsep.registry import register
@@ -22,7 +19,6 @@ from fecsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
 from fecsep.model import Model
 from fecsep.evaluation import Evaluation
 import warnings
-import csep
 
 numpy.seterr(all="ignore")
 warnings.filterwarnings("ignore")
@@ -124,7 +120,7 @@ class Experiment:
         #  config), or self-awareness functions?
         #  - instantiate as python objects (rethink models/tests config)
         #  - check if model region matches experiment region for nonQuadTree?
-        #    Or filter region
+        #    Or filter region?
         # Instantiate
         self.name = name if name else 'floatingExp'
         self.path = kwargs.get('path') if kwargs.get('path',
