@@ -35,7 +35,7 @@ class TestEvaluation(unittest.TestCase):
                  'func_kwargs': {},
                  'ref_model': None,
                  'plot_func': None,
-                 'plot_args': [],
+                 'plot_args': {},
                  'plot_kwargs': {},
                  'markdown': '',
                  '_type': None}
