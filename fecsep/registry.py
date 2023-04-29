@@ -1,13 +1,64 @@
 import os
 from dataclasses import dataclass, field
 from functools import wraps
+from collections.abc import Mapping, Sequence
+from typing import Union, List, Tuple, Callable
 
 
-@dataclass()
+@dataclass
 class ModelTree:
-    path: None
-    dir: str = None
-    fmt: str = None
+    path: str
+    _path: str = None
+
+    def __call__(self, *args, **kwargs):
+        return self.path
+
+    @property
+    def dir(self) -> str:
+        """
+        Returns:
+            The directory containing the model source.
+        """
+        if os.path.isdir(self.path):
+            return self.path
+        else:
+            return os.path.dirname(self.path)
+
+    @property
+    def fmt(self) -> str:
+        return os.path.splitext(self.path)[1][1:]
+
+
+@dataclass
+class PathTree:
+    workdir: str
+
+    def __call__(self, *args, **kwargs):
+        return self.workdir
+
+    def to_dict(self):
+        # to be implemented
+        return 'Path Tree'
+
+    @property
+    def dir(self) -> str:
+        """
+        Returns:
+            The directory containing the model source.
+        """
+        if os.path.isdir(self.path):
+            return self.path
+        else:
+            return os.path.dirname(self.path)
+
+    def abs(self, *paths: Sequence[str]) -> Tuple[str, str]:
+        """ Gets the absolute path of a file, when it was defined relative to the
+        experiment working dir."""
+
+        _path = os.path.normpath(
+            os.path.abspath(os.path.join(self.workdir, *paths)))
+        _dir = os.path.dirname(_path)
+        return _dir, _path
 
 
 @dataclass

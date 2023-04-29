@@ -5,9 +5,9 @@ import argparse
 def run(config, show=True):
     exp = Experiment.from_yml(config)
 
-    exp.set_tests()
     exp.set_models()
     exp.stage_models()
+    exp.set_tests()
     exp.set_paths()
     print('\n==================')
     print('Running experiment')
@@ -30,8 +30,8 @@ def run(config, show=True):
 def plot(config, **_):
     exp = Experiment.from_yml(config)
 
-    exp.set_tests()
     exp.set_models()
+    exp.set_tests()
     exp.set_paths()
     print('\n=============================')
     print("Plotting experiment's results")

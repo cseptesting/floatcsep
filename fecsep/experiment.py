@@ -13,7 +13,7 @@ from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
 
 from fecsep import report
-from fecsep.registry import register
+from fecsep.registry import PathTree
 from fecsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
     read_region_config, Task, TaskGraph, timewindow2str, str2timewindow
 from fecsep.model import Model
@@ -103,8 +103,6 @@ class Experiment:
           (does not make sense for TI (too much FS space) unless is already
            dropped to DB)
     '''
-
-    @register
     def __init__(self,
                  name: str = None,
                  time_config: dict = None,
@@ -125,6 +123,7 @@ class Experiment:
         self.name = name if name else 'floatingExp'
         self.path = kwargs.get('path') if kwargs.get('path',
                                                      None) else os.getcwd()
+        self.tree = PathTree(self.path)
 
         self.time_config = read_time_config(time_config, **kwargs)
         self.region_config = read_region_config(region_config, **kwargs)
@@ -139,11 +138,10 @@ class Experiment:
         # Initialize class attributes
         self.models = []
         self.tests = []
-
         self.tasks = []
         self.task_graph = None
         self.run_results = {}
-        # self.catalog = None
+
         self.run_folder: str = ''
         self._paths: dict = {}
         self._exists: dict = {}
@@ -168,7 +166,7 @@ class Experiment:
                         f" has no attribute '{item}'") from None
 
     def __dir__(self):
-        # todo add timewindows
+        # todo add timewindows attribute
         # Adds time and region configs keys to instance scope
         _dir = list(super().__dir__()) + list(self.time_config.keys()) + list(
             self.region_config)
@@ -194,7 +192,7 @@ class Experiment:
         instances """
 
         model = Model.from_dict(model_i)
-        self.reg.add_reg(model.reg)
+        # self.reg.add_reg(model.reg)
         self.models.append(model)
 
     def set_models(self) -> None:
@@ -206,7 +204,7 @@ class Experiment:
         """
         # todo: handle when model cfg is a dict instead of a file.
 
-        _dir, modelcfg_path = self._abspath(self.model_config)
+        _dir, modelcfg_path = self.tree.abs(self.model_config)
 
         with open(modelcfg_path, 'r') as file_:
             config_dict = yaml.load(file_, NoAliasLoader)
@@ -217,8 +215,9 @@ class Experiment:
 
                 name_ = next(iter(element))
                 # updates path to absolute
-                model_abspath = self._abspath(_dir, element[name_]['path'])[1]
-                model_i = {name_: {**element[name_], 'path': model_abspath}}
+                model_path = self.tree.abs(_dir, element[name_]['path'])[1]
+                # model_abspath = self._abspath(_dir, element[name_]['path'])[1]
+                model_i = {name_: {**element[name_], 'path': model_path}}
                 self.add_model(model_i)
             else:
                 model_flavours = list(element.values())[0]['flavours'].items()
@@ -226,7 +225,8 @@ class Experiment:
                     name_super = next(iter(element))
                     # updates path to absolute
                     path_super = element[name_super].get('path', '')
-                    path_sub = self._abspath(_dir, path_super, flav_path)[1]
+                    path_sub = self.tree.abs(_dir, path_super, flav_path)[1]
+                    # path_sub = self._abspath(_dir, path_super, flav_path)[1]
                     # updates name of submodel
                     name_flav = f'{name_super}@{flav}'
                     model_ = {name_flav: {**element[name_super],
@@ -248,7 +248,7 @@ class Experiment:
         """
 
         evaluation = Evaluation.from_dict(eval_i)
-        self.reg.add_reg(evaluation.reg)
+        # self.reg.add_reg(evaluation.reg)
         self.tests.append(evaluation)
 
     def set_tests(self) -> None:
@@ -258,7 +258,7 @@ class Experiment:
 
         """
 
-        with open(self._abspath(self.test_config)[1], 'r') as config:
+        with open(self.tree.abs(self.test_config)[1], 'r') as config:
             config_dict = yaml.load(config, NoAliasLoader)
 
         for evaldict in config_dict:
@@ -297,11 +297,11 @@ class Experiment:
         # Determine required directory structure for run
         # results > test_date > time_window > cats / evals / figures
 
-        self.run_folder = self._abspath(results_path or 'results', run_name)[1]
+        self.run_folder = self.tree.abs(results_path or 'results', run_name)[1]
         subfolders = ['catalog', 'evaluations', 'figures', 'forecasts']
 
         dirtree = {
-            win: {folder: self._abspath(self.run_folder, win, folder)[1] for
+            win: {folder: self.tree.abs(self.run_folder, win, folder)[1] for
                   folder
                   in subfolders} for win in windows}
 
@@ -452,13 +452,14 @@ class Experiment:
                         )
                         task_graph.add(task_ik)
                         task_graph.add_dependency(task_ik,
-                                          dinst=model_j,
-                                          dmeth='create_forecast',
-                                          dkw=time_i)
+                                                  dinst=model_j,
+                                                  dmeth='create_forecast',
+                                                  dkw=time_i)
                         task_graph.add_dependency(task_ik,
-                                              dinst=self.get_model(test_k.ref_model),
-                                              dmeth='create_forecast',
-                                              dkw=time_i)
+                                                  dinst=self.get_model(
+                                                      test_k.ref_model),
+                                                  dmeth='create_forecast',
+                                                  dkw=time_i)
             # Set up the Sequential Scores
             elif 'Sequential' in test_k.type and 'Absolute' in test_k.type:
                 for model_j in self.models:
@@ -475,9 +476,9 @@ class Experiment:
                     task_graph.add(task_k)
                     for tw_i in tw_strings:
                         task_graph.add_dependency(task_k,
-                                              dinst=model_j,
-                                              dmeth='create_forecast',
-                                              dkw=tw_i)
+                                                  dinst=model_j,
+                                                  dmeth='create_forecast',
+                                                  dkw=tw_i)
             # Set up the Sequential_Comparative Scores
             elif 'Comparative' in test_k.type:
                 timestrs = timewindow2str(self.timewindows)
@@ -496,13 +497,14 @@ class Experiment:
                     task_graph.add(task_k)
                     for tw_i in tw_strings:
                         task_graph.add_dependency(task_k,
-                                              dinst=model_j,
-                                              dmeth='create_forecast',
-                                              dkw=tw_i)
+                                                  dinst=model_j,
+                                                  dmeth='create_forecast',
+                                                  dkw=tw_i)
                         task_graph.add_dependency(task_k,
-                                              dinst=self.get_model(test_k.ref_model),
-                                              dmeth='create_forecast',
-                                              dkw=tw_i)
+                                                  dinst=self.get_model(
+                                                      test_k.ref_model),
+                                                  dmeth='create_forecast',
+                                                  dkw=tw_i)
             # Set up the Batch comparative Scores
             elif 'Discrete' in test_k.type and 'Batch' in test_k.type:
                 timestr = timewindow2str(self.timewindows[-1])
@@ -520,9 +522,9 @@ class Experiment:
                     task_graph.add(task_k)
                     for m_j in self.models:
                         task_graph.add_dependency(task_k,
-                                              dinst=m_j,
-                                              dmeth='create_forecast',
-                                              dkw=timestr)
+                                                  dinst=m_j,
+                                                  dmeth='create_forecast',
+                                                  dkw=timestr)
 
         self.task_graph = task_graph
 
@@ -568,15 +570,15 @@ class Experiment:
     @catalog.setter
     def catalog(self, cat: Union[Callable, CSEPCatalog, str]) -> None:
 
-        if os.path.isfile(self._abspath(cat)[1]):
+        if os.path.isfile(self.tree.abs(cat)[1]):
             print(f"Using catalog from {cat}")
-            self._catalog = self._abspath(cat)[1]
-            self._catpath = self._abspath(cat)[1]
+            self._catalog = self.tree.abs(cat)[1]
+            self._catpath = self.tree.abs(cat)[1]
 
         else:
             # catalog can be a function
             self._catalog = parse_csep_func(cat)
-            self._catpath = self._abspath('catalog.json')[1]
+            self._catpath = self.tree.abs('catalog.json')[1]
             if os.path.isfile(self._catpath):
                 print(f"Using stored catalog "
                       f"'{os.path.relpath(self._catpath, self.path)}', "
@@ -746,7 +748,7 @@ class Experiment:
         report.generate_report(self)
 
     def to_dict(self, exclude: Sequence = ('magnitudes', 'depths',
-                                           'timewindows', 'reg'),
+                                           'timewindows', 'tree'),
                 extended: bool = False) -> dict:
         """
         Converts an Experiment instance into a dictionary.

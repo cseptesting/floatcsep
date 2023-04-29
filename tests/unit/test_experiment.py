@@ -42,6 +42,14 @@ class TestExperiment(TestCase):
         numpy.testing.assert_equal(exp_a.depths, exp_b.depths)
         self.assertEqual(exp_a.catalog, exp_b.catalog)
 
+    @staticmethod
+    def init_no_wrap(name, path, **kwargs):
+
+        model = Experiment.__new__(Experiment)
+        Experiment.__init__.__wrapped__(self=model, name=name,
+                                        path=path, **kwargs)
+        return Experiment
+
     def test_init(self):
         exp_a = Experiment(**_time_config, **_region_config,
                            catalog=_cat)
@@ -101,7 +109,6 @@ class TestExperiment(TestCase):
 
         exp_a = Experiment(**time_config, **region_config,
                            catalog=_cat)
-        # print(tempfile.mkstemp()[1])
         file_ = tempfile.mkstemp()[1]
         exp_a.to_yml(file_)
         exp_b = Experiment.from_yml(file_)
@@ -123,7 +130,6 @@ class TestExperiment(TestCase):
         m1_path = os.path.normpath(
             os.path.join(_dir, '../artifacts', 'models', 'qtree',
                          'TEAM=N10L11.csv'))
-        self.assertEqual(exp.models[1].reg.meta['path'], m1_path)
 
     def test_stage_models(self):
         exp = Experiment(**_time_config, **_region_config,

@@ -45,9 +45,10 @@ class TestModel(TestCase):
     def initmodel_noreg(name, path, **kwargs):
         """ Instantiates a model without using the @register deco,
         but mocks Model.Registry() attrs"""
-        model = Model.__new__(Model)
-        Model.__init__.__wrapped__(self=model, name=name,
-                                   path=path, **kwargs)
+        # model = Model.__new__(Model)
+        # Model.__init__.__wrapped__(self=model, name=name,
+        #                            path=path, **kwargs)
+        model = Model(name, path, **kwargs)
         ext = os.path.splitext(path)[-1][1:]
         model.fmt = ext
         model.dir = os.path.dirname(path) if ext else path

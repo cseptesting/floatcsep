@@ -9,7 +9,7 @@ from csep.utils.time_utils import decimal_year
 from fecsep.accessors import from_zenodo, from_git
 from fecsep.readers import ForecastParsers, HDF5Serializer, check_format
 from fecsep.utils import timewindow2str, str2timewindow
-from fecsep.registry import register
+from fecsep.registry import ModelTree
 
 
 class Model:
@@ -66,7 +66,6 @@ class Model:
 
     '''
 
-    @register
     def __init__(self, name: str, path: str,
                  forecast_unit: float = 1, use_db: bool = False,
                  func: Union[str, Callable] = None, func_kwargs: dict = None,
@@ -77,8 +76,8 @@ class Model:
         # todo:
         #  - Instantiate from source code
 
-        # Initialize path
-        self.path = path
+        # Initialize path tree manager
+        self.tree = ModelTree(path)
 
         # Instantiate attributes
         self.name = name
@@ -102,41 +101,19 @@ class Model:
         self.forecasts = {}
 
     def __getattr__(self, name) -> object:
-        """ If fails to get an attribute, tries to get from Registry """
+        """ Adds tree manager attrs to instance attributes"""
 
-        if name != 'reg' and hasattr(self, 'reg'):
+        if name != 'tree' and hasattr(self, 'tree'):
             try:
-                return getattr(self.reg, name)
+                return getattr(self.tree, name)
             except AttributeError:
                 raise AttributeError(
-                    f"{self.__class__.__name__} object named "
-                    f"nor its Registry, has attribute {name}")
+                    f"{self.__class__.__name__} object "
+                    f"has no attribute {name}")
         else:
             raise AttributeError(
                 f"'{self.__class__.__name__} 'object has no "
                 f"attribute '{name}'")
-
-    @property
-    def path(self) -> str:
-        """
-
-        Returns:
-            Path pointing to the source file, the HDF5 database, or src ode.
-        """
-        if hasattr(self, 'reg'):
-            return self.reg.path
-        else:
-            return self._path
-
-    @path.setter
-    def path(self, new_path) -> None:
-        """ Path setter. Original path passed when instantiated, is found at
-         self.reg.meta['path']"""
-
-        if hasattr(self, 'reg'):
-            self.reg.path = new_path
-        else:
-            self._path = new_path
 
     def stage(self) -> None:
         """
@@ -221,7 +198,7 @@ class Model:
 
             db_func = HDF5Serializer.grid2hdf5
             if not dbpath:
-                dbpath = self.path.replace(self.fmt, 'hdf5')
+                dbpath = self.tree.path.replace(self.fmt, 'hdf5')
 
             if not os.path.isfile(dbpath) or force:
                 # Drop Source file into DB
@@ -229,7 +206,7 @@ class Model:
                         hdf5_filename=dbpath,
                         unit=self.forecast_unit)
 
-            self.path = dbpath
+            self.tree.path = dbpath
 
         else:
             raise NotImplementedError('TD serialization not implemented')
@@ -340,7 +317,7 @@ class Model:
                            **kwargs) -> None:
         raise NotImplementedError('TBI for time-dependent models')
 
-    def to_dict(self, excluded=('forecasts', 'reg')):
+    def to_dict(self, excluded='forecasts'):
         """
 
         Returns:
