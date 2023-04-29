@@ -92,7 +92,6 @@ class TestExperiment(TestCase):
                  },
                  'catalog': _cat
                  }
-
         self.assertEqual(dict_, exp_a.to_dict())
 
     def test_to_yml(self):
@@ -112,6 +111,7 @@ class TestExperiment(TestCase):
         file_ = tempfile.mkstemp()[1]
         exp_a.to_yml(file_)
         exp_b = Experiment.from_yml(file_)
+
         self.assertEqualExperiment(exp_a, exp_b)
 
         file_ = tempfile.mkstemp()[1]
