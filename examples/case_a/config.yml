@@ -14,5 +14,5 @@ region_config:
 
 catalog: catalog.json
 models: models.yml
-test_config: tests.yml
+tests: tests.yml
 

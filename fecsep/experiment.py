@@ -17,7 +17,7 @@ from csep.utils.time_utils import decimal_year
 from fecsep import report
 from fecsep.registry import PathTree
 from fecsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
-    read_region_config, Task, TaskGraph, timewindow2str, str2timewindow,\
+    read_region_config, Task, TaskGraph, timewindow2str, str2timewindow, \
     magnitude_vs_time
 from fecsep.model import Model
 from fecsep.evaluation import Evaluation
@@ -113,7 +113,7 @@ class Experiment:
                  region_config: dict = None,
                  catalog: str = None,
                  models: str = None,
-                 test_config: str = None,
+                 tests: str = None,
                  postproc_config: str = None,
                  default_test_kwargs: dict = None,
                  **kwargs) -> None:
@@ -127,28 +127,28 @@ class Experiment:
         self.name = name if name else 'floatingExp'
         self.path = kwargs.get('path') if kwargs.get('path',
                                                      None) else os.getcwd()
-        self.tree = PathTree(self.path)
 
         self.time_config = read_time_config(time_config, **kwargs)
         self.region_config = read_region_config(region_config, **kwargs)
-        # todo: make it simple and also load catalog as file if given:
-        self.catalog = catalog
+        self.model_config = models if isinstance(models, str) else None
+        self.test_config = tests if isinstance(tests, str) else None
 
-        # self.set_models(model_config)
-        # self.set_tests(test_config)
+        self.catalog = None
+        self.models = []
+        self.tests = []
 
-        self.models = self.set_models(models)
-
-        self.test_config = test_config
         self.postproc_config = postproc_config if postproc_config else {}
         self.default_test_kwargs = default_test_kwargs
 
+        self.tree = PathTree(self.path)
+
+        self.catalog = catalog
+        self.models = self.set_models(models or kwargs.get('model_config'))
+        self.tests = self.set_tests(tests or kwargs.get('test_config'))
+
         # Initialize class attributes
-        # self.models = []
-        self.tests = []
         self.tasks = []
         self.task_graph = None
-        self.run_results = {}
 
         # Update if attributes were passed explicitly
         # todo check reinstantiation
@@ -191,30 +191,25 @@ class Experiment:
         for i in self.models:
             i.stage()
 
-    def add_model(self, model_i: dict) -> None:
-        """ Add experiment reg to Model class, to share between model
-        instances """
-
-        model = Model.from_dict(model_i)
-        # self.reg.add_reg(model.reg)
-        self.models.append(model)
-
-    def set_models(self, models) -> None:
+    def set_models(self, model_config) -> List:
         """
 
         Parse the models' configuration file/dict. Instantiates all the models
         as :class:`fecsep.model.Model` and store them into :attr:`self.models`.
 
         """
-        # todo: handle when model cfg is a dict instead of a file.
 
-
-        modelcfg_path = self.tree.abs(models)
-        _dir = self.tree.absdir(models)
-
+    # todo: handle when model_config is a list models instead of a file.
         models = []
-        with open(modelcfg_path, 'r') as file_:
-            config_dict = yaml.load(file_, NoAliasLoader)
+        if isinstance(model_config, str):
+            modelcfg_path = self.tree.abs(model_config)
+            _dir = self.tree.absdir(model_config)
+            with open(modelcfg_path, 'r') as file_:
+                config_dict = yaml.load(file_, NoAliasLoader)
+        else:
+            config_dict = model_config
+            _path = [i['path'] for i in model_config[0].values()][0]
+            _dir = self.tree.absdir(_path)
 
         for element in config_dict:
             # Check if the model is unique or has multiple submodels
@@ -252,26 +247,24 @@ class Experiment:
 
         return models
 
-    def add_evaluation(self, eval_i: dict) -> None:
-        """ Add evaluation to Experiment class, and share the registry
-        """
-
-        evaluation = Evaluation.from_dict(eval_i)
-        # self.reg.add_reg(evaluation.reg)
-        self.tests.append(evaluation)
-
-    def set_tests(self) -> None:
+    def set_tests(self, test_config) -> list:
         """
         Parse the tests' configuration file/dict. Instantiate them as
         :class:`fecsep.test.Test` and store them into :attr:`self.tests`.
 
         """
+        tests = []
 
-        with open(self.tree.abs(self.test_config), 'r') as config:
-            config_dict = yaml.load(config, NoAliasLoader)
+        if isinstance(test_config, str):
+            with open(self.tree.abs(test_config), 'r') as config:
+                config_dict = yaml.load(config, NoAliasLoader)
+            for evaldict in config_dict:
+                tests.append(Evaluation.from_dict(evaldict))
+        else:
+            for evaldict in test_config:
+                tests.append(Evaluation.from_dict(evaldict))
 
-        for evaldict in config_dict:
-            self.add_evaluation(evaldict)
+        return tests
 
     def set_testcat(self, tstring: str) -> None:
         """
@@ -492,7 +485,11 @@ class Experiment:
     @catalog.setter
     def catalog(self, cat: Union[Callable, CSEPCatalog, str]) -> None:
 
-        if os.path.isfile(self.tree.abs(cat)):
+        if cat is None:
+            self._catalog = None
+            self._catpath = None
+
+        elif os.path.isfile(self.tree.abs(cat)):
             print(f"Using catalog from {cat}")
             self._catalog = self.tree.abs(cat)
             self._catpath = self.tree.abs(cat)
@@ -521,7 +518,7 @@ class Experiment:
 
         """
         self.task_graph.run()
-        self.to_yml(self.tree('config'))
+        self.to_yml(self.tree('config'), extended=True)
 
     def _read_results(self, test: Evaluation, window: str) -> List:
 
@@ -704,15 +701,17 @@ class Experiment:
 
     def to_dict(self, exclude: Sequence = ('magnitudes', 'depths',
                                            'timewindows', 'tree',
-                                           'task_graph'),
+                                           'task_graph', 'models',
+                                           'tests'),
                 extended: bool = False) -> dict:
         """
         Converts an Experiment instance into a dictionary.
 
         Args:
+            extend:
+            fmt:
             exclude (tuple, list): Attributes, or attribute keys, to ignore
-            extended (bool): Verbose representation of pycsep objects
-            (e.g. region)
+            extend (bool): Verbose representation of pycsep objects
 
         Returns:
             A dictionary with serialized instance's attributes, which are
@@ -747,12 +746,17 @@ class Experiment:
             else:
                 return _get_value(val)
 
-        dictwalk = {i: j for i, j in self.__dict__.items() if
-                    not i.startswith('_')}
-        dictwalk.update({'catalog': self._catpath})
+        listwalk = [(i, j) for i, j in self.__dict__.items() if
+                    not i.startswith('_')]
+        listwalk.insert(3, ('catalog', self._catpath))
+
+        dictwalk = {i: j for i, j in listwalk}
+        # if self.model_config is None:
+        #     dictwalk['models'] = iter_attr(self.models)
+        # if self.test_config is None:
+        #     dictwalk['tests'] = iter_attr(self.tests)
 
         return iter_attr(dictwalk)
-
 
     def to_yml(self, filename: str, **kwargs) -> None:
         """

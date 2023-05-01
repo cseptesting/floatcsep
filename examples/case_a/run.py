@@ -5,7 +5,7 @@ file_ = 'config.yml'
 
 exp_a = Experiment.from_yml(file_)
 # exp_a.set_models()
-exp_a.set_tests()
+# exp_a.set_tests()
 exp_a.set_tasks()
 exp_a.run()
 exp_a.plot_results()

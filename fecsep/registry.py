@@ -11,8 +11,6 @@ class ModelTree:
     def __call__(self, *args, **kwargs):
         return self.path
 
-
-
     def to_dict(self):
         return asdict(self)
 

@@ -33,7 +33,7 @@ def generate_report(experiment, timewindow=-1):
     objs = [
         "Describe the predictive skills of posited hypothesis about "
         "seismogenesis with earthquakes of"
-        f" M>{experiment.magnitudes.min()}",
+        f" M>{min(experiment.magnitudes)}",
     ]
     report.add_list(objs)
 
@@ -48,7 +48,7 @@ def generate_report(experiment, timewindow=-1):
             caption="Evaluation catalog  from "
                     f"{timewindow[0]} until {timewindow[1]}. "  
                     f"Earthquakes are filtered above Mw"
-                    f" {experiment.magnitudes.min()}.",
+                    f" {min(experiment.magnitudes)}.",
             add_ext=True
         )
 

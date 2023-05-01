@@ -92,7 +92,6 @@ class Evaluation:
         self.plot_kwargs = plot_kwargs or {}
 
         self.markdown = markdown
-
         self.type = Evaluation._TYPES.get(self.func.__name__)
 
     @property
@@ -266,12 +265,15 @@ class Evaluation:
 
     def to_dict(self):
         out = {}
-        included = ['name', 'model', 'func', 'ref_model', 'path',
-                    'func_kwargs']
+        included = ['model', 'ref_model', 'func_kwargs',
+                    'plot_args', 'plot_kwargs']
         for k, v in self.__dict__.items():
             if k in included and v:
                 out[k] = v
-        return out
+        func_str = f'{self.func.__module__}.{self.func.__name__}'
+        plotfunc_str = f'{self.plot_func.__module__}.{self.plot_func.__name__}'
+        return {self.name: {**out, 'func': func_str,
+                            'plot_func': plotfunc_str}}
 
     def __str__(self):
         return (

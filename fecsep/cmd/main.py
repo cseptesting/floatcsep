@@ -1,12 +1,12 @@
 from fecsep.experiment import Experiment
 import argparse
 
-
+from csep.core import regions
 def run(config, show=True):
     exp = Experiment.from_yml(config)
 
     exp.stage_models()
-    exp.set_tests()
+    # exp.set_tests()
     print('\n==================')
     print('Running experiment')
     print('==================\n')

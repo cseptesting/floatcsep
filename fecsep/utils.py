@@ -203,7 +203,6 @@ def read_region_config(region_config, **kwargs):
 
     region_data = region_config.get('region', None)
     try:
-        print(region_data)
         region = parse_csep_func(region_data)(name=region_data,
                                               magnitudes=magnitudes) \
             if region_data else None

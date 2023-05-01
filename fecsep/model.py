@@ -71,7 +71,7 @@ class Model:
                  func: Union[str, Callable] = None, func_kwargs: dict = None,
                  zenodo_id: int = None, giturl: str = None,
                  repo_hash: str = None, authors: List[str] = None,
-                 doi: str = None) -> None:
+                 doi: str = None, **kwargs) -> None:
 
         # todo:
         #  - Instantiate from source code
@@ -100,21 +100,6 @@ class Model:
 
         # Instantiate attributes to be filled in run-time
         self.forecasts = {}
-    #
-    # def __getattr__(self, name) -> object:
-    #     """ Adds tree manager attrs to instance attributes"""
-    #
-    #     if name != 'tree' and hasattr(self, 'tree'):
-    #         try:
-    #             return getattr(self.tree, name)
-    #         except AttributeError:
-    #             raise AttributeError(
-    #                 f"{self.__class__.__name__} object "
-    #                 f"has no attribute {name}")
-    #     else:
-    #         raise AttributeError(
-    #             f"'{self.__class__.__name__} 'object has no "
-    #             f"attribute '{name}'")
 
     @property
     def dir(self) -> str:
@@ -165,23 +150,21 @@ class Model:
 
 
         """
-
+        print(giturl, self.dir, self.path)
         if os.path.exists(self.path) and not force:
             return None
         else:
             if zenodo_id is None and giturl is None:
                 raise FileNotFoundError(
                     f"Model file or directory '{self.path}' not found")
-
-        os.makedirs(self.dir, exist_ok=True)
         try:
             # Zenodo is the first source of retrieval
             from_zenodo(zenodo_id, self.dir, force=force)
         except (KeyError, TypeError):
             try:
-                from_git(giturl, self.dir, **kwargs)
+                from_git(giturl, self.path, **kwargs)
 
-            except (git.NoSuchPathError, git.CommandError):
+            except (git.NoSuchPathError, git.CommandError) as msg:
                 if giturl is None:
                     raise KeyError('Zenodo identifier is not valid')
                 else:
