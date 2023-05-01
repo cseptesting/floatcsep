@@ -112,4 +112,4 @@ def generate_report(experiment, timewindow=-1):
         )
 
     report.table_of_contents()
-    report.save(experiment.run_folder)
+    report.save(experiment.tree.run_folder)

@@ -1,10 +1,9 @@
 import os
 from dataclasses import dataclass, field
 from functools import wraps
-from collections.abc import Mapping, Sequence
-from typing import Union, List, Tuple, Callable
-from fecsep.utils import timewindow2str, str2timewindow
-
+from collections.abc import Sequence
+from typing import Tuple
+from fecsep.utils import timewindow2str
 
 @dataclass
 class ModelTree:
@@ -69,9 +68,9 @@ class PathTree:
         # to be implemented
         return self.workdir
 
-    def abs(self, *paths: Sequence[str]) -> Tuple[str, str]:
-        """ Gets the absolute path of a file, when it was defined relative to the
-        experiment working dir."""
+    def abs(self, *paths: Sequence[str]) -> str:
+        """ Gets the absolute path of a file, when it was defined relative to
+         the experiment working dir."""
 
         _path = os.path.normpath(
             os.path.abspath(os.path.join(self.workdir, *paths)))
@@ -79,8 +78,8 @@ class PathTree:
         return _path
 
     def absdir(self, *paths: Sequence[str]) -> Tuple[str, str]:
-        """ Gets the absolute path of a file, when it was defined relative to the
-        experiment working dir."""
+        """ Gets the absolute path of a file, when it was defined relative to
+         the experiment working dir."""
 
         _path = os.path.normpath(
             os.path.abspath(os.path.join(self.workdir, *paths)))
@@ -98,6 +97,9 @@ class PathTree:
         Creates the run directory, and reads the file structure inside
 
         Args:
+            timewindows: List of time windows, or representing string.
+            models: List of models or model names
+            tests: List of tests or test names
             results_path: path to store
             run_name: name of run
 
@@ -109,22 +111,19 @@ class PathTree:
              evaluation results)
 
         """
-        from fecsep.utils import timewindow2str
+
         # grab names for creating directories
         windows = timewindow2str(timewindows)
         models = [i.name for i in models]
         tests = [i.name for i in tests]
 
         # todo create datetime parser for filenames
-        if run_name is None:
-            run_name = 'run'
-            # todo find better way to name paths
-            # run_name = f'run_{datetime.now().date().isoformat()}'
+        # todo find better way to name paths
 
         # Determine required directory structure for run
         # results > test_date > time_window > cats / evals / figures
 
-        run_folder = self.abs(results_path or '', run_name)
+        run_folder = self.abs(results_path or 'results', run_name or '')
 
         subfolders = ['catalog', 'evaluations', 'figures', 'forecasts']
         dirtree = {
@@ -175,7 +174,7 @@ class PathTree:
 
         self._paths = target_paths
         self._exists = exists  # todo perhaps method?
-
+        self.run_folder = run_folder
 
 @dataclass
 class Registry:

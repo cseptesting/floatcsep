@@ -8,7 +8,6 @@ def run(config, show=True):
     exp.set_models()
     exp.stage_models()
     exp.set_tests()
-    exp.set_paths()
     print('\n==================')
     print('Running experiment')
     print('==================\n')
@@ -18,6 +17,9 @@ def run(config, show=True):
     print('Calculation done')
     print('================\n')
 
+    print('\n=============================')
+    print("Plotting experiment's results")
+    print('=============================\n')
     if show:
         exp.plot_results()
         exp.plot_forecasts()
@@ -26,6 +28,9 @@ def run(config, show=True):
     print("Plotting experiment's results")
     print('=============================\n')
 
+    print('\n========')
+    print('Complete')
+    print('========\n')
 
 def plot(config, **_):
     exp = Experiment.from_yml(config)

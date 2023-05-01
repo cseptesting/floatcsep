@@ -170,8 +170,8 @@ class Experiment:
         return sorted(_dir)
 
     def _abspath(self, *paths: Sequence[str]) -> Tuple[str, str]:
-        """ Gets the absolute path of a file, when it was defined relative to the
-        experiment working dir."""
+        """ Gets the absolute path of a file, when it was defined relative to
+         the experiment working dir."""
         # todo check redundancy when passing an actual absolute path (e.g.
         #  when re-instantiating). Pass to self.Registry()
         _path = os.path.normpath(
@@ -214,7 +214,6 @@ class Experiment:
                 name_ = next(iter(element))
                 # updates path to absolute
                 model_path = self.tree.abs(_dir, element[name_]['path'])
-                # model_abspath = self._abspath(_dir, element[name_]['path'])[1]
                 model_i = {name_: {**element[name_], 'path': model_path}}
                 self.add_model(model_i)
             else:
@@ -262,12 +261,11 @@ class Experiment:
         for evaldict in config_dict:
             self.add_evaluation(evaldict)
 
-
     def set_testcat(self, tstring: str) -> None:
         """
 
         Filters the experiment catalog to a test catalog bounded by
-        the testtime window. Writes it to filepath defined in self._paths
+        the testtime window. Writes it to filepath defined in path tree
 
         Args:
             tstring (str): Time window string
@@ -278,7 +276,6 @@ class Experiment:
             [f'origin_time < {end.timestamp() * 1000}',
              f'origin_time >= {start.timestamp() * 1000}'])
         subcat.write_json(filename=self.tree(tstring, 'catalog'))
-
 
     def set_tasks(self):
         """
