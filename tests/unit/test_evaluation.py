@@ -17,12 +17,16 @@ class TestEvaluation(unittest.TestCase):
     @staticmethod
     def init_noreg(name, func, **kwargs):
         """ Instantiates a model without using the @register deco,
-        but mocks Model.Registry() attrs"""
-        evaluation = Evaluation.__new__(Evaluation)
-        Evaluation.__init__.__wrapped__(self=evaluation,
-                                        name=name,
-                                        func=func,
-                                        **kwargs)
+        but mocks Model.Registry() attrs"""\
+
+        # deprecated
+        # evaluation = Evaluation.__new__(Evaluation)
+        # Evaluation.__init__.__wrapped__(self=evaluation,
+        #                                 name=name,
+        #                                 func=func,
+        #                                 **kwargs)
+        evaluation = Evaluation(name=name, func=func,
+                                **kwargs)
         return evaluation
 
     def test_init(self):

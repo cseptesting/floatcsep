@@ -512,6 +512,7 @@ class Experiment:
 
         """
         self.task_graph.run()
+        self.to_yml(self.tree('config'))
 
     def _read_results(self, test: Evaluation, window: str) -> List:
 
@@ -694,7 +695,8 @@ class Experiment:
         report.generate_report(self)
 
     def to_dict(self, exclude: Sequence = ('magnitudes', 'depths',
-                                           'timewindows', 'tree'),
+                                           'timewindows', 'tree',
+                                           'task_graph'),
                 extended: bool = False) -> dict:
         """
         Converts an Experiment instance into a dictionary.

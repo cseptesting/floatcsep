@@ -7,7 +7,6 @@ import csep.models
 from csep.core.catalogs import CSEPCatalog
 from csep.core.forecasts import GriddedForecast, CatalogForecast
 
-from fecsep.registry import register
 from fecsep.model import Model
 from fecsep.utils import parse_csep_func
 
@@ -74,7 +73,6 @@ class Evaluation:
         'sequential_information_gain': ['Comparative', 'Sequential']
     }
 
-    @register
     def __init__(self, name: str, func: Union[str, Callable],
                  func_kwargs: Dict = None,
                  ref_model: (str, Model) = None,

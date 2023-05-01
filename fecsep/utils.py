@@ -491,6 +491,7 @@ class TaskGraph:
 
         self.tasks = OrderedDict()
         self._ntasks = 0
+        self.name = 'fecsep.utils.TaskGraph'
 
     @property
     def ntasks(self):
