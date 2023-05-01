@@ -160,15 +160,17 @@ class TestExperiment(TestCase):
             self.assertIs(i, j)
 
     def test_prepare_subcatalog(self):
-
         time_config = {**_time_config}
         exp = Experiment(**time_config, **_region_config,
                          catalog=_cat)
         tstring = '2020-08-01_2021-01-02'
 
         with tempfile.NamedTemporaryFile() as file_:
-            with patch.object(exp, '_paths',
-                              {tstring: {'catalog': file_.name}}):
+            def tree(*args):
+                return file_.name
+            exp.tree = tree
+            with patch.object(exp, 'tree',
+                              tree):
                 exp.set_testcat(tstring)
                 cat = CSEPCatalog.load_json(file_.name)
                 numpy.testing.assert_equal(1609455600000, cat.data[0][1])
