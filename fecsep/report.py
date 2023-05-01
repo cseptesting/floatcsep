@@ -1,6 +1,5 @@
 from fecsep.utils import MarkdownReport, timewindow2str, magnitude_vs_time
 
-import os
 """
 Use the MarkdownReport class to create output for the experiment 
 

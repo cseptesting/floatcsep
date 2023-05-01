@@ -15,7 +15,7 @@ region_config:
   depth_max: 30
 
 catalog: query_isc_gcmt
-model_config: models.yml
+models: models.yml
 test_config: tests.yml
 
 postproc_config:

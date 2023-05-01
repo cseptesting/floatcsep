@@ -112,7 +112,7 @@ class Experiment:
                  time_config: dict = None,
                  region_config: dict = None,
                  catalog: str = None,
-                 model_config: str = None,
+                 models: str = None,
                  test_config: str = None,
                  postproc_config: str = None,
                  default_test_kwargs: dict = None,
@@ -134,13 +134,17 @@ class Experiment:
         # todo: make it simple and also load catalog as file if given:
         self.catalog = catalog
 
-        self.model_config = model_config
+        # self.set_models(model_config)
+        # self.set_tests(test_config)
+
+        self.models = self.set_models(models)
+
         self.test_config = test_config
         self.postproc_config = postproc_config if postproc_config else {}
         self.default_test_kwargs = default_test_kwargs
 
         # Initialize class attributes
-        self.models = []
+        # self.models = []
         self.tests = []
         self.tasks = []
         self.task_graph = None
@@ -195,7 +199,7 @@ class Experiment:
         # self.reg.add_reg(model.reg)
         self.models.append(model)
 
-    def set_models(self) -> None:
+    def set_models(self, models) -> None:
         """
 
         Parse the models' configuration file/dict. Instantiates all the models
@@ -204,9 +208,11 @@ class Experiment:
         """
         # todo: handle when model cfg is a dict instead of a file.
 
-        modelcfg_path = self.tree.abs(self.model_config)
-        _dir = self.tree.absdir(self.model_config)
 
+        modelcfg_path = self.tree.abs(models)
+        _dir = self.tree.absdir(models)
+
+        models = []
         with open(modelcfg_path, 'r') as file_:
             config_dict = yaml.load(file_, NoAliasLoader)
 
@@ -218,7 +224,7 @@ class Experiment:
                 # updates path to absolute
                 model_path = self.tree.abs(_dir, element[name_]['path'])
                 model_i = {name_: {**element[name_], 'path': model_path}}
-                self.add_model(model_i)
+                models.append(Model.from_dict(model_i))
             else:
                 model_flavours = list(element.values())[0]['flavours'].items()
                 for flav, flav_path in model_flavours:
@@ -232,16 +238,19 @@ class Experiment:
                     model_ = {name_flav: {**element[name_super],
                                           'path': path_sub}}
                     model_[name_flav].pop('flavours')
-                    self.add_model(model_)
+                    models.append(Model.from_dict(model_))
+                    # self.add_model(model_)
 
         # Checks if there is any repeated model.
-        names_ = [i.name for i in self.models]
+        names_ = [i.name for i in models]
         if len(names_) != len(set(names_)):
             reps = set(
                 [i for i in names_ if (sum([j == i for j in names_]) > 1)])
             one = not bool(len(reps) - 1)
             print(f'Warning: Model{"s" * (not one)} {reps}'
                   f' {"is" * one + "are" * (not one)} repeated')
+
+        return models
 
     def add_evaluation(self, eval_i: dict) -> None:
         """ Add evaluation to Experiment class, and share the registry
@@ -613,7 +622,6 @@ class Experiment:
             ax2.get_figure().savefig(self.tree(tw, 'figures',
                                                'magnitude_time'), dpi=dpi)
 
-
     def plot_forecasts(self) -> None:
         """
 
@@ -744,6 +752,7 @@ class Experiment:
         dictwalk.update({'catalog': self._catpath})
 
         return iter_attr(dictwalk)
+
 
     def to_yml(self, filename: str, **kwargs) -> None:
         """

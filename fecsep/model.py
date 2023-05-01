@@ -9,7 +9,7 @@ from csep.utils.time_utils import decimal_year
 from fecsep.accessors import from_zenodo, from_git
 from fecsep.readers import ForecastParsers, HDF5Serializer, check_format
 from fecsep.utils import timewindow2str, str2timewindow
-from fecsep.registry import ModelTree
+# from fecsep.registry import ModelTree
 
 
 class Model:
@@ -76,8 +76,6 @@ class Model:
         # todo:
         #  - Instantiate from source code
 
-        # Initialize path tree manager
-        self.tree = ModelTree(path)
 
         # Instantiate attributes
         self.name = name
@@ -91,29 +89,47 @@ class Model:
         self.func_kwargs = func_kwargs
         self.use_db = use_db
 
+        # Initialize path tree manager
+        self.path = path
+
         # Set model temporal class default
         if self.func:
-            self._class = 'td'  # Time-Dependent todo: implement for TI
+            self.model_class = 'td'  # Time-Dependent todo: implement for TI
         else:
-            self._class = 'ti'  # Time-Independent
+            self.model_class = 'ti'  # Time-Independent
 
         # Instantiate attributes to be filled in run-time
         self.forecasts = {}
+    #
+    # def __getattr__(self, name) -> object:
+    #     """ Adds tree manager attrs to instance attributes"""
+    #
+    #     if name != 'tree' and hasattr(self, 'tree'):
+    #         try:
+    #             return getattr(self.tree, name)
+    #         except AttributeError:
+    #             raise AttributeError(
+    #                 f"{self.__class__.__name__} object "
+    #                 f"has no attribute {name}")
+    #     else:
+    #         raise AttributeError(
+    #             f"'{self.__class__.__name__} 'object has no "
+    #             f"attribute '{name}'")
 
-    def __getattr__(self, name) -> object:
-        """ Adds tree manager attrs to instance attributes"""
-
-        if name != 'tree' and hasattr(self, 'tree'):
-            try:
-                return getattr(self.tree, name)
-            except AttributeError:
-                raise AttributeError(
-                    f"{self.__class__.__name__} object "
-                    f"has no attribute {name}")
+    @property
+    def dir(self) -> str:
+        """
+        Returns:
+            The directory containing the model source.
+        """
+        if os.path.isdir(self.path):
+            return self.path
         else:
-            raise AttributeError(
-                f"'{self.__class__.__name__} 'object has no "
-                f"attribute '{name}'")
+            return os.path.dirname(self.path)
+
+    @property
+    def fmt(self) -> str:
+        return os.path.splitext(self.path)[1][1:]
 
     def stage(self) -> None:
         """
@@ -191,14 +207,14 @@ class Model:
 
         """
         # todo Think about distinction btwn 'TI' and 'Gridded' models.
-        if self.fmt and self._class == 'ti':
+        if self.fmt and self.model_class == 'ti':
 
             parser = getattr(ForecastParsers, self.fmt)
             rates, region, mag = parser(self.path)
 
             db_func = HDF5Serializer.grid2hdf5
             if not dbpath:
-                dbpath = self.tree.path.replace(self.fmt, 'hdf5')
+                dbpath = self.path.replace(self.fmt, 'hdf5')
 
             if not os.path.isfile(dbpath) or force:
                 # Drop Source file into DB
@@ -206,7 +222,7 @@ class Model:
                         hdf5_filename=dbpath,
                         unit=self.forecast_unit)
 
-            self.tree.path = dbpath
+            self.path = dbpath
 
         else:
             raise NotImplementedError('TD serialization not implemented')
@@ -317,7 +333,7 @@ class Model:
                            **kwargs) -> None:
         raise NotImplementedError('TBI for time-dependent models')
 
-    def to_dict(self, excluded='forecasts'):
+    def to_dict(self, excluded=('name', 'forecasts')):
         """
 
         Returns:
@@ -330,7 +346,8 @@ class Model:
         for k, v in self.__dict__.items():
             if k not in excluded and v:
                 out[k] = v
-        return out
+
+        return {self.name: out}
 
     @classmethod
     def from_dict(cls, record: dict, **kwargs):

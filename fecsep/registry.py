@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from collections.abc import Sequence
 from fecsep.utils import timewindow2str
 
@@ -7,10 +7,14 @@ from fecsep.utils import timewindow2str
 @dataclass
 class ModelTree:
     path: str
-    _path: str = None
 
     def __call__(self, *args, **kwargs):
         return self.path
+
+
+
+    def to_dict(self):
+        return asdict(self)
 
     @property
     def dir(self) -> str:
@@ -33,7 +37,6 @@ class PathTree:
     workdir: str
     run_folder: str = None
     paths: dict = field(default_factory=dict)
-    exists: dict = field(default_factory=dict)
 
     def __call__(self, *args):
         val = self.paths
@@ -55,15 +58,11 @@ class PathTree:
         else:
             raise Exception('Arg is not found')
 
-    def __name__(self):
-        return self.workdir
-
     def __eq__(self, other):
         return self.workdir == other
 
     def to_dict(self):
-        # to be implemented
-        return self.workdir
+        return asdict(self)
 
     def abs(self, *paths: Sequence[str]) -> str:
         """ Gets the absolute path of a file, when it was defined relative to
@@ -180,7 +179,6 @@ class PathTree:
             } for win in windows}
         }
         self.paths = target_paths
-        self.exists = exists  # todo perhaps method?
         self.run_folder = run_folder
 
 

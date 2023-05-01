@@ -5,7 +5,6 @@ import argparse
 def run(config, show=True):
     exp = Experiment.from_yml(config)
 
-    exp.set_models()
     exp.stage_models()
     exp.set_tests()
     print('\n==================')
