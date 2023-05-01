@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from functools import wraps
 from collections.abc import Mapping, Sequence
 from typing import Union, List, Tuple, Callable
+from fecsep.utils import timewindow2str, str2timewindow
 
 
 @dataclass
@@ -32,9 +33,31 @@ class ModelTree:
 @dataclass
 class PathTree:
     workdir: str
+    _paths: dict = field(default_factory=dict)
+    _exists: dict = field(default_factory=dict)
 
-    def __call__(self, *args, **kwargs):
-        return self.workdir
+    def __call__(self, *args):
+
+        val = self._paths
+        for i in args:
+            parsed_arg = self._parse_arg(i)
+            val = val[parsed_arg]
+
+        return val
+
+    @staticmethod
+    def _parse_arg(arg):
+
+        if isinstance(arg, (list, tuple)):
+            return timewindow2str(arg)
+        elif isinstance(arg, str):
+            return arg
+        elif hasattr(arg, 'name'):
+            return arg.name
+        elif hasattr(arg, '__name__'):
+            return arg.__name__
+        else:
+            raise Exception('Arg is not found')
 
     def __name__(self):
         return self.workdir
@@ -53,10 +76,23 @@ class PathTree:
         _path = os.path.normpath(
             os.path.abspath(os.path.join(self.workdir, *paths)))
         _dir = os.path.dirname(_path)
-        return _dir, _path
+        return _path
 
-    def set_pathtree(self, results_path: str = None,
-                  run_name: str = None) -> None:
+    def absdir(self, *paths: Sequence[str]) -> Tuple[str, str]:
+        """ Gets the absolute path of a file, when it was defined relative to the
+        experiment working dir."""
+
+        _path = os.path.normpath(
+            os.path.abspath(os.path.join(self.workdir, *paths)))
+        _dir = os.path.dirname(_path)
+        return _dir
+
+    def set_pathtree(self,
+                     timewindows=None,
+                     models=None,
+                     tests=None,
+                     results_path: str = None,
+                     run_name: str = None) -> None:
         """
 
         Creates the run directory, and reads the file structure inside
@@ -73,11 +109,11 @@ class PathTree:
              evaluation results)
 
         """
-
+        from fecsep.utils import timewindow2str
         # grab names for creating directories
-        windows = timewindow2str(self.timewindows)
-        models = [i.name for i in self.models]
-        tests = [i.name for i in self.tests]
+        windows = timewindow2str(timewindows)
+        models = [i.name for i in models]
+        tests = [i.name for i in tests]
 
         # todo create datetime parser for filenames
         if run_name is None:
@@ -88,11 +124,11 @@ class PathTree:
         # Determine required directory structure for run
         # results > test_date > time_window > cats / evals / figures
 
-        self.run_folder = self.tree.abs(results_path or 'results', run_name)[1]
-        subfolders = ['catalog', 'evaluations', 'figures', 'forecasts']
+        run_folder = self.abs(results_path or '', run_name)
 
+        subfolders = ['catalog', 'evaluations', 'figures', 'forecasts']
         dirtree = {
-            win: {folder: self.tree.abs(self.run_folder, win, folder)[1] for
+            win: {folder: self.abs(run_folder, win, folder) for
                   folder
                   in subfolders} for win in windows}
 
@@ -118,16 +154,9 @@ class PathTree:
                 for test in tests
             }
         } for win in windows}
-
+        # todo: important in time-dependent, and/or forecast storage
         target_paths = {win: {
-            'models': {  # todo: redo this key, is too convoluted
-                'forecasts': {
-                    model_name: model_name
-                    for model_name in models},
-                # todo: important in time-dependent, and/or forecast storage
-                'figures': {model: os.path.join(dirtree[win]['figures'],
-                                                f'{model}')
-                            for model in models}},
+            'models': {model: {'forecasts': None} for model in models},
             'catalog': os.path.join(dirtree[win]['catalog'], 'catalog.json'),
             'evaluations': {
                 test: {
@@ -135,13 +164,15 @@ class PathTree:
                                         f'{test}_{model}.json')
                     for model in models
                 }
-                for test in tests
-            },
-            'figures': {test: os.path.join(dirtree[win]['figures'], f'{test}')
-                        for test in tests}
+                for test in tests },
+            'figures': {**{test: self.abs(dirtree[win]['figures'], f'{test}')
+                           for test in tests},
+                        **{model: self.abs(dirtree[win]['figures'], f'{model}')
+                                                       for model in models}},
+                        'catalog': self.abs(dirtree[win]['figures'],
+                                            'catalog.png')
         } for win in windows}
 
-        self.run_folder = self.run_folder
         self._paths = target_paths
         self._exists = exists  # todo perhaps method?
 

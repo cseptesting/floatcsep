@@ -629,7 +629,8 @@ def magnitude_vs_time(catalog):
 
 def plot_matrix_comparative_test(evaluation_results,
                                  p=0.05,
-                                 order=True):
+                                 order=True,
+                                 plot_args={}):
     """ Produces matrix plot for comparative tests for all models
 
         Args:

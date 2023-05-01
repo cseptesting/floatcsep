@@ -39,7 +39,7 @@ def generate_report(experiment, timewindow=-1):
     # Generate plot of the catalog
 
     if experiment.catalog is not None:
-        cat_path = experiment._paths[timestr]['catalog']
+        cat_path = experiment.tree(timestr, 'catalog')
         figure_path = os.path.splitext(cat_path)[0]
         # relative to top-level directory
 
@@ -100,8 +100,7 @@ def generate_report(experiment, timewindow=-1):
 
     # Include results from Experiment
     for test in experiment.tests:
-        fig_path = experiment._paths[timestr]['figures'][test.name]
-
+        fig_path = experiment.tree(timestr, 'figures', test)
         width = test.plot_args.get('figsize', [4])[0] * 96  # inch to pix
         report.add_figure(
             f"{test.name}",

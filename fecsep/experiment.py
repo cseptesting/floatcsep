@@ -103,6 +103,7 @@ class Experiment:
           (does not make sense for TI (too much FS space) unless is already
            dropped to DB)
     '''
+
     def __init__(self,
                  name: str = None,
                  time_config: dict = None,
@@ -141,10 +142,6 @@ class Experiment:
         self.tasks = []
         self.task_graph = None
         self.run_results = {}
-
-        self.run_folder: str = ''
-        self._paths: dict = {}
-        self._exists: dict = {}
 
         # Update if attributes were passed explicitly
         # todo check reinstantiation
@@ -204,7 +201,8 @@ class Experiment:
         """
         # todo: handle when model cfg is a dict instead of a file.
 
-        _dir, modelcfg_path = self.tree.abs(self.model_config)
+        modelcfg_path = self.tree.abs(self.model_config)
+        _dir = self.tree.absdir(self.model_config)
 
         with open(modelcfg_path, 'r') as file_:
             config_dict = yaml.load(file_, NoAliasLoader)
@@ -215,7 +213,7 @@ class Experiment:
 
                 name_ = next(iter(element))
                 # updates path to absolute
-                model_path = self.tree.abs(_dir, element[name_]['path'])[1]
+                model_path = self.tree.abs(_dir, element[name_]['path'])
                 # model_abspath = self._abspath(_dir, element[name_]['path'])[1]
                 model_i = {name_: {**element[name_], 'path': model_path}}
                 self.add_model(model_i)
@@ -225,7 +223,7 @@ class Experiment:
                     name_super = next(iter(element))
                     # updates path to absolute
                     path_super = element[name_super].get('path', '')
-                    path_sub = self.tree.abs(_dir, path_super, flav_path)[1]
+                    path_sub = self.tree.abs(_dir, path_super, flav_path)
                     # path_sub = self._abspath(_dir, path_super, flav_path)[1]
                     # updates name of submodel
                     name_flav = f'{name_super}@{flav}'
@@ -258,101 +256,12 @@ class Experiment:
 
         """
 
-        with open(self.tree.abs(self.test_config)[1], 'r') as config:
+        with open(self.tree.abs(self.test_config), 'r') as config:
             config_dict = yaml.load(config, NoAliasLoader)
 
         for evaldict in config_dict:
             self.add_evaluation(evaldict)
 
-    def set_paths(self, results_path: str = None,
-                  run_name: str = None) -> None:
-        """
-
-        Creates the run directory, and reads the file structure inside
-
-        Args:
-            results_path: path to store
-            run_name: name of run
-
-        Returns:
-            run_folder: Path to the run.
-             exists: flag if forecasts, catalogs and test_results if they
-             exist already
-             target_paths: flag to each element of the gefe (catalog and
-             evaluation results)
-
-        """
-
-        # grab names for creating directories
-        windows = timewindow2str(self.timewindows)
-        models = [i.name for i in self.models]
-        tests = [i.name for i in self.tests]
-
-        # todo create datetime parser for filenames
-        if run_name is None:
-            run_name = 'run'
-            # todo find better way to name paths
-            # run_name = f'run_{datetime.now().date().isoformat()}'
-
-        # Determine required directory structure for run
-        # results > test_date > time_window > cats / evals / figures
-
-        self.run_folder = self.tree.abs(results_path or 'results', run_name)[1]
-        subfolders = ['catalog', 'evaluations', 'figures', 'forecasts']
-
-        dirtree = {
-            win: {folder: self.tree.abs(self.run_folder, win, folder)[1] for
-                  folder
-                  in subfolders} for win in windows}
-
-        # create directories if they don't exist
-        for tw, tw_folder in dirtree.items():
-            for _, folder_ in tw_folder.items():
-                os.makedirs(folder_, exist_ok=True)
-
-        # Check existing files
-        files = {win: {name: list(os.listdir(path)) for name, path in
-                       windir.items()} for win, windir in dirtree.items()}
-
-        exists = {win: {
-            'forecasts': False,
-            # todo Modify for time-dependent, and/or forecast storage
-            'catalog': any(file for file in files[win]['catalog']),
-            'evaluations': {
-                test: {
-                    model: any(f'{test}_{model}.json' in file for file in
-                               files[win]['evaluations'])
-                    for model in models
-                }
-                for test in tests
-            }
-        } for win in windows}
-
-        target_paths = {win: {
-            'models': {  # todo: redo this key, is too convoluted
-                'forecasts': {
-                    model_name: model_name
-                    for model_name in models},
-                # todo: important in time-dependent, and/or forecast storage
-                'figures': {model: os.path.join(dirtree[win]['figures'],
-                                                f'{model}')
-                            for model in models}},
-            'catalog': os.path.join(dirtree[win]['catalog'], 'catalog.json'),
-            'evaluations': {
-                test: {
-                    model: os.path.join(dirtree[win]['evaluations'],
-                                        f'{test}_{model}.json')
-                    for model in models
-                }
-                for test in tests
-            },
-            'figures': {test: os.path.join(dirtree[win]['figures'], f'{test}')
-                        for test in tests}
-        } for win in windows}
-
-        self.run_folder = self.run_folder
-        self._paths = target_paths
-        self._exists = exists  # todo perhaps method?
 
     def set_testcat(self, tstring: str) -> None:
         """
@@ -368,7 +277,8 @@ class Experiment:
         subcat = self.catalog.filter(
             [f'origin_time < {end.timestamp() * 1000}',
              f'origin_time >= {start.timestamp() * 1000}'])
-        subcat.write_json(filename=self._paths[tstring]['catalog'])
+        subcat.write_json(filename=self.tree(tstring, 'catalog'))
+
 
     def set_tasks(self):
         """
@@ -387,6 +297,12 @@ class Experiment:
         Returns:
 
         """
+
+        # Set the file path structure
+        self.tree.set_pathtree(self.timewindows,
+                               self.models,
+                               self.tests)
+
         # Get the time windows strings
         tw_strings = timewindow2str(self.timewindows)
 
@@ -426,10 +342,10 @@ class Experiment:
                             instance=test_k,
                             method='compute',
                             timewindow=time_i,
-                            catalog=self._paths[time_i]['catalog'],
+                            catalog=self.tree(time_i, 'catalog'),
                             model=model_j,
-                            path=self._paths[time_i][
-                                'evaluations'][test_k.name][model_j.name])
+                            path=self.tree(time_i, 'evaluations',
+                                           test_k, model_j))
                         task_graph.add(task_ijk)
                         # the forecast needs to have been created
                         task_graph.add_dependency(task_ijk,
@@ -444,11 +360,11 @@ class Experiment:
                             instance=test_k,
                             method='compute',
                             timewindow=time_i,
-                            catalog=self._paths[time_i]['catalog'],
+                            catalog=self.tree(time_i, 'catalog'),
                             model=model_j,
                             ref_model=self.get_model(test_k.ref_model),
-                            path=self._paths[time_i][
-                                'evaluations'][test_k.name][model_j.name]
+                            path=self.tree(time_i, 'evaluations', test_k,
+                                           model_j)
                         )
                         task_graph.add(task_ik)
                         task_graph.add_dependency(task_ik,
@@ -467,11 +383,10 @@ class Experiment:
                         instance=test_k,
                         method='compute',
                         timewindow=tw_strings,
-                        catalog=[self._paths[i]['catalog'] for i in
-                                 tw_strings],
+                        catalog=[self.tree(i, 'catalog') for i in tw_strings],
                         model=model_j,
-                        path=self._paths[tw_strings[-1]][
-                            'evaluations'][test_k.name][model_j.name]
+                        path=self.tree(tw_strings[-1], 'evaluations', test_k,
+                                       model_j)
                     )
                     task_graph.add(task_k)
                     for tw_i in tw_strings:
@@ -487,12 +402,11 @@ class Experiment:
                         instance=test_k,
                         method='compute',
                         timewindow=timestrs,
-                        catalog=[self._paths[i]['catalog'] for i in
-                                 timestrs],
+                        catalog=[self.tree(i, 'catalog') for i in timestrs],
                         model=model_j,
                         ref_model=self.get_model(test_k.ref_model),
-                        path=self._paths[timestrs[-1]][
-                            'evaluations'][test_k.name][model_j.name]
+                        path=self.tree(timestrs[-1], 'evaluations', test_k,
+                                       model_j)
                     )
                     task_graph.add(task_k)
                     for tw_i in tw_strings:
@@ -513,11 +427,10 @@ class Experiment:
                         instance=test_k,
                         method='compute',
                         timewindow=timestr,
-                        catalog=self._paths[timestr]['catalog'],
+                        catalog=self.tree(timestr, 'catalog'),
                         ref_model=self.models,
                         model=model_j,
-                        path=self._paths[timestr][
-                            'evaluations'][test_k.name][model_j.name]
+                        path=self.tree(timestr, 'evaluations', test_k, model_j)
                     )
                     task_graph.add(task_k)
                     for m_j in self.models:
@@ -570,15 +483,15 @@ class Experiment:
     @catalog.setter
     def catalog(self, cat: Union[Callable, CSEPCatalog, str]) -> None:
 
-        if os.path.isfile(self.tree.abs(cat)[1]):
+        if os.path.isfile(self.tree.abs(cat)):
             print(f"Using catalog from {cat}")
-            self._catalog = self.tree.abs(cat)[1]
-            self._catpath = self.tree.abs(cat)[1]
+            self._catalog = self.tree.abs(cat)
+            self._catpath = self.tree.abs(cat)
 
         else:
             # catalog can be a function
             self._catalog = parse_csep_func(cat)
-            self._catpath = self.tree.abs('catalog.json')[1]
+            self._catpath = self.tree.abs('catalog.json')
             if os.path.isfile(self._catpath):
                 print(f"Using stored catalog "
                       f"'{os.path.relpath(self._catpath, self.path)}', "
@@ -613,7 +526,7 @@ class Experiment:
         else:
             models = self.models
         for i in models:
-            eval_path = self._paths[wstr_]['evaluations'][test.name][i.name]
+            eval_path = self.tree(wstr_, 'evaluations', test, i.name)
             with open(eval_path, 'r') as file_:
                 model_eval = EvaluationResult.from_dict(json.load(file_))
             test_results.append(model_eval)
@@ -632,7 +545,7 @@ class Experiment:
 
         for time in self.timewindows:
             timestr = timewindow2str(time)
-            figpaths = self._paths[timestr]['figures']
+            figpaths = self.tree(timestr, 'figures')
 
             # consistency and comparative
             for test in self.tests:
@@ -705,8 +618,7 @@ class Experiment:
             window = self.timewindows[-1]
             winstr = timewindow2str(window)
             for model in self.models:
-                fig_path = self._paths[winstr]['models']['figures'][
-                    model.name]
+                fig_path = self.abs(winstr, 'figures', model.name)
                 start = decimal_year(window[0])
                 end = decimal_year(window[1])
                 time = f'{round(end - start, 3)} years'
