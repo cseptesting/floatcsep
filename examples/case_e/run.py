@@ -6,7 +6,6 @@ file_ = 'config.yml'
 exp_e = Experiment.from_yml(file_)
 exp_e.set_models()
 exp_e.set_tests()
-exp_e.set_paths()
 exp_e.set_tasks()
 exp_e.run()
 exp_e.plot_results()
