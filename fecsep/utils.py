@@ -766,7 +766,6 @@ class MarkdownReport:
                 bottom += " --- |"
             return top + '\n' + bottom
 
-        # <img src="results/20220101T170000/figures/Poisson_T.png" width=720 />
         size_ = bool(width) * f'width={width}'
 
         def add_to_row(_row):

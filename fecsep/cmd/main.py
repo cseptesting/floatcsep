@@ -32,12 +32,13 @@ def run(config, show=True):
     print('Complete')
     print('========\n')
 
+
 def plot(config, **_):
     exp = Experiment.from_yml(config)
 
     exp.set_models()
     exp.set_tests()
-    exp.set_paths()
+    exp.set_tasks()
     print('\n=============================')
     print("Plotting experiment's results")
     print('=============================\n')

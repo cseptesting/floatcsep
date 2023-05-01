@@ -6,10 +6,10 @@
     plot_args:
       title: $\mathcal{S}-$test
       title_fontsize: 16
-      figsize: !!python/tuple [ 5, 6 ]
       xlabel: Spatial log-likelihood
       linewidth: 0.5
       capsize: 0
+
 - Poisson_CL:
     func: poisson_evaluations.conditional_likelihood_test
     plot_func: plot_poisson_consistency_test

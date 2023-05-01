@@ -10,11 +10,12 @@ Use the MarkdownReport class to create output for the experiment
     - plots of catalog
     - plots of forecasts
     - evaluation results
-    - metadata from run, (maybe json dump of gefe_qtree class)
+    - metadata from run, (maybe json dump of Experiment class)
 """
 
 
 def generate_report(experiment, timewindow=-1):
+
     if isinstance(timewindow, (int, float)):
         timewindow = experiment.timewindows[timewindow]
         timestr = timewindow2str(timewindow)
@@ -27,71 +28,36 @@ def generate_report(experiment, timewindow=-1):
 
     report = MarkdownReport()
     report.add_title(
-        f"Testing report {experiment.name}", ''
+        f"Experiment Report - {experiment.name}", ''
     )
     report.add_heading("Objectives", level=2)
     objs = [
         "Describe the predictive skills of posited hypothesis about "
         "seismogenesis with earthquakes of"
-        f" $M>{experiment.magnitudes.min()}$",
+        f" M>{experiment.magnitudes.min()}",
     ]
     report.add_list(objs)
-    # Generate plot of the catalog
 
+    # Generate catalog plot
     if experiment.catalog is not None:
-        cat_path = experiment.tree(timestr, 'catalog')
-        figure_path = os.path.splitext(cat_path)[0]
-        # relative to top-level directory
-
-        catalog = experiment.catalog
-        if experiment.region:
-            catalog = catalog.filter_spatial(
-                region=experiment.region, in_place=True)
-
-        ax = catalog.plot(plot_args={'basemap': 'ESRI_terrain',
-                                     'figsize': (12, 8),
-                                     'markersize': 8,
-                                     'markercolor': 'black',
-                                     'grid_fontsize': 16,
-                                     'title': '',
-                                     'legend': True
-                                     })
-
-        ax.get_figure().tight_layout()
-        ax.get_figure().savefig(f"{figure_path}.png")
-        report.add_figure(
-            f"Testing Catalog",
-            figure_path,
-            level=2,
-            caption="",
-            add_ext=True
-        )
-
-
-        figure_path = figure_path + '_mt'
-        ax = magnitude_vs_time(experiment.catalog)
-
-        ax.get_figure().tight_layout()
-        ax.get_figure().savefig(f"{figure_path}.png")
-
+        experiment.plot_catalog()
         report.add_figure(
             f"",
-            figure_path,
+            [experiment.tree(timestr, 'figures', 'catalog'),
+             experiment.tree(timestr, 'figures', 'magnitude_time')],
             level=2,
             caption="Evaluation catalog  from "
-                    f"{timewindow[0]} until {timewindow[1]}. "  # todo
+                    f"{timewindow[0]} until {timewindow[1]}. "  
                     f"Earthquakes are filtered above Mw"
-                    f" {experiment.magnitudes.min()}. Black circles depict "
-                    f"individual earthquakes with its radius proportional to "
-                    f"the magnitude.",
+                    f" {experiment.magnitudes.min()}.",
             add_ext=True
         )
 
     report.add_heading(
         "Results",
         level=2,
-        text="We apply the following tests to each of the forecasts "
-             "considered in this experiments. More information regarding the "
+        text="The following tests are applied to each of the experiment's "
+             "forecasts. More information regarding the "
              "tests can be found [here]"
              "(https://docs.cseptesting.org/getting_started/theory.html)."
     )
@@ -101,7 +67,7 @@ def generate_report(experiment, timewindow=-1):
     # Include results from Experiment
     for test in experiment.tests:
         fig_path = experiment.tree(timestr, 'figures', test)
-        width = test.plot_args.get('figsize', [4])[0] * 96  # inch to pix
+        width = test.plot_args.get('figsize', [4])[0] * 96  #
         report.add_figure(
             f"{test.name}",
             fig_path,

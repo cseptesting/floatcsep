@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from typing import Tuple
 from fecsep.utils import timewindow2str
 
+
 @dataclass
 class ModelTree:
     path: str
@@ -163,18 +164,22 @@ class PathTree:
                                         f'{test}_{model}.json')
                     for model in models
                 }
-                for test in tests },
+                for test in tests},
             'figures': {**{test: self.abs(dirtree[win]['figures'], f'{test}')
                            for test in tests},
                         **{model: self.abs(dirtree[win]['figures'], f'{model}')
-                                                       for model in models}},
+                           for model in models},
                         'catalog': self.abs(dirtree[win]['figures'],
-                                            'catalog.png')
+                                            'catalog'),
+                        'magnitude_time': self.absdir(dirtree[win]['figures'],
+                                                      'catalog') +
+                                          '/magnitude_time'}
         } for win in windows}
 
         self._paths = target_paths
         self._exists = exists  # todo perhaps method?
         self.run_folder = run_folder
+
 
 @dataclass
 class Registry:

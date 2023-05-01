@@ -1,5 +1,7 @@
 import os
 import os.path
+
+import matplotlib.pyplot as plt
 import numpy
 import yaml
 import json
@@ -15,7 +17,8 @@ from csep.utils.time_utils import decimal_year
 from fecsep import report
 from fecsep.registry import PathTree
 from fecsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
-    read_region_config, Task, TaskGraph, timewindow2str, str2timewindow
+    read_region_config, Task, TaskGraph, timewindow2str, str2timewindow,\
+    magnitude_vs_time
 from fecsep.model import Model
 from fecsep.evaluation import Evaluation
 import warnings
@@ -577,6 +580,39 @@ class Experiment:
             if show:
                 pyplot.show()
 
+    def plot_catalog(self, dpi: int = 300, show: bool = False) -> None:
+
+        plot_args = {'basemap': 'ESRI_terrain',
+                     'figsize': (12, 8),
+                     'markersize': 8,
+                     'markercolor': 'black',
+                     'grid_fontsize': 16,
+                     'title': '',
+                     'legend': True,
+                     }
+        plot_args.update(self.postproc_config.get('plot_catalog', {}))
+
+        if self.postproc_config.get('all_time_windows'):
+            timewindow = self.timewindows
+        else:
+            timewindow = [self.timewindows[-1]]
+
+        for tw in timewindow:
+            catpath = self.tree(tw, 'catalog')
+            catalog = CSEPCatalog.load_json(catpath)
+
+            ax = catalog.plot(plot_args=plot_args, show=show)
+            ax.get_figure().tight_layout()
+            ax.get_figure().savefig(self.tree(tw, 'figures', 'catalog'),
+                                    dpi=dpi)
+
+            ax2 = magnitude_vs_time(catalog)
+            ax2.get_figure().tight_layout()
+            ax2.get_figure().savefig(self.tree(tw, 'figures', 'magnitude_time'),
+                                     dpi=dpi)
+
+
+
     def plot_forecasts(self) -> None:
         """
 
@@ -614,8 +650,9 @@ class Experiment:
 
             window = self.timewindows[-1]
             winstr = timewindow2str(window)
+
             for model in self.models:
-                fig_path = self.abs(winstr, 'figures', model.name)
+                fig_path = self.tree(winstr, 'figures', model.name)
                 start = decimal_year(window[0])
                 end = decimal_year(window[1])
                 time = f'{round(end - start, 3)} years'
