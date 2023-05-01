@@ -1,8 +1,6 @@
 import os
 from dataclasses import dataclass, field
-from functools import wraps
 from collections.abc import Sequence
-from typing import Tuple
 from fecsep.utils import timewindow2str
 
 
@@ -33,21 +31,19 @@ class ModelTree:
 @dataclass
 class PathTree:
     workdir: str
-    _paths: dict = field(default_factory=dict)
-    _exists: dict = field(default_factory=dict)
+    run_folder: str = None
+    paths: dict = field(default_factory=dict)
+    exists: dict = field(default_factory=dict)
 
     def __call__(self, *args):
-
-        val = self._paths
+        val = self.paths
         for i in args:
             parsed_arg = self._parse_arg(i)
             val = val[parsed_arg]
-
         return val
 
     @staticmethod
     def _parse_arg(arg):
-
         if isinstance(arg, (list, tuple)):
             return timewindow2str(arg)
         elif isinstance(arg, str):
@@ -78,7 +74,7 @@ class PathTree:
         _dir = os.path.dirname(_path)
         return _path
 
-    def absdir(self, *paths: Sequence[str]) -> Tuple[str, str]:
+    def absdir(self, *paths: Sequence[str]) -> str:
         """ Gets the absolute path of a file, when it was defined relative to
          the experiment working dir."""
 
@@ -86,6 +82,11 @@ class PathTree:
             os.path.abspath(os.path.join(self.workdir, *paths)))
         _dir = os.path.dirname(_path)
         return _dir
+
+    def fileexists(self, *args):
+
+        abspath = self.__call__(*args)
+        return os.path.exists(abspath)
 
     def set_pathtree(self,
                      timewindows=None,
@@ -143,7 +144,6 @@ class PathTree:
 
         exists = {win: {
             'forecasts': False,
-            # todo Modify for time-dependent, and/or forecast storage
             'catalog': any(file for file in files[win]['catalog']),
             'evaluations': {
                 test: {
@@ -154,89 +154,35 @@ class PathTree:
                 for test in tests
             }
         } for win in windows}
-        # todo: important in time-dependent, and/or forecast storage
-        target_paths = {win: {
-            'models': {model: {'forecasts': None} for model in models},
-            'catalog': os.path.join(dirtree[win]['catalog'], 'catalog.json'),
-            'evaluations': {
-                test: {
-                    model: os.path.join(dirtree[win]['evaluations'],
-                                        f'{test}_{model}.json')
-                    for model in models
-                }
-                for test in tests},
-            'figures': {**{test: self.abs(dirtree[win]['figures'], f'{test}')
-                           for test in tests},
-                        **{model: self.abs(dirtree[win]['figures'], f'{model}')
-                           for model in models},
-                        'catalog': self.abs(dirtree[win]['figures'],
-                                            'catalog'),
-                        'magnitude_time': self.absdir(dirtree[win]['figures'],
-                                                      'catalog') +
-                                          '/magnitude_time'}
-        } for win in windows}
 
-        self._paths = target_paths
-        self._exists = exists  # todo perhaps method?
+        target_paths = {
+            'config': self.abs(run_folder, 'run_config.yml'),
+            **{win: {
+                'models': {model: {'forecasts': None} for model in models},
+                'catalog': os.path.join(dirtree[win]['catalog'],
+                                        'catalog.json'),
+                'evaluations': {
+                    test: {
+                        model: os.path.join(dirtree[win]['evaluations'],
+                                            f'{test}_{model}.json')
+                        for model in models
+                    }
+                    for test in tests},
+                'figures': {
+                    **{test: self.abs(dirtree[win]['figures'], f'{test}')
+                       for test in tests},
+                    **{model: self.abs(dirtree[win]['figures'], f'{model}')
+                       for model in models},
+                    'catalog': self.abs(dirtree[win]['figures'], 'catalog'),
+                    'magnitude_time': self.abs(dirtree[win]['figures'],
+                                               'magnitude_time')
+                }
+            } for win in windows}
+        }
+        self.paths = target_paths
+        self.exists = exists  # todo perhaps method?
         self.run_folder = run_folder
 
 
-@dataclass
-class Registry:
-    _path: str = None
-    _class: str = None
-    meta: dict = field(default_factory=dict)
-    tree: dict = field(default_factory=dict)
-
-    @property
-    def name(self):
-        return self.meta['name']
-
-    @property
-    def path(self):
-        if self._path is None:
-            return self.meta['path']
-        else:
-            return self._path
-
-    @path.setter
-    def path(self, new_path):
-        self._path = new_path
-
-    @property
-    def dir(self) -> str:
-        """
-        Returns:
-            The directory containing the model source.
-        """
-        if os.path.isdir(self.path):
-            return self.path
-        else:
-            return os.path.dirname(self.path)
-
-    @property
-    def fmt(self) -> str:
-        return os.path.splitext(self.path)[1][1:]
-
-    def add_reg(self, reg):
-        self.tree[reg.name] = reg
-
-    def exists(self, tstring, **kwargs):
-        if self._class == 'Model':
-            return self.forecast_exists(tstring)
-
-    def forecast_exists(self, tstring):
-        return tstring
 
 
-def register(init_func):
-    @wraps(init_func)
-    def init_with_reg(obj, *args, **kwargs):
-        reg = Registry()
-        obj.__setattr__('reg', reg)
-        init_func(obj, *args, **kwargs)
-        reg.meta = obj.to_dict()
-        reg._class = obj.__class__.__name__
-        print(f'Initialized {obj.name} with reg')
-
-    return init_with_reg

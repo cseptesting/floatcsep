@@ -2,10 +2,10 @@
     func: poisson_evaluations.number_test
     plot_func: plot_poisson_consistency_test
 - Poisson S:
-      func: poisson_evaluations.spatial_test
-      plot_func: plot_poisson_consistency_test
-      plot_kwargs:
-        one_sided_lower: True
+    func: poisson_evaluations.spatial_test
+    plot_func: plot_poisson_consistency_test
+    plot_kwargs:
+      one_sided_lower: True
 - Poisson M:
       func: poisson_evaluations.magnitude_test
       plot_func: plot_poisson_consistency_test
