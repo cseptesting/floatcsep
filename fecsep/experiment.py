@@ -211,8 +211,6 @@ class Experiment:
             config_dict = model_config
             _path = [i['path'] for i in model_config[0].values()][0]
             _dir = self.filetree.absdir(_path)
-        elif model_config is None:
-            return models
         else:
             raise NotImplementedError(f'Load for model type'
                                       f' {model_config.__class__}'
