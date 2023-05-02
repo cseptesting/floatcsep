@@ -6,13 +6,6 @@ build:
     python: "mambaforge-4.10"
 
 conda:
-  environment:
-    name: fecsep
-    channels:
-      - conda-forge
-      - defaults
-    dependencies:
-      - pycsep
-python:
-  - requirements: docs/requirements_dev.txt
-  - method: pip
+  environment: environment.yml
+
+
