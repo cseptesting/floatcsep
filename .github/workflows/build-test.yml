@@ -29,7 +29,7 @@ jobs:
 
     - name: Install conda dependencies
       run: |
-        PACKAGES="$PACKAGES numpy geos cartopy pycsep"
+        PACKAGES="$PACKAGES numpy==1.23.4 geos cartopy pycsep"
         conda install $PACKAGES
         conda info -a
         conda list
