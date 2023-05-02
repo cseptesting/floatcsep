@@ -104,24 +104,8 @@ def _query_isc_gcmt(out_format: str = 'QuakeML',
         out_format (str): 'QuakeML' (recommended) or 'ISF'
         request (str): 'COMPREHENSIVE' or 'REVIEWED' by ISC analyst
         searchshape (str): 'GLOBAL' or 'RECT'. Other options not imp. in csep
-        start_year (int): search params
-        start_month (int): search params
-        start_day (int): search params
-        start_time (str): search params
-        end_year (int): search params
-        end_month (int): search params
-        end_day (int): search params
-        end_time (str): search params
         host (str): Host to do the call. Uses HOST_CATALOG defined atop module
         include_magnitudes (str): 'on' for csep purposes
-        min_mag (float): search params
-        max_mag (float): search params
-        min_dep (float): search params
-        max_dep (float): search params
-        left_lon (float): search params
-        right_lon (float): search params
-        bot_lat (float): search params
-        top_lat (float): search params
         req_mag_type (str): 'MW' for GCMT
         req_mag_agcy (str): 'GCMT'
         verbose (bool): print log
@@ -218,7 +202,16 @@ def _parse_isc_event(node, ns, mag_author='GCMT'):
     return id_, dtime, float(lat), float(lon), float(depth) / 1000., float(mag)
 
 
-def _download_file(url, filename):
+def _download_file(url: str, filename: str) -> None:
+    """
+
+    Downloads files (from zenodo)
+
+    Args:
+        url (str):
+        filename (str):
+
+    """
     progress_bar_length = 72
     block_size = 1024
 
@@ -317,8 +310,22 @@ def from_zenodo(record_id, folder, force=False):
 
 
 def from_git(url, path, branch=None, depth=1, **kwargs):
-    kwargs.update({'depth': depth})
+    """
 
+    Clones a shallow repository from a git url
+
+    Args:
+        url (str): url of the repository
+        path (str): path/folder where to clone the repo
+        branch (str): repository's branch to clone (default: main)
+        depth (int): depth history of commits
+        **kwargs: keyword args passed to Repo.clone_from
+
+    Returns:
+        the pygit repository
+    """
+
+    kwargs.update({'depth': depth})
     try:
         repo = Repo(path)
     except (NoSuchPathError, InvalidGitRepositoryError):
