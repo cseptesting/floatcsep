@@ -16,11 +16,34 @@ HOST_CATALOG = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
 TIMEOUT = 180
 
 
-def query_isc_gcmt(start_time, end_time, min_magnitude=5.0, min_depth=None,
-                   max_depth=None,
-                   catalog_id=None, verbose=False,
-                   min_latitude=None, max_latitude=None,
-                   min_longitude=None, max_longitude=None):
+def query_isc_gcmt(start_time: datetime, end_time: datetime,
+                   min_magnitude: float = 5.0,
+                   min_depth: float = None, max_depth: float = None,
+                   min_latitude: float = None, max_latitude: float = None,
+                   min_longitude: float = None, max_longitude: float = None,
+                   catalog_id: str = None,
+                   verbose: bool = False) -> CSEPCatalog:
+    """
+    Queries the International Seismological Service (http://www.isc.ac.uk) API
+    to retrieve the global CMT catalogue (https://www.globalcmt.org/) in
+    QuakeML format, which is then converted to a CSEPCatalog
+
+    Args:
+        start_time (datetime.datetime): start date-time of the query
+        end_time (datetime.datime): end date-time of the query
+        min_magnitude (float): cutoff magnitude
+        min_depth (float): minimum depth
+        max_depth (float): maximum depth
+        min_latitude (float): minimum latitude
+        max_latitude (float): maximum latitude
+        min_longitude (float): minimum longitude
+        max_longitude (float): maximum longitude
+        catalog_id (str): identifier assigned to the catalog
+        verbose (bool): flag to print log
+    Returns:
+        CSEPCatalog
+    """
+
     if min_latitude:
         searchshape = 'RECT'
     else:
@@ -46,44 +69,66 @@ def query_isc_gcmt(start_time, end_time, min_magnitude=5.0, min_depth=None,
     )
     catalog = CSEPCatalog(data=events, name='ISC Bulletin - gCMT',
                           catalog_id=catalog_id, date_accessed=creation_time)
-    # todo check why url query does not cut exactly by provided magmin
     catalog.filter([f'magnitude >= {min_magnitude}'], in_place=True)
     return catalog
 
 
-def _query_isc_gcmt(out_format='QuakeML',
-                    request='COMPREHENSIVE',
-                    searchshape='GLOBAL',
-                    start_year=2020,
-                    start_month=1,
-                    start_day=1,
-                    start_time='00:00:00',
-                    end_year=2022,
-                    end_month=1,
-                    end_day=1,
-                    end_time='23:59:59',
-                    host=None,
-                    include_magnitudes='on',
-                    min_mag=5.95,
-                    max_mag=None,
-                    min_dep=None,
-                    max_dep=None,
-                    left_lon=None,
-                    right_lon=None,
-                    bot_lat=None,
-                    top_lat=None,
-                    req_mag_type='MW',
-                    req_mag_agcy='GCMT',
-                    verbose=False):
-    """ Return gCMT catalog from ISC online web-portal
-
-        Args:
-            (follow csep.query_comcat for guidance)
-
-        Returns:
-            out (csep.core.catalogs.AbstractBaseCatalog): gCMT catalog
+def _query_isc_gcmt(out_format: str = 'QuakeML',
+                    request: str = 'COMPREHENSIVE',
+                    searchshape: str = 'GLOBAL',
+                    start_year: int = 2020,
+                    start_month: int = 1,
+                    start_day: int = 1,
+                    start_time: str = '00:00:00',
+                    end_year: int = 2022,
+                    end_month: int = 1,
+                    end_day: int = 1,
+                    end_time: str = '23:59:59',
+                    host: str = None,
+                    include_magnitudes: str = 'on',
+                    min_mag: float = 5.95,
+                    max_mag: float = None,
+                    min_dep: float = None,
+                    max_dep: float = None,
+                    left_lon: float = None,
+                    right_lon: float = None,
+                    bot_lat: float = None,
+                    top_lat: float = None,
+                    req_mag_type: str = 'MW',
+                    req_mag_agcy: str = 'GCMT',
+                    verbose: bool = False):
     """
+    Formats the query url by the search parameters.
 
+    Args:
+        out_format (str): 'QuakeML' (recommended) or 'ISF'
+        request (str): 'COMPREHENSIVE' or 'REVIEWED' by ISC analyst
+        searchshape (str): 'GLOBAL' or 'RECT'. Other options not imp. in csep
+        start_year (int): search params
+        start_month (int): search params
+        start_day (int): search params
+        start_time (str): search params
+        end_year (int): search params
+        end_month (int): search params
+        end_day (int): search params
+        end_time (str): search params
+        host (str): Host to do the call. Uses HOST_CATALOG defined atop module
+        include_magnitudes (str): 'on' for csep purposes
+        min_mag (float): search params
+        max_mag (float): search params
+        min_dep (float): search params
+        max_dep (float): search params
+        left_lon (float): search params
+        right_lon (float): search params
+        bot_lat (float): search params
+        top_lat (float): search params
+        req_mag_type (str): 'MW' for GCMT
+        req_mag_agcy (str): 'GCMT'
+        verbose (bool): print log
+
+    Returns:
+
+    """
     inputargs = locals().copy()
     query_args = {}
     for key, value in inputargs.items():
