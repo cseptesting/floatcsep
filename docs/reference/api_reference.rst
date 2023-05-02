@@ -20,8 +20,7 @@ The experiment is defined using the :class:`Experiment` class.
     Experiment
     Experiment.set_models
     Experiment.set_tests
-    Experiment.prepare_paths
-    Experiment.prepare_tasks
+    Experiment.set_tasks
     Experiment.run
     Experiment.plot_results
     Experiment.plot_forecasts
