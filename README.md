@@ -1,26 +1,30 @@
-# CSEP Floating Experiments - `fecsep`
+# CSEP Floating Experiments
+
+| <img src="https://i.postimg.cc/4y1q8BZt/fe-CSEP-Logo-CMYK.png" width="256"> | A python application to deploy reproducible and prospective earthquake forecasting experiments |
+| ------------- |------------------------------------------------------------------------------------------------------|
+
 
 ## Table of Contents
 
-* [Installing computational environment](installing-computational-environment)
-* [Run experiment](run-experiment)
+* [Installation](installing-computational-environment)
+* [Documentation](https://fecsep.readthedocs.io)
+* [Set up an Experiment](installing-computational-environment)
+* [Run and explore](run-experiment)
+
 
 
 ## Installing computational environment
 
-Create a `conda` environment
+The `fecsep` wraps the core functionality of `pycsep` (https://github.com/sceccode/pycsep). To start, create a `conda` environment and install `pyCSEP` and its dependencies from `conda`
 
 ```
 conda env create -n $NAME
 conda activate $NAME
-```
-
-Install `pyCSEP` and its dependencies from `conda`
-```
 conda install -c conda-forge pycsep
+
 ```
 
-Install feCSEP source using `pip`
+Install the feCSEP source code using `pip`
 ```
 pip install .
 ```
@@ -37,6 +41,5 @@ Usage:
 
 ```
 
-A runtime directory will be created in the `results` folder with the test date as the name. The results from this 
-run of the experiment are contained in `readme.md`.
+A runtime directory will be created in the `results` folder with the test date as the name. The results from the experiment can be visualized in `results/readme.md`.
 
