@@ -164,10 +164,10 @@ class TestExperiment(TestCase):
         with tempfile.NamedTemporaryFile() as file_:
             def tree(*args):
                 return file_.name
-            exp.tree = tree
+            exp.filetree = tree
             with patch.object(exp, 'tree',
                               tree):
-                exp.set_testcat(tstring)
+                exp.set_test_cat(tstring)
                 cat = CSEPCatalog.load_json(file_.name)
                 numpy.testing.assert_equal(1609455600000, cat.data[0][1])
 

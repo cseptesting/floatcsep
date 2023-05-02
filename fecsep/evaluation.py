@@ -55,22 +55,22 @@ class Evaluation:
 
     # todo: Typology characterization should be done within pycsep
     _TYPES = {
-        'number_test': ['Absolute', 'Discrete'],
-        'spatial_test': ['Absolute', 'Discrete'],
-        'magnitude_test': ['Absolute', 'Discrete'],
-        'likelihood_test': ['Absolute', 'Discrete'],
-        'conditional_likelihood_test': ['Absolute', 'Discrete'],
-        'negative_binomial_number_test': ['Absolute', 'Discrete'],
-        'binary_spatial_test': ['Absolute', 'Discrete'],
-        'binomial_spatial_test': ['Absolute', 'Discrete'],
-        'brier_score': ['Absolute', 'Discrete'],
-        'binary_conditional_likelihood_test': ['Absolute', 'Discrete'],
-        'paired_t_test': ['Comparative', 'Discrete'],
-        'w_test': ['Comparative', 'Discrete'],
-        'binary_paired_t_test': ['Comparative', 'Discrete'],
-        'vector_poisson_t_w_test': ['Batch', 'Discrete'],
-        'sequential_likelihood': ['Absolute', 'Sequential'],
-        'sequential_information_gain': ['Comparative', 'Sequential']
+        'number_test': 'consistency',
+        'spatial_test': 'consistency',
+        'magnitude_test': 'consistency',
+        'likelihood_test': 'consistency',
+        'conditional_likelihood_test': 'consistency',
+        'negative_binomial_number_test': 'consistency',
+        'binary_spatial_test': 'consistency',
+        'binomial_spatial_test': 'consistency',
+        'brier_score': 'consistency',
+        'binary_conditional_likelihood_test': 'consistency',
+        'paired_t_test': 'comparative',
+        'w_test': 'comparative',
+        'binary_paired_t_test': 'comparative',
+        'vector_poisson_t_w_test': 'batch',
+        'sequential_likelihood': 'sequential',
+        'sequential_information_gain': 'sequential_comparative'
     }
 
     def __init__(self, name: str, func: Union[str, Callable],

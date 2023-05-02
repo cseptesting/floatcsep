@@ -1,4 +1,4 @@
-from fecsep.utils import MarkdownReport, timewindow2str, magnitude_vs_time
+from fecsep.utils import MarkdownReport, timewindow2str
 
 """
 Use the MarkdownReport class to create output for the experiment 
@@ -42,8 +42,8 @@ def generate_report(experiment, timewindow=-1):
         experiment.plot_catalog()
         report.add_figure(
             f"",
-            [experiment.tree(timestr, 'figures', 'catalog'),
-             experiment.tree(timestr, 'figures', 'magnitude_time')],
+            [experiment.filetree(timestr, 'figures', 'catalog'),
+             experiment.filetree(timestr, 'figures', 'magnitude_time')],
             level=2,
             caption="Evaluation catalog  from "
                     f"{timewindow[0]} until {timewindow[1]}. "  
@@ -65,7 +65,7 @@ def generate_report(experiment, timewindow=-1):
 
     # Include results from Experiment
     for test in experiment.tests:
-        fig_path = experiment.tree(timestr, 'figures', test)
+        fig_path = experiment.filetree(timestr, 'figures', test)
         width = test.plot_args.get('figsize', [4])[0] * 96  #
         report.add_figure(
             f"{test.name}",
@@ -77,4 +77,4 @@ def generate_report(experiment, timewindow=-1):
         )
 
     report.table_of_contents()
-    report.save(experiment.tree.run_folder)
+    report.save(experiment.filetree.run_folder)

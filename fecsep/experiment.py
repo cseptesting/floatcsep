@@ -1,7 +1,6 @@
 import os
 import os.path
 
-import matplotlib.pyplot as plt
 import numpy
 import yaml
 import json
@@ -140,7 +139,7 @@ class Experiment:
         self.postproc_config = postproc_config if postproc_config else {}
         self.default_test_kwargs = default_test_kwargs
 
-        self.tree = PathTree(self.path)
+        self.filetree = PathTree(self.path)
 
         self.catalog = catalog
         self.models = self.set_models(models or kwargs.get('model_config'))
@@ -172,6 +171,7 @@ class Experiment:
     def __dir__(self):
         # todo add timewindows attribute
         # Adds time and region configs keys to instance scope
+
         _dir = list(super().__dir__()) + list(self.time_config.keys()) + list(
             self.region_config)
         return sorted(_dir)
@@ -203,14 +203,14 @@ class Experiment:
         #  or dict for debugging
         models = []
         if isinstance(model_config, str):
-            modelcfg_path = self.tree.abs(model_config)
-            _dir = self.tree.absdir(model_config)
+            modelcfg_path = self.filetree.abs(model_config)
+            _dir = self.filetree.absdir(model_config)
             with open(modelcfg_path, 'r') as file_:
                 config_dict = yaml.load(file_, NoAliasLoader)
         elif isinstance(model_config, dict):
             config_dict = model_config
             _path = [i['path'] for i in model_config[0].values()][0]
-            _dir = self.tree.absdir(_path)
+            _dir = self.filetree.absdir(_path)
         elif model_config is None:
             return models
         else:
@@ -224,7 +224,7 @@ class Experiment:
 
                 name_ = next(iter(element))
                 # updates path to absolute
-                model_path = self.tree.abs(_dir, element[name_]['path'])
+                model_path = self.filetree.abs(_dir, element[name_]['path'])
                 model_i = {name_: {**element[name_], 'path': model_path}}
                 models.append(Model.from_dict(model_i))
             else:
@@ -233,7 +233,7 @@ class Experiment:
                     name_super = next(iter(element))
                     # updates path to absolute
                     path_super = element[name_super].get('path', '')
-                    path_sub = self.tree.abs(_dir, path_super, flav_path)
+                    path_sub = self.filetree.abs(_dir, path_super, flav_path)
                     # path_sub = self._abspath(_dir, path_super, flav_path)[1]
                     # updates name of submodel
                     name_flav = f'{name_super}@{flav}'
@@ -263,7 +263,7 @@ class Experiment:
         tests = []
 
         if isinstance(test_config, str):
-            with open(self.tree.abs(test_config), 'r') as config:
+            with open(self.filetree.abs(test_config), 'r') as config:
                 config_dict = yaml.load(config, NoAliasLoader)
             for evaldict in config_dict:
                 tests.append(Evaluation.from_dict(evaldict))
@@ -273,7 +273,7 @@ class Experiment:
 
         return tests
 
-    def set_testcat(self, tstring: str) -> None:
+    def set_test_cat(self, tstring: str) -> None:
         """
 
         Filters the experiment catalog to a test catalog bounded by
@@ -287,7 +287,7 @@ class Experiment:
         subcat = self.catalog.filter(
             [f'origin_time < {end.timestamp() * 1000}',
              f'origin_time >= {start.timestamp() * 1000}'])
-        subcat.write_json(filename=self.tree(tstring, 'catalog'))
+        subcat.write_json(filename=self.filetree(tstring, 'catalog'))
 
     def set_tasks(self):
         """
@@ -308,9 +308,9 @@ class Experiment:
         """
 
         # Set the file path structure
-        self.tree.set_pathtree(self.timewindows,
-                               self.models,
-                               self.tests)
+        self.filetree.set_pathtree(self.timewindows,
+                                   self.models,
+                                   self.tests)
 
         # Get the time windows strings
         tw_strings = timewindow2str(self.timewindows)
@@ -318,9 +318,9 @@ class Experiment:
         # Prepare the testing catalogs
         task_graph = TaskGraph()
         for time_i in tw_strings:
-            # The method call Experiment.set_testcat(time_i) is created lazily
+            # The method call Experiment.set_test_cat(time_i) is created lazily
             task_i = Task(instance=self,
-                          method='set_testcat',
+                          method='set_test_cat',
                           tstring=time_i)
             # An is added to the task graph
             task_graph.add(task_i)
@@ -339,22 +339,22 @@ class Experiment:
                 # A catalog needs to have been filtered
                 task_graph.add_dependency(task_ij,
                                           dinst=self,
-                                          dmeth='set_testcat',
+                                          dmeth='set_test_cat',
                                           dkw=time_i)
 
         # Set up the Consistency Tests
         for test_k in self.tests:
-            if 'Discrete' in test_k.type and 'Absolute' in test_k.type:
+            if test_k.type == 'consistency':
                 for time_i in tw_strings:
                     for model_j in self.models:
                         task_ijk = Task(
                             instance=test_k,
                             method='compute',
                             timewindow=time_i,
-                            catalog=self.tree(time_i, 'catalog'),
+                            catalog=self.filetree(time_i, 'catalog'),
                             model=model_j,
-                            path=self.tree(time_i, 'evaluations',
-                                           test_k, model_j))
+                            path=self.filetree(time_i, 'evaluations',
+                                               test_k, model_j))
                         task_graph.add(task_ijk)
                         # the forecast needs to have been created
                         task_graph.add_dependency(task_ijk,
@@ -362,18 +362,18 @@ class Experiment:
                                                   dmeth='create_forecast',
                                                   dkw=time_i)
             # Set up the Comparative Tests
-            elif 'Discrete' in test_k.type and 'Comparative' in test_k.type:
+            elif test_k.type == 'comparative':
                 for time_i in tw_strings:
                     for model_j in self.models:
                         task_ik = Task(
                             instance=test_k,
                             method='compute',
                             timewindow=time_i,
-                            catalog=self.tree(time_i, 'catalog'),
+                            catalog=self.filetree(time_i, 'catalog'),
                             model=model_j,
                             ref_model=self.get_model(test_k.ref_model),
-                            path=self.tree(time_i, 'evaluations', test_k,
-                                           model_j)
+                            path=self.filetree(time_i, 'evaluations', test_k,
+                                               model_j)
                         )
                         task_graph.add(task_ik)
                         task_graph.add_dependency(task_ik,
@@ -386,16 +386,17 @@ class Experiment:
                                                   dmeth='create_forecast',
                                                   dkw=time_i)
             # Set up the Sequential Scores
-            elif 'Sequential' in test_k.type and 'Absolute' in test_k.type:
+            elif test_k.type == 'sequential':
                 for model_j in self.models:
                     task_k = Task(
                         instance=test_k,
                         method='compute',
                         timewindow=tw_strings,
-                        catalog=[self.tree(i, 'catalog') for i in tw_strings],
+                        catalog=[self.filetree(i, 'catalog')
+                                 for i in tw_strings],
                         model=model_j,
-                        path=self.tree(tw_strings[-1], 'evaluations', test_k,
-                                       model_j)
+                        path=self.filetree(tw_strings[-1], 'evaluations',
+                                           test_k, model_j)
                     )
                     task_graph.add(task_k)
                     for tw_i in tw_strings:
@@ -404,18 +405,18 @@ class Experiment:
                                                   dmeth='create_forecast',
                                                   dkw=tw_i)
             # Set up the Sequential_Comparative Scores
-            elif 'Comparative' in test_k.type:
-                timestrs = timewindow2str(self.timewindows)
+            elif test_k.type == 'sequential_comparative':
+                tw_strs = timewindow2str(self.timewindows)
                 for model_j in self.models:
                     task_k = Task(
                         instance=test_k,
                         method='compute',
-                        timewindow=timestrs,
-                        catalog=[self.tree(i, 'catalog') for i in timestrs],
+                        timewindow=tw_strs,
+                        catalog=[self.filetree(i, 'catalog') for i in tw_strs],
                         model=model_j,
                         ref_model=self.get_model(test_k.ref_model),
-                        path=self.tree(timestrs[-1], 'evaluations', test_k,
-                                       model_j)
+                        path=self.filetree(tw_strs[-1], 'evaluations', test_k,
+                                           model_j)
                     )
                     task_graph.add(task_k)
                     for tw_i in tw_strings:
@@ -429,24 +430,25 @@ class Experiment:
                                                   dmeth='create_forecast',
                                                   dkw=tw_i)
             # Set up the Batch comparative Scores
-            elif 'Discrete' in test_k.type and 'Batch' in test_k.type:
-                timestr = timewindow2str(self.timewindows[-1])
+            elif test_k.type == 'batch':
+                time_str = timewindow2str(self.timewindows[-1])
                 for model_j in self.models:
                     task_k = Task(
                         instance=test_k,
                         method='compute',
-                        timewindow=timestr,
-                        catalog=self.tree(timestr, 'catalog'),
+                        timewindow=time_str,
+                        catalog=self.filetree(time_str, 'catalog'),
                         ref_model=self.models,
                         model=model_j,
-                        path=self.tree(timestr, 'evaluations', test_k, model_j)
+                        path=self.filetree(time_str, 'evaluations', test_k,
+                                           model_j)
                     )
                     task_graph.add(task_k)
                     for m_j in self.models:
                         task_graph.add_dependency(task_k,
                                                   dinst=m_j,
                                                   dmeth='create_forecast',
-                                                  dkw=timestr)
+                                                  dkw=time_str)
 
         self.task_graph = task_graph
 
@@ -496,15 +498,15 @@ class Experiment:
             self._catalog = None
             self._catpath = None
 
-        elif os.path.isfile(self.tree.abs(cat)):
+        elif os.path.isfile(self.filetree.abs(cat)):
             print(f"Using catalog from {cat}")
-            self._catalog = self.tree.abs(cat)
-            self._catpath = self.tree.abs(cat)
+            self._catalog = self.filetree.abs(cat)
+            self._catpath = self.filetree.abs(cat)
 
         else:
             # catalog can be a function
             self._catalog = parse_csep_func(cat)
-            self._catpath = self.tree.abs('catalog.json')
+            self._catpath = self.filetree.abs('catalog.json')
             if os.path.isfile(self._catpath):
                 print(f"Using stored catalog "
                       f"'{os.path.relpath(self._catpath, self.path)}', "
@@ -525,7 +527,7 @@ class Experiment:
 
         """
         self.task_graph.run()
-        self.to_yml(self.tree('config'), extended=True)
+        self.to_yml(self.filetree('config'), extended=True)
 
     def _read_results(self, test: Evaluation, window: str) -> List:
 
@@ -540,7 +542,7 @@ class Experiment:
         else:
             models = self.models
         for i in models:
-            eval_path = self.tree(wstr_, 'evaluations', test, i.name)
+            eval_path = self.filetree(wstr_, 'evaluations', test, i.name)
             with open(eval_path, 'r') as file_:
                 model_eval = EvaluationResult.from_dict(json.load(file_))
             test_results.append(model_eval)
@@ -558,8 +560,8 @@ class Experiment:
         """
 
         for time in self.timewindows:
-            timestr = timewindow2str(time)
-            figpaths = self.tree(timestr, 'figures')
+            time_str = timewindow2str(time)
+            fig_paths = self.filetree(time_str, 'figures')
 
             # consistency and comparative
             for test in self.tests:
@@ -569,14 +571,15 @@ class Experiment:
                                         **test.plot_kwargs)
                     if 'code' in test.plot_args:
                         exec(test.plot_args['code'])
-                    pyplot.savefig(figpaths[test.name], dpi=dpi)
+                    pyplot.savefig(fig_paths[test.name], dpi=dpi)
                     if show:
                         pyplot.show()
 
         for test in self.tests:
             # todo improve the logic of this plots
-            timestr = timewindow2str(self.timewindows[-1])
-            results = self._read_results(test, timestr)
+            time_str = timewindow2str(self.timewindows[-1])
+            fig_paths = self.filetree(time_str, 'figures')
+            results = self._read_results(test, time_str)
             if test.type == 'seqcomp':
                 results_ = []
                 for i in results:
@@ -590,7 +593,7 @@ class Experiment:
                                 **test.plot_kwargs)
             if 'code' in test.plot_args:
                 exec(test.plot_args['code'])
-            pyplot.savefig(figpaths[test.name], dpi=dpi)
+            pyplot.savefig(fig_paths[test.name], dpi=dpi)
             if show:
                 pyplot.show()
 
@@ -612,19 +615,19 @@ class Experiment:
             timewindow = [self.timewindows[-1]]
 
         for tw in timewindow:
-            catpath = self.tree(tw, 'catalog')
+            catpath = self.filetree(tw, 'catalog')
             catalog = CSEPCatalog.load_json(catpath)
 
             ax = catalog.plot(plot_args=plot_args, show=show)
             ax.get_figure().tight_layout()
-            ax.get_figure().savefig(self.tree(tw, 'figures', 'catalog'),
+            ax.get_figure().savefig(self.filetree(tw, 'figures', 'catalog'),
                                     dpi=dpi)
 
             ax2 = magnitude_vs_time(catalog)
 
             ax2.get_figure().tight_layout()
-            ax2.get_figure().savefig(self.tree(tw, 'figures',
-                                               'magnitude_time'), dpi=dpi)
+            ax2.get_figure().savefig(self.filetree(tw, 'figures',
+                                                   'magnitude_time'), dpi=dpi)
 
     def plot_forecasts(self) -> None:
         """
@@ -665,7 +668,7 @@ class Experiment:
             winstr = timewindow2str(window)
 
             for model in self.models:
-                fig_path = self.tree(winstr, 'figures', model.name)
+                fig_path = self.filetree(winstr, 'figures', model.name)
                 start = decimal_year(window[0])
                 end = decimal_year(window[1])
                 time = f'{round(end - start, 3)} years'
@@ -715,10 +718,8 @@ class Experiment:
         Converts an Experiment instance into a dictionary.
 
         Args:
-            extend:
-            fmt:
             exclude (tuple, list): Attributes, or attribute keys, to ignore
-            extend (bool): Verbose representation of pycsep objects
+            extended (bool): Verbose representation of pycsep objects
 
         Returns:
             A dictionary with serialized instance's attributes, which are
