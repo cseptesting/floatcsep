@@ -1,7 +1,7 @@
 # CSEP Floating Experiments
 <img src="https://i.postimg.cc/4y1q8BZt/fe-CSEP-Logo-CMYK.png" width="320"> 
 
-**A python application to deploy reproducible and prospective experiments of earthquake forecasting **
+**A python application to deploy reproducible and prospective experiments of earthquake forecasting**
 
 ## Table of Contents
 
