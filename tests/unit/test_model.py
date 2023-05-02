@@ -70,13 +70,14 @@ class TestModel(TestCase):
         """ downloads model from zenodo, checks with test artifacts"""
 
         name = 'mock_zenodo'
-        filename_ = 'TEAM=N10L11.csv'
+        filename_ = 'datapackage.json'
         dir_ = os.path.join(tempfile.tempdir, 'mock')
 
         if os.path.isdir(dir_):
             shutil.rmtree(dir_)
         path_ = os.path.join(dir_, filename_)
-        zenodo_id = 6289795
+
+        zenodo_id = 7096870
         # Initialize from zenodo id
         model_a = self.initmodel_noreg(name=name, path=path_,
                                        zenodo_id=zenodo_id)
@@ -84,7 +85,7 @@ class TestModel(TestCase):
 
         # Initialize from the artifact files (same as downloaded)
         dir_art = os.path.join(self._path, '../artifacts', 'models',
-                               'qtree')
+                               'zenodo_test')
         path = os.path.join(dir_art, filename_)
         model_b = self.initmodel_noreg(name=name, path=path,
                                        zenodo_id=zenodo_id)
@@ -96,15 +97,14 @@ class TestModel(TestCase):
 
     def test_fail_zenodo(self):
         name = 'mock_zenodo'
-        filename_ = 'model_notreal.csv'
+        filename_ = 'model_notreal.csv' # File not found in repository
         dir_ = os.path.join(tempfile.tempdir, 'zenodo_notreal')
         if os.path.isdir(dir_):
             shutil.rmtree(dir_)
         path_ = os.path.join(dir_, filename_)
 
         # Initialize from zenodo id
-        model = self.initmodel_noreg(name=name, path=path_,
-                                     zenodo_id=4739912)
+        model = self.initmodel_noreg(name=name, path=path_, zenodo_id=4739912)
 
         with self.assertRaises(FileNotFoundError):
             model.get_source(model.zenodo_id, model.giturl)
@@ -117,13 +117,13 @@ class TestModel(TestCase):
         giturl = 'https://git.gfz-potsdam.de/csep-group/' \
                  'rise_italy_experiment/models/template.git'
         model_a = self.initmodel_noreg(name=name, path=path_,
-                                       giturl=giturl)
+                                      giturl=giturl)
         model_a.stage()
         path = os.path.join(self._dir, 'template')
         model_b = self.initmodel_noreg(name=name, path=path)
         model_b.stage()
         self.assertEqual(model_a.name, model_b.name)
-        dircmp = filecmp.dircmp(model_a.path, model_b.path).common
+        dircmp = filecmp.dircmp(model_a.dir, model_b.dir).common
         self.assertGreater(len(dircmp), 8)
         shutil.rmtree(path_)
 
@@ -140,9 +140,8 @@ class TestModel(TestCase):
             name=name, path=path_,
             giturl='https://github.com/github/testrepo')
 
-        # with self.assertRaises(FileNotFoundError):
-
-        model.get_source(model.zenodo_id, model.giturl, branch='master')
+        with self.assertRaises(FileNotFoundError):
+           model.get_source(model.zenodo_id, model.giturl, branch='master')
 
     def test_from_dict(self):
         """ test that '__init__' and 'from_dict' instantiates

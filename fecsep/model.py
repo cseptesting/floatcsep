@@ -150,31 +150,34 @@ class Model:
 
 
         """
-        print(giturl, self.dir, self.path)
-        if os.path.exists(self.path) and not force:
-            return None
-        else:
-            if zenodo_id is None and giturl is None:
-                raise FileNotFoundError(
-                    f"Model file or directory '{self.path}' not found")
-        try:
-            # Zenodo is the first source of retrieval
-            from_zenodo(zenodo_id, self.dir, force=force)
-        except (KeyError, TypeError):
-            try:
-                from_git(giturl, self.path, **kwargs)
 
+        if os.path.exists(self.path) and not force:
+            return
+
+        os.makedirs(self.dir, exist_ok=True)
+
+        if zenodo_id:
+            try:
+                from_zenodo(zenodo_id, self.dir if self.fmt else self.path,
+                            force=force)
+            except (KeyError, TypeError) as msg:
+                raise KeyError(f'Zenodo identifier is not valid: {msg}')
+
+        elif giturl:
+            try:
+                from_git(giturl, self.dir if self.fmt else self.path, **kwargs)
             except (git.NoSuchPathError, git.CommandError) as msg:
-                if giturl is None:
-                    raise KeyError('Zenodo identifier is not valid')
-                else:
-                    raise git.NoSuchPathError('git url was not found')
+                raise git.NoSuchPathError(f'git url was not found {msg}')
+        else:
+            raise FileNotFoundError('Model has no path or identified')
 
         if not os.path.exists(self.dir) or not os.path.exists(self.path):
             raise FileNotFoundError(
                 f"Directory '{self.dir}' or file {self.path}' do not exist. "
                 f"Please check the specified 'path' matches the repo "
                 f"structure")
+
+
 
     def init_db(self, dbpath: str = '', force: bool = False) -> None:
         """
