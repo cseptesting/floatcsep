@@ -27,7 +27,7 @@ jobs:
 
       - name: Install feCSEP
         run: |
-          pip install -e .[dev]
+          pip install --no-deps -e .
           python -c "import fecsep; print('Version: ', fecsep.__version__)"
 
       - name: Build documentation

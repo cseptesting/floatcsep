@@ -624,7 +624,6 @@ class Experiment:
                                     dpi=dpi)
 
             ax2 = magnitude_vs_time(catalog)
-
             ax2.get_figure().tight_layout()
             ax2.get_figure().savefig(self.filetree(tw, 'figures',
                                                    'magnitude_time'), dpi=dpi)

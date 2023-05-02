@@ -4,6 +4,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
 import sys
+from sphinx_gallery.sorting import FileNameSortKey
 
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -25,7 +26,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
-    # 'sphinx_gallery.gen_gallery', # todo
+    # 'sphinx_gallery.gen_gallery',
     # 'sphinx.ext.githubpages'
 ]
 
