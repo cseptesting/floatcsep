@@ -207,7 +207,7 @@ class Experiment:
             _dir = self.filetree.absdir(model_config)
             with open(modelcfg_path, 'r') as file_:
                 config_dict = yaml.load(file_, NoAliasLoader)
-        elif isinstance(model_config, dict):
+        elif isinstance(model_config, (dict, list)):
             config_dict = model_config
             _path = [i['path'] for i in model_config[0].values()][0]
             _dir = self.filetree.absdir(_path)
@@ -267,7 +267,7 @@ class Experiment:
                 config_dict = yaml.load(config, NoAliasLoader)
             for evaldict in config_dict:
                 tests.append(Evaluation.from_dict(evaldict))
-        elif isinstance(test_config, dict):
+        elif isinstance(test_config, (dict, list)):
             for evaldict in test_config:
                 tests.append(Evaluation.from_dict(evaldict))
 
@@ -676,8 +676,8 @@ class Experiment:
                              'clabel': r'$\log_{10} N\left(M_w \in [{%.2f},'
                                        r'\,{%.2f}]\right)$ per '
                                        r'$0.1^\circ\times 0.1^\circ $ per %s' %
-                                       (self.magnitudes.min(),
-                                        self.magnitudes.max(), time)}
+                                       (min(self.magnitudes),
+                                        max(self.magnitudes), time)}
                 if not self.region or self.region.name == 'global':
                     set_global = True
                 else:
@@ -709,9 +709,9 @@ class Experiment:
         report.generate_report(self)
 
     def to_dict(self, exclude: Sequence = ('magnitudes', 'depths',
-                                           'timewindows', 'tree',
-                                           'task_graph', 'models',
-                                           'tests'),
+                                           'timewindows', 'filetree',
+                                           'task_graph', 'tasks',
+                                           'models', 'tests'),
                 extended: bool = False) -> dict:
         """
         Converts an Experiment instance into a dictionary.
