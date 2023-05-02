@@ -1,0 +1,49 @@
+name: tests
+
+on:
+  push:
+    branches-ignore:
+    - 'v*'
+  pull_request:
+
+jobs:
+  build:
+    if: github.repository == 'cseptesting/fecsep'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+        activate-environment: fecsep-dev
+        channels: conda-forge
+
+    - name: Install dependencies
+      run: |
+        conda env update --file environment.yml
+        conda info -a
+        conda list
+
+    - name: Install feCSEP
+      run: |
+        pip install --no-deps -e .
+        python -c "import fecsep; print('Version: ', fecsep.__version__)"
+
+    - name: Test with pytest
+      run: |
+        conda install pytest-cov
+        pytest --cov=./ --cov-config=.coveragerc
+
+    - name: Upload coverage
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10'
+      run: |
+        bash <(curl -s https://codecov.io/bash) || echo 'Codecov failed to upload'
