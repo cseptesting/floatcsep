@@ -199,17 +199,24 @@ class Experiment:
 
         """
 
-    # todo: handle when model_config is a list models instead of a file.
+        # todo: handle when model_config is a list models instead of a file
+        #  or dict for debugging
         models = []
         if isinstance(model_config, str):
             modelcfg_path = self.tree.abs(model_config)
             _dir = self.tree.absdir(model_config)
             with open(modelcfg_path, 'r') as file_:
                 config_dict = yaml.load(file_, NoAliasLoader)
-        else:
+        elif isinstance(model_config, dict):
             config_dict = model_config
             _path = [i['path'] for i in model_config[0].values()][0]
             _dir = self.tree.absdir(_path)
+        elif model_config is None:
+            return models
+        else:
+            raise NotImplementedError(f'Load for model type'
+                                      f' {model_config.__class__}'
+                                      f'not implemented ')
 
         for element in config_dict:
             # Check if the model is unique or has multiple submodels
@@ -260,7 +267,7 @@ class Experiment:
                 config_dict = yaml.load(config, NoAliasLoader)
             for evaldict in config_dict:
                 tests.append(Evaluation.from_dict(evaldict))
-        else:
+        elif isinstance(test_config, dict):
             for evaldict in test_config:
                 tests.append(Evaluation.from_dict(evaldict))
 

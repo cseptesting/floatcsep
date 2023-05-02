@@ -26,9 +26,9 @@ class TestModelFromFile(TestCase):
         # Model.__init__.__wrapped__(self=model, name=name,
         #                            path=path, **kwargs)
         model = Model(name, path, **kwargs)
-        ext = os.path.splitext(path)[-1][1:]
-        model.fmt = ext
-        model.dir = os.path.dirname(path) if ext else path
+        # ext = os.path.splitext(path)[-1][1:]
+        # model.fmt = ext
+        # model.dir = os.path.dirname(path) if ext else path
 
         return model
 
@@ -65,7 +65,6 @@ class TestModelFromFile(TestCase):
 
         model = self.init_model(name=name, path=fname, use_db=True)
         model.stage()
-        model.fmt = 'hdf5'
 
         start = datetime(1900, 1, 1)
         end = datetime(2000, 1, 1)
@@ -80,7 +79,6 @@ class TestModelFromFile(TestCase):
         fname = os.path.join(self._dir, 'model_h5.hdf5')
         model = self.init_model(name=name, path=fname, use_db=True)
         model.stage()
-        model.fmt = 'hdf5'
 
         start = datetime(2020, 1, 1)
         end = datetime(2023, 1, 1)

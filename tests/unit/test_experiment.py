@@ -123,8 +123,6 @@ class TestExperiment(TestCase):
         exp = Experiment(**_time_config, **_region_config,
                          model_config=_model_cfg,
                          catalog=_cat)
-        exp.set_models()
-
         names = [i.name for i in exp.models]
         self.assertEqual(['mock', 'qtree@team10', 'qtree@team25'], names)
         m1_path = os.path.normpath(
@@ -136,7 +134,6 @@ class TestExperiment(TestCase):
                          model_config=_model_cfg,
                          catalog=_cat)
 
-        exp.set_models()
         exp.stage_models()
 
         dbpath = os.path.normpath(
@@ -150,7 +147,6 @@ class TestExperiment(TestCase):
         exp = Experiment(**_time_config, **_region_config,
                          test_config=test_cfg,
                          catalog=_cat)
-        exp.set_tests()
 
         funcs = [i.func for i in exp.tests]
         funcs_expected = [poisson_evaluations.number_test,
