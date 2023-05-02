@@ -7,7 +7,6 @@ dependencies:
     - pycsep
     - cartopy
     - dateparser
-    - docker
     - flake8
     - geos
     - gitpython
@@ -18,7 +17,6 @@ dependencies:
     - obspy
     - pandas
     - pillow
-    - pycsep
     - pyproj
     - pyshp
     - pytest-cov
