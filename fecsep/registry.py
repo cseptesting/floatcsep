@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass, field, asdict
-from collections.abc import Sequence
+from typing import Sequence
 from fecsep.utils import timewindow2str
 
 

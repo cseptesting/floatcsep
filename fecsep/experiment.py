@@ -4,8 +4,8 @@ import os.path
 import numpy
 import yaml
 import json
-from collections.abc import Mapping, Sequence
-from typing import Union, List, Tuple, Callable
+
+from typing import Union, List, Tuple, Callable, Mapping, Sequence
 from matplotlib import pyplot
 from cartopy import crs as ccrs
 
@@ -207,7 +207,7 @@ class Experiment:
             _dir = self.filetree.absdir(model_config)
             with open(modelcfg_path, 'r') as file_:
                 config_dict = yaml.load(file_, NoAliasLoader)
-        elif isinstance(model_config, dict):
+        elif isinstance(model_config, (dict, list)):
             config_dict = model_config
             _path = [i['path'] for i in model_config[0].values()][0]
             _dir = self.filetree.absdir(_path)
@@ -267,7 +267,7 @@ class Experiment:
                 config_dict = yaml.load(config, NoAliasLoader)
             for evaldict in config_dict:
                 tests.append(Evaluation.from_dict(evaldict))
-        elif isinstance(test_config, dict):
+        elif isinstance(test_config, (dict, list)):
             for evaldict in test_config:
                 tests.append(Evaluation.from_dict(evaldict))
 
@@ -297,11 +297,11 @@ class Experiment:
         The tasks can then be run sequentially as a list or asynchronous
         using the graph's node dependencies.
         For instance:
-            - Forecast can only be made if catalog is filtered to its window
-            - A consistency test can be run if the forecast exists in a window
-            - A comparison test requires the forecast and ref forecast
-            - A sequential test requires the forecasts exist for all windows
-            - A batch test requires all forecast exist for a given window.
+        - Forecast can only be made if catalog is filtered to its window
+        - A consistency test can be run if the forecast exists in a window
+        - A comparison test requires the forecast and ref forecast
+        - A sequential test requires the forecasts exist for all windows
+        - A batch test requires all forecast exist for a given window.
 
         Returns:
 
@@ -676,8 +676,8 @@ class Experiment:
                              'clabel': r'$\log_{10} N\left(M_w \in [{%.2f},'
                                        r'\,{%.2f}]\right)$ per '
                                        r'$0.1^\circ\times 0.1^\circ $ per %s' %
-                                       (self.magnitudes.min(),
-                                        self.magnitudes.max(), time)}
+                                       (min(self.magnitudes),
+                                        max(self.magnitudes), time)}
                 if not self.region or self.region.name == 'global':
                     set_global = True
                 else:
@@ -709,9 +709,9 @@ class Experiment:
         report.generate_report(self)
 
     def to_dict(self, exclude: Sequence = ('magnitudes', 'depths',
-                                           'timewindows', 'tree',
-                                           'task_graph', 'models',
-                                           'tests'),
+                                           'timewindows', 'filetree',
+                                           'task_graph', 'tasks',
+                                           'models', 'tests'),
                 extended: bool = False) -> dict:
         """
         Converts an Experiment instance into a dictionary.

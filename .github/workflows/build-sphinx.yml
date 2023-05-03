@@ -1,6 +1,9 @@
-name: build-docs
+name: docs
 
 on:
+  push:
+    branches-ignore:
+      - 'v*'
   pull_request:
     branches: [ main ]
 
@@ -21,9 +24,14 @@ jobs:
 
       - name: Install conda dependencies
         run: |
-          conda env update --file environment.yml
+          PACKAGES="$PACKAGES numpy==1.23.4 geos cartopy pycsep"
+          conda install $PACKAGES
           conda info -a
           conda list
+
+      - name: Install pip dependencies
+        run: |
+          pip install -r requirements_dev.txt
 
       - name: Install feCSEP
         run: |

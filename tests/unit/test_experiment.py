@@ -162,11 +162,11 @@ class TestExperiment(TestCase):
         tstring = '2020-08-01_2021-01-02'
 
         with tempfile.NamedTemporaryFile() as file_:
-            def tree(*args):
+            def filetree(*args):
                 return file_.name
-            exp.filetree = tree
-            with patch.object(exp, 'tree',
-                              tree):
+            exp.filetree = filetree
+            with patch.object(exp, 'filetree',
+                              filetree):
                 exp.set_test_cat(tstring)
                 cat = CSEPCatalog.load_json(file_.name)
                 numpy.testing.assert_equal(1609455600000, cat.data[0][1])
