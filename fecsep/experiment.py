@@ -4,8 +4,8 @@ import os.path
 import numpy
 import yaml
 import json
-from collections.abc import Mapping, Sequence
-from typing import Union, List, Tuple, Callable
+
+from typing import Union, List, Tuple, Callable, Mapping, Sequence
 from matplotlib import pyplot
 from cartopy import crs as ccrs
 
