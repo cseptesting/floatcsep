@@ -297,11 +297,11 @@ class Experiment:
         The tasks can then be run sequentially as a list or asynchronous
         using the graph's node dependencies.
         For instance:
-            - Forecast can only be made if catalog is filtered to its window
-            - A consistency test can be run if the forecast exists in a window
-            - A comparison test requires the forecast and ref forecast
-            - A sequential test requires the forecasts exist for all windows
-            - A batch test requires all forecast exist for a given window.
+        - Forecast can only be made if catalog is filtered to its window
+        - A consistency test can be run if the forecast exists in a window
+        - A comparison test requires the forecast and ref forecast
+        - A sequential test requires the forecasts exist for all windows
+        - A batch test requires all forecast exist for a given window.
 
         Returns:
 
