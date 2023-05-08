@@ -4,10 +4,9 @@ from csep.models import EvaluationResult
 from csep.core.poisson_evaluations import _simulate_catalog, paired_t_test, \
     w_test, _poisson_likelihood_test
 from csep.core.exceptions import CSEPCatalogException
-from typing import List, Union, Sequence, Tuple
+from typing import Sequence
 from csep.core.forecasts import GriddedForecast
 from csep.core.catalogs import CSEPCatalog
-from datetime import datetime
 
 
 def binomial_spatial_test(

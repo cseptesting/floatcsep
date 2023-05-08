@@ -1,7 +1,7 @@
 from fecsep.experiment import Experiment
 import argparse
 
-from csep.core import regions
+
 def run(config, show=True):
     exp = Experiment.from_yml(config)
 
@@ -87,4 +87,3 @@ def fecsep():
     except AttributeError:
         raise AttributeError('Function not implemented')
     func(**vars(args))
-

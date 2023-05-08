@@ -5,7 +5,7 @@ import numpy
 import yaml
 import json
 
-from typing import Union, List, Tuple, Callable, Mapping, Sequence
+from typing import Union, List, Dict, Callable, Mapping, Sequence
 from matplotlib import pyplot
 from cartopy import crs as ccrs
 
@@ -61,7 +61,7 @@ class Experiment:
 
             - region (:py:class:`str`,
               :class:`csep.core.regions.CartesianGrid2D`): The geographical
-              region, specified as:
+              region, which can be specified as:
               (i) the name of a :mod:`csep`/:mod:`fecsep` default region
               function (e.g. :func:`~csep.core.regions.california_relm_region`)
               (ii) the name of a user function or
@@ -119,7 +119,7 @@ class Experiment:
         # todo
         #  - instantiate from full experiment register (ignoring test/models
         #  config), or self-awareness functions?
-        #  - instantiate as python objects (rethink models/tests config)
+        #  - instantiate as python objects (models/tests config)
         #  - check if model region matches experiment region for nonQuadTree?
         #    Or filter region?
         # Instantiate
@@ -145,16 +145,15 @@ class Experiment:
         self.models = self.set_models(models or kwargs.get('model_config'))
         self.tests = self.set_tests(tests or kwargs.get('test_config'))
 
-        # Initialize class attributes
         self.tasks = []
         self.task_graph = None
 
-        # Update if attributes were passed explicitly
-        # todo check reinstantiation
-        # self.__dict__.update(**kwargs)
-
     def __getattr__(self, item: str) -> object:
-        # Gets time_config and region_config keys as Experiment's attribute
+        """
+        Override built-in method to return attributes found within
+        :attr:`region_config` or :attr:`time_config`
+        """
+
         try:
             return self.__dict__[item]
         except KeyError:
@@ -169,38 +168,29 @@ class Experiment:
                         f" has no attribute '{item}'") from None
 
     def __dir__(self):
-        # todo add timewindows attribute
-        # Adds time and region configs keys to instance scope
+        """
+        Adds time and region configs keys to instance scope.
+        """
 
         _dir = list(super().__dir__()) + list(self.time_config.keys()) + list(
             self.region_config)
         return sorted(_dir)
 
-    def _abspath(self, *paths: Sequence[str]) -> Tuple[str, str]:
-        """ Gets the absolute path of a file, when it was defined relative to
-         the experiment working dir."""
-        # todo check redundancy when passing an actual absolute path (e.g.
-        #  when re-instantiating). Pass to self.Registry()
-        _path = os.path.normpath(
-            os.path.abspath(os.path.join(self.path, *paths)))
-        _dir = os.path.dirname(_path)
-        return _dir, _path
-
-    def stage_models(self) -> None:
-        """ Stages all the experiment's models"""
-        for i in self.models:
-            i.stage()
-
-    def set_models(self, model_config) -> List:
+    def set_models(self, model_config: Union[Dict, str, List]) -> List:
         """
 
         Parse the models' configuration file/dict. Instantiates all the models
-        as :class:`fecsep.model.Model` and store them into :attr:`self.models`.
+        as :class:`fecsep.model.Model` and store them into
+        :attr:`Experiment.models`.
+
+        Args:
+            model_config (dict, list, str): configuration file or dictionary
+             containing the model initialization attributes, as defined in
+             :meth:`~fecsep.model.Model`
+
 
         """
 
-        # todo: handle when model_config is a list models instead of a file
-        #  or dict for debugging
         models = []
         if isinstance(model_config, str):
             modelcfg_path = self.filetree.abs(model_config)
@@ -254,10 +244,30 @@ class Experiment:
 
         return models
 
-    def set_tests(self, test_config) -> list:
+    def get_model(self, name: str) -> Model:
+        """ Returns a Model by its name string """
+        for model in self.models:
+            if model.name == name:
+                return model
+
+    def stage_models(self) -> None:
+        """
+        Stages all the experiment's models. See
+        :meth:`fecsep.model.Model.stage`
+        """
+        for i in self.models:
+            i.stage()
+
+    def set_tests(self, test_config: Union[str, Dict, List]) -> list:
         """
         Parse the tests' configuration file/dict. Instantiate them as
-        :class:`fecsep.test.Test` and store them into :attr:`self.tests`.
+        :class:`fecsep.evaluation.Evaluation` and store them into
+        :attr:`Experiment.tests`.
+
+        Args:
+            test_config (dict, list, str): configuration file or dictionary
+             containing the evaluation initialization attributes, as defined in
+             :meth:`~fecsep.evaluation.Evaluation`
 
         """
         tests = []
@@ -265,43 +275,111 @@ class Experiment:
         if isinstance(test_config, str):
             with open(self.filetree.abs(test_config), 'r') as config:
                 config_dict = yaml.load(config, NoAliasLoader)
-            for evaldict in config_dict:
-                tests.append(Evaluation.from_dict(evaldict))
+            for eval_dict in config_dict:
+                tests.append(Evaluation.from_dict(eval_dict))
         elif isinstance(test_config, (dict, list)):
-            for evaldict in test_config:
-                tests.append(Evaluation.from_dict(evaldict))
+            for eval_dict in test_config:
+                tests.append(Evaluation.from_dict(eval_dict))
 
         return tests
+
+    @property
+    def catalog(self) -> CSEPCatalog:
+        """
+        Returns a CSEP catalog loaded from the given query function or
+         a stored file if it exists.
+        """
+        if callable(self._catalog):
+            if os.path.isfile(self._catpath):
+                return CSEPCatalog.load_json(self._catpath)
+            bounds = {'start_time': min([item for sublist in self.timewindows
+                                         for item in sublist]),
+                      'end_time': max([item for sublist in self.timewindows
+                                       for item in sublist]),
+                      'min_magnitude': self.magnitudes.min(),
+                      'max_depth': self.depths.max()}
+            if self.region:
+                bounds.update({i: j for i, j in
+                               zip(['min_longitude', 'max_longitude',
+                                    'min_latitude', 'max_latitude'],
+                                   self.region.get_bbox())})
+
+            catalog = self._catalog(
+                catalog_id='cat',  # todo name as run
+                verbose=True,
+                **bounds
+            )
+
+            if self.region:
+                catalog.filter_spatial(region=self.region)
+                catalog.region = None
+            catalog.write_json(self._catpath)
+
+            return catalog
+
+        elif os.path.isfile(self._catalog):
+            return CSEPCatalog.load_json(self._catpath)
+
+    @catalog.setter
+    def catalog(self, cat: Union[Callable, CSEPCatalog, str]) -> None:
+
+        if cat is None:
+            self._catalog = None
+            self._catpath = None
+
+        elif os.path.isfile(self.filetree.abs(cat)):
+            print(f"Using catalog from {cat}")
+            self._catalog = self.filetree.abs(cat)
+            self._catpath = self.filetree.abs(cat)
+
+        else:
+            # catalog can be a function
+            self._catalog = parse_csep_func(cat)
+            self._catpath = self.filetree.abs('catalog.json')
+            if os.path.isfile(self._catpath):
+                print(f"Using stored catalog "
+                      f"'{os.path.relpath(self._catpath, self.path)}', "
+                      f"obtained from function '{cat}'")
+            else:
+                print(f"Downloading catalog from function {cat}")
 
     def set_test_cat(self, tstring: str) -> None:
         """
 
-        Filters the experiment catalog to a test catalog bounded by
-        the testtime window. Writes it to filepath defined in path tree
+        Filters the complete experiment catalog to a test sub-catalog bounded
+        by the test time-window. Writes it to filepath defined in
+        :attr:`Experiment.filetree`
 
         Args:
             tstring (str): Time window string
 
         """
         start, end = str2timewindow(tstring)
-        subcat = self.catalog.filter(
+        sub_cat = self.catalog.filter(
             [f'origin_time < {end.timestamp() * 1000}',
              f'origin_time >= {start.timestamp() * 1000}'])
-        subcat.write_json(filename=self.filetree(tstring, 'catalog'))
+        sub_cat.write_json(filename=self.filetree(tstring, 'catalog'))
 
     def set_tasks(self, results_path=None, run_name=None):
         """
         Lazy definition of the experiment core tasks by wrapping instances,
-        methods and arguments. Creats a graph with task nodes, while assigning
-        task-parents to each node, depending on the Evaluation signatures.
+        methods and arguments. Creates a graph with task nodes, while assigning
+        task-parents to each node, depending on each Evaluation signature.
         The tasks can then be run sequentially as a list or asynchronous
         using the graph's node dependencies.
         For instance:
-        - Forecast can only be made if catalog is filtered to its window
-        - A consistency test can be run if the forecast exists in a window
-        - A comparison test requires the forecast and ref forecast
-        - A sequential test requires the forecasts exist for all windows
-        - A batch test requires all forecast exist for a given window.
+
+        * A forecast can only be made if catalog was filtered to its window
+        * A consistency test can be run if the forecast exists in a window
+        * A comparison test requires the forecast and ref forecast
+        * A sequential test requires the forecasts exist for all windows
+        * A batch test requires all forecast exist for a given window.
+
+        Args:
+            results_path (str, None): Path where the results will be stored.
+             Defaults to `results`.
+            run_name (str, None): Sub-folder where this particular run will be
+             stored. Default is ''
 
         Returns:
 
@@ -326,7 +404,7 @@ class Experiment:
                           tstring=time_i)
             # An is added to the task graph
             task_graph.add(task_i)
-            # the task is executed later with Experiment.run()
+            # the task will be executed later with Experiment.run()
             # once all the tasks are defined
 
         # todo Prepare input catalogs for time-dependent
@@ -454,68 +532,6 @@ class Experiment:
 
         self.task_graph = task_graph
 
-    def get_model(self, name: str) -> Model:
-        for model in self.models:
-            if model.name == name:
-                return model
-
-    @property
-    def catalog(self) -> CSEPCatalog:
-
-        if callable(self._catalog):
-            if os.path.isfile(self._catpath):
-                return CSEPCatalog.load_json(self._catpath)
-            bounds = {'start_time': min([item for sublist in self.timewindows
-                                         for item in sublist]),
-                      'end_time': max([item for sublist in self.timewindows
-                                       for item in sublist]),
-                      'min_magnitude': self.magnitudes.min(),
-                      'max_depth': self.depths.max()}
-            if self.region:
-                bounds.update({i: j for i, j in
-                               zip(['min_longitude', 'max_longitude',
-                                    'min_latitude', 'max_latitude'],
-                                   self.region.get_bbox())})
-
-            catalog = self._catalog(
-                catalog_id='cat',  # todo name as run
-                verbose=True,
-                **bounds
-            )
-
-            if self.region:
-                catalog.filter_spatial(region=self.region)
-                catalog.region = None
-            catalog.write_json(self._catpath)
-
-            return catalog
-
-        elif os.path.isfile(self._catalog):
-            return CSEPCatalog.load_json(self._catpath)
-
-    @catalog.setter
-    def catalog(self, cat: Union[Callable, CSEPCatalog, str]) -> None:
-
-        if cat is None:
-            self._catalog = None
-            self._catpath = None
-
-        elif os.path.isfile(self.filetree.abs(cat)):
-            print(f"Using catalog from {cat}")
-            self._catalog = self.filetree.abs(cat)
-            self._catpath = self.filetree.abs(cat)
-
-        else:
-            # catalog can be a function
-            self._catalog = parse_csep_func(cat)
-            self._catpath = self.filetree.abs('catalog.json')
-            if os.path.isfile(self._catpath):
-                print(f"Using stored catalog "
-                      f"'{os.path.relpath(self._catpath, self.path)}', "
-                      f"obtained from function '{cat}'")
-            else:
-                print(f"Downloading catalog from function {cat}")
-
     def run(self) -> None:
         """
         Run the task tree
@@ -523,7 +539,6 @@ class Experiment:
         todo:
          - Cleanup forecast (perhaps add a clean task in self.prepare_tasks,
             after all test had been run for a given forecast)
-         - Task dependence graph
          - Memory monitor?
          - Queuer?
 
@@ -531,8 +546,11 @@ class Experiment:
         self.task_graph.run()
         self.to_yml(self.filetree('config'), extended=True)
 
-    def _read_results(self, test: Evaluation, window: str) -> List:
-
+    def read_results(self, test: Evaluation, window: str) -> List:
+        """
+        Reads an Evaluation result for a given time window and returns a list
+        of the results for all tested models.
+        """
         test_results = []
         if not isinstance(window, str):
             wstr_ = timewindow2str(window)
@@ -567,7 +585,7 @@ class Experiment:
             # consistency and comparative
             for test in self.tests:
                 if 'Discrete' in test.type and 'Absolute' in test.type:
-                    results = self._read_results(test, time)
+                    results = self.read_results(test, time)
                     ax = test.plot_func(results, plot_args=test.plot_args,
                                         **test.plot_kwargs)
                     if 'code' in test.plot_args:
@@ -582,7 +600,7 @@ class Experiment:
             # todo improve the logic of this plots
             time_str = timewindow2str(self.timewindows[-1])
 
-            results = self._read_results(test, time_str)
+            results = self.read_results(test, time_str)
             if test.type == 'seqcomp':
                 results_ = []
                 for i in results:
@@ -602,7 +620,15 @@ class Experiment:
                 pyplot.show()
 
     def plot_catalog(self, dpi: int = 300, show: bool = False) -> None:
+        """
 
+        Plots the evaluation catalogs
+
+        Args:
+            dpi: Figure resolution with which to save
+            show: show in runtime
+
+        """
         plot_args = {'basemap': 'ESRI_terrain',
                      'figsize': (12, 8),
                      'markersize': 8,

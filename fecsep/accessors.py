@@ -30,7 +30,7 @@ def query_isc_gcmt(start_time: datetime, end_time: datetime,
 
     Args:
         start_time (datetime.datetime): start date-time of the query
-        end_time (datetime.datime): end date-time of the query
+        end_time (datetime.datetime): end date-time of the query
         min_magnitude (float): cutoff magnitude
         min_depth (float): minimum depth
         max_depth (float): maximum depth
@@ -71,198 +71,6 @@ def query_isc_gcmt(start_time: datetime, end_time: datetime,
                           catalog_id=catalog_id, date_accessed=creation_time)
     catalog.filter([f'magnitude >= {min_magnitude}'], in_place=True)
     return catalog
-
-
-def _query_isc_gcmt(out_format: str = 'QuakeML',
-                    request: str = 'COMPREHENSIVE',
-                    searchshape: str = 'GLOBAL',
-                    start_year: int = 2020,
-                    start_month: int = 1,
-                    start_day: int = 1,
-                    start_time: str = '00:00:00',
-                    end_year: int = 2022,
-                    end_month: int = 1,
-                    end_day: int = 1,
-                    end_time: str = '23:59:59',
-                    host: str = None,
-                    include_magnitudes: str = 'on',
-                    min_mag: float = 5.95,
-                    max_mag: float = None,
-                    min_dep: float = None,
-                    max_dep: float = None,
-                    left_lon: float = None,
-                    right_lon: float = None,
-                    bot_lat: float = None,
-                    top_lat: float = None,
-                    req_mag_type: str = 'MW',
-                    req_mag_agcy: str = 'GCMT',
-                    verbose: bool = False):
-    """
-    Formats the query url by the search parameters.
-
-    Args:
-        out_format (str): 'QuakeML' (recommended) or 'ISF'
-        request (str): 'COMPREHENSIVE' or 'REVIEWED' by ISC analyst
-        searchshape (str): 'GLOBAL' or 'RECT'. Other options not imp. in csep
-        host (str): Host to do the call. Uses HOST_CATALOG defined atop module
-        include_magnitudes (str): 'on' for csep purposes
-        req_mag_type (str): 'MW' for GCMT
-        req_mag_agcy (str): 'GCMT'
-        verbose (bool): print log
-
-    Returns:
-
-    """
-    inputargs = locals().copy()
-    query_args = {}
-    for key, value in inputargs.items():
-        if value is True:
-            query_args[key] = 'true'
-            continue
-        if value is False:
-            query_args[key] = 'false'
-            continue
-        if value is None:
-            continue
-        query_args[key] = value
-
-    del query_args['verbose']
-
-    start_time = time.time()
-    if verbose:
-        print('Accessing ISC API')
-
-    events, creation_time, url = _search_isc_gcmt(**query_args)
-
-    if verbose:
-        print(f'\tAccess URL: {url}')
-        print(
-            f'\tCatalog with {len(events)} events downloaded in '
-            f'{(time.time() - start_time):.2f} seconds')
-
-    return events, creation_time
-
-
-def _search_isc_gcmt(**newargs):
-    """
-    Performs de query at ISC API and returns event list and access date
-
-    """
-    paramstr = urlencode(newargs)
-    url = HOST_CATALOG + paramstr
-    try:
-        fh = request_.urlopen(url, timeout=TIMEOUT)
-        data = fh.read().decode('utf8')
-        fh.close()
-        root = ElementTree.fromstring(data)
-        ns = root[0].tag.split('}')[0] + '}'
-        creation_time = root[0].find(ns + 'creationInfo').find(
-            ns + 'creationTime').text
-        creation_time = creation_time.replace('T', ' ')
-        events_quakeml = root[0].findall(ns + 'event')
-        events = []
-        for feature in events_quakeml:
-            events.append(_parse_isc_event(feature, ns))
-
-    except ElementTree.ParseError as msg:
-        raise Exception('Badly-formed URL. "%s"' % msg)
-
-    except Exception as msg:
-        raise Exception(
-            'Error downloading data from url %s.  "%s".' % (url, msg))
-
-    return events, creation_time, url
-
-
-def _parse_isc_event(node, ns, mag_author='GCMT'):
-    """
-    Parse event list from quakeML returned from ISC
-    """
-    id_ = node.get('publicID').split('=')[-1]
-    magnitudes = node.findall(ns + 'magnitude')
-    mag_gcmt = [i for i in magnitudes if
-                i.find(ns + 'creationInfo')[0].text == mag_author][0]
-
-    origin_id = mag_gcmt.find(ns + 'originID').text
-    origins = node.findall(ns + 'origin')
-
-    origin_gcmt = [i for i in origins if i.attrib['publicID'] == origin_id][0]
-
-    lat = origin_gcmt.find(ns + 'latitude').find(ns + 'value').text
-    lon = origin_gcmt.find(ns + 'longitude').find(ns + 'value').text
-    mag = mag_gcmt.find(ns + 'mag').find(ns + 'value').text
-    depth = origin_gcmt.find(ns + 'depth').find(ns + 'value').text
-
-    dtstr = origin_gcmt.find(ns + 'time').find(ns + 'value').text
-    date = dtstr.split('T')[0]
-    time_ = dtstr.split('T')[1][:-1]
-    dtime = datetime_to_utc_epoch(
-        datetime.fromisoformat(date + ' ' + time_ + '0'))
-
-    return id_, dtime, float(lat), float(lon), float(depth) / 1000., float(mag)
-
-
-def _download_file(url: str, filename: str) -> None:
-    """
-
-    Downloads files (from zenodo)
-
-    Args:
-        url (str):
-        filename (str):
-
-    """
-    progress_bar_length = 72
-    block_size = 1024
-
-    r = requests.get(url, stream=True)
-    total_size = r.headers.get('content-length', False)
-    if not total_size:
-        with requests.head(url) as h:
-            try:
-                total_size = int(h.headers.get('Content-Length', 0))
-            except TypeError:
-                total_size = 0
-    else:
-        total_size = int(total_size)
-    download_size = 0
-    if total_size:
-        print(
-            f'Downloading file with size of {total_size / block_size:.3f} kB')
-    else:
-        print(f'Downloading file with unknown size')
-    with open(filename, 'wb') as f:
-        for data in r.iter_content(chunk_size=block_size):
-            download_size += len(data)
-            f.write(data)
-            if total_size:
-                progress = int(
-                    progress_bar_length * download_size / total_size)
-                sys.stdout.write(
-                    '\r[{}{}] {:.1f}%'.format('█' * progress, '.' *
-                                              (progress_bar_length - progress),
-                                              100 * download_size / total_size)
-                )
-                sys.stdout.flush()
-        sys.stdout.write('\n')
-
-
-def _check_hash(filename, checksum):
-    """
-    Checks if existing file hash matches checksum from url
-    """
-    algorithm, value = checksum.split(':')
-    if not os.path.exists(filename):
-        return value, 'invalid'
-    h = hashlib.new(algorithm)
-    with open(filename, 'rb') as f:
-        while True:
-            data = f.read(4096)
-            if not data:
-                break
-            h.update(data)
-    digest = h.hexdigest()
-    return value, digest
 
 
 def from_zenodo(record_id, folder, force=False):
@@ -335,3 +143,195 @@ def from_git(url, path, branch=None, depth=1, **kwargs):
             shutil.rmtree(git_dir)
 
     return repo
+
+
+def _query_isc_gcmt(out_format: str = 'QuakeML',
+                    request: str = 'COMPREHENSIVE',
+                    searchshape: str = 'GLOBAL',
+                    start_year: int = 2020,
+                    start_month: int = 1,
+                    start_day: int = 1,
+                    start_time: str = '00:00:00',
+                    end_year: int = 2022,
+                    end_month: int = 1,
+                    end_day: int = 1,
+                    end_time: str = '23:59:59',
+                    host: str = None,
+                    include_magnitudes: str = 'on',
+                    min_mag: float = 5.95,
+                    max_mag: float = None,
+                    min_dep: float = None,
+                    max_dep: float = None,
+                    left_lon: float = None,
+                    right_lon: float = None,
+                    bot_lat: float = None,
+                    top_lat: float = None,
+                    req_mag_type: str = 'MW',
+                    req_mag_agcy: str = 'GCMT',
+                    verbose: bool = False):
+    """
+    Formats the query url by the search parameters.
+
+    Args:
+        out_format (str): 'QuakeML' (recommended) or 'ISF'
+        request (str): 'COMPREHENSIVE' or 'REVIEWED' by ISC analyst
+        searchshape (str): 'GLOBAL' or 'RECT'. Other options not imp. in csep
+        host (str): Host to do the call. Uses HOST_CATALOG defined atop module
+        include_magnitudes (str): 'on' for csep purposes
+        req_mag_type (str): 'MW' for GCMT
+        req_mag_agcy (str): 'GCMT'
+        verbose (bool): print log
+
+    Returns:
+        events list and the creation time string
+    """
+    inputargs = locals().copy()
+    query_args = {}
+    for key, value in inputargs.items():
+        if value is True:
+            query_args[key] = 'true'
+            continue
+        if value is False:
+            query_args[key] = 'false'
+            continue
+        if value is None:
+            continue
+        query_args[key] = value
+
+    del query_args['verbose']
+
+    start_time = time.time()
+    if verbose:
+        print('Accessing ISC API')
+
+    events, creation_time, url = _search_isc_gcmt(**query_args)
+
+    if verbose:
+        print(f'\tAccess URL: {url}')
+        print(
+            f'\tCatalog with {len(events)} events downloaded in '
+            f'{(time.time() - start_time):.2f} seconds')
+
+    return events, creation_time
+
+
+def _search_isc_gcmt(**newargs):
+    """
+    Performs the query at ISC API and returns event list and access date
+
+    """
+    paramstr = urlencode(newargs)
+    url = HOST_CATALOG + paramstr
+    try:
+        fh = request_.urlopen(url, timeout=TIMEOUT)
+        data = fh.read().decode('utf8')
+        fh.close()
+        root = ElementTree.fromstring(data)
+        ns = root[0].tag.split('}')[0] + '}'
+        creation_time = root[0].find(ns + 'creationInfo').find(
+            ns + 'creationTime').text
+        creation_time = creation_time.replace('T', ' ')
+        events_quakeml = root[0].findall(ns + 'event')
+        events = []
+        for feature in events_quakeml:
+            events.append(_parse_isc_event(feature, ns))
+
+    except ElementTree.ParseError as msg:
+        raise Exception('Badly-formed URL. "%s"' % msg)
+
+    except Exception as msg:
+        raise Exception(
+            'Error downloading data from url %s.  "%s".' % (url, msg))
+
+    return events, creation_time, url
+
+
+def _parse_isc_event(node, ns, mag_author='GCMT'):
+    """
+    Parse event list from quakeML returned from ISC
+    """
+    id_ = node.get('publicID').split('=')[-1]
+    magnitudes = node.findall(ns + 'magnitude')
+    mag_gcmt = [i for i in magnitudes if
+                i.find(ns + 'creationInfo')[0].text == mag_author][0]
+
+    origin_id = mag_gcmt.find(ns + 'originID').text
+    origins = node.findall(ns + 'origin')
+
+    origin_gcmt = [i for i in origins if i.attrib['publicID'] == origin_id][0]
+
+    lat = origin_gcmt.find(ns + 'latitude').find(ns + 'value').text
+    lon = origin_gcmt.find(ns + 'longitude').find(ns + 'value').text
+    mag = mag_gcmt.find(ns + 'mag').find(ns + 'value').text
+    depth = origin_gcmt.find(ns + 'depth').find(ns + 'value').text
+
+    dtstr = origin_gcmt.find(ns + 'time').find(ns + 'value').text
+    date = dtstr.split('T')[0]
+    time_ = dtstr.split('T')[1][:-1]
+    dtime = datetime_to_utc_epoch(
+        datetime.fromisoformat(date + ' ' + time_ + '0'))
+
+    return id_, dtime, float(lat), float(lon), float(depth) / 1000., float(mag)
+
+
+def _download_file(url: str, filename: str) -> None:
+    """
+
+    Downloads files (from zenodo)
+
+    Args:
+        url (str): the url where the file is located
+        filename (str): the filename required.
+
+    """
+    progress_bar_length = 72
+    block_size = 1024
+
+    r = requests.get(url, stream=True)
+    total_size = r.headers.get('content-length', False)
+    if not total_size:
+        with requests.head(url) as h:
+            try:
+                total_size = int(h.headers.get('Content-Length', 0))
+            except TypeError:
+                total_size = 0
+    else:
+        total_size = int(total_size)
+    download_size = 0
+    if total_size:
+        print(
+            f'Downloading file with size of {total_size / block_size:.3f} kB')
+    else:
+        print(f'Downloading file with unknown size')
+    with open(filename, 'wb') as f:
+        for data in r.iter_content(chunk_size=block_size):
+            download_size += len(data)
+            f.write(data)
+            if total_size:
+                progress = int(
+                    progress_bar_length * download_size / total_size)
+                sys.stdout.write(
+                    '\r[{}{}] {:.1f}%'.format('█' * progress, '.' *
+                                              (progress_bar_length - progress),
+                                              100 * download_size / total_size)
+                )
+                sys.stdout.flush()
+        sys.stdout.write('\n')
+
+
+def _check_hash(filename, checksum):
+    """
+    Checks if existing file hash matches checksum from url
+    """
+    algorithm, value = checksum.split(':')
+    if not os.path.exists(filename):
+        return value, 'invalid'
+    h = hashlib.new(algorithm)
+    with open(filename, 'rb') as f:
+        while True:
+            data = f.read(4096)
+            if not data:
+                break
+            h.update(data)
+    digest = h.hexdigest()
+    return value, digest

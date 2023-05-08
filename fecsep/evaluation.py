@@ -1,59 +1,32 @@
 import json
-from inspect import signature, Parameter
 from datetime import datetime
 from typing import Dict, Callable, Union, Sequence, List
 
 import csep.models
 from csep.core.catalogs import CSEPCatalog
-from csep.core.forecasts import GriddedForecast, CatalogForecast
+from csep.core.forecasts import GriddedForecast
 
 from fecsep.model import Model
 from fecsep.utils import parse_csep_func
-
-_ARGTYPES = {GriddedForecast: ['forecast',
-                               'gridded_forecast',
-                               'gridded_forecast1',
-                               'gridded_forecast2',
-                               'benchmark_forecast'],
-             CSEPCatalog: ['catalog', 'observed_catalog'],
-             Sequence[GriddedForecast]: ['forecasts',
-                                         'gridded_forecasts',
-                                         'benchmark_forecasts'],
-             Sequence[CSEPCatalog]: ['observed_catalogs']}
 
 
 class Evaluation:
     """
 
     Class representing a Scoring Test, which wraps the evaluation function,
-    its arguments, parameters and metaparameters.
+    its arguments, parameters and hyper-parameters.
 
     Args:
         name (str): Name of the Test
-        func (str, ~collections.abc.Callable): Test function/callable
+        func (str, ~typing.Callable): Test function/callable
         func_kwargs (dict): Keyword arguments of the test function
-        plot_func (str, ~collections.abc.Callable): Test's plotting function
+        ref_model (str): String of the reference model, if any
+        plot_func (str, ~typing.Callable): Test's plotting function
         plot_args (list): Positional arguments of the plotting function
         plot_kwargs (dict): Keyword arguments of the plotting function
 
     """
 
-    '''
-    Evaluation Typology
-        Class >> Not distinguished in fecsep:
-            Score (Single metric)
-            Test (Metric and p-val)
-        Mapping:
-            Absolute (Single model)
-            Comparative (Relative to a model)
-            Batch (Relative to a model batch)
-        Temporality: 
-            Discrete (Metric for the entire time span):
-            Incremental (Metrics of sequential time windows):  
-            Sequential: 
-    '''
-
-    # todo: Typology characterization should be done within pycsep
     _TYPES = {
         'number_test': 'consistency',
         'spatial_test': 'consistency',
@@ -95,57 +68,21 @@ class Evaluation:
         self.type = Evaluation._TYPES.get(self.func.__name__)
 
     @property
-    def func_signature(self):
-        """
-
-        Finds the Evaluation function signature (type of the arguments).
-        From this, the Experiment class can (1) Identify which args must be
-        passed to the Evaluation.compute() (2) Determine the Task structure
-        logic.
-
-        Returns:
-            An list with the Types representing the function positional
-            arguments' types.
-
-        """
-
-        args = [param for param in signature(self.func).parameters.values()
-                if param.default == Parameter.empty]
-        names = [a.name for a in args]
-        annotations = [a.annotation for a in args]
-        func_sign = []
-        for n, a in zip(names, annotations):
-            if a == Parameter.empty:
-                try:
-                    argtype = [i for i, k in _ARGTYPES.items() if n in k][0]
-                except IndexError:
-                    raise TypeError(
-                        f"The argument '{n}' of function "
-                        f"'{self.func.__name__}' has no type specified,"
-                        f" and was not found in 'evaluation._ARGTYPES'")
-            else:
-                argtype = a
-            func_sign.append(argtype)
-        return func_sign
-
-    @property
     def type(self):
-        # todo deprecate
+        """
+        Returns the type of the test, mapped from the class attribute
+        Evaluation._TYPES
+        """
         return self._type
 
     @type.setter
     def type(self, type_list: Union[str, Sequence[str]]):
-        # todo deprecate
         if isinstance(type_list, Sequence):
             if ('Comparative' in type_list) and (self.ref_model is None):
                 raise TypeError('A comparative-type test should have a'
                                 ' reference model assigned')
 
         self._type = type_list
-
-    def is_type(self, test_type: str):
-        return (test_type in self.type) or (
-                test_type in [i.lower() for i in self.type])
 
     def prepare_args(self,
                      timewindow: Union[str, list],
@@ -157,16 +94,16 @@ class Evaluation:
         Prepares the positional argument for the Evaluation function.
 
         Args:
-            timewindow (str/list): Time window string (or list of str)
-             formatted from `fecsep.utils.timewindow2str`
-            catpath (str/list): Path(s) pointing to the filtered catalog (s)
+            timewindow (str, list): Time window string (or list of str)
+             formatted from :meth:`fecsep.utils.timewindow2str`
+            catpath (str,list): Path(s) pointing to the filtered catalog(s)
             model (:class:`fecsep:model.Model`): Model to be evaluated
-            ref_model (:class:`fecsep:model.Model`, list): Model (or models)
-             reference for the evaluation.
+            ref_model (:class:`fecsep:model.Model`, list): Reference model (or
+             models) reference for the evaluation.
 
         Returns:
             A tuple of the positional arguments required by the evaluation
-            function `Evaluation.func`.
+            function :meth:`Evaluation.func`.
 
         """
         # Subtasks
@@ -201,13 +138,13 @@ class Evaluation:
     ) -> Union[CSEPCatalog, List[CSEPCatalog]]:
         """
 
-        Reads the catalog(s) from given path(s). Reference the catalog region
-        to the forecast region.
+        Reads the catalog(s) from the given path(s). References the catalog
+        region to the forecast region.
 
         Args:
             catalog_path (str, list(str)): Path to the existing catalog
             forecast (:class:`~csep.core.forecasts.GriddedForecast`): Forecast
-             object, onto which the catalog will be confronted.
+             object, onto which the catalog will be confronted for testing.
 
         Returns:
 
@@ -238,8 +175,8 @@ class Evaluation:
          test-typology/function-signature
 
         Args:
-            timewindow (list[datetime, datetime]): Pair of datetime objects
-             representing the testing time span
+            timewindow (list[~datetime.datetime, ~datetime.datetime]): Pair of
+             datetime objects representing the testing time span
             catalog (str):  Path to the filtered catalog
             model (Model, list[Model]): Model(s) to be evaluated
             ref_model: Model to be used as reference
@@ -260,10 +197,18 @@ class Evaluation:
     @staticmethod
     def write_result(result: csep.models.EvaluationResult,
                      path: str) -> None:
+        """
+        Dumps a test result into a json file.
+        """
+
         with open(path, 'w') as _file:
             json.dump(result.to_dict(), _file, indent=4)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
+        """
+        Represents an Evaluation instance as a dictionary, which can be
+        serialized and then parsed
+        """
         out = {}
         included = ['model', 'ref_model', 'func_kwargs',
                     'plot_args', 'plot_kwargs']
@@ -285,6 +230,9 @@ class Evaluation:
 
     @classmethod
     def from_dict(cls, record):
+        """
+        Parses a dictionary and re-instantiate an Evaluation object
+        """
         if len(record) != 1:
             raise IndexError('A single test has not been passed')
         name = next(iter(record))

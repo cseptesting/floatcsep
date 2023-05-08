@@ -34,7 +34,7 @@ templates_path = ['_templates']
 source_suffix = '.rst'
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 pygments_style = 'default'  # todo
-
+autodoc_typehints = 'none'
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://docs.scipy.org/doc/numpy/", None),

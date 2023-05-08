@@ -76,7 +76,6 @@ class Model:
         # todo:
         #  - Instantiate from source code
 
-
         # Instantiate attributes
         self.name = name
         self.zenodo_id = zenodo_id
@@ -176,8 +175,6 @@ class Model:
                 f"Directory '{self.dir}' or file {self.path}' do not exist. "
                 f"Please check the specified 'path' matches the repo "
                 f"structure")
-
-
 
     def init_db(self, dbpath: str = '', force: bool = False) -> None:
         """

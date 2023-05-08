@@ -12,6 +12,11 @@ Preliminary documentation.
    :maxdepth: 2
    :caption: Contents:
 
+.. toctree::
+    :maxdepth: 2
+    :caption: Examples:
+
+    examples/case_a.rst
 
 .. toctree::
     :maxdepth: 2

@@ -19,15 +19,21 @@ The experiment is defined using the :class:`Experiment` class.
 
     Experiment
     Experiment.set_models
+    Experiment.get_model
+    Experiment.stage_models
     Experiment.set_tests
+    Experiment.catalog
+    Experiment.set_test_cat
     Experiment.set_tasks
     Experiment.run
+    Experiment.read_results
     Experiment.plot_results
+    Experiment.plot_catalog
     Experiment.plot_forecasts
     Experiment.generate_report
-    Experiment.from_yml
     Experiment.to_dict
     Experiment.to_yml
+    Experiment.from_yml
 
 
 Models
@@ -44,6 +50,7 @@ A model is defined using the :class:`Model` class.
 
     Model
     Model.get_source
+    Model.stage
     Model.init_db
     Model.rm_db
     Model.get_forecast
@@ -67,8 +74,11 @@ A test is defined using the :class:`Evaluation` class.
    :toctree: generated
 
     Evaluation
-    Evaluation.func_signature
+    Evaluation.type
+    Evaluation.get_catalog
+    Evaluation.prepare_args
     Evaluation.compute
+    Evaluation.write_result
     Evaluation.to_dict
     Evaluation.from_dict
 
