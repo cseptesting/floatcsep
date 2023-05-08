@@ -1,6 +1,7 @@
 import os
 import os.path
 
+import csep
 import numpy
 import yaml
 import json
@@ -318,7 +319,10 @@ class Experiment:
             return catalog
 
         elif os.path.isfile(self._catalog):
-            return CSEPCatalog.load_json(self._catpath)
+            try:
+                return CSEPCatalog.load_json(self._catpath)
+            except json.JSONDecodeError:
+                return csep.load_catalog(self._catpath)
 
     @catalog.setter
     def catalog(self, cat: Union[Callable, CSEPCatalog, str]) -> None:

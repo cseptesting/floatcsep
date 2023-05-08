@@ -4,6 +4,24 @@ API Reference
 This contains a reference document to the feCSEP API.
 
 
+Commands
+--------
+
+The commands and entry-points with which to call `fecsep` from the terminal
+are:
+
+.. :currentmodule:: fecsep.cmd.main
+
+.. automodule:: fecsep.cmd.main
+
+.. autosummary::
+   :toctree: generated
+
+    run
+    plot
+    reproduce
+
+
 Experiment
 ----------
 
@@ -83,22 +101,6 @@ A test is defined using the :class:`Evaluation` class.
     Evaluation.from_dict
 
 
-
-
-Running an Experiment
-----------------------
-
-.. :currentmodule:: fecsep.cmd.main
-
-.. automodule:: fecsep.cmd.main
-
-.. autosummary::
-   :toctree: generated
-
-    run
-    plot
-
-
 Accessors
 ---------
 
@@ -167,8 +169,8 @@ Utilities
 
 
 
-Database parsers
-----------------
+Readers
+-------
 
 .. :currentmodule:: fecsep.readers
 

@@ -1,0 +1,2 @@
+lon, lat, mag, time_string, depth, cat_id, event_id
+0.5,0.5,6.5,2020-06-01T00:00:00,30,1,1
