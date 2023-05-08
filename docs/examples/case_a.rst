@@ -21,7 +21,7 @@ forecast against a simple catalog. The input structure of the experiment is:
         ├── model.dat
         └── region.txt
 
-Here, the catalog is simple and contains only one event
+The catalog contains only one event and is formatted in the
 
 
 
