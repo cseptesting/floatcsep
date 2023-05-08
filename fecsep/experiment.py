@@ -289,7 +289,7 @@ class Experiment:
              f'origin_time >= {start.timestamp() * 1000}'])
         subcat.write_json(filename=self.filetree(tstring, 'catalog'))
 
-    def set_tasks(self):
+    def set_tasks(self, results_path=None, run_name=None):
         """
         Lazy definition of the experiment core tasks by wrapping instances,
         methods and arguments. Creats a graph with task nodes, while assigning
@@ -310,7 +310,9 @@ class Experiment:
         # Set the file path structure
         self.filetree.set_pathtree(self.timewindows,
                                    self.models,
-                                   self.tests)
+                                   self.tests,
+                                   results_path=results_path,
+                                   run_name=run_name)
 
         # Get the time windows strings
         tw_strings = timewindow2str(self.timewindows)
@@ -561,7 +563,6 @@ class Experiment:
 
         for time in self.timewindows:
             time_str = timewindow2str(time)
-            fig_paths = self.filetree(time_str, 'figures')
 
             # consistency and comparative
             for test in self.tests:
@@ -571,14 +572,16 @@ class Experiment:
                                         **test.plot_kwargs)
                     if 'code' in test.plot_args:
                         exec(test.plot_args['code'])
-                    pyplot.savefig(fig_paths[test.name], dpi=dpi)
+                        fig_path = self.filetree(time_str, 'figures',
+                                                 test.name)
+                    pyplot.savefig(fig_path, dpi=dpi)
                     if show:
                         pyplot.show()
 
         for test in self.tests:
             # todo improve the logic of this plots
             time_str = timewindow2str(self.timewindows[-1])
-            fig_paths = self.filetree(time_str, 'figures')
+
             results = self._read_results(test, time_str)
             if test.type == 'seqcomp':
                 results_ = []
@@ -593,7 +596,8 @@ class Experiment:
                                 **test.plot_kwargs)
             if 'code' in test.plot_args:
                 exec(test.plot_args['code'])
-            pyplot.savefig(fig_paths[test.name], dpi=dpi)
+            fig_path = self.filetree(time_str, 'figures', test.name)
+            pyplot.savefig(fig_path, dpi=dpi)
             if show:
                 pyplot.show()
 
@@ -707,6 +711,10 @@ class Experiment:
         """
 
         report.generate_report(self)
+
+    def check_reproducibility(self) -> None:
+
+        pass
 
     def to_dict(self, exclude: Sequence = ('magnitudes', 'depths',
                                            'timewindows', 'filetree',

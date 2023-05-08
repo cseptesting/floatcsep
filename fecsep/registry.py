@@ -33,7 +33,7 @@ class ModelTree:
 @dataclass
 class PathTree:
     workdir: str
-    run_folder: str = None
+    run_folder: str = 'results'
     paths: dict = field(default_factory=dict)
 
     def __call__(self, *args):
@@ -41,7 +41,8 @@ class PathTree:
         for i in args:
             parsed_arg = self._parse_arg(i)
             val = val[parsed_arg]
-        return val
+
+        return self.abs(self.run_folder, val)
 
     @staticmethod
     def _parse_arg(arg):
@@ -122,7 +123,7 @@ class PathTree:
         # Determine required directory structure for run
         # results > test_date > time_window > cats / evals / figures
 
-        run_folder = self.abs(results_path or 'results', run_name or '')
+        run_folder = os.path.join(results_path or 'results', run_name or '')
 
         subfolders = ['catalog', 'evaluations', 'figures', 'forecasts']
         dirtree = {
@@ -153,26 +154,25 @@ class PathTree:
         } for win in windows}
 
         target_paths = {
-            'config': self.abs(run_folder, 'run_config.yml'),
+            'config':  'run_config.yml',
             **{win: {
                 'models': {model: {'forecasts': None} for model in models},
-                'catalog': os.path.join(dirtree[win]['catalog'],
-                                        'catalog.json'),
+                'catalog': os.path.join(win, 'catalog', 'catalog.json'),
                 'evaluations': {
                     test: {
-                        model: os.path.join(dirtree[win]['evaluations'],
+                        model: os.path.join(win, 'evaluations',
                                             f'{test}_{model}.json')
                         for model in models
                     }
                     for test in tests},
                 'figures': {
-                    **{test: self.abs(dirtree[win]['figures'], f'{test}')
+                    **{test: os.path.join(win, 'figures', f'{test}')
                        for test in tests},
-                    **{model: self.abs(dirtree[win]['figures'], f'{model}')
+                    **{model: os.path.join(win, 'figures', f'{model}')
                        for model in models},
-                    'catalog': self.abs(dirtree[win]['figures'], 'catalog'),
-                    'magnitude_time': self.abs(dirtree[win]['figures'],
-                                               'magnitude_time')
+                    'catalog': os.path.join(win, 'figures', 'catalog'),
+                    'magnitude_time': os.path.join(win, 'figures',
+                                                   'magnitude_time')
                 }
             } for win in windows}
         }

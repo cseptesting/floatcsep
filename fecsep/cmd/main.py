@@ -6,7 +6,6 @@ def run(config, show=True):
     exp = Experiment.from_yml(config)
 
     exp.stage_models()
-    # exp.set_tests()
     print('\n==================')
     print('Running experiment')
     print('==================\n')
@@ -16,16 +15,13 @@ def run(config, show=True):
     print('Calculation done')
     print('================\n')
 
-    print('\n=============================')
-    print("Plotting experiment's results")
-    print('=============================\n')
     if show:
+        print('\n=============================')
+        print("Plotting experiment's results")
+        print('=============================\n')
         exp.plot_results()
         exp.plot_forecasts()
         exp.generate_report()
-    print('\n=============================')
-    print("Plotting experiment's results")
-    print('=============================\n')
 
     print('\n========')
     print('Complete')
@@ -45,12 +41,38 @@ def plot(config, **_):
     exp.generate_report()
 
 
+def reproduce(config, show=True):
+    exp = Experiment.from_yml(config)
+
+    exp.stage_models()
+    print('\n==================')
+    print('Re-running experiment')
+    print('==================\n')
+    exp.set_tasks(run_name='reproducibility')
+    exp.run()
+    print('\n================')
+    print('Calculation done')
+    print('================\n')
+
+    if show:
+        print('\n=============================')
+        print("Recreating experiment's figures")
+        print('=============================\n')
+        exp.plot_results()
+        exp.plot_forecasts()
+        exp.generate_report()
+
+    print('\n========')
+    print('Complete')
+    print('========\n')
+
+
 def fecsep():
     """
 
     """
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
-    parser.add_argument('func', type=str, choices=['run', 'plot'],
+    parser.add_argument('func', type=str, choices=['run', 'plot', 'reproduce'],
                         help='Run a calculation')
     parser.add_argument('config', type=str,
                         help='Experiment Configuration file')

@@ -77,4 +77,4 @@ def generate_report(experiment, timewindow=-1):
         )
 
     report.table_of_contents()
-    report.save(experiment.filetree.run_folder)
+    report.save(experiment.filetree.abs(experiment.filetree.run_folder))
