@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+import numpy
 from typing import Dict, Callable, Union, Sequence, List
 
 import csep.models
@@ -201,8 +201,18 @@ class Evaluation:
         Dumps a test result into a json file.
         """
 
+        class NumpyEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, numpy.integer):
+                    return int(obj)
+                if isinstance(obj, numpy.floating):
+                    return float(obj)
+                if isinstance(obj, numpy.ndarray):
+                    return obj.tolist()
+                return json.JSONEncoder.default(self, obj)
+
         with open(path, 'w') as _file:
-            json.dump(result.to_dict(), _file, indent=4)
+            json.dump(result.to_dict(), _file, indent=4, cls=NumpyEncoder)
 
     def to_dict(self) -> dict:
         """
