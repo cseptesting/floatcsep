@@ -30,14 +30,13 @@ def run(config, show=True):
 
 def plot(config, **_):
     exp = Experiment.from_yml(config)
-
-    exp.set_models()
-    exp.set_tests()
+    exp.stage_models()
     exp.set_tasks()
     print('\n=============================')
     print("Plotting experiment's results")
     print('=============================\n')
     exp.plot_results()
+    exp.plot_forecasts()
     exp.generate_report()
 
 
