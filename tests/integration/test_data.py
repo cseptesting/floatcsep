@@ -9,7 +9,7 @@ class DataTest(unittest.TestCase):
     @staticmethod
     def get_path(case):
         return os.path.abspath(
-            os.path.join(os.path.dirname(fecsep.__path__[0]),
+            os.path.join(__file__, '../../..',
                          'examples',
                          f'case_{case}',
                          f'config.yml')
