@@ -211,8 +211,13 @@ def read_region_config(region_config, **kwargs):
             filename = os.path.join(region_config.get('path', ''),
                                     region_data)
             with open(filename, 'r') as file_:
-                data = numpy.array([re.split(r'\s+|,', i.strip()) for i in
-                                    file_.readlines()], dtype=float)
+                parsed_region = file_.readlines()
+                try:
+                    data = numpy.array([re.split(r'\s+|,', i.strip()) for i in
+                                        parsed_region], dtype=float)
+                except ValueError:
+                    data = numpy.array([re.split(r'\s+|,', i.strip()) for i in
+                                        parsed_region[1:]], dtype=float)
                 region = CartesianGrid2D.from_origins(data, name=region_data,
                                                       magnitudes=magnitudes)
         else:

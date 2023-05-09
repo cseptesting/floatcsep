@@ -4,7 +4,7 @@ Experiment A - Simple Forecast and Catalog
 .. currentmodule:: fecsep
 
 .. contents::
-
+    :local:
 
 .. admonition:: **TL; DR**
 
@@ -17,8 +17,8 @@ Experiment A - Simple Forecast and Catalog
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
 
-Experiment's artifacts
-----------------------
+Artifacts
+---------
 
 The following example shows the definition of a testing experiment of a simple
 forecast against a simple catalog. The input structure of the experiment is:
@@ -32,7 +32,7 @@ forecast against a simple catalog. The input structure of the experiment is:
         └── region.txt
 
 
-The testing region consists of a grid with two 1ºx1º bins, whose bottom-left nodes are defined in the file `region.txt`. The grid spacing is obtained automatically:
+The testing region consists of a grid with two 1ºx1º bins, whose bottom-left nodes are defined in the file `region.txt`. The grid spacing is obtained automatically. The nodes are:
 
 .. literalinclude:: ../../examples/case_a/region.txt
 
@@ -60,14 +60,16 @@ Time
        :language: yaml
        :lines: 3-5
 
-    In case the time window are bounded by their midnights, the ``start_date`` and ``end_date`` can be in the format ``%Y-%m-%d``.
+    .. note::
 
-    The results of the experiment will be associated with this time window, whose identifier will be ``2020-01-01_2021-01-01``
+        In case the time window are bounded by their midnights, the ``start_date`` and ``end_date`` can be in the format ``%Y-%m-%d``.
+
+    The results of the experiment run will be associated with this time window, whose identifier will be its bounds: ``2020-01-01_2021-01-01``
 
 Region
 ~~~~~~
 
-    The region is defined in the ``region_config`` inset. Its configuration must make a reference to the region spatial bins in ``region.txt``. It is also necessary to define a depth range, as well as a magnitude range and binning.
+    The region - a file path or :class:`csep` function (e.g. :obj:`csep.core.regions.italy_csep_region`) -, the depth limits and magnitude  discretization are defined in the ``region_config`` inset.
 
     .. literalinclude:: ../../examples/case_a/config.yml
        :language: yaml
@@ -85,7 +87,7 @@ Catalog
 
 Models
 ~~~~~~
-    The model configuration is set in the ``models`` inset with a list of model names, that specify their file paths and other attributes. In this case, we just reference the path to ``best_model.dat``, whose format is detected automatically.
+    The model configuration is set in the ``models`` inset with a list of model names, which specify their file paths (and other attributes). Here, we just set the path as ``best_model.dat``, whose format is automatically detected.
 
     .. literalinclude:: ../../examples/case_a/config.yml
        :language: yaml
@@ -93,7 +95,7 @@ Models
 
 Evaluations
 ~~~~~~~~~~~
-    The experiment's evaluations are defined in the ``tests`` inset. It consists of a list of evaluation names, making reference to its function and plotting function. These can be either defined in ``pycsep`` (see :doc:`pycsep:concepts/evaluations`) or manually. In this example, we employ the consistency N-test: its main function is found in :func:`csep.core.poisson_evaluations.number_test`, whereas its plotting function correspond to  :func:`csep.utils.plots.plot_poisson_consistency_test`
+    The experiment's evaluations are defined in the ``tests`` inset. It should be a list of test names, making reference to their function and plotting function. These can be either defined in ``pycsep`` (see :doc:`pycsep:concepts/evaluations`) or manually. In this example, we employ the consistency N-test: its function is :func:`csep.core.poisson_evaluations.number_test`, whereas its plotting function correspond to :func:`csep.utils.plots.plot_poisson_consistency_test`
 
 .. literalinclude:: ../../examples/case_a/config.yml
    :language: yaml
@@ -106,18 +108,18 @@ Running the experiment
 Run command
 ~~~~~~~~~~~
 
-    The experiment can be run by simply navigating to the ``examples/case_a`` folder in the terminal an type.
+    The experiment can be run by simply navigating to the ``examples/case_a`` folder in the terminal and typing.
 
     .. code-block:: shell
 
         fecsep run config.yml
 
-    This will automatically set all the file paths of the calculation (testing catalogs, evaluation results, figures) and will display a summarized report in ``results/report.md``.
+    This will automatically set all the calculation paths (testing catalogs, evaluation results, figures) and will create a summarized report in ``results/report.md``.
 
 Plot command
 ~~~~~~~~~~~~
 
-    If only plotting of the results is desired, when the results exist already, you can type:
+    If only the result plots are desired, when the calculation was already completed, you can type:
 
     .. code-block:: shell
 
@@ -130,20 +132,22 @@ Plot command
         postproc_config:
           plot_forecasts: True
 
-    and re-run with the ``plot`` command. A forecast figure will appear in ``results/2020-01-01_2021-01-01/forecasts``
+    and re-run with the ``plot`` command. A forecast figure will appear in ``results/{window}/forecasts``
 
 Results
 ~~~~~~~
 
-    The :func:`~fecsep.cmd.run` command creates automatically the results path tree for each time window analyzed. In the ``results/2020-01-01_2021-01-01/catalog`` folder, the testing catalog can be found (a subset of the global testing catalog) in ``json`` format.
-    Human-readable results are found in ``results/2020-01-01_2021-01-01/evaluations``
-    whereas their figures (and catalog) in ``results/2020-01-01_2021-01-01/figures``.
-    Finally, the results are summarized in ``results/report.md``
+    The :obj:`~fecsep.cmd.main.run` command creates the result path tree for each time window analyzed.
+
+    *  The testing catalog of the window is stored in ``results/{window}/catalog``  in ``json`` format. This is a subset of the global testing catalog.
+    *  Human-readable results are found in ``results/{window}/evaluations``
+    *  Catalog and evaluation results figures in ``results/{window}/figures``.
+    *  The complete results are summarized in ``results/report.md``
 
 
 Advanced
 --------
 
-The experiment run logic can be seen in the file ``case_a.py``, which executes the same example but in python source code. The run logic of the terminal commands ``run``, ``plot`` and ``reproduce`` can be seen in :class:`fecsep.cmd.main`
+The experiment run logic can be seen in the file ``case_a.py``, which executes the same example but in python source code. The run logic of the terminal commands ``run``, ``plot`` and ``reproduce`` can be found in :class:`fecsep.cmd.main`
 
 
