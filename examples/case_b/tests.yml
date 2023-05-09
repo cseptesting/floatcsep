@@ -7,10 +7,10 @@
     plot_kwargs:
       one_sided_lower: True
 - Poisson M:
-      func: poisson_evaluations.magnitude_test
-      plot_func: plot_poisson_consistency_test
-      plot_kwargs:
-        one_sided_lower: True
+    func: poisson_evaluations.magnitude_test
+    plot_func: plot_poisson_consistency_test
+    plot_kwargs:
+      one_sided_lower: True
 - Poisson CL:
     func: poisson_evaluations.conditional_likelihood_test
     plot_func: plot_poisson_consistency_test

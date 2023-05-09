@@ -10,20 +10,27 @@ Preliminary documentation.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Experiment Definition
+
+   guide/config.rst
+   guide/time_config.rst
+   guide/region_config.rst
+   guide/model_config.rst
+   guide/tests_config.rst
 
 .. toctree::
-    :maxdepth: 2
-    :caption: Examples:
+   :maxdepth: 2
+   :caption: Examples
 
-    examples/case_a.rst
+   examples/case_a.rst
+   examples/case_b.rst
 
 .. toctree::
-    :maxdepth: 2
-    :hidden:
-    :caption: Help & Reference
+   :maxdepth: 2
+   :hidden:
+   :caption: Help & Reference
 
-    reference/api_reference
+   reference/api_reference
 
 
 

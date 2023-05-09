@@ -13,9 +13,11 @@ region_config:
   depth_max: 70
 
 catalog: catalog.csep
+
 models:
-- model:
-    path: model.dat
+- best_model:
+    path: best_model.dat
+
 tests:
   - Poisson_N:
       func: poisson_evaluations.number_test

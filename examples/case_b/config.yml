@@ -13,6 +13,7 @@ region_config:
   depth_max: 70
 
 catalog: catalog.json
+
 models: models.yml
 test_config: tests.yml
 

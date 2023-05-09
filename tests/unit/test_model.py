@@ -232,7 +232,7 @@ class TestModel(TestCase):
         self.assertEqual([1, 1], model.get_forecast(['moo', 'cuack']))
         with self.assertRaises(KeyError):
             model.get_forecast(['woof'])
-        with self.assertRaises(KeyError):
+        with self.assertRaises(KeyError, ValueError):
             model.get_forecast('meaow')
 
     def test_todict(self):

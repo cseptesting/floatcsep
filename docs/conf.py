@@ -48,5 +48,12 @@ intersphinx_mapping = {
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
-
+html_theme_options = {
+    'display_version': True,
+    'prev_next_buttons_location': 'both',
+    'collapse_navigation': False,
+    'style_nav_header_background': '#343131ff',
+    'logo_only': True,
+}
+html_logo = '_static/feCSEP_Logo_CMYK.png'
 todo_include_todos = False
