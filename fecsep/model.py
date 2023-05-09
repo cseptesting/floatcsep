@@ -234,7 +234,12 @@ class Model:
          access method (db storage, ti_td, etc.) under the hood"""
 
         if isinstance(tstring, str):
-            return self.forecasts[tstring]
+            try:
+                return self.forecasts[tstring]
+            except KeyError:
+
+                self.create_forecast(tstring)
+                return self.forecasts[tstring]
         else:
             forecasts = []
             for tw in tstring:

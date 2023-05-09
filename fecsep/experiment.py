@@ -671,6 +671,8 @@ class Experiment:
 
         plot_fc_config = self.postproc_config.get('plot_forecasts')
         if plot_fc_config:
+            if plot_fc_config is True:
+                plot_fc_config = {}
             try:
                 proj_ = plot_fc_config.get('projection')
                 if isinstance(proj_, dict):
@@ -701,7 +703,7 @@ class Experiment:
             winstr = timewindow2str(window)
 
             for model in self.models:
-                fig_path = self.filetree(winstr, 'figures', model.name)
+                fig_path = self.filetree(winstr, 'forecasts', model.name)
                 start = decimal_year(window[0])
                 end = decimal_year(window[1])
                 time = f'{round(end - start, 3)} years'
@@ -717,7 +719,7 @@ class Experiment:
                 else:
                     set_global = False
                 plot_args.update(plot_fc_config)
-                ax = model.forecasts[winstr].plot(
+                ax = model.get_forecast(winstr).plot(
                     set_global=set_global, plot_args=plot_args)
 
                 if self.region:

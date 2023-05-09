@@ -687,7 +687,7 @@ def plot_matrix_comparative_test(evaluation_results,
 class MarkdownReport:
     """ Class to generate a Markdown report from a study """
 
-    def __init__(self, outname='results.md'):
+    def __init__(self, outname='report.md'):
         self.outname = outname
         self.toc = []
         self.has_title = True

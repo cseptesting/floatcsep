@@ -154,7 +154,7 @@ class PathTree:
         } for win in windows}
 
         target_paths = {
-            'config':  'run_config.yml',
+            'config': 'run_config.yml',
             **{win: {
                 'models': {model: {'forecasts': None} for model in models},
                 'catalog': os.path.join(win, 'catalog', 'catalog.json'),
@@ -168,17 +168,13 @@ class PathTree:
                 'figures': {
                     **{test: os.path.join(win, 'figures', f'{test}')
                        for test in tests},
-                    **{model: os.path.join(win, 'figures', f'{model}')
-                       for model in models},
                     'catalog': os.path.join(win, 'figures', 'catalog'),
                     'magnitude_time': os.path.join(win, 'figures',
                                                    'magnitude_time')
-                }
+                },
+                'forecasts': {model: os.path.join(win, 'forecasts', f'{model}')
+                              for model in models}
             } for win in windows}
         }
         self.paths = target_paths
         self.run_folder = run_folder
-
-
-
-
