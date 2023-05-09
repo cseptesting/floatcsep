@@ -1,14 +1,21 @@
-- Sequential_LL:
+- S-test:
+    func: poisson_evaluations.spatial_test
+    plot_func: plot_poisson_consistency_test
+    plot_args:
+      title: Poisson S-test
+      xlabel: Log-Likelihood
+
+- Sequential Log-Likelihood:
     func: sequential_likelihood
     plot_func: plot_sequential_likelihood
     plot_args:
       title: Cumulative Log-Likelihood
       ylabel: Information Gain
 
-- Sequential_IG:
+- Sequential Information Gain:
     func: sequential_information_gain
     plot_func: plot_sequential_likelihood
     ref_model: Model A
     plot_args:
-      title: Cumulative IG (Model A as reference)
+      title: Cumulative Information Gain (Model A as reference)
       ylabel: Information Gain

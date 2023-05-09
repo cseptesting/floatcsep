@@ -25,6 +25,7 @@ Preliminary documentation.
    examples/case_a.rst
    examples/case_b.rst
    examples/case_c.rst
+   examples/case_d.rst
 
 .. toctree::
    :maxdepth: 2
