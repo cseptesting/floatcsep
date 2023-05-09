@@ -1,4 +1,4 @@
-Experiment C - Multiple Time Windows
+C - Multiple Time Windows
 ====================================
 
 .. currentmodule:: fecsep

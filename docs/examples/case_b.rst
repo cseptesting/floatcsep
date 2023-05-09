@@ -1,4 +1,4 @@
-Experiment B - Multiple Models and Tests
+B - Multiple Models and Tests
 ========================================
 
 .. currentmodule:: fecsep

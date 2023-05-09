@@ -3,31 +3,34 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+
 feCSEP: Floating Experiments
 ============================
 
 Preliminary documentation.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Installation
+   :maxdepth: 0
+   :caption: Get Started
 
-   guide/installation.rst
+   intro/installation.rst
+   intro/concepts.rst
 
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Examples
+   :maxdepth: 1
+   :caption: Example Experiments
 
    examples/case_a.rst
    examples/case_b.rst
    examples/case_c.rst
    examples/case_d.rst
+   examples/case_e.rst
 
 
 .. toctree::
    :maxdepth: 2
-   :caption: Experiment Definition
+   :caption: Defining an Experiment
 
    guide/config.rst
    guide/time_config.rst
@@ -37,7 +40,12 @@ Preliminary documentation.
 
 .. toctree::
    :maxdepth: 2
-   :hidden:
+   :caption: Deploying an Experiment
+
+   deployment/intro.rst
+
+.. toctree::
+   :maxdepth: 2
    :caption: Help & Reference
 
    reference/api_reference

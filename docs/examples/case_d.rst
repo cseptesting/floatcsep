@@ -1,4 +1,4 @@
-Experiment D - Catalog Queries and Model Repositories
+D - Catalog Queries and Model Repositories
 =====================================================
 
 .. currentmodule:: fecsep

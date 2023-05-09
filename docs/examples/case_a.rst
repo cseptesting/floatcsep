@@ -1,4 +1,4 @@
-Experiment A - Simple Model and Catalog
+A - Simple Model and Catalog
 =======================================
 
 .. currentmodule:: fecsep
@@ -91,6 +91,10 @@ Models
     .. literalinclude:: ../../examples/case_a/config.yml
        :language: yaml
        :lines: 17-19
+
+    .. note::
+
+        A time-independent forecast model has default units of ``[eq/year]`` per cell. A forecast defined for a different number of years can be specified with the ``forecast_unit: {years}`` attribute.
 
 Evaluations
 ~~~~~~~~~~~

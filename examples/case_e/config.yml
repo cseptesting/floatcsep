@@ -3,7 +3,7 @@ name: italy
 time_config:
   start_date: 2010-1-1T00:00:00
   end_date: 2022-1-1T00:00:00
-  intervals: 6
+  intervals: 12
   growth: cumulative
 
 region_config:
@@ -21,7 +21,7 @@ test_config: tests.yml
 postproc_config:
   plot_forecasts:
     region_border: True
-    basemap: ESRI_terrain
+    basemap: ESRI_imagery
     clabel_fontsize: 14
     cticks_fontsize: 12
     alpha_exp: 0.8
@@ -30,5 +30,5 @@ postproc_config:
       legend_loc: 1
       legend_fontsize: 14
       legend_titlesize: 16
-      markersize: 6
+      markersize: 7
       markercolor: blue
