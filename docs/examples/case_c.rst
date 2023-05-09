@@ -10,7 +10,7 @@ Experiment C - Multiple Time Windows
 
     In a terminal, navigate to ``fecsep/examples/case_c`` and type:
 
-    .. code-block:: shell
+    .. code-block:: console
 
         $ fecsep run config.yml
 

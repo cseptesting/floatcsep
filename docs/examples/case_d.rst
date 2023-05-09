@@ -10,7 +10,7 @@ Experiment D - Catalog Queries and Model Repositories
 
     In a terminal, navigate to ``fecsep/examples/case_d`` and type:
 
-    .. code-block:: shell
+    .. code-block:: console
 
         $ fecsep run config.yml
 
@@ -96,14 +96,11 @@ Models
 Running the experiment
 ----------------------
 
-Run command
-~~~~~~~~~~~
-
     The experiment can be run by simply navigating to the ``examples/case_d`` folder in the terminal and typing.
 
-    .. code-block:: shell
+    .. code-block:: console
 
-        fecsep run config.yml
+        $ fecsep run config.yml
 
     This will automatically set all the calculation paths (testing catalogs, evaluation results, figures) and will create a summarized report in ``results/report.md``.
 

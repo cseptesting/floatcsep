@@ -1,5 +1,5 @@
-Experiment A - Simple Forecast and Catalog
-==========================================
+Experiment A - Simple Model and Catalog
+=======================================
 
 .. currentmodule:: fecsep
 
@@ -10,7 +10,7 @@ Experiment A - Simple Forecast and Catalog
 
     In a terminal, navigate to ``fecsep/examples/case_a`` and type:
 
-    .. code-block:: shell
+    .. code-block:: console
 
         $ fecsep run config.yml
 
@@ -32,29 +32,28 @@ forecast against a simple catalog. The input structure of the experiment is:
         └── region.txt
 
 
-The testing region consists of a grid with two 1ºx1º bins, whose bottom-left nodes are defined in the file `region.txt`. The grid spacing is obtained automatically. The nodes are:
+* The testing region consists of a grid with two 1ºx1º bins, whose bottom-left nodes are defined in the file `region.txt`. The grid spacing is obtained automatically. The nodes are:
 
-.. literalinclude:: ../../examples/case_a/region.txt
+    .. literalinclude:: ../../examples/case_a/region.txt
 
-The testing catalog contains only one event and is formatted in the :meth:`~pycsep.utils.readers.csep_ascii` style (see :doc:`pycsep:concepts/catalogs`). Catalog formats are detected automatically
+* The testing catalog ``catalog.csep`` contains only one event and is formatted in the :meth:`~pycsep.utils.readers.csep_ascii` style (see :doc:`pycsep:concepts/catalogs`). Catalog formats are detected automatically
 
-.. literalinclude:: ../../examples/case_a/catalog.csep
+    .. literalinclude:: ../../examples/case_a/catalog.csep
 
+* The forecast ``best_model.dat`` to be evaluated is written in the ``.dat`` format (see :doc:`pycsep:concepts/forecasts`). Forecast formats are detected automatically (see :class:`fecsep.readers`)
 
-The forecast to be evaluated is written in the ``.dat`` format (:doc:`pycsep:concepts/forecasts`). Forecast formats are detected automatically (see :class:`fecsep.readers`)
-
-.. literalinclude:: ../../examples/case_a/best_model.dat
+    .. literalinclude:: ../../examples/case_a/best_model.dat
 
 Configuration
 -------------
 
-The experiment is defined by a time-, region-, model- and evaluation-configurations. In this example, they are written together in the ``config.yml`` file.
+The experiment is defined by a time-, region-, model- and test-configurations. In this example, they are written together in the ``config.yml`` file.
 
 
 Time
 ~~~~
 
-    The time configuration is manifested in the ``time-config`` inset. The simplest definition is to set only the start and end dates of the experiment. These are always UTC time in isoformat (``%Y-%m-%dT%H:%M:%S.%f`` - ISO861):
+    The time configuration is manifested in the ``time-config`` inset. The simplest definition is to set only the start and end dates of the experiment. These are always UTC date-times in isoformat (``%Y-%m-%dT%H:%M:%S.%f`` - ISO861):
 
     .. literalinclude:: ../../examples/case_a/config.yml
        :language: yaml
@@ -110,7 +109,7 @@ Run command
 
     The experiment can be run by simply navigating to the ``examples/case_a`` folder in the terminal and typing.
 
-    .. code-block:: shell
+    .. code-block:: console
 
         fecsep run config.yml
 
@@ -121,7 +120,7 @@ Plot command
 
     If only the result plots are desired, when the calculation was already completed, you can type:
 
-    .. code-block:: shell
+    .. code-block:: console
 
         fecsep plot config.yml
 

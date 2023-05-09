@@ -10,7 +10,7 @@ Experiment B - Multiple Models and Tests
 
     In a terminal, navigate to ``fecsep/examples/case_b`` and type:
 
-    .. code-block:: shell
+    .. code-block:: console
 
         $ fecsep run config.yml
 
@@ -82,12 +82,10 @@ Evaluations
 Running the experiment
 ----------------------
 
-Run command
-~~~~~~~~~~~
 
 The experiment can be run by simply navigating to the ``examples/case_b`` folder in the terminal an type.
 
-.. code-block:: shell
+.. code-block:: console
 
     fecsep run config.yml
 
