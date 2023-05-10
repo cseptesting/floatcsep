@@ -44,6 +44,10 @@ forecast against a simple catalog. The input structure of the experiment is:
 
     .. literalinclude:: ../../examples/case_a/best_model.dat
 
+.. important::
+
+    Every file path should be relative to the ``config.yml`` file.
+
 Configuration
 -------------
 
@@ -115,9 +119,14 @@ Run command
 
     .. code-block:: console
 
-        fecsep run config.yml
+        $ fecsep run config.yml
 
     This will automatically set all the calculation paths (testing catalogs, evaluation results, figures) and will create a summarized report in ``results/report.md``.
+
+    .. note::
+
+        The command ``fecsep run <config>`` can be called from any working directory, as long as the specified file paths (e.g. region, models) are relative to the ``config.yml`` file.
+
 
 Plot command
 ~~~~~~~~~~~~
@@ -126,7 +135,7 @@ Plot command
 
     .. code-block:: console
 
-        fecsep plot config.yml
+        $ fecsep plot config.yml
 
     This can be used, for example, when an additional plot is desired. Try adding to ``config.yml`` the following lines
 
