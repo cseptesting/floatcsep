@@ -1,5 +1,5 @@
-E - A Real Experiment
-=====================
+E - A Realistic Experiment
+==========================
 
 .. currentmodule:: fecsep
 
@@ -20,7 +20,7 @@ E - A Real Experiment
 Artifacts
 ---------
 
-This example shows how to run a real testing experiment in Italy (https://doi.org/10.4401/ag-4844), summarizing the concepts of previous examples. The example has only a subset of the original models and evaluations. The input structure of the experiment is:
+This example shows how to run a realistic testing experiment in Italy (based on https://doi.org/10.4401/ag-4844), summarizing the concepts of previous examples. The example has only a subset of the original models and evaluations. The input structure of the experiment is:
 
 ::
 

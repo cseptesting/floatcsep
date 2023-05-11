@@ -12,6 +12,9 @@
 <a href='https://github.com/cseptesting/fecsep/actions/workflows/build-test.yml'>
     <img src='https://github.com/cseptesting/fecsep/actions/workflows/build-test.yml/badge.svg' alt='Documentation Status' />
 </a>
+<a href="https://codecov.io/gh/cseptesting/fecsep" > 
+ <img src="https://codecov.io/gh/cseptesting/fecsep/branch/main/graph/badge.svg?token=LI4RSDOKA1"/> 
+ </a>
 </p>
 
 * Set up a testing **experiment** for your earthquake forecasts using authoritative data sources and benchmarks.
@@ -74,7 +77,7 @@ A runtime directory will be created in a `results` folder. The experiment result
 * Allow hooks (user code) to be inserted into plotting/reporting functionalities.
 * Add multiple logging/levels
 * Define a strategy to handle dependences to ensure experiments' reproducibility.
-* Publish in `pypi`/`conda`
+* Publish in `pypi`/`conda` and Zenodo
 
 # Contributing
 

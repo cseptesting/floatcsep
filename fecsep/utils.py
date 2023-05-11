@@ -726,7 +726,7 @@ class MarkdownReport:
         """
         self.markdown.append('  '.join(text) + '\n\n')
 
-    def add_figure(self, title, relative_filepaths, level=2, ncols=3,
+    def add_figure(self, title, relative_filepaths, level=2, ncols=1,
                    add_ext=False, text='', caption='', width=None):
         """
         This function expects a list of filepaths. If you want the output
@@ -789,7 +789,7 @@ class MarkdownReport:
         result_cell.append(f'{text}\n')
 
         for i, row in enumerate(formatted_paths):
-            if i == 0 and not is_single:
+            if i == 0 and not is_single and ncols > 1:
                 result_cell.append(build_header(row))
             result_cell.append(add_to_row(row))
         result_cell.append('\n')
@@ -825,7 +825,7 @@ class MarkdownReport:
         cell = []
         for item in _list:
             cell.append(f"* {item}")
-        self.markdown.append('\n'.join(cell) + '\n')
+        self.markdown.append('\n'.join(cell) + '\n\n')
 
     def add_title(self, title, text):
         self.has_title = True
@@ -836,11 +836,13 @@ class MarkdownReport:
         if len(self.toc) == 0:
             return
         toc = ["# Table of Contents"]
-        for title, level, locator in self.toc:
+
+        for i, elem in enumerate(self.toc):
+            title, level, locator = elem
             space = '   ' * (level - 1)
             toc.append(f"{space}1. [{title}](#{locator})")
         insert_loc = 1 if self.has_title else 0
-        self.markdown.insert(insert_loc, '\n'.join(toc) + '\n')
+        self.markdown.insert(insert_loc, '\n'.join(toc) + '\n\n')
 
     def add_table(self, data, use_header=True):
         """
