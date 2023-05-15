@@ -231,7 +231,6 @@ class Experiment:
                     model_ = {name_flav: {**element[name_super],
                                           'path': path_sub}}
                     model_[name_flav].pop('flavours')
-                    models.append(Model.from_dict(model_))
                     # self.add_model(model_)
 
         # Checks if there is any repeated model.
@@ -437,6 +436,7 @@ class Experiment:
                             timewindow=time_i,
                             catalog=self.filetree(time_i, 'catalog'),
                             model=model_j,
+                            region=self.region,
                             path=self.filetree(time_i, 'evaluations',
                                                test_k, model_j))
                         task_graph.add(task_ijk)
@@ -456,6 +456,7 @@ class Experiment:
                             catalog=self.filetree(time_i, 'catalog'),
                             model=model_j,
                             ref_model=self.get_model(test_k.ref_model),
+                            region=self.region,
                             path=self.filetree(time_i, 'evaluations', test_k,
                                                model_j)
                         )
@@ -479,6 +480,7 @@ class Experiment:
                         catalog=[self.filetree(i, 'catalog')
                                  for i in tw_strings],
                         model=model_j,
+                        region=self.region,
                         path=self.filetree(tw_strings[-1], 'evaluations',
                                            test_k, model_j)
                     )
@@ -499,6 +501,7 @@ class Experiment:
                         catalog=[self.filetree(i, 'catalog') for i in tw_strs],
                         model=model_j,
                         ref_model=self.get_model(test_k.ref_model),
+                        region=self.region,
                         path=self.filetree(tw_strs[-1], 'evaluations', test_k,
                                            model_j)
                     )
@@ -524,6 +527,7 @@ class Experiment:
                         catalog=self.filetree(time_str, 'catalog'),
                         ref_model=self.models,
                         model=model_j,
+                        region=self.region,
                         path=self.filetree(time_str, 'evaluations', test_k,
                                            model_j)
                     )
@@ -719,7 +723,7 @@ class Experiment:
                 else:
                     set_global = False
                 plot_args.update(plot_fc_config)
-                ax = model.get_forecast(winstr).plot(
+                ax = model.get_forecast(winstr, self.region).plot(
                     set_global=set_global, plot_args=plot_args)
 
                 if self.region:

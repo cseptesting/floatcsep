@@ -1,5 +1,10 @@
 import os
+
+import csep
 import git
+import subprocess
+
+
 from typing import List, Callable, Union
 from datetime import datetime
 
@@ -9,7 +14,6 @@ from csep.utils.time_utils import decimal_year
 from fecsep.accessors import from_zenodo, from_git
 from fecsep.readers import ForecastParsers, HDF5Serializer, check_format
 from fecsep.utils import timewindow2str, str2timewindow
-# from fecsep.registry import ModelTree
 
 
 class Model:
@@ -94,6 +98,11 @@ class Model:
         # Set model temporal class default
         if self.func:
             self.model_class = 'td'  # Time-Dependent todo: implement for TI
+            self.venv = kwargs.get('venv', os.path.join(self.path, 'venv'))
+            self.build = kwargs.get('build', 'pip')
+            self.arg_file = kwargs.get('arg_file', os.path.join(self.path,
+                                                                'input',
+                                                                'args.txt'))
         else:
             self.model_class = 'ti'  # Time-Independent
 
@@ -126,9 +135,35 @@ class Model:
 
         self.get_source(self.zenodo_id, self.giturl)
         check_format(self.path, self.fmt, self.func)
+        if self.model_class == 'td':
+            self.build_model()
         if self.use_db:
             self.init_db()
         self.model_qa()
+
+    def create_venv(self):
+        subprocess.run(['python', '-m', 'venv', self.venv])
+
+    def build_model(self):
+
+        if self.build == 'pip':
+            if not os.path.exists(self.venv):
+                self.create_venv()
+                print('Virtual environment created')
+                subprocess.run(['pip', 'install', '-e', self.path])
+
+    def run_model(self):
+
+        if self.build == 'pip':
+            venv_bin = os.path.join(self.venv, 'bin', 'activate')
+            run_func = f'{self.func} {self.arg_file}'
+            cmd = ['bash', '-c', f'source {venv_bin} && {run_func}']
+            p = subprocess.Popen(cmd,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
+                                 text=True)
+            output, errors = p.communicate()
+            print(output, errors)
 
     def get_source(self, zenodo_id: int = None, giturl: str = None,
                    force: bool = False, **kwargs) -> None:
@@ -226,29 +261,40 @@ class Model:
         pass
 
     def get_forecast(self,
-                     tstring: Union[str, list] = None
+                     tstring: Union[str, list] = None,
+                     region=None
                      ) -> Union[GriddedForecast, CatalogForecast,
                                 List[GriddedForecast], List[CatalogForecast]]:
 
         """ Wrapper that just returns a forecast, which should hide the
          access method (db storage, ti_td, etc.) under the hood"""
 
-        if isinstance(tstring, str):
-            try:
-                return self.forecasts[tstring]
-            except KeyError:
+        if self.model_class == 'ti':
+            if isinstance(tstring, str):
+                try:
+                    return self.forecasts[tstring]
+                except KeyError:
 
-                self.create_forecast(tstring)
-                return self.forecasts[tstring]
-        else:
-            forecasts = []
-            for tw in tstring:
-                if tw in self.forecasts.keys():
-                    forecasts.append(self.forecasts[tw])
-            if not forecasts:
-                raise KeyError(
-                    f'Forecasts {*tstring,} have not been created yet')
-            return forecasts
+                    self.create_forecast(tstring)
+                    return self.forecasts[tstring]
+            else:
+                forecasts = []
+                for tw in tstring:
+                    if tw in self.forecasts.keys():
+                        forecasts.append(self.forecasts[tw])
+                if not forecasts:
+                    raise KeyError(
+                        f'Forecasts {*tstring,} have not been created yet')
+                return forecasts
+        elif self.model_class == 'td':
+            if isinstance(tstring, str):
+                try:
+                    fc_fname = f'{self.name}_{tstring}.csv'
+                    fc_path = os.path.join(self.path, 'forecasts', fc_fname)
+                    return csep.load_catalog_forecast(fc_path, region=region)
+                except Exception as msg:
+                    raise Exception(f'Could not load forecast with error '
+                                    f'{msg}')
 
     def create_forecast(self, tstring: str,
                         **kwargs) -> None:
@@ -317,9 +363,30 @@ class Model:
 
         self.forecasts[tstring] = forecast
 
+    def prepare_args(self, start, end, **kwargs):
+
+        filepath = os.path.join(self.path, self.arg_file)
+
+        def replace_arg(arg, val, fp):
+            with open(fp, 'r') as file_:
+                lines = file_.readlines()
+            for k, line in enumerate(lines):
+                if line.startswith(arg):
+                    lines[k] = f"{arg} = {val}\n"
+                    break  # Assuming there's only one occurrence of the key
+            with open(fp, 'w') as file:
+                file.writelines(lines)
+
+        replace_arg('start_date', start.isoformat(), filepath)
+        replace_arg('end_date', end.isoformat(), filepath)
+        for i, j in kwargs.items():
+            replace_arg(i, j, filepath)
+
     def forecast_from_func(self, start_date: datetime, end_date: datetime,
                            **kwargs) -> None:
-        raise NotImplementedError('TBI for time-dependent models')
+
+        self.prepare_args(start_date, end_date, **kwargs)
+        self.run_model()
 
     def to_dict(self, excluded=('name', 'forecasts')):
         """

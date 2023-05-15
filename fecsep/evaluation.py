@@ -88,7 +88,8 @@ class Evaluation:
                      timewindow: Union[str, list],
                      catpath: Union[str, list],
                      model: Union[Model, Sequence[Model]],
-                     ref_model: Union[Model, Sequence] = None) -> tuple:
+                     ref_model: Union[Model, Sequence] = None,
+                     region = None ) -> tuple:
         """
 
         Prepares the positional argument for the Evaluation function.
@@ -114,16 +115,17 @@ class Evaluation:
         # Check if ref_model is None, Model or List[Model]
         # Prepare argument tuple
 
-        forecast = model.get_forecast(timewindow)
+        forecast = model.get_forecast(timewindow, region)
         catalog = self.get_catalog(catpath, forecast)
 
         if isinstance(ref_model, Model):
             # Args: (Fc, RFc, Cat)
-            ref_forecast = ref_model.get_forecast(timewindow)
+            ref_forecast = ref_model.get_forecast(timewindow, region)
             test_args = (forecast, ref_forecast, catalog)
         elif isinstance(ref_model, list):
             # Args: (Fc, [RFc], Cat)
-            ref_forecasts = [i.get_forecast(timewindow) for i in ref_model]
+            ref_forecasts = [i.get_forecast(timewindow, region)
+                             for i in ref_model]
             test_args = (forecast, ref_forecasts, catalog)
         else:
             # Args: (Fc, Cat)
@@ -168,7 +170,8 @@ class Evaluation:
                 catalog: str,
                 model: Model,
                 path: str,
-                ref_model: Union[Model, Sequence[Model]] = None) -> None:
+                ref_model: Union[Model, Sequence[Model]] = None,
+                region = None) -> None:
         """
 
         Runs the test, structuring the arguments according to the
@@ -189,7 +192,8 @@ class Evaluation:
         test_args = self.prepare_args(timewindow,
                                       catpath=catalog,
                                       model=model,
-                                      ref_model=ref_model)
+                                      ref_model=ref_model,
+                                      region=region)
 
         evaluation_result = self.func(*test_args, **self.func_kwargs)
         self.write_result(evaluation_result, path)

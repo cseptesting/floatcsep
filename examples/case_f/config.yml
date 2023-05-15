@@ -1,0 +1,24 @@
+name: case_f
+
+time_config:
+  start_date: 2020-1-1T00:00:00
+  end_date: 2020-1-3T00:00:00
+  horizon: 1day
+  exp_class: td
+  growth: incremental
+
+region_config:
+  region: italy_csep_region
+  mag_min: 4.0
+  mag_max: 8.0
+  mag_bin: 0.1
+  depth_min: 0
+  depth_max: 70
+
+catalog: catalog.json
+models:
+  - pymock:
+      giturl: https://git.gfz-potsdam.de/csep/it_experiment/models/pymock.git
+      path: pymock
+      func: pymock
+test_config: tests.yml

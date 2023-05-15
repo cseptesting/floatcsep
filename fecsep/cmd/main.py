@@ -1,6 +1,14 @@
 from fecsep.experiment import Experiment
 import argparse
 
+def stage(config, show=True):
+
+    exp = Experiment.from_yml(config)
+    exp.stage_models()
+    print('\n==================')
+    print('Staging experiment')
+    print('==================\n')
+
 
 def run(config, show=True):
     exp = Experiment.from_yml(config)
@@ -71,7 +79,8 @@ def fecsep():
 
     """
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
-    parser.add_argument('func', type=str, choices=['run', 'plot', 'reproduce'],
+    parser.add_argument('func', type=str, choices=['run', 'stage',
+                                                   'plot', 'reproduce'],
                         help='Run a calculation')
     parser.add_argument('config', type=str,
                         help='Experiment Configuration file')
