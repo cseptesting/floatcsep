@@ -1,13 +1,11 @@
 - Catalog_N:
-    func: catalog_evaluations.spatial_test
-    plot_func: plot_number_test
+    func: catalog_evaluations.number_test
+    plot_func: plot_consistency_test
     plot_args:
         title: $N-$test
         xlabel: N events
-        figsize: !!python/tuple [4, 6]
+        figsize: [4, 6]
         title_fontsize: 16
-    plot_kwargs:
-        normalize: True
-        one_sided_lower: True
+
 
 

@@ -14,7 +14,7 @@ region_config:
   depth_min: -2
   depth_max: 30
 
-catalog: query_isc_gcmt
+catalog: query_bsi
 models: models.yml
 test_config: tests.yml
 

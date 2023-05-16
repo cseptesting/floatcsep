@@ -306,7 +306,7 @@ def check_format(filename, fmt=None, func=None):
     elif fmt == 'hdf5':
         pass
     elif func:
-        print('Model func check has not been implemented yet')
+        pass
 
 
 def serialize():

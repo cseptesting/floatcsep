@@ -45,6 +45,8 @@ class TestModel(TestCase):
     def initmodel_noreg(name, path, **kwargs):
         """ Instantiates a model without using the @register deco,
         but mocks Model.Registry() attrs"""
+
+        ### Save for registry:
         # model = Model.__new__(Model)
         # Model.__init__.__wrapped__(self=model, name=name,
         #                            path=path, **kwargs)
@@ -97,7 +99,7 @@ class TestModel(TestCase):
 
     def test_fail_zenodo(self):
         name = 'mock_zenodo'
-        filename_ = 'model_notreal.csv' # File not found in repository
+        filename_ = 'model_notreal.csv'  # File not found in repository
         dir_ = os.path.join(tempfile.tempdir, 'zenodo_notreal')
         if os.path.isdir(dir_):
             shutil.rmtree(dir_)
@@ -117,7 +119,7 @@ class TestModel(TestCase):
         giturl = 'https://git.gfz-potsdam.de/csep-group/' \
                  'rise_italy_experiment/models/template.git'
         model_a = self.initmodel_noreg(name=name, path=path_,
-                                      giturl=giturl)
+                                       giturl=giturl)
         model_a.stage()
         path = os.path.join(self._dir, 'template')
         model_b = self.initmodel_noreg(name=name, path=path)
@@ -141,7 +143,7 @@ class TestModel(TestCase):
             giturl='https://github.com/github/testrepo')
 
         with self.assertRaises(FileNotFoundError):
-           model.get_source(model.zenodo_id, model.giturl, branch='master')
+            model.get_source(model.zenodo_id, model.giturl, branch='master')
 
     def test_from_dict(self):
         """ test that '__init__' and 'from_dict' instantiates
@@ -151,14 +153,14 @@ class TestModel(TestCase):
         fname = os.path.join(self._dir, 'model.csv')
 
         dict_ = {'mock':
-                     {'path': fname,
-                      'forecast_unit': 5,
-                      'authors': ['Darwin, C.', 'Bell, J.', 'Et, Al.'],
-                      'doi': '10.1010/10101010',
-                      'giturl': 'should not be accessed, bc filesystem exists',
-                      'zenodo_id': 'should not be accessed, bc filesystem '
-                                   'exists'
-                      }
+                 {'path': fname,
+                  'forecast_unit': 5,
+                  'authors': ['Darwin, C.', 'Bell, J.', 'Et, Al.'],
+                  'doi': '10.1010/10101010',
+                  'giturl': 'should not be accessed, bc filesystem exists',
+                  'zenodo_id': 'should not be accessed, bc filesystem '
+                               'exists'
+                  }
                  }
 
         # Has to be instantiated with registry
@@ -216,12 +218,33 @@ class TestModel(TestCase):
             numpy.testing.assert_almost_equal(220., model.forecasts[
                 '1900-01-01_2000-01-01'].data.sum())
 
-    def test_forecast_from_func(self):
-        model = self.initmodel_noreg('a', 'func')
-        start = datetime(1900, 1, 1)
-        end = datetime(2000, 1, 1)
-        with self.assertRaises(NotImplementedError):
-            model.forecast_from_func(start, end)
+    def test_argprep(self):
+        model_path = os.path.join(self._dir, 'td_model')
+        with open(os.path.join(model_path, 'input', 'args.txt'), 'w') as args:
+            args.write('start_date = foo\nend_date = bar')
+
+        model = self.initmodel_noreg('a',
+                                     model_path,
+                                     func='func')
+        start = datetime(2000, 1, 1)
+        end = datetime(2000, 1, 2)
+
+        model.prepare_args(start, end)
+
+        with open(os.path.join(model_path, 'input', 'args.txt'), 'r') as args:
+            self.assertEqual(args.readline(),
+                             f'start_date = {start.isoformat()}\n')
+            self.assertEqual(args.readline(),
+                             f'end_date = {end.isoformat()}\n')
+        model.prepare_args(start, end, n_sims=400)
+        with open(os.path.join(model_path, 'input', 'args.txt'), 'r') as args:
+            self.assertEqual(args.readlines()[2],
+                             f'n_sims = 400\n')
+
+        model.prepare_args(start, end, n_sims=200)
+        with open(os.path.join(model_path, 'input', 'args.txt'), 'r') as args:
+            self.assertEqual(args.readlines()[2],
+                             f'n_sims = 200\n')
 
     def test_get_forecast(self):
 
@@ -246,19 +269,19 @@ class TestModel(TestCase):
             'giturl': 'should not be accessed, bc filesystem exists',
             'zenodo_id': 'should not be accessed, bc filesystem exists',
             'model_class': 'ti'
-             }
-        model = self.initmodel_noreg(name= 'mock',**dict_)
+        }
+        model = self.initmodel_noreg(name='mock', **dict_)
         model_dict = model.to_dict()
         eq = True
 
         for k, v in dict_.items():
             if k not in list(model_dict['mock'].keys()):
-                print('a',k)
+                print('a', k)
 
                 eq = False
             else:
                 if v != model_dict['mock'][k]:
-                    print('b',k)
+                    print('b', k)
                     eq = False
         excl = ['path', 'giturl', 'forecast_unit']
         keys = list(model.to_dict(excluded=excl).keys())

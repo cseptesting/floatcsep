@@ -4,7 +4,6 @@ import csep
 import git
 import subprocess
 
-
 from typing import List, Callable, Union
 from datetime import datetime
 
@@ -89,25 +88,27 @@ class Model:
         self.doi = doi
         self.forecast_unit = forecast_unit
         self.func = func
-        self.func_kwargs = func_kwargs
+        self.func_kwargs = func_kwargs or {}
         self.use_db = use_db
 
-        # Initialize path tree manager
         self.path = path
 
-        # Set model temporal class default
+        # Set model temporal class
+
         if self.func:
-            self.model_class = 'td'  # Time-Dependent todo: implement for TI
-            self.venv = kwargs.get('venv', os.path.join(self.path, 'venv'))
-            self.build = kwargs.get('build', 'pip')
-            self.arg_file = kwargs.get('arg_file', os.path.join(self.path,
-                                                                'input',
-                                                                'args.txt'))
+            # Time-Dependent
+            self.model_class = 'td'
+            self.build = kwargs.get('build', 'docker')
+            self.run_prefix = ''
+            self.args_file = kwargs.get('args_file', os.path.join('input',
+                                                                  'args.txt'))
         else:
-            self.model_class = 'ti'  # Time-Independent
+            # Time-Independent
+            self.model_class = kwargs.get('model_class', 'ti')
 
         # Instantiate attributes to be filled in run-time
         self.forecasts = {}
+        self.__dict__.update(**kwargs)
 
     @property
     def dir(self) -> str:
@@ -134,36 +135,43 @@ class Model:
         """
 
         self.get_source(self.zenodo_id, self.giturl)
-        check_format(self.path, self.fmt, self.func)
         if self.model_class == 'td':
             self.build_model()
         if self.use_db:
             self.init_db()
+        check_format(self.path, self.fmt, self.func)
         self.model_qa()
-
-    def create_venv(self):
-        subprocess.run(['python', '-m', 'venv', self.venv])
 
     def build_model(self):
 
-        if self.build == 'pip':
-            if not os.path.exists(self.venv):
-                self.create_venv()
-                print('Virtual environment created')
-                subprocess.run(['pip', 'install', '-e', self.path])
+        if self.build == 'pip' or self.build == 'venv':
+            self.build_venv()
 
-    def run_model(self):
+    def build_venv(self):
 
-        if self.build == 'pip':
-            venv_bin = os.path.join(self.venv, 'bin', 'activate')
-            run_func = f'{self.func} {self.arg_file}'
-            cmd = ['bash', '-c', f'source {venv_bin} && {run_func}']
+        venv = os.path.join(self.path, self.__dict__.get('venv', 'venv'))
+        venvact = os.path.join(venv, 'bin', 'activate')
+
+        if not os.path.exists(venv):
+            print(f'Building model {self.name} using pip')
+            subprocess.run(['python', '-m', 'venv', venv])
+            print(f'\tVirtual environment created in {venv}')
+
+            build_cmd = f'source {venvact} &&' \
+                        f'pip install --upgrade pip &&' \
+                        f'pip install -e {self.path}'
+
+            cmd = ['bash', '-c', build_cmd]
             p = subprocess.Popen(cmd,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE,
                                  text=True)
             output, errors = p.communicate()
-            print(output, errors)
+            output = output.replace('\n', '\n\t')
+            print(f'Build output:\n\t{output}')
+            print(f'Nested environments is not well supported. '
+                  f'Consider using docker instead')
+        self.run_prefix = f'source {venvact} &&'
 
     def get_source(self, zenodo_id: int = None, giturl: str = None,
                    force: bool = False, **kwargs) -> None:
@@ -270,14 +278,18 @@ class Model:
          access method (db storage, ti_td, etc.) under the hood"""
 
         if self.model_class == 'ti':
+
             if isinstance(tstring, str):
+                # If only one timewindow string is passed
                 try:
+                    # If they are retrieved from the Evaluation class
                     return self.forecasts[tstring]
                 except KeyError:
-
+                    # In case they are called from postprocess
                     self.create_forecast(tstring)
                     return self.forecasts[tstring]
             else:
+                # If multiple timewindow strings are passed
                 forecasts = []
                 for tw in tstring:
                     if tw in self.forecasts.keys():
@@ -286,15 +298,16 @@ class Model:
                     raise KeyError(
                         f'Forecasts {*tstring,} have not been created yet')
                 return forecasts
+
         elif self.model_class == 'td':
             if isinstance(tstring, str):
-                try:
-                    fc_fname = f'{self.name}_{tstring}.csv'
-                    fc_path = os.path.join(self.path, 'forecasts', fc_fname)
-                    return csep.load_catalog_forecast(fc_path, region=region)
-                except Exception as msg:
-                    raise Exception(f'Could not load forecast with error '
-                                    f'{msg}')
+                # If one time window string is passed
+                # default forecast naming
+                fc_fname = f'{self.name}_{tstring}.csv'
+                # default forecasts folder
+                fc_path = os.path.join(self.path, 'forecasts', fc_fname)
+                # A region must be given to the forecast
+                return csep.load_catalog_forecast(fc_path, region=region)
 
     def create_forecast(self, tstring: str,
                         **kwargs) -> None:
@@ -320,7 +333,14 @@ class Model:
             self.forecast_from_file(start_date, end_date, **kwargs)
         # Model src is a func or binary
         else:
-            self.forecast_from_func(start_date, end_date, **kwargs)
+            fc_fname = f'{self.name}_{tstring}.csv'
+            fc_path = os.path.join(self.path, 'forecasts', fc_fname)
+            if kwargs.get('force') or not os.path.exists(fc_path):
+                self.forecast_from_func(start_date, end_date,
+                                        **self.func_kwargs,
+                                        **kwargs)
+            else:
+                print('Forecast already exists')
 
     def forecast_from_file(self, start_date: datetime, end_date: datetime,
                            **kwargs) -> None:
@@ -349,8 +369,7 @@ class Model:
             region=region,
             magnitudes=mags,
             start_time=start_date,
-            end_time=end_date,
-            **kwargs
+            end_time=end_date
         )
 
         scale = time_horizon / self.forecast_unit
@@ -363,17 +382,28 @@ class Model:
 
         self.forecasts[tstring] = forecast
 
+    def forecast_from_func(self, start_date: datetime, end_date: datetime,
+                           **kwargs) -> None:
+
+        self.prepare_args(start_date, end_date, **kwargs)
+        self.run_model()
+
     def prepare_args(self, start, end, **kwargs):
 
-        filepath = os.path.join(self.path, self.arg_file)
+        filepath = os.path.join(self.path, self.args_file)
 
         def replace_arg(arg, val, fp):
             with open(fp, 'r') as file_:
                 lines = file_.readlines()
+
+            pattern_exists = False
             for k, line in enumerate(lines):
                 if line.startswith(arg):
                     lines[k] = f"{arg} = {val}\n"
+                    pattern_exists = True
                     break  # Assuming there's only one occurrence of the key
+            if not pattern_exists:
+                lines.append(f"{arg} = {val}\n")
             with open(fp, 'w') as file:
                 file.writelines(lines)
 
@@ -382,11 +412,19 @@ class Model:
         for i, j in kwargs.items():
             replace_arg(i, j, filepath)
 
-    def forecast_from_func(self, start_date: datetime, end_date: datetime,
-                           **kwargs) -> None:
+    def run_model(self):
 
-        self.prepare_args(start_date, end_date, **kwargs)
-        self.run_model()
+        if self.build == 'pip' or self.build == 'venv':
+            print(f'Running model {self.name} using venv')
+            run_func = f'{self.func} {self.args_file}'
+            cmd = ['bash', '-c', f'{self.run_prefix} {run_func}']
+            p = subprocess.Popen(cmd,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
+                                 text=True)
+            output, errors = p.communicate()
+            output = output.replace('\n', '\n\t')
+            print(f'Run output:\n\t{output}')
 
     def to_dict(self, excluded=('name', 'forecasts')):
         """

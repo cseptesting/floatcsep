@@ -149,6 +149,8 @@ class Experiment:
         self.tasks = []
         self.task_graph = None
 
+        self.force_rerun = kwargs.get('force_rerun', False)
+
     def __getattr__(self, item: str) -> object:
         """
         Override built-in method to return attributes found within
@@ -231,7 +233,7 @@ class Experiment:
                     model_ = {name_flav: {**element[name_super],
                                           'path': path_sub}}
                     model_[name_flav].pop('flavours')
-                    # self.add_model(model_)
+                    models.append(Model.from_dict(model_))
 
         # Checks if there is any repeated model.
         names_ = [i.name for i in models]
@@ -306,7 +308,6 @@ class Experiment:
 
             catalog = self._catalog(
                 catalog_id='cat',  # todo name as run
-                verbose=True,
                 **bounds
             )
 
@@ -417,7 +418,8 @@ class Experiment:
             for model_j in self.models:
                 task_ij = Task(instance=model_j,
                                method='create_forecast',
-                               tstring=time_i)
+                               tstring=time_i,
+                               force=self.force_rerun)
                 task_graph.add(task=task_ij)
                 # A catalog needs to have been filtered
                 task_graph.add_dependency(task_ij,

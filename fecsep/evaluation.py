@@ -171,7 +171,7 @@ class Evaluation:
                 model: Model,
                 path: str,
                 ref_model: Union[Model, Sequence[Model]] = None,
-                region = None) -> None:
+                region=None) -> None:
         """
 
         Runs the test, structuring the arguments according to the
@@ -188,7 +188,6 @@ class Evaluation:
         Returns:
 
         """
-
         test_args = self.prepare_args(timewindow,
                                       catpath=catalog,
                                       model=model,

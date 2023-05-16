@@ -1,75 +1,38 @@
 from datetime import datetime
-from urllib import request as request_
+from urllib import request
 from urllib.parse import urlencode
-from csep.utils.time_utils import datetime_to_utc_epoch
+from csep.utils.time_utils import datetime_to_utc_epoch, utc_now_datetime
 from csep.core.catalogs import CSEPCatalog
-import xml.etree.ElementTree as ElementTree
 from git import Repo, InvalidGitRepositoryError, NoSuchPathError
-import time
 import requests
 import hashlib
 import os
 import sys
 import shutil
 
-HOST_CATALOG = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
+HOST_CATALOG = "https://service.iris.edu/fdsnws/event/1/query?"
 TIMEOUT = 180
 
 
-def query_isc_gcmt(start_time: datetime, end_time: datetime,
-                   min_magnitude: float = 5.0,
-                   min_depth: float = None, max_depth: float = None,
-                   min_latitude: float = None, max_latitude: float = None,
-                   min_longitude: float = None, max_longitude: float = None,
-                   catalog_id: str = None,
-                   verbose: bool = False) -> CSEPCatalog:
-    """
-    Queries the International Seismological Service (http://www.isc.ac.uk) API
-    to retrieve the global CMT catalogue (https://www.globalcmt.org/) in
-    QuakeML format, which is then converted to a CSEPCatalog
+def query_gcmt(start_time, end_time, min_magnitude=5.0,
+               max_depth=None,
+               catalog_id=None,
+               min_latitude=None, max_latitude=None,
+               min_longitude=None, max_longitude=None):
 
-    Args:
-        start_time (datetime.datetime): start date-time of the query
-        end_time (datetime.datetime): end date-time of the query
-        min_magnitude (float): cutoff magnitude
-        min_depth (float): minimum depth
-        max_depth (float): maximum depth
-        min_latitude (float): minimum latitude
-        max_latitude (float): maximum latitude
-        min_longitude (float): minimum longitude
-        max_longitude (float): maximum longitude
-        catalog_id (str): identifier assigned to the catalog
-        verbose (bool): flag to print log
-    Returns:
-        CSEPCatalog
-    """
+    eventlist = _query_gcmt(start_time=start_time,
+                            end_time=end_time,
+                            min_magnitude=min_magnitude,
+                            min_latitude=min_latitude,
+                            max_latitude=max_latitude,
+                            min_longitude=min_longitude,
+                            max_longitude=max_longitude,
+                            max_depth=max_depth)
 
-    if min_latitude:
-        searchshape = 'RECT'
-    else:
-        searchshape = 'GLOBAL'
-    events, creation_time = _query_isc_gcmt(
-        start_year=start_time.year,
-        start_month=start_time.month,
-        start_day=start_time.day,
-        searchshape=searchshape,
-        start_time=start_time.time().isoformat(),
-        end_year=end_time.year,
-        end_month=end_time.month,
-        end_day=end_time.day,
-        end_time=end_time.time().isoformat(),
-        min_mag=min_magnitude,
-        min_dep=min_depth,
-        max_dep=max_depth,
-        left_lon=min_longitude,
-        right_lon=max_longitude,
-        bot_lat=min_latitude,
-        top_lat=max_latitude,
-        verbose=verbose
-    )
-    catalog = CSEPCatalog(data=events, name='ISC Bulletin - gCMT',
-                          catalog_id=catalog_id, date_accessed=creation_time)
-    catalog.filter([f'magnitude >= {min_magnitude}'], in_place=True)
+    catalog = CSEPCatalog(data=eventlist,
+                          name='gCMT',
+                          catalog_id=catalog_id,
+                          date_accessed=utc_now_datetime())
     return catalog
 
 
@@ -145,133 +108,161 @@ def from_git(url, path, branch=None, depth=1, **kwargs):
     return repo
 
 
-def _query_isc_gcmt(out_format: str = 'QuakeML',
-                    request: str = 'COMPREHENSIVE',
-                    searchshape: str = 'GLOBAL',
-                    start_year: int = 2020,
-                    start_month: int = 1,
-                    start_day: int = 1,
-                    start_time: str = '00:00:00',
-                    end_year: int = 2022,
-                    end_month: int = 1,
-                    end_day: int = 1,
-                    end_time: str = '23:59:59',
-                    host: str = None,
-                    include_magnitudes: str = 'on',
-                    min_mag: float = 5.95,
-                    max_mag: float = None,
-                    min_dep: float = None,
-                    max_dep: float = None,
-                    left_lon: float = None,
-                    right_lon: float = None,
-                    bot_lat: float = None,
-                    top_lat: float = None,
-                    req_mag_type: str = 'MW',
-                    req_mag_agcy: str = 'GCMT',
-                    verbose: bool = False):
+def _query_gcmt(start_time, end_time, min_magnitude=3.50,
+                min_latitude=None, max_latitude=None,
+                min_longitude=None, max_longitude=None,
+                max_depth=1000, extra_gcmt_params=None):
     """
-    Formats the query url by the search parameters.
-
+    Return GCMT eventlist from IRIS web service.
+    For details see "https://service.iris.edu/fdsnws/event/1/"
     Args:
-        out_format (str): 'QuakeML' (recommended) or 'ISF'
-        request (str): 'COMPREHENSIVE' or 'REVIEWED' by ISC analyst
-        searchshape (str): 'GLOBAL' or 'RECT'. Other options not imp. in csep
-        host (str): Host to do the call. Uses HOST_CATALOG defined atop module
-        include_magnitudes (str): 'on' for csep purposes
-        req_mag_type (str): 'MW' for GCMT
-        req_mag_agcy (str): 'GCMT'
-        verbose (bool): print log
+        start_time (datetime.datetime): start time of catalog query
+        end_time (datetime.datetime): end time of catalog query
+        min_magnitude (float): minimum magnitude of query
+        min_latitude (float): minimum latitude of query
+        max_latitude (float): maximum latitude of query
+        min_longitude (float): minimum longitude of query
+        max_longitude (float): maximum longitude of query
+        max_depth (float): maximum depth of query
+        extra_gcmt_params (dict): additional parameters to pass to IRIS search
+         function
 
     Returns:
-        events list and the creation time string
+        eventlist
     """
+    extra_gcmt_params = extra_gcmt_params or {}
+
+    eventlist = gcmt_search(minmagnitude=min_magnitude,
+                            minlatitude=min_latitude,
+                            maxlatitude=max_latitude,
+                            minlongitude=min_longitude,
+                            maxlongitude=max_longitude,
+                            starttime=start_time.isoformat(),
+                            endtime=end_time.isoformat(),
+                            maxdepth=max_depth, **extra_gcmt_params)
+
+    return eventlist
+
+def gcmt_search(format='text',
+                starttime=None,
+                endtime=None,
+                updatedafter=None,
+                minlatitude=None,
+                maxlatitude=None,
+                minlongitude=None,
+                maxlongitude=None,
+                latitude=None,
+                longitude=None,
+                maxradius=None,
+                catalog='GCMT',
+                contributor=None,
+                maxdepth=1000,
+                maxmagnitude=10.0,
+                mindepth=-100,
+                minmagnitude=0,
+                offset=1,
+                orderby='time-asc',
+                host=None,
+                verbose=False):
+    """Search the IRIS database for events matching input criteria.
+    This search function is a wrapper around the ComCat Web API described here:
+    https://service.iris.edu/fdsnws/event/1/
+
+    This function returns a list of SummaryEvent objects, described elsewhere in this package.
+    Args:
+        starttime (datetime):
+            Python datetime - Limit to events on or after the specified start time.
+        endtime (datetime):
+            Python datetime - Limit to events on or before the specified end time.
+        updatedafter (datetime):
+           Python datetime - Limit to events updated after the specified time.
+        minlatitude (float):
+            Limit to events with a latitude larger than the specified minimum.
+        maxlatitude (float):
+            Limit to events with a latitude smaller than the specified maximum.
+        minlongitude (float):
+            Limit to events with a longitude larger than the specified minimum.
+        maxlongitude (float):
+            Limit to events with a longitude smaller than the specified maximum.
+        latitude (float):
+            Specify the latitude to be used for a radius search.
+        longitude (float):
+            Specify the longitude to be used for a radius search.
+        maxradius (float):
+            Limit to events within the specified maximum number of degrees
+            from the geographic point defined by the latitude and longitude parameters.
+        catalog (str):
+            Limit to events from a specified catalog.
+        contributor (str):
+            Limit to events contributed by a specified contributor.
+        maxdepth (float):
+            Limit to events with depth less than the specified maximum.
+        maxmagnitude (float):
+            Limit to events with a magnitude smaller than the specified maximum.
+        mindepth (float):
+            Limit to events with depth more than the specified minimum.
+        minmagnitude (float):
+            Limit to events with a magnitude larger than the specified minimum.
+        offset (int):
+            Return results starting at the event count specified, starting at 1.
+        orderby (str):
+            Order the results. The allowed values are:
+            - time order by origin descending time
+            - time-asc order by origin ascending time
+            - magnitude order by descending magnitude
+            - magnitude-asc order by ascending magnitude
+        host (str):
+            Replace default ComCat host (earthquake.usgs.gov) with a custom host.
+    Returns:
+        list: List of SummaryEvent() objects.
+    """
+
+    # getting the inputargs must be the first line of the method!
     inputargs = locals().copy()
-    query_args = {}
+    newargs = {}
+
     for key, value in inputargs.items():
         if value is True:
-            query_args[key] = 'true'
+            newargs[key] = 'true'
             continue
         if value is False:
-            query_args[key] = 'false'
+            newargs[key] = 'false'
             continue
         if value is None:
             continue
-        query_args[key] = value
+        newargs[key] = value
 
-    del query_args['verbose']
+    del newargs['verbose']
 
-    start_time = time.time()
-    if verbose:
-        print('Accessing ISC API')
+    events = _search_gcmt(**newargs)
 
-    events, creation_time, url = _search_isc_gcmt(**query_args)
-
-    if verbose:
-        print(f'\tAccess URL: {url}')
-        print(
-            f'\tCatalog with {len(events)} events downloaded in '
-            f'{(time.time() - start_time):.2f} seconds')
-
-    return events, creation_time
+    return events
 
 
-def _search_isc_gcmt(**newargs):
+def _search_gcmt(**_newargs):
     """
-    Performs the query at ISC API and returns event list and access date
+    Performs de-query at ISC API and returns event list and access date
 
     """
-    paramstr = urlencode(newargs)
+    paramstr = urlencode(_newargs)
     url = HOST_CATALOG + paramstr
-    try:
-        fh = request_.urlopen(url, timeout=TIMEOUT)
-        data = fh.read().decode('utf8')
-        fh.close()
-        root = ElementTree.fromstring(data)
-        ns = root[0].tag.split('}')[0] + '}'
-        creation_time = root[0].find(ns + 'creationInfo').find(
-            ns + 'creationTime').text
-        creation_time = creation_time.replace('T', ' ')
-        events_quakeml = root[0].findall(ns + 'event')
-        events = []
-        for feature in events_quakeml:
-            events.append(_parse_isc_event(feature, ns))
+    fh = request.urlopen(url, timeout=TIMEOUT)
+    data = fh.read().decode('utf8').split('\n')
+    fh.close()
+    eventlist = []
+    for line in data[1:]:
+        line_ = line.split('|')
+        if len(line_) != 1:
+            id_ = line_[0]
+            time_ = datetime.fromisoformat(line_[1])
+            dt = datetime_to_utc_epoch(time_)
+            lat = float(line_[2])
+            lon = float(line_[3])
+            depth = float(line_[4])
+            mag = float(line_[10])
+            eventlist.append((id_, dt, lat, lon, depth, mag))
 
-    except ElementTree.ParseError as msg:
-        raise Exception('Badly-formed URL. "%s"' % msg)
-
-    except Exception as msg:
-        raise Exception(
-            'Error downloading data from url %s.  "%s".' % (url, msg))
-
-    return events, creation_time, url
-
-
-def _parse_isc_event(node, ns, mag_author='GCMT'):
-    """
-    Parse event list from quakeML returned from ISC
-    """
-    id_ = node.get('publicID').split('=')[-1]
-    magnitudes = node.findall(ns + 'magnitude')
-    mag_gcmt = [i for i in magnitudes if
-                i.find(ns + 'creationInfo')[0].text == mag_author][0]
-
-    origin_id = mag_gcmt.find(ns + 'originID').text
-    origins = node.findall(ns + 'origin')
-
-    origin_gcmt = [i for i in origins if i.attrib['publicID'] == origin_id][0]
-
-    lat = origin_gcmt.find(ns + 'latitude').find(ns + 'value').text
-    lon = origin_gcmt.find(ns + 'longitude').find(ns + 'value').text
-    mag = mag_gcmt.find(ns + 'mag').find(ns + 'value').text
-    depth = origin_gcmt.find(ns + 'depth').find(ns + 'value').text
-
-    dtstr = origin_gcmt.find(ns + 'time').find(ns + 'value').text
-    date = dtstr.split('T')[0]
-    time_ = dtstr.split('T')[1][:-1]
-    dtime = datetime_to_utc_epoch(
-        datetime.fromisoformat(date + ' ' + time_ + '0'))
-
-    return id_, dtime, float(lat), float(lon), float(depth) / 1000., float(mag)
+    return eventlist
 
 
 def _download_file(url: str, filename: str) -> None:

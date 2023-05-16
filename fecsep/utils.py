@@ -221,6 +221,7 @@ def read_region_config(region_config, **kwargs):
                 region = CartesianGrid2D.from_origins(data, name=region_data,
                                                       magnitudes=magnitudes)
         else:
+            region_data['magnitudes'] = magnitudes
             region = CartesianGrid2D.from_dict(region_data)
 
     region_config.update({'depths': depths,
