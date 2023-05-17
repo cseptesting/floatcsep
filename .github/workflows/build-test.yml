@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    if: github.repository == 'cseptesting/fecsep'
+    if: github.repository == 'cseptesting/floatcsep'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -24,7 +24,7 @@ jobs:
     - uses: conda-incubator/setup-miniconda@v2
       with:
         python-version: ${{ matrix.python-version }}
-        activate-environment: fecsep-dev
+        activate-environment: floatcsep-dev
         channels: conda-forge
 
     - name: Install conda dependencies
@@ -38,10 +38,10 @@ jobs:
       run: |
         pip install -r requirements_dev.txt
 
-    - name: Install feCSEP
+    - name: Install floatCSEP
       run: |
         pip install --no-deps -e .
-        python -c "import fecsep; print('Version: ', fecsep.__version__)"
+        python -c "import floatcsep; print('Version: ', floatcsep.__version__)"
 
     - name: Test with pytest
       run: |

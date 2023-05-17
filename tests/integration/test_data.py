@@ -1,5 +1,5 @@
-import fecsep
-from fecsep.cmd import main
+import floatcsep
+from floatcsep.cmd import main
 import unittest
 import os
 

@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass, field, asdict
 from typing import Sequence
-from fecsep.utils import timewindow2str
+from floatcsep.utils import timewindow2str
 
 
 @dataclass

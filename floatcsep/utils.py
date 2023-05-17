@@ -28,11 +28,11 @@ from csep.models import Polygon
 from csep.core.regions import QuadtreeGrid2D, geographical_area_from_bounds
 from csep.utils.calc import cleaner_range
 
-# feCSEP libraries
+# floatCSEP libraries
 
-import fecsep.accessors
-import fecsep.extras
-import fecsep.readers
+import floatcsep.accessors
+import floatcsep.extras
+import floatcsep.readers
 
 _UNITS = ['years', 'months', 'weeks', 'days']
 _PD_FORMAT = ['YS', 'MS', 'W', 'D']
@@ -41,11 +41,11 @@ _PD_FORMAT = ['YS', 'MS', 'W', 'D']
 def parse_csep_func(func):
     """
 
-    Searchs in pyCSEP and feCSEP a function or method whose name matches the
+    Searchs in pyCSEP and floatCSEP a function or method whose name matches the
     provided string.
 
     Args:
-        func (str, obj) : representing the name of the pycsep/fecsep function
+        func (str, obj) : representing the name of the pycsep/floatcsep function
             or method
 
     Returns:
@@ -70,11 +70,11 @@ def parse_csep_func(func):
                            csep.utils,
                            csep.utils.plots,
                            csep.core.regions,
-                           fecsep.utils,
-                           fecsep.accessors,
-                           fecsep.extras,
-                           fecsep.readers.HDF5Serializer,
-                           fecsep.readers.ForecastParsers]
+                           floatcsep.utils,
+                           floatcsep.accessors,
+                           floatcsep.extras,
+                           floatcsep.readers.HDF5Serializer,
+                           floatcsep.readers.ForecastParsers]
         for module in _target_modules:
             try:
                 return recgetattr(module, func)
@@ -82,7 +82,7 @@ def parse_csep_func(func):
                 pass
         raise AttributeError(
             f'Evaluation/Plot/Region function {func} has not yet been'
-            f' implemented in fecsep or pycsep')
+            f' implemented in floatcsep or pycsep')
 
 
 def parse_timedelta_string(window, exp_class='ti'):
@@ -134,7 +134,7 @@ def read_time_config(time_config, **kwargs):
             attributes of the experiment (see `_attrs` local variable)
         **kwargs: Only the keywords contained in the local variable `_attrs`
             are captured. This ensures to capture the keywords passed
-            to an :class:`~fecsep.core.Experiment` object
+            to an :class:`~floatcsep.core.Experiment` object
 
     Returns:
         A dictionary containing the experiment time attributes and the time
@@ -177,7 +177,7 @@ def read_region_config(region_config, **kwargs):
             attributes of the experiment (see `_attrs` local variable)
         **kwargs: Only the keywords contained in the local variable `_attrs`
             are captured. This ensures to capture the keywords passed
-            to an :class:`~fecsep.core.Experiment` object
+            to an :class:`~floatcsep.core.Experiment` object
 
     Returns:
         A dictionary containing the region attributes of the experiment
@@ -415,13 +415,13 @@ class Task:
         """
         Base node of the workload distribution.
         Wraps lazily objects, methods and their arguments for them to be
-        executed later. For instance, can wrap a fecsep.Model, its method
+        executed later. For instance, can wrap a floatcsep.Model, its method
         'create_forecast' and the argument 'time_window', which can be executed
         later with Task.call() when, for example, task dependencies (parent
         nodes) have been completed.
 
         Args:
-            instance: can be fecsep.Experiment, fecsep.Model, fecsep.Evaluation
+            instance: can be floatcsep.Experiment, floatcsep.Model, floatcsep.Evaluation
             method: the instance's method to be lazily created
             **kwargs: keyword arguments passed to method.
         """
@@ -485,7 +485,7 @@ class Task:
 
 class TaskGraph:
     """
-    Context manager of fecsep workload distribution
+    Context manager of floatcsep workload distribution
     Assign tasks to a node and defines their dependencies (parent nodes).
     Contains a 'tasks' dictionary whose dict_keys are the Task to be
     executed with dict_values as the Task's dependencies.
@@ -496,7 +496,7 @@ class TaskGraph:
 
         self.tasks = OrderedDict()
         self._ntasks = 0
-        self.name = 'fecsep.utils.TaskGraph'
+        self.name = 'floatcsep.utils.TaskGraph'
 
     @property
     def ntasks(self):
@@ -510,7 +510,7 @@ class TaskGraph:
         """
         Simply adds a defined task to the graph
         Args:
-            task: fecsep.utils.Task
+            task: floatcsep.utils.Task
 
         Returns:
 

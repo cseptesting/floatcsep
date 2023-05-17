@@ -1,6 +1,6 @@
 import unittest
 from typing import Sequence, List
-from fecsep.evaluation import Evaluation
+from floatcsep.evaluation import Evaluation
 from csep.core.forecasts import GriddedForecast
 from csep.core.catalogs import CSEPCatalog
 

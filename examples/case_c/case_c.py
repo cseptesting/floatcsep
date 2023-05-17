@@ -1,5 +1,5 @@
 
-from fecsep.experiment import Experiment
+from floatcsep.experiment import Experiment
 
 file_ = 'config.yml'
 exp_c = Experiment.from_yml(file_)

@@ -9,7 +9,7 @@ from unittest import TestCase
 from unittest.mock import patch
 import filecmp
 
-from fecsep.model import Model
+from floatcsep.model import Model
 import shutil
 
 
@@ -183,8 +183,8 @@ class TestModel(TestCase):
             Model.from_dict({'model_1': {'name': 'quack'},
                              'model_2': {'name': 'moo'}})
 
-    @patch('fecsep.model.Model.forecast_from_func')
-    @patch('fecsep.model.Model.forecast_from_file')
+    @patch('floatcsep.model.Model.forecast_from_func')
+    @patch('floatcsep.model.Model.forecast_from_file')
     def test_create_forecast(self, mock_file, mock_func):
 
         model = self.initmodel_noreg('mock', 'mockfile.csv')
@@ -210,7 +210,7 @@ class TestModel(TestCase):
         name = 'mock'
         fname = os.path.join(self._dir, 'model.csv')
 
-        with patch('fecsep.readers.ForecastParsers.csv', forecast_):
+        with patch('floatcsep.readers.ForecastParsers.csv', forecast_):
             model = self.initmodel_noreg(name, fname)
             start = datetime(1900, 1, 1)
             end = datetime(2000, 1, 1)

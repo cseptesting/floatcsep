@@ -1,18 +1,18 @@
 D - Catalog Queries and Model Repositories
 =====================================================
 
-.. currentmodule:: fecsep
+.. currentmodule:: floatcsep
 
 .. contents::
     :local:
 
 .. admonition:: **TL; DR**
 
-    In a terminal, navigate to ``fecsep/examples/case_d`` and type:
+    In a terminal, navigate to ``floatcsep/examples/case_d`` and type:
 
     .. code-block:: console
 
-        $ fecsep run config.yml
+        $ floatcsep run config.yml
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
@@ -57,17 +57,17 @@ Configuration
 Catalog
 ~~~~~~~
 
-    The ``catalog`` inset from ``config.yml`` now makes reference to a catalog query function, in this case :func:`~fecsep.accessors.query_isc_gcmt`.
+    The ``catalog`` inset from ``config.yml`` now makes reference to a catalog query function, in this case :func:`~floatcsep.accessors.query_isc_gcmt`.
 
     .. literalinclude:: ../../examples/case_d/config.yml
        :language: yaml
        :lines: 14-14
 
-    ``fecsep`` will automatically filter the catalog to the experiment time, spatial and magnitude windows of the experiment.
+    ``floatcsep`` will automatically filter the catalog to the experiment time, spatial and magnitude windows of the experiment.
 
     .. note::
 
-     Query functions exist in both ``pycsep`` and ``fecsep`` (e.g. :func:`csep.query_comcat`, :func:`csep.query_bsi`, :func:`~csep.query_gcmt`, :func:`~csep.query_gns`). Only the name of the function is needed to retrieve the catalog. Refer to :obj:`csep` and :class:`fecsep.accessors`.
+     Query functions exist in both ``pycsep`` and ``floatcsep`` (e.g. :func:`csep.query_comcat`, :func:`csep.query_bsi`, :func:`~csep.query_gcmt`, :func:`~csep.query_gns`). Only the name of the function is needed to retrieve the catalog. Refer to :obj:`csep` and :class:`floatcsep.accessors`.
 
 Models
 ~~~~~~
@@ -100,7 +100,7 @@ Running the experiment
 
     .. code-block:: console
 
-        $ fecsep run config.yml
+        $ floatcsep run config.yml
 
     This will automatically set all the calculation paths (testing catalogs, evaluation results, figures) and will create a summarized report in ``results/report.md``.
 

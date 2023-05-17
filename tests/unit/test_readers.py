@@ -6,7 +6,7 @@ import numpy
 import csep.utils.datasets
 import pytest
 
-from fecsep import readers
+from floatcsep import readers
 
 
 class TestForecastParsers(unittest.TestCase):

@@ -1,18 +1,18 @@
 API Reference
 =============
 
-This contains a reference document to the feCSEP API.
+This contains a reference document to the floatCSEP API.
 
 
 Commands
 --------
 
-The commands and entry-points with which to call `fecsep` from the terminal
+The commands and entry-points with which to call `floatcsep` from the terminal
 are:
 
-.. :currentmodule:: fecsep.cmd.main
+.. :currentmodule:: floatcsep.cmd.main
 
-.. automodule:: fecsep.cmd.main
+.. automodule:: floatcsep.cmd.main
 
 .. autosummary::
    :toctree: generated
@@ -25,9 +25,9 @@ are:
 Experiment
 ----------
 
-.. :currentmodule:: fecsep.experiment
+.. :currentmodule:: floatcsep.experiment
 
-.. automodule:: fecsep.experiment
+.. automodule:: floatcsep.experiment
 
 
 The experiment is defined using the :class:`Experiment` class.
@@ -57,9 +57,9 @@ The experiment is defined using the :class:`Experiment` class.
 Models
 ------
 
-.. :currentmodule:: fecsep.model
+.. :currentmodule:: floatcsep.model
 
-.. automodule:: fecsep.model
+.. automodule:: floatcsep.model
 
 A model is defined using the :class:`Model` class.
 
@@ -82,9 +82,9 @@ A model is defined using the :class:`Model` class.
 Evaluations
 -----------
 
-.. :currentmodule:: fecsep.evaluation
+.. :currentmodule:: floatcsep.evaluation
 
-.. automodule:: fecsep.evaluation
+.. automodule:: floatcsep.evaluation
 
 A test is defined using the :class:`Evaluation` class.
 
@@ -104,9 +104,9 @@ A test is defined using the :class:`Evaluation` class.
 Accessors
 ---------
 
-.. :currentmodule:: fecsep.accessors
+.. :currentmodule:: floatcsep.accessors
 
-.. automodule:: fecsep.accessors
+.. automodule:: floatcsep.accessors
 
 .. autosummary::
    :toctree: generated
@@ -123,9 +123,9 @@ Extras
 Additional `pyCSEP` functionalities
 
 
-.. :currentmodule:: fecsep.extras
+.. :currentmodule:: floatcsep.extras
 
-.. automodule:: fecsep.extras
+.. automodule:: floatcsep.extras
 
 .. autosummary::
    :toctree: generated
@@ -147,9 +147,9 @@ Additional `pyCSEP` functionalities
 Utilities
 ---------
 
-.. :currentmodule:: fecsep.utils
+.. :currentmodule:: floatcsep.utils
 
-.. automodule:: fecsep.utils
+.. automodule:: floatcsep.utils
 
 .. autosummary::
    :toctree: generated
@@ -172,9 +172,9 @@ Utilities
 Readers
 -------
 
-.. :currentmodule:: fecsep.readers
+.. :currentmodule:: floatcsep.readers
 
-.. automodule:: fecsep.readers
+.. automodule:: floatcsep.readers
 
 .. autosummary::
    :toctree: generated

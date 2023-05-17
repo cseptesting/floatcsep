@@ -1,18 +1,18 @@
 E - A Realistic Experiment
 ==========================
 
-.. currentmodule:: fecsep
+.. currentmodule:: floatcsep
 
 .. contents::
     :local:
 
 .. admonition:: **TL; DR**
 
-    In a terminal, navigate to ``fecsep/examples/case_e`` and type:
+    In a terminal, navigate to ``floatcsep/examples/case_e`` and type:
 
     .. code-block:: console
 
-        $ fecsep run config.yml
+        $ floatcsep run config.yml
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
@@ -73,7 +73,7 @@ Models
     .. literalinclude:: ../../examples/case_e/models.yml
        :language: yaml
 
-    The ``.xml`` format is automatically detected and parsed by ``fecsep`` readers.
+    The ``.xml`` format is automatically detected and parsed by ``floatcsep`` readers.
 
     .. note::
 
@@ -81,7 +81,7 @@ Models
 
     .. note::
 
-        The ``use_db`` flag allows ``fecsep`` to transform the forecasts into a database (HDF5), which speeds up the calculations.
+        The ``use_db`` flag allows ``floatcsep`` to transform the forecasts into a database (HDF5), which speeds up the calculations.
 
 Post-Process
 ~~~~~~~~~~~~
@@ -102,7 +102,7 @@ Running the experiment
 
     .. code-block:: console
 
-        fecsep run config.yml
+        floatcsep run config.yml
 
     This will automatically set all the calculation paths (testing catalogs, evaluation results, figures) and will create a summarized report in ``results/report.md``.
 

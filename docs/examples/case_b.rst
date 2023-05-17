@@ -1,18 +1,18 @@
 B - Multiple Models and Tests
 ========================================
 
-.. currentmodule:: fecsep
+.. currentmodule:: floatcsep
 
 .. contents::
     :local:
 
 .. admonition:: **TL; DR**
 
-    In a terminal, navigate to ``fecsep/examples/case_b`` and type:
+    In a terminal, navigate to ``floatcsep/examples/case_b`` and type:
 
     .. code-block:: console
 
-        $ fecsep run config.yml
+        $ floatcsep run config.yml
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
@@ -37,7 +37,7 @@ The following example is an experiment including multiple forecasts and evaluati
         └── region.txt
 
 
-The testing catalog is now defined in ``json`` format, which is the default catalog used by ``fecsep``, as it allows the storage of metadata.
+The testing catalog is now defined in ``json`` format, which is the default catalog used by ``floatcsep``, as it allows the storage of metadata.
 
 .. note::
     An user-defined catalog can be saved as ``json`` with :meth:`CSEPCatalog.write_json() <csep.core.catalogs.CSEPCatalog.write_json>` using ``pycsep``
@@ -87,7 +87,7 @@ The experiment can be run by simply navigating to the ``examples/case_b`` folder
 
 .. code-block:: console
 
-    fecsep run config.yml
+    floatcsep run config.yml
 
 This will automatically set all the file paths of the calculation (testing catalogs, evaluation results, figures) and will display a summarized report in ``results/report.md``.
 

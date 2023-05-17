@@ -4,7 +4,7 @@ import numpy
 from unittest import TestCase
 from unittest.mock import patch
 from datetime import datetime
-from fecsep.experiment import Experiment
+from floatcsep.experiment import Experiment
 from csep.core import poisson_evaluations
 from csep.core.catalogs import CSEPCatalog
 

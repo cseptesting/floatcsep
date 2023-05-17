@@ -1,4 +1,4 @@
-from fecsep.utils import MarkdownReport, timewindow2str
+from floatcsep.utils import MarkdownReport, timewindow2str
 
 """
 Use the MarkdownReport class to create output for the experiment 

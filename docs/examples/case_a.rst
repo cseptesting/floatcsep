@@ -1,18 +1,18 @@
 A - Simple Model and Catalog
 =======================================
 
-.. currentmodule:: fecsep
+.. currentmodule:: floatcsep
 
 .. contents::
     :local:
 
 .. admonition:: **TL; DR**
 
-    In a terminal, navigate to ``fecsep/examples/case_a`` and type:
+    In a terminal, navigate to ``floatcsep/examples/case_a`` and type:
 
     .. code-block:: console
 
-        $ fecsep run config.yml
+        $ floatcsep run config.yml
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
@@ -40,7 +40,7 @@ forecast against a simple catalog. The input structure of the experiment is:
 
     .. literalinclude:: ../../examples/case_a/catalog.csep
 
-* The forecast ``best_model.dat`` to be evaluated is written in the ``.dat`` format (see :doc:`pycsep:concepts/forecasts`). Forecast formats are detected automatically (see :class:`fecsep.readers`)
+* The forecast ``best_model.dat`` to be evaluated is written in the ``.dat`` format (see :doc:`pycsep:concepts/forecasts`). Forecast formats are detected automatically (see :class:`floatcsep.readers`)
 
     .. literalinclude:: ../../examples/case_a/best_model.dat
 
@@ -82,7 +82,7 @@ Region
 Catalog
 ~~~~~~~
 
-    It is defined in the ``catalog`` inset. This should only make reference to a catalog file or a catalog query function (e.g. ``query_comcat``). ``fecsep`` will automatically filter the catalog to the experiment time, spatial and magnitude frames:
+    It is defined in the ``catalog`` inset. This should only make reference to a catalog file or a catalog query function (e.g. ``query_comcat``). ``floatcsep`` will automatically filter the catalog to the experiment time, spatial and magnitude frames:
 
     .. literalinclude:: ../../examples/case_a/config.yml
        :language: yaml
@@ -119,13 +119,13 @@ Run command
 
     .. code-block:: console
 
-        $ fecsep run config.yml
+        $ floatcsep run config.yml
 
     This will automatically set all the calculation paths (testing catalogs, evaluation results, figures) and will create a summarized report in ``results/report.md``.
 
     .. note::
 
-        The command ``fecsep run <config>`` can be called from any working directory, as long as the specified file paths (e.g. region, models) are relative to the ``config.yml`` file.
+        The command ``floatcsep run <config>`` can be called from any working directory, as long as the specified file paths (e.g. region, models) are relative to the ``config.yml`` file.
 
 
 Plot command
@@ -135,7 +135,7 @@ Plot command
 
     .. code-block:: console
 
-        $ fecsep plot config.yml
+        $ floatcsep plot config.yml
 
     This can be used, for example, when an additional plot is desired. Try adding to ``config.yml`` the following lines
 
@@ -149,7 +149,7 @@ Plot command
 Results
 ~~~~~~~
 
-    The :obj:`~fecsep.cmd.main.run` command creates the result path tree for each time window analyzed.
+    The :obj:`~floatcsep.cmd.main.run` command creates the result path tree for each time window analyzed.
 
     *  The testing catalog of the window is stored in ``results/{window}/catalog``  in ``json`` format. This is a subset of the global testing catalog.
     *  Human-readable results are found in ``results/{window}/evaluations``
@@ -160,6 +160,6 @@ Results
 Advanced
 --------
 
-The experiment run logic can be seen in the file ``case_a.py``, which executes the same example but in python source code. The run logic of the terminal commands ``run``, ``plot`` and ``reproduce`` can be found in :class:`fecsep.cmd.main`
+The experiment run logic can be seen in the file ``case_a.py``, which executes the same example but in python source code. The run logic of the terminal commands ``run``, ``plot`` and ``reproduce`` can be found in :class:`floatcsep.cmd.main`
 
 

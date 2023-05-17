@@ -1,18 +1,18 @@
 C - Multiple Time Windows
 ====================================
 
-.. currentmodule:: fecsep
+.. currentmodule:: floatcsep
 
 .. contents::
     :local:
 
 .. admonition:: **TL; DR**
 
-    In a terminal, navigate to ``fecsep/examples/case_c`` and type:
+    In a terminal, navigate to ``floatcsep/examples/case_c`` and type:
 
     .. code-block:: console
 
-        $ fecsep run config.yml
+        $ floatcsep run config.yml
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
@@ -58,7 +58,7 @@ Time
 
 Evaluations
 ~~~~~~~~~~~
-    The experiment's evaluations are defined in ``tests.yml``, which can now include temporal evaluations (see :func:`~fecsep.extras.sequential_likelihood`, :func:`~fecsep.extras.sequential_information_gain`, :func:`~fecsep.utils.plot_sequential_likelihood`).
+    The experiment's evaluations are defined in ``tests.yml``, which can now include temporal evaluations (see :func:`~floatcsep.extras.sequential_likelihood`, :func:`~floatcsep.extras.sequential_information_gain`, :func:`~floatcsep.utils.plot_sequential_likelihood`).
 
     .. literalinclude:: ../../examples/case_c/tests.yml
        :language: yaml
@@ -70,7 +70,7 @@ Evaluations
 Results
 -------
 
-The :obj:`~fecsep.cmd.main.run` command creates the result path tree for all time windows.
+The :obj:`~floatcsep.cmd.main.run` command creates the result path tree for all time windows.
 
 *  The testing catalog of the window is stored in ``results/{window}/catalog``  in ``json`` format. This is a subset of the global testing catalog.
 *  Human-readable results are found in ``results/{window}/evaluations``

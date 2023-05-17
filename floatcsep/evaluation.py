@@ -6,8 +6,8 @@ import csep.models
 from csep.core.catalogs import CSEPCatalog
 from csep.core.forecasts import GriddedForecast
 
-from fecsep.model import Model
-from fecsep.utils import parse_csep_func
+from floatcsep.model import Model
+from floatcsep.utils import parse_csep_func
 
 
 class Evaluation:
@@ -96,10 +96,10 @@ class Evaluation:
 
         Args:
             timewindow (str, list): Time window string (or list of str)
-             formatted from :meth:`fecsep.utils.timewindow2str`
+             formatted from :meth:`floatcsep.utils.timewindow2str`
             catpath (str,list): Path(s) pointing to the filtered catalog(s)
-            model (:class:`fecsep:model.Model`): Model to be evaluated
-            ref_model (:class:`fecsep:model.Model`, list): Reference model (or
+            model (:class:`floatcsep:model.Model`): Model to be evaluated
+            ref_model (:class:`floatcsep:model.Model`, list): Reference model (or
              models) reference for the evaluation.
 
         Returns:

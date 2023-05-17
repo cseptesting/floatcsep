@@ -14,13 +14,13 @@ from csep.models import EvaluationResult
 from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
 
-from fecsep import report
-from fecsep.registry import PathTree
-from fecsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
+from floatcsep import report
+from floatcsep.registry import PathTree
+from floatcsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
     read_region_config, Task, TaskGraph, timewindow2str, str2timewindow, \
     magnitude_vs_time
-from fecsep.model import Model
-from fecsep.evaluation import Evaluation
+from floatcsep.model import Model
+from floatcsep.evaluation import Evaluation
 import warnings
 
 numpy.seterr(all="ignore")
@@ -54,8 +54,8 @@ class Experiment:
             - growth (:class:`str`): `incremental` or `cumulative`
             - offset (:class:`float`): recurrence of forecast creation.
 
-            For further details, see :func:`~fecsep.utils.timewindows_ti` and
-            :func:`~fecsep.utils.timewindows_td`
+            For further details, see :func:`~floatcsep.utils.timewindows_ti` and
+            :func:`~floatcsep.utils.timewindows_td`
 
         region_config (dict): Contains all the spatial and magnitude
             specifications. It must contain the following keys:
@@ -63,7 +63,7 @@ class Experiment:
             - region (:py:class:`str`,
               :class:`csep.core.regions.CartesianGrid2D`): The geographical
               region, which can be specified as:
-              (i) the name of a :mod:`csep`/:mod:`fecsep` default region
+              (i) the name of a :mod:`csep`/:mod:`floatcsep` default region
               function (e.g. :func:`~csep.core.regions.california_relm_region`)
               (ii) the name of a user function or
               (iii) the path to a lat/lon file
@@ -183,13 +183,13 @@ class Experiment:
         """
 
         Parse the models' configuration file/dict. Instantiates all the models
-        as :class:`fecsep.model.Model` and store them into
+        as :class:`floatcsep.model.Model` and store them into
         :attr:`Experiment.models`.
 
         Args:
             model_config (dict, list, str): configuration file or dictionary
              containing the model initialization attributes, as defined in
-             :meth:`~fecsep.model.Model`
+             :meth:`~floatcsep.model.Model`
 
 
         """
@@ -255,7 +255,7 @@ class Experiment:
     def stage_models(self) -> None:
         """
         Stages all the experiment's models. See
-        :meth:`fecsep.model.Model.stage`
+        :meth:`floatcsep.model.Model.stage`
         """
         for i in self.models:
             i.stage()
@@ -263,13 +263,13 @@ class Experiment:
     def set_tests(self, test_config: Union[str, Dict, List]) -> list:
         """
         Parse the tests' configuration file/dict. Instantiate them as
-        :class:`fecsep.evaluation.Evaluation` and store them into
+        :class:`floatcsep.evaluation.Evaluation` and store them into
         :attr:`Experiment.tests`.
 
         Args:
             test_config (dict, list, str): configuration file or dictionary
              containing the evaluation initialization attributes, as defined in
-             :meth:`~fecsep.evaluation.Evaluation`
+             :meth:`~floatcsep.evaluation.Evaluation`
 
         """
         tests = []
@@ -768,7 +768,7 @@ class Experiment:
 
         Returns:
             A dictionary with serialized instance's attributes, which are
-            feCSEP readable
+            floatCSEP readable
         """
 
         def _get_value(x):
@@ -814,16 +814,16 @@ class Experiment:
     def to_yml(self, filename: str, **kwargs) -> None:
         """
 
-        Serializes the :class:`~fecsep.experiment.Experiment` instance into a
+        Serializes the :class:`~floatcsep.experiment.Experiment` instance into a
         .yml file.
 
         Note:
             This instance can then be reinstantiated using
-            :meth:`~fecsep.experiment.Experiment.from_yml`
+            :meth:`~floatcsep.experiment.Experiment.from_yml`
 
         Args:
             filename: Name of the file onto which dump the instance
-            **kwargs: Passed to :meth:`~fecsep.experiment.Experiment.to_dict`
+            **kwargs: Passed to :meth:`~floatcsep.experiment.Experiment.to_dict`
 
         Returns:
 
@@ -848,15 +848,15 @@ class Experiment:
         """
 
         Initializes an experiment from a .yml file. It must contain the
-        attributes described in the :class:`~fecsep.experiment.Experiment`,
-        :func:`~fecsep.utils.read_time_config` and
-        :func:`~fecsep.utils.read_region_config` descriptions
+        attributes described in the :class:`~floatcsep.experiment.Experiment`,
+        :func:`~floatcsep.utils.read_time_config` and
+        :func:`~floatcsep.utils.read_region_config` descriptions
 
         Args:
             config_yml (str): The path to the .yml file
 
         Returns:
-            An :class:`~fecsep.experiment.Experiment` class instance
+            An :class:`~floatcsep.experiment.Experiment` class instance
 
         """
         with open(config_yml, 'r') as yml:

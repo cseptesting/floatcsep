@@ -1,5 +1,5 @@
 <!-- omit in toc -->
-# Contributing to fecsep
+# Contributing to floatcsep
 
 First off, thanks for taking the time to contribute! ❤️
 
@@ -26,13 +26,13 @@ All types of contributions are encouraged and valued. See the [Table of Contents
 
 ## I Have a Question
 
-> If you want to ask a question, we hope that you have alredy read the available [Documentation](https://fecsep.readthedocs.io).
+> If you want to ask a question, we hope that you have alredy read the available [Documentation](https://floatcsep.readthedocs.io).
 
-Before you ask a question, it is best to search for existing [Issues](https://github.com/cseptesting/fecsep/issues) that might help you. In case you have found a suitable issue and still need clarification, you can write your question in this issue.
+Before you ask a question, it is best to search for existing [Issues](https://github.com/cseptesting/floatcsep/issues) that might help you. In case you have found a suitable issue and still need clarification, you can write your question in this issue.
 
 If you then still feel the need to ask a question and need clarification, we recommend the following:
 
-- Open an [Issue](https://github.com/cseptesting/fecsep/issues/new).
+- Open an [Issue](https://github.com/cseptesting/floatcsep/issues/new).
 - Provide as much context as you can about what you're running into.
 - Provide project and platform versions (nodejs, npm, etc), depending on what seems relevant.
 - Provide the files/artifacts, or simplified versions of them
@@ -53,8 +53,8 @@ We will then take care of the issue as soon as possible.
 Please complete the following steps in advance to help us fix any potential bug as fast as possible.
 
 - Make sure that you are using the latest version (or a tag release).
-- Determine if your bug is really a bug and not an error on your side e.g. using incompatible environment components/versions (Make sure that you have read the [documentation](https://fecsep.readthedocs.io). If you are looking for support, you might want to check [this section](#i-have-a-question)).
-- To see if other users have experienced (and potentially already solved) the same issue you are having, check if there is not already a bug report existing for your bug or error in the [bug tracker](https://github.com/cseptesting/fecsepissues?q=label%3Abug).
+- Determine if your bug is really a bug and not an error on your side e.g. using incompatible environment components/versions (Make sure that you have read the [documentation](https://floatcsep.readthedocs.io). If you are looking for support, you might want to check [this section](#i-have-a-question)).
+- To see if other users have experienced (and potentially already solved) the same issue you are having, check if there is not already a bug report existing for your bug or error in the [bug tracker](https://github.com/cseptesting/floatcsepissues?q=label%3Abug).
 - Collect information about the bug:
   - Stack trace (Traceback)
   - OS, Platform and Version (Windows, Linux, macOS, x86, ARM)
@@ -68,40 +68,40 @@ Please complete the following steps in advance to help us fix any potential bug 
 
 ### Suggesting Enhancements
 
-This section guides you through submitting an enhancement suggestion for fecsep, **including completely new features and minor improvements to existing functionality**. Following these guidelines will help maintainers and the community to understand your suggestion and find related suggestions.
+This section guides you through submitting an enhancement suggestion for floatcsep, **including completely new features and minor improvements to existing functionality**. Following these guidelines will help maintainers and the community to understand your suggestion and find related suggestions.
 
 #### Before Submitting an Enhancement
 
 - Make sure that you are using the latest version.
-- Read the [documentation](https://fecsep.readthedocs.io) carefully and find out if the functionality is already covered, maybe by an individual configuration.
-- Perform a [search](https://github.com/cseptesting/fecsep/issues) to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one.
+- Read the [documentation](https://floatcsep.readthedocs.io) carefully and find out if the functionality is already covered, maybe by an individual configuration.
+- Perform a [search](https://github.com/cseptesting/floatcsep/issues) to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one.
 - Use a **clear and descriptive title** for the issue to identify the suggestion.
 - **Describe the current behavior** and **explain which behavior you expected to see instead** and why. At this point you can also tell which alternatives do not work for you.
-- **Explain why this enhancement would be useful** to most fecsep users. You may also want to point out the other projects that solved it better and which could serve as inspiration.
+- **Explain why this enhancement would be useful** to most floatcsep users. You may also want to point out the other projects that solved it better and which could serve as inspiration.
 
 
 ### Your First Code Contribution
 
 * Make sure you have an active GitHub account
-* Fork the repo on GitHub. It will now live at `https://github.com/<YOUR_GITHUB_USERNAME>/fecsep` ([here is some helping info](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/working-with-forks)).
+* Fork the repo on GitHub. It will now live at `https://github.com/<YOUR_GITHUB_USERNAME>/floatcsep` ([here is some helping info](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/working-with-forks)).
 * Download and install `git`. Check out the git documentaion if you aren't familiar with it.
-* Please follow the [Installation](https://fecsep.readthedocs.io) instructions for developers. Here is a summarized version.
+* Please follow the [Installation](https://floatcsep.readthedocs.io) instructions for developers. Here is a summarized version.
   
       # clone your fork
-      git clone https://github.com/<YOUR_GITHUB_USERNAME>/fecsep.git
-      cd fecsep
+      git clone https://github.com/<YOUR_GITHUB_USERNAME>/floatcsep.git
+      cd floatcsep
       # prepare environment
-      conda env create -n fecsep-dev
-      conda activate fecsep-dev
+      conda env create -n floatcsep-dev
+      conda activate floatcsep-dev
       conda install -c conda-force pycsep
-      # install fecsep
+      # install floatcsep
       pip install -e .[dev]
       # add upstream repository
-      git remote add upstream https://github.com/cseptesting/fecsep.git
+      git remote add upstream https://github.com/cseptesting/floatcsep.git
 
-  * Note: use the command `conda deactivate` to go back to your regular environment when you are done working with feCSEP.
+  * Note: use the command `conda deactivate` to go back to your regular environment when you are done working with floatCSEP.
 
-  You can now do any local changes in your `fecsep` source code, which you can then `add`, `commit` and `push` to your personal fork.
+  You can now do any local changes in your `floatcsep` source code, which you can then `add`, `commit` and `push` to your personal fork.
 
 ### Submitting a Pull Request
 
@@ -112,7 +112,7 @@ Pull requests are how we use your changes to the code! Please submit them to us!
 3. Also, documentation must accompany new feature requests.
    - Note: We would really appreciate pull requests that help us improve documentation.
 4. Make sure the tests pass. Run `pytest -v tests/` in the top-level directory of the repo.
-5. Push your changes to your fork and submit a pull request. Make sure to set the branch to `fecsep:main`.
+5. Push your changes to your fork and submit a pull request. Make sure to set the branch to `floatcsep:main`.
 6. Wait for our review. There may be some suggested changes or improvements. Changes can be made after
    the pull request has been opening by simply adding more commits to your branch.
 
@@ -120,7 +120,7 @@ Pull requests can be changed after they are opened, so create a pull request as 
 This allows us to provide feedback during development and to answer any questions.
 
 
-Also, if you find feCSEP to be useful, but don't want to contribute to the code we highly encourage updates to the documentation!
+Also, if you find floatCSEP to be useful, but don't want to contribute to the code we highly encourage updates to the documentation!
 
 
 

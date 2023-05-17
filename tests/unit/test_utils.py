@@ -7,10 +7,10 @@ import csep
 import csep.utils.plots
 import csep.core.regions
 
-import fecsep
-import fecsep.accessors
-import fecsep.extras
-from fecsep.utils import parse_timedelta_string, timewindows_ti, \
+import floatcsep
+import floatcsep.accessors
+import floatcsep.extras
+from floatcsep.utils import parse_timedelta_string, timewindows_ti, \
     read_time_config, read_region_config, parse_csep_func
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -28,11 +28,11 @@ class CsepFunctionTest(unittest.TestCase):
         self.assertIsInstance(parse_csep_func('italy_csep_region'),
                               csep.core.regions.italy_csep_region.__class__)
         self.assertIsInstance(parse_csep_func('plot_forecast_lowres'),
-                              fecsep.utils.plot_forecast_lowres.__class__)
+                              floatcsep.utils.plot_forecast_lowres.__class__)
         self.assertIsInstance(parse_csep_func('from_zenodo'),
-                              fecsep.accessors.from_zenodo.__class__)
+                              floatcsep.accessors.from_zenodo.__class__)
         self.assertIsInstance(parse_csep_func('from_zenodo'),
-                              fecsep.extras.vector_poisson_t_w_test.__class__)
+                              floatcsep.extras.vector_poisson_t_w_test.__class__)
         self.assertRaises(AttributeError, parse_csep_func, 'panic_button')
 
 

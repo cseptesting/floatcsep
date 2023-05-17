@@ -2,7 +2,7 @@ import os.path
 import numpy.testing
 from datetime import datetime
 from unittest import TestCase
-from fecsep.model import Model
+from floatcsep.model import Model
 
 
 class TestModelFromFile(TestCase):

@@ -1,7 +1,7 @@
 import os.path
 import vcr
 from datetime import datetime
-from fecsep.accessors import query_gcmt, _query_gcmt, from_zenodo, \
+from floatcsep.accessors import query_gcmt, _query_gcmt, from_zenodo, \
     from_git, _check_hash
 import unittest
 from unittest import mock
@@ -96,7 +96,7 @@ class TestZenodoGetter(unittest.TestCase):
 
 
 class TestGitter(unittest.TestCase):
-    @mock.patch('fecsep.accessors.Repo')
+    @mock.patch('floatcsep.accessors.Repo')
     @mock.patch('git.Git')
     def runTest(self, mock_git, mock_repo):
         p = mock.PropertyMock(return_value=False)

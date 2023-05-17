@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'feCSEP'
+project = 'floatCSEP'
 copyright = '2022, Pablo Iturrieta'
 author = 'Pablo Iturrieta'
 release = 'v0.1.0'
@@ -55,5 +55,5 @@ html_theme_options = {
     'style_nav_header_background': '#343131ff',
     'logo_only': True,
 }
-html_logo = '_static/feCSEP_Logo_CMYK.png'
+html_logo = '_static/floatCSEP_Logo_CMYK.png'
 todo_include_todos = False

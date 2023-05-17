@@ -10,9 +10,9 @@ from datetime import datetime
 from csep.core.forecasts import GriddedForecast, CatalogForecast
 from csep.utils.time_utils import decimal_year
 
-from fecsep.accessors import from_zenodo, from_git
-from fecsep.readers import ForecastParsers, HDF5Serializer, check_format
-from fecsep.utils import timewindow2str, str2timewindow
+from floatcsep.accessors import from_zenodo, from_git
+from floatcsep.readers import ForecastParsers, HDF5Serializer, check_format
+from floatcsep.utils import timewindow2str, str2timewindow
 
 
 class Model:
@@ -132,7 +132,7 @@ class Model:
             - Get from filesystem, Zenodo or Git
             - Pre-check model fileformat
             - Initialize database
-            - Run model quality assurance (unit tests, runnable from fecsep)
+            - Run model quality assurance (unit tests, runnable from floatcsep)
         """
 
         self.get_source(self.zenodo_id, self.giturl)
@@ -188,8 +188,8 @@ class Model:
             giturl (str): git remote repository URL from which to clone the
              source
             force (bool): Forces to re-query the model from a web repository
-            **kwargs: see :func:`~fecsep.utils.from_zenodo` and
-             :func:`~fecsep.utils.from_git`
+            **kwargs: see :func:`~floatcsep.utils.from_zenodo` and
+             :func:`~floatcsep.utils.from_git`
 
 
         """
@@ -319,8 +319,8 @@ class Model:
         Note:
             The argument `tstring` is formatted according to how the Experiment
             handles timewindows, specified in the functions
-            :func:'fecsep.utils.timewindow2str` and
-            :func:'fecsep.utils.str2timewindow`
+            :func:'floatcsep.utils.timewindow2str` and
+            :func:'floatcsep.utils.str2timewindow`
 
         Args:
             tstring: String representing the start and end of the forecast,

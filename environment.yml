@@ -1,4 +1,4 @@
-name: fecsep
+name: floatcsep
 channels:
     - conda-forge
     - defaults

@@ -1,4 +1,4 @@
-from fecsep.experiment import Experiment
+from floatcsep.experiment import Experiment
 import argparse
 
 def stage(config, show=True):
@@ -74,7 +74,7 @@ def reproduce(config, show=True):
     print('========\n')
 
 
-def fecsep():
+def floatcsep():
     """
 
     """
