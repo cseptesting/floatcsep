@@ -1,7 +1,7 @@
 name: case_f
 
 time_config:
-  start_date: 2020-4-1T00:00:00
+  start_date: 2020-1-1T00:00:00
   end_date: 2020-5-1T00:00:00
   horizon: 28days
   exp_class: td

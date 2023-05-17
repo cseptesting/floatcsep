@@ -16,7 +16,7 @@ _region = os.path.normpath(os.path.join(_dir, '../artifacts', 'regions',
 _time_config = {'start_date': datetime(2021, 1, 1),
                 'end_date': datetime(2022, 1, 1)}
 _region_config = {'region': _region,
-                  'mag_max': 1.2,
+                  'mag_max': 10.0,
                   'mag_min': 1.0,
                   'mag_bin': 0.1,
                   'depth_min': 0,
@@ -160,15 +160,15 @@ class TestExperiment(TestCase):
         exp = Experiment(**time_config, **_region_config,
                          catalog=_cat)
         tstring = '2020-08-01_2021-01-02'
-
+        print(exp.catalog)
         with tempfile.NamedTemporaryFile() as file_:
             def filetree(*args):
                 return file_.name
             exp.filetree = filetree
-            with patch.object(exp, 'filetree',
-                              filetree):
+            with patch.object(exp, 'filetree', filetree):
                 exp.set_test_cat(tstring)
                 cat = CSEPCatalog.load_json(file_.name)
+                print(cat)
                 numpy.testing.assert_equal(1609455600000, cat.data[0][1])
 
     @classmethod

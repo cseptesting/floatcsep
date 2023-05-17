@@ -364,7 +364,8 @@ class Experiment:
              f'origin_time >= {start.timestamp() * 1000}',
              f'magnitude >= {self.mag_min}',
              f'magnitude < {self.mag_max}'], in_place=False)
-        sub_cat.filter_spatial(region=self.region)
+        if self.region:
+            sub_cat.filter_spatial(region=self.region)
         sub_cat.write_json(filename=self.filetree(tstring, 'catalog'))
 
     def set_input_cat(self, tstring: str, model: Model) -> None:
@@ -383,8 +384,6 @@ class Experiment:
         start, end = str2timewindow(tstring)
         sub_cat = self.catalog.filter(
             [f'origin_time < {start.timestamp() * 1000}'])
-        print(max(self.catalog.get_datetimes()))
-        print(max(sub_cat.get_datetimes()))
         sub_cat.write_ascii(filename=model.tree('cat'))
 
     def set_tasks(self, results_path=None, run_name=None):
@@ -433,8 +432,6 @@ class Experiment:
             task_graph.add(task_i)
             # the task will be executed later with Experiment.run()
             # once all the tasks are defined
-
-        # todo Prepare input catalogs for time-dependent
 
         # Set up the Forecasts creation
         for time_i in tw_strings:
@@ -631,7 +628,8 @@ class Experiment:
 
             # consistency and comparative
             for test in self.tests:
-                if 'Discrete' in test.type and 'Absolute' in test.type:
+                if test.type in ['consistency', 'comparative']:
+                    fig_path = self.filetree(time_str, 'figures', test.name)
                     results = self.read_results(test, time)
                     ax = test.plot_func(results, plot_args=test.plot_args,
                                         **test.plot_kwargs)
