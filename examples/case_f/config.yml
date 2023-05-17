@@ -26,12 +26,4 @@ models:
       func_kwargs:
         n_sims: 200
         mag_min: 3.5
-  - pymock:
-      giturl: https://git.gfz-potsdam.de/csep/it_experiment/models/pymock.git
-      path: pymock2
-      build: pip
-      func: pymock
-      func_kwargs:
-        n_sims: 400
-        mag_min: 4.0
 test_config: tests.yml

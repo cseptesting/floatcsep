@@ -100,7 +100,8 @@ class Model:
             self.model_class = 'td'
             self.build = kwargs.get('build', 'docker')
             self.run_prefix = ''
-            self.args_file = kwargs.get('args_file', os.path.join('input',
+            self.args_file = kwargs.get('args_file', os.path.join(self.path,
+                                                                  'input',
                                                                   'args.txt'))
         else:
             # Time-Independent
@@ -171,7 +172,7 @@ class Model:
             print(f'Build output:\n\t{output}')
             print(f'Nested environments is not well supported. '
                   f'Consider using docker instead')
-        self.run_prefix = f'source {venvact} &&'
+        self.run_prefix = f'cd {self.path} && source {venvact} &&'
 
     def get_source(self, zenodo_id: int = None, giturl: str = None,
                    force: bool = False, **kwargs) -> None:
@@ -386,6 +387,7 @@ class Model:
                            **kwargs) -> None:
 
         self.prepare_args(start_date, end_date, **kwargs)
+
         self.run_model()
 
     def prepare_args(self, start, end, **kwargs):
@@ -417,14 +419,19 @@ class Model:
         if self.build == 'pip' or self.build == 'venv':
             print(f'Running model {self.name} using venv')
             run_func = f'{self.func} {self.args_file}'
-            cmd = ['bash', '-c', f'{self.run_prefix} {run_func}']
+            cmd = ['bash', '-c',
+                   f'{self.run_prefix} {run_func}']
             p = subprocess.Popen(cmd,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE,
                                  text=True)
             output, errors = p.communicate()
-            output = output.replace('\n', '\n\t')
-            print(f'Run output:\n\t{output}')
+            if output:
+                output = output.replace('\n', '\n\t')
+                print(f'Run output:\n\t{output}')
+            if errors:
+                errors = errors.replace('\n', '\n\t')
+                print(f'Run error:\n\t{errors}')
 
     def to_dict(self, excluded=('name', 'forecasts')):
         """

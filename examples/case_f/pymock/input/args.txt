@@ -1,0 +1,15 @@
+# pymock input arguments #
+
+## Experiment obligatory parameters. They should have a default value##
+
+### Testing time window 1 day
+start_date = 2020-01-01T00:00:00
+end_date = 2020-01-29T00:00:00
+catalog = catalog.csv
+seed = 23
+n_sims = 200
+
+mag_min = 3.5
+
+
+force = True
