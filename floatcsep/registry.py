@@ -93,7 +93,7 @@ class ModelTree:
         # set args path
         self.args = os.path.join('input', self.args or 'args.txt')
         # set cat path
-        self.cat = os.path.join('input', self.args or 'catalog.csv')
+        self.cat = os.path.join('input', self.cat or 'catalog.csv')
 
         # create directories if they don't exist
         for _, folder_ in dirtree.items():

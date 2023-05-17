@@ -87,7 +87,7 @@ def make_forecast(input_catalog, args, n_sims=1000, seed=None, verbose=True):
             f"and simulation parameters:\n"
             f" n_sims:{locals()['n_sims']}\n"
             f" seed:{locals()['seed']}")
-        print(f'\tmu: {mu:.2e}\n\tlambda:{lambd:.2e}')
+    print(f'\tm_min: {mag_min}\n\tdt: {dt}\n\tmu: {mu:.2e}\n\tlambda:{lambd:.2e}')
 
     # The model creates a random selection of N events from the input_catalog
     # A simulated catalog has N_events ~ Poisson(rate_prevday)

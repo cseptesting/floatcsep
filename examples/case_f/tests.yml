@@ -1,4 +1,4 @@
-- Catalog_N:
+- Catalog_N-test:
     func: catalog_evaluations.number_test
     plot_func: plot_consistency_test
     plot_args:

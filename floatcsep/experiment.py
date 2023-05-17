@@ -361,8 +361,31 @@ class Experiment:
         start, end = str2timewindow(tstring)
         sub_cat = self.catalog.filter(
             [f'origin_time < {end.timestamp() * 1000}',
-             f'origin_time >= {start.timestamp() * 1000}'])
+             f'origin_time >= {start.timestamp() * 1000}',
+             f'magnitude >= {self.mag_min}',
+             f'magnitude < {self.mag_max}'], in_place=False)
+        sub_cat.filter_spatial(region=self.region)
         sub_cat.write_json(filename=self.filetree(tstring, 'catalog'))
+
+    def set_input_cat(self, tstring: str, model: Model) -> None:
+        """
+
+        Filters the complete experiment catalog to a input sub-catalog filtered
+        to the beginning of thetest time-window. Writes it to filepath defined
+        in :attr:`Model.tree.catalog`
+
+        Args:
+            tstring (str): Time window string
+            model (:class:`~floatcsep.model.Model`): Model to give the input
+             catalog
+
+        """
+        start, end = str2timewindow(tstring)
+        sub_cat = self.catalog.filter(
+            [f'origin_time < {start.timestamp() * 1000}'])
+        print(max(self.catalog.get_datetimes()))
+        print(max(sub_cat.get_datetimes()))
+        sub_cat.write_ascii(filename=model.tree('cat'))
 
     def set_tasks(self, results_path=None, run_name=None):
         """
@@ -416,12 +439,26 @@ class Experiment:
         # Set up the Forecasts creation
         for time_i in tw_strings:
             for model_j in self.models:
+                if model_j.model_class == 'td':
+                    task_tj = Task(instance=self,
+                                   method='set_input_cat',
+                                   tstring=time_i,
+                                   model=model_j)
+
+                    task_graph.add(task=task_tj)
+                    # A catalog needs to have been filtered
+
                 task_ij = Task(instance=model_j,
                                method='create_forecast',
                                tstring=time_i,
                                force=self.force_rerun)
                 task_graph.add(task=task_ij)
                 # A catalog needs to have been filtered
+                if model_j.model_class == 'td':
+                    task_graph.add_dependency(task_ij,
+                                              dinst=self,
+                                              dmeth='set_input_cat',
+                                              dkw=(time_i, model_j))
                 task_graph.add_dependency(task_ij,
                                           dinst=self,
                                           dmeth='set_test_cat',
