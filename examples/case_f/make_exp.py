@@ -7,6 +7,8 @@ config = 'config.yml'
 
 exp = Experiment.from_yml(config)
 exp.stage_models()
+
+# m = exp.models[0]
 exp.set_tasks()
 exp.run()
 # print('\n================')

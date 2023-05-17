@@ -226,9 +226,9 @@ class TestModel(TestCase):
         model = self.initmodel_noreg('a',
                                      model_path,
                                      func='func')
+        model.stage()
         start = datetime(2000, 1, 1)
         end = datetime(2000, 1, 2)
-
         model.prepare_args(start, end)
 
         with open(os.path.join(model_path, 'input', 'args.txt'), 'r') as args:
@@ -277,7 +277,6 @@ class TestModel(TestCase):
         for k, v in dict_.items():
             if k not in list(model_dict['mock'].keys()):
                 print('a', k)
-
                 eq = False
             else:
                 if v != model_dict['mock'][k]:

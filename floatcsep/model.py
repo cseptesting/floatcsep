@@ -1,10 +1,10 @@
 import os
-
+import numpy
 import csep
 import git
 import subprocess
 
-from typing import List, Callable, Union
+from typing import List, Callable, Union, Dict, Mapping, Sequence
 from datetime import datetime
 
 from csep.core.forecasts import GriddedForecast, CatalogForecast
@@ -13,7 +13,7 @@ from csep.utils.time_utils import decimal_year
 from floatcsep.accessors import from_zenodo, from_git
 from floatcsep.readers import ForecastParsers, HDF5Serializer, check_format
 from floatcsep.utils import timewindow2str, str2timewindow
-
+from floatcsep.registry import ModelTree
 
 class Model:
     """
@@ -92,17 +92,16 @@ class Model:
         self.use_db = use_db
 
         self.path = path
+        args = kwargs.get('args_file', 'args.txt')
+        self.tree = ModelTree(self.name, path, args=args)
 
         # Set model temporal class
-
         if self.func:
             # Time-Dependent
             self.model_class = 'td'
             self.build = kwargs.get('build', 'docker')
             self.run_prefix = ''
-            self.args_file = kwargs.get('args_file', os.path.join(self.path,
-                                                                  'input',
-                                                                  'args.txt'))
+
         else:
             # Time-Independent
             self.model_class = kwargs.get('model_class', 'ti')
@@ -126,7 +125,7 @@ class Model:
     def fmt(self) -> str:
         return os.path.splitext(self.path)[1][1:]
 
-    def stage(self) -> None:
+    def stage(self, timewindows=None) -> None:
         """
         Pre-steps to make the model runnable before integrating
             - Get from filesystem, Zenodo or Git
@@ -142,6 +141,8 @@ class Model:
             self.init_db()
         check_format(self.path, self.fmt, self.func)
         self.model_qa()
+        if self.model_class == 'td':
+            self.tree.set_pathtree(timewindows)
 
     def build_model(self):
 
@@ -304,9 +305,8 @@ class Model:
             if isinstance(tstring, str):
                 # If one time window string is passed
                 # default forecast naming
-                fc_fname = f'{self.name}_{tstring}.csv'
+                fc_path = self.tree('forecasts', tstring)
                 # default forecasts folder
-                fc_path = os.path.join(self.path, 'forecasts', fc_fname)
                 # A region must be given to the forecast
                 return csep.load_catalog_forecast(fc_path, region=region)
 
@@ -392,7 +392,7 @@ class Model:
 
     def prepare_args(self, start, end, **kwargs):
 
-        filepath = os.path.join(self.path, self.args_file)
+        filepath = os.path.join(self.path, self.tree('args'))
 
         def replace_arg(arg, val, fp):
             with open(fp, 'r') as file_:
@@ -418,7 +418,7 @@ class Model:
 
         if self.build == 'pip' or self.build == 'venv':
             print(f'Running model {self.name} using venv')
-            run_func = f'{self.func} {self.args_file}'
+            run_func = f'{self.func} {self.tree("args")}'
             cmd = ['bash', '-c',
                    f'{self.run_prefix} {run_func}']
             p = subprocess.Popen(cmd,
@@ -441,13 +441,44 @@ class Model:
             from this dict
 
         """
-        out = {'path': self.path}
+        def _get_value(x):
+            # For each element type, transforms to desired string/output
+            if hasattr(x, 'to_dict'):
+                # e.g. csep region, model, test, etc.
+                o = x.to_dict()
+            else:
+                try:
+                    try:
+                        o = getattr(x, '__name__')
+                    except AttributeError:
+                        o = getattr(x, 'name')
+                except AttributeError:
+                    if isinstance(x, numpy.ndarray):
+                        o = x.tolist()
+                    else:
+                        o = x
+            return o
 
-        for k, v in self.__dict__.items():
-            if k not in excluded and v:
-                out[k] = v
+        def iter_attr(val):
+            # recursive iter through nested dicts/lists
+            if isinstance(val, Mapping):
+                return {item: iter_attr(val_) for item, val_ in val.items()
+                        if ((item not in excluded) and val_)}
+            elif isinstance(val, Sequence) and not isinstance(val, str):
+                return [iter_attr(i) for i in val]
+            else:
+                return _get_value(val)
 
-        return {self.name: out}
+        listwalk = [(i, j) for i, j in self.__dict__.items() if
+                    not i.startswith('_')]
+
+        dictwalk = {i: j for i, j in listwalk}
+        # if self.model_config is None:
+        #     dictwalk['models'] = iter_attr(self.models)
+        # if self.test_config is None:
+        #     dictwalk['tests'] = iter_attr(self.tests)
+
+        return {self.name: iter_attr(dictwalk)}
 
     @classmethod
     def from_dict(cls, record: dict, **kwargs):

@@ -258,7 +258,7 @@ class Experiment:
         :meth:`floatcsep.model.Model.stage`
         """
         for i in self.models:
-            i.stage()
+            i.stage(self.timewindows)
 
     def set_tests(self, test_config: Union[str, Dict, List]) -> list:
         """
