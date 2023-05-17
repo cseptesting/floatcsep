@@ -111,7 +111,7 @@ Accessors
 .. autosummary::
    :toctree: generated
 
-    query_isc_gcmt
+    query_gcmt
     from_zenodo
     from_git
 
