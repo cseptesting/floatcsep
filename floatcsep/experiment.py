@@ -595,22 +595,8 @@ class Experiment:
         Reads an Evaluation result for a given time window and returns a list
         of the results for all tested models.
         """
-        test_results = []
-        if not isinstance(window, str):
-            wstr_ = timewindow2str(window)
-        else:
-            wstr_ = window
 
-        if 'T' in test.name:  # todo cleaner
-            models = [i for i in self.models if i.name != test.ref_model]
-        else:
-            models = self.models
-        for i in models:
-            eval_path = self.filetree(wstr_, 'evaluations', test, i.name)
-            with open(eval_path, 'r') as file_:
-                model_eval = EvaluationResult.from_dict(json.load(file_))
-            test_results.append(model_eval)
-        return test_results
+        return test.read_results(window, self.models, self.filetree)
 
     def plot_results(self, dpi: int = 300, show: bool = False) -> None:
         """
@@ -623,46 +609,10 @@ class Experiment:
 
         """
 
-        for time in self.timewindows:
-            time_str = timewindow2str(time)
-
-            # consistency and comparative
-            for test in self.tests:
-                if test.type in ['consistency', 'comparative']:
-                    fig_path = self.filetree(time_str, 'figures', test.name)
-                    results = self.read_results(test, time)
-                    ax = test.plot_func(results, plot_args=test.plot_args,
-                                        **test.plot_kwargs)
-                    if 'code' in test.plot_args:
-                        exec(test.plot_args['code'])
-                        fig_path = self.filetree(time_str, 'figures',
-                                                 test.name)
-                    pyplot.savefig(fig_path, dpi=dpi)
-                    if show:
-                        pyplot.show()
+        timewindows = timewindow2str(self.timewindows)
 
         for test in self.tests:
-            # todo improve the logic of this plots
-            time_str = timewindow2str(self.timewindows[-1])
-
-            results = self.read_results(test, time_str)
-            if test.type == 'seqcomp':
-                results_ = []
-                for i in results:
-                    if i.sim_name != test.ref_model:
-                        results_.append(i)
-                results = results_
-            if 'Sequential' in test.type:
-                test.plot_args['timestrs'] = timewindow2str(self.timewindows)
-            import matplotlib
-            ax = test.plot_func(results, plot_args=test.plot_args,
-                                **test.plot_kwargs)
-            if 'code' in test.plot_args:
-                exec(test.plot_args['code'])
-            fig_path = self.filetree(time_str, 'figures', test.name)
-            pyplot.savefig(fig_path, dpi=dpi)
-            if show:
-                pyplot.show()
+            test.plot_results(timewindows, self.models, self.filetree)
 
     def plot_catalog(self, dpi: int = 300, show: bool = False) -> None:
         """

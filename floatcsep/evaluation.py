@@ -1,13 +1,15 @@
 import json
 import numpy
+from matplotlib import pyplot
 from typing import Dict, Callable, Union, Sequence, List
 
-import csep.models
 from csep.core.catalogs import CSEPCatalog
 from csep.core.forecasts import GriddedForecast
+from csep.models import EvaluationResult
 
 from floatcsep.model import Model
-from floatcsep.utils import parse_csep_func
+from floatcsep.utils import parse_csep_func, timewindow2str
+from floatcsep.registry import PathTree
 
 
 class Evaluation:
@@ -89,7 +91,7 @@ class Evaluation:
                      catpath: Union[str, list],
                      model: Union[Model, Sequence[Model]],
                      ref_model: Union[Model, Sequence] = None,
-                     region = None ) -> tuple:
+                     region = None) -> tuple:
         """
 
         Prepares the positional argument for the Evaluation function.
@@ -198,7 +200,7 @@ class Evaluation:
         self.write_result(evaluation_result, path)
 
     @staticmethod
-    def write_result(result: csep.models.EvaluationResult,
+    def write_result(result: EvaluationResult,
                      path: str) -> None:
         """
         Dumps a test result into a json file.
@@ -216,6 +218,65 @@ class Evaluation:
 
         with open(path, 'w') as _file:
             json.dump(result.to_dict(), _file, indent=4, cls=NumpyEncoder)
+
+    def read_results(self, window: str, models: List[Model],
+                     tree: PathTree) -> List:
+        """
+        Reads an Evaluation result for a given time window and returns a list
+        of the results for all tested models.
+        """
+        test_results = []
+
+        if not isinstance(window, str):
+            wstr_ = timewindow2str(window)
+        else:
+            wstr_ = window
+
+        for i in models:
+            eval_path = tree(wstr_, 'evaluations', self, i.name)
+            with open(eval_path, 'r') as file_:
+                model_eval = EvaluationResult.from_dict(json.load(file_))
+            test_results.append(model_eval)
+
+        return test_results
+
+    def plot_results(self,
+                     timewindow: Union[str, List],
+                     models: List[Model],
+                     tree: PathTree,
+                     dpi: int = 300,
+                     show: bool = False) -> None:
+        """
+
+        Plots all evaluation results
+
+        Args:
+            dpi: Figure resolution with which to save
+            show: show in runtime
+
+        """
+        if isinstance(timewindow, str):
+            timewindow = [timewindow]
+
+        if self.type in ['consistency', 'comparative']:
+            for time_str in timewindow:
+                fig_path = tree(time_str, 'figures', self.name)
+                results = self.read_results(time_str, models, tree)
+                ax = self.plot_func(results, plot_args=self.plot_args,
+                                    **self.plot_kwargs)
+        elif self.type in ['sequential', 'sequential_comparative', 'batch']:
+
+            fig_path = tree(timewindow[-1], 'figures', self.name)
+            results = self.read_results(timewindow[-1], models, tree)
+            ax = self.plot_func(results, plot_args=self.plot_args,
+                                **self.plot_kwargs)
+
+
+        if 'code' in self.plot_args:
+            exec(self.plot_args['code'])
+        pyplot.savefig(fig_path, dpi=dpi)
+        if show:
+            pyplot.show()
 
     def to_dict(self) -> dict:
         """
