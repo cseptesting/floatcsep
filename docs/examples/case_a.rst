@@ -1,5 +1,5 @@
 A - Simple Model and Catalog
-=======================================
+============================
 
 .. currentmodule:: floatcsep
 
@@ -57,7 +57,7 @@ The experiment is defined by a time-, region-, model- and test-configurations. I
 Time
 ~~~~
 
-    The time configuration is manifested in the ``time-config`` inset. The simplest definition is to set only the start and end dates of the experiment. These are always UTC date-times in isoformat (``%Y-%m-%dT%H:%M:%S.%f`` - ISO861):
+    The time configuration is manifested in the ``time_config`` inset. The simplest definition is to set only the start and end dates of the experiment. These are always UTC date-times in isoformat (``%Y-%m-%dT%H:%M:%S.%f`` - ISO861):
 
     .. literalinclude:: ../../examples/case_a/config.yml
        :language: yaml

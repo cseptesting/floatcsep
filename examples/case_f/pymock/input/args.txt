@@ -3,13 +3,12 @@
 ## Experiment obligatory parameters. They should have a default value##
 
 ### Testing time window 1 day
-start_date = 2020-03-25T00:00:00
-end_date = 2020-04-22T00:00:00
+start_date = 2012-06-13T00:00:00
+end_date = 2012-06-20T00:00:00
 catalog = catalog.csv
 seed = 23
-n_sims = 200
+n_sims = 10000
 
 mag_min = 3.5
-
 
 force = True

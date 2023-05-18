@@ -1,5 +1,5 @@
 B - Multiple Models and Tests
-========================================
+=============================
 
 .. currentmodule:: floatcsep
 

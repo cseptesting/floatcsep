@@ -1,0 +1,7 @@
+- pymock:
+    path: pymock
+    func: python run.py
+    func_kwargs:
+      n_sims: 10000
+      mag_min: 3.5
+    build: pip

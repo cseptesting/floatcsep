@@ -62,7 +62,6 @@ def generate_report(experiment, timewindow=-1):
 
     # Include results from Experiment
     for test in experiment.tests:
-
         fig_path = experiment.filetree(timestr, 'figures', test)
         width = test.plot_args[0].get('figsize', [4])[0] * 96
         report.add_figure(
@@ -73,6 +72,20 @@ def generate_report(experiment, timewindow=-1):
             add_ext=True,
             width=width
         )
-
+        for model in experiment.models:
+            try:
+                fig_path = experiment.filetree(timestr, 'figures',
+                                               f'{test.name}_{model.name}')
+                width = test.plot_args[0].get('figsize', [4])[0] * 96
+                report.add_figure(
+                    f"{test.name}: {model.name}",
+                    fig_path,
+                    level=3,
+                    caption=test.markdown,
+                    add_ext=True,
+                    width=width
+                )
+            except KeyError:
+                pass
     report.table_of_contents()
     report.save(experiment.filetree.abs(experiment.filetree.run_folder))

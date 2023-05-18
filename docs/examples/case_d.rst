@@ -1,5 +1,5 @@
 D - Catalog Queries and Model Repositories
-=====================================================
+==========================================
 
 .. currentmodule:: floatcsep
 

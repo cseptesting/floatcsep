@@ -26,6 +26,7 @@ Preliminary documentation.
    examples/case_c.rst
    examples/case_d.rst
    examples/case_e.rst
+   examples/case_f.rst
 
 
 .. toctree::

@@ -1,29 +1,20 @@
 name: case_f
 
 time_config:
-  start_date: 2020-1-1T00:00:00
-  end_date: 2020-5-1T00:00:00
-  horizon: 28days
+  start_date: 2012-5-23T00:00:00
+  end_date: 2012-6-23T00:00:00
+  horizon: 7days
   exp_class: td
-  growth: incremental
 
 region_config:
   region: italy_csep_region
   mag_min: 3.5
   mag_max: 8.0
-  mag_bin: 0.1
+  mag_bin: 0.5
   depth_min: 0
   depth_max: 70
 
 force_rerun: True
 catalog: catalog.csv
-models:
-  - pymock:
-      giturl: https://git.gfz-potsdam.de/csep/it_experiment/models/pymock.git
-      path: pymock
-      build: pip
-      func: pymock
-      func_kwargs:
-        n_sims: 200
-        mag_min: 3.5
+model_config: models.yml
 test_config: tests.yml

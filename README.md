@@ -72,11 +72,11 @@ A runtime directory will be created in a `results` folder. The experiment result
 
 * Add functionality to compare original results and reproduced results
 * Add registry to filetrees (e.g. hash/byte count) for a proper experiment re-instantiation
-* Add interface to time-dependent models
 * Add report customization
-* Allow hooks (user code) to be inserted into plotting/reporting functionalities.
+* Fix the hooks properly (user code) to be inserted into plotting/reporting functionalities.
 * Add multiple logging/levels
-* Define a strategy to handle dependences to ensure experiments' reproducibility.
+* Create tool to check a TD model's interface with ``fecsep``
+* Define a dependency strategy to ensure experiments' reproducibility.
 * Publish in `pypi`/`conda` and Zenodo
 
 # Contributing

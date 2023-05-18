@@ -1,5 +1,5 @@
 C - Multiple Time Windows
-====================================
+=========================
 
 .. currentmodule:: floatcsep
 

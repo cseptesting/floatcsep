@@ -1,5 +1,5 @@
-E - A Realistic Experiment
-==========================
+E - A Realistic Time-independent Experiment
+===========================================
 
 .. currentmodule:: floatcsep
 

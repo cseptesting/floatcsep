@@ -1,3 +1,4 @@
+import os
 import json
 import numpy
 from matplotlib import pyplot
@@ -24,8 +25,8 @@ class Evaluation:
         func_kwargs (dict): Keyword arguments of the test function
         ref_model (str): String of the reference model, if any
         plot_func (str, ~typing.Callable): Test's plotting function
-        plot_args (list): Positional arguments of the plotting function
-        plot_kwargs (dict): Keyword arguments of the plotting function
+        plot_args (list,dict): Positional arguments of the plotting function
+        plot_kwargs (list,dict): Keyword arguments of the plotting function
 
     """
 
@@ -90,7 +91,6 @@ class Evaluation:
 
     def parse_plots(self, plot_func, plot_args, plot_kwargs):
 
-
         if isinstance(plot_func, str):
 
             self.plot_func = [parse_csep_func(plot_func)]
@@ -109,9 +109,10 @@ class Evaluation:
 
             func_names = [list(i.keys())[0] for i in plot_func]
             self.plot_func = [parse_csep_func(func) for func in func_names]
-            # print(funcs)
-            self.plot_args = [i[j].get('plot_args', {}) for i, j in zip(plot_func, func_names)]
-            self.plot_kwargs = [i[j].get('plot_kwargs', {})for i, j in zip(plot_func, func_names)]
+            self.plot_args = [i[j].get('plot_args', {})
+                              for i, j in zip(plot_func, func_names)]
+            self.plot_kwargs = [i[j].get('plot_kwargs', {})
+                                for i, j in zip(plot_func, func_names)]
 
 
     def prepare_args(self,
@@ -214,6 +215,7 @@ class Evaluation:
             model (Model, list[Model]): Model(s) to be evaluated
             ref_model: Model to be used as reference
             path: Path to store the Evaluation result
+            region: region to filter a catalog forecast.
 
         Returns:
 
@@ -306,8 +308,11 @@ class Evaluation:
                         for time_str in timewindow:
                             results = self.read_results(time_str, models, tree)
                             for result, model in zip(results, models):
-                                fig_path = tree(time_str, 'figures', self.name)
-                                fig_path = f'{fig_path}_{model.name}'
+                                fig_name = f'{self.name}_{model.name}'
+
+                                tree.paths[time_str]['figures'][fig_name] =\
+                                    os.path.join(time_str, 'figures', fig_name)
+                                fig_path = tree(time_str, 'figures', fig_name)
                                 ax = func(result, plot_args=fargs, **fkwargs,
                                           show=False)
                                 if 'code' in self.plot_args:
