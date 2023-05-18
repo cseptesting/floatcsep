@@ -62,8 +62,9 @@ def generate_report(experiment, timewindow=-1):
 
     # Include results from Experiment
     for test in experiment.tests:
+
         fig_path = experiment.filetree(timestr, 'figures', test)
-        width = test.plot_args.get('figsize', [4])[0] * 96
+        width = test.plot_args[0].get('figsize', [4])[0] * 96
         report.add_figure(
             f"{test.name}",
             fig_path,

@@ -39,8 +39,8 @@ class TestEvaluation(unittest.TestCase):
                  'func_kwargs': {},
                  'ref_model': None,
                  'plot_func': None,
-                 'plot_args': {},
-                 'plot_kwargs': {},
+                 'plot_args': None,
+                 'plot_kwargs': None,
                  'markdown': '',
                  '_type': None}
         self.assertEqual(dict_, eval_.__dict__)

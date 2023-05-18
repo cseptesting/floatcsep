@@ -103,7 +103,6 @@ class ModelTree:
             return
         windows = timewindow2str(timewindows)
 
-
         # set forecast names
         fc_files = {win: os.path.join('forecasts',
                                       f'{self.name}_{win}.{self.fmt}') for win

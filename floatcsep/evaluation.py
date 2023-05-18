@@ -62,9 +62,11 @@ class Evaluation:
         self.func_kwargs = func_kwargs or {}  # todo set default args from exp?
         self.ref_model = ref_model
 
-        self.plot_func = parse_csep_func(plot_func)
-        self.plot_args = plot_args or {}      # todo default args from exp?
-        self.plot_kwargs = plot_kwargs or {}
+        self.plot_func = None
+        self.plot_args = None
+        self.plot_kwargs = None
+
+        self.parse_plots(plot_func, plot_args, plot_kwargs)
 
         self.markdown = markdown
         self.type = Evaluation._TYPES.get(self.func.__name__)
@@ -85,6 +87,32 @@ class Evaluation:
                                 ' reference model assigned')
 
         self._type = type_list
+
+    def parse_plots(self, plot_func, plot_args, plot_kwargs):
+
+
+        if isinstance(plot_func, str):
+
+            self.plot_func = [parse_csep_func(plot_func)]
+            self.plot_args = [plot_args] if plot_args else [{}]
+            self.plot_kwargs = [plot_kwargs] if plot_kwargs else [{}]
+
+        elif isinstance(plot_func, (list, dict)):
+            if isinstance(plot_func, dict):
+                plot_func = [{i: j} for i, j in plot_func.items()]
+
+            if plot_args is not None or plot_kwargs is not None:
+                raise ValueError('If multiple plot functions are passed,'
+                                 'each func should be a dictionary with '
+                                 'plot_args and plot_kwargs passed as '
+                                 'dictionaries beneath each func.')
+
+            func_names = [list(i.keys())[0] for i in plot_func]
+            self.plot_func = [parse_csep_func(func) for func in func_names]
+            # print(funcs)
+            self.plot_args = [i[j].get('plot_args', {}) for i, j in zip(plot_func, func_names)]
+            self.plot_kwargs = [i[j].get('plot_kwargs', {})for i, j in zip(plot_func, func_names)]
+
 
     def prepare_args(self,
                      timewindow: Union[str, list],
@@ -258,25 +286,46 @@ class Evaluation:
         if isinstance(timewindow, str):
             timewindow = [timewindow]
 
-        if self.type in ['consistency', 'comparative']:
-            for time_str in timewindow:
-                fig_path = tree(time_str, 'figures', self.name)
-                results = self.read_results(time_str, models, tree)
-                ax = self.plot_func(results, plot_args=self.plot_args,
-                                    **self.plot_kwargs)
-        elif self.type in ['sequential', 'sequential_comparative', 'batch']:
+        for func, fargs, fkwargs in zip(self.plot_func, self.plot_args,
+                                        self.plot_kwargs):
+            if self.type in ['consistency', 'comparative']:
 
-            fig_path = tree(timewindow[-1], 'figures', self.name)
-            results = self.read_results(timewindow[-1], models, tree)
-            ax = self.plot_func(results, plot_args=self.plot_args,
-                                **self.plot_kwargs)
+                try:
+                    for time_str in timewindow:
+                        fig_path = tree(time_str, 'figures', self.name)
+                        results = self.read_results(time_str, models, tree)
+                        ax = func(results, plot_args=fargs, **fkwargs)
+                        if 'code' in self.plot_args:
+                            exec(self.plot_args['code'])
+                        pyplot.savefig(fig_path, dpi=dpi)
+                        if show:
+                            pyplot.show()
 
+                except AttributeError as msg:
+                    if self.type in ['consistency', 'comparative']:
+                        for time_str in timewindow:
+                            results = self.read_results(time_str, models, tree)
+                            for result, model in zip(results, models):
+                                fig_path = tree(time_str, 'figures', self.name)
+                                fig_path = f'{fig_path}_{model.name}'
+                                ax = func(result, plot_args=fargs, **fkwargs,
+                                          show=False)
+                                if 'code' in self.plot_args:
+                                    exec(self.plot_args['code'])
+                                pyplot.savefig(fig_path, dpi=dpi)
+                                if show:
+                                    pyplot.show()
 
-        if 'code' in self.plot_args:
-            exec(self.plot_args['code'])
-        pyplot.savefig(fig_path, dpi=dpi)
-        if show:
-            pyplot.show()
+            elif self.type in ['sequential', 'sequential_comparative', 'batch']:
+                fig_path = tree(timewindow[-1], 'figures', self.name)
+                results = self.read_results(timewindow[-1], models, tree)
+                ax = func(results, plot_args=fargs, **fkwargs)
+
+                if 'code' in self.plot_args:
+                    exec(self.plot_args['code'])
+                pyplot.savefig(fig_path, dpi=dpi)
+                if show:
+                    pyplot.show()
 
     def to_dict(self) -> dict:
         """
@@ -284,15 +333,21 @@ class Evaluation:
         serialized and then parsed
         """
         out = {}
-        included = ['model', 'ref_model', 'func_kwargs',
-                    'plot_args', 'plot_kwargs']
+        included = ['model', 'ref_model', 'func_kwargs']
         for k, v in self.__dict__.items():
             if k in included and v:
                 out[k] = v
         func_str = f'{self.func.__module__}.{self.func.__name__}'
-        plotfunc_str = f'{self.plot_func.__module__}.{self.plot_func.__name__}'
-        return {self.name: {**out, 'func': func_str,
-                            'plot_func': plotfunc_str}}
+
+        plot_func_str = []
+        for i, j, k in zip(self.plot_func, self.plot_args, self.plot_kwargs):
+            pfunc = {f'{i.__module__}.{i.__name__}': {'plot_args': j,
+                                                      'plot_kwargs': k}}
+            plot_func_str.append(pfunc)
+
+        return {self.name: {**out,
+                            'func': func_str,
+                            'plot_func': plot_func_str}}
 
     def __str__(self):
         return (
