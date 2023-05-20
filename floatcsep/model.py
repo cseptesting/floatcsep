@@ -166,19 +166,21 @@ class Model:
                         f'pip install -e {self.path}'
 
             cmd = ['bash', '-c', build_cmd]
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 shell=True)
-            output, errors = p.communicate()
-            output = output.replace('\n', '\n\t')
-            print(f'Build output:\n\t{output}')
+
+            process = subprocess.Popen(cmd,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.STDOUT,
+                                       universal_newlines=True)
+            for line in process.stdout:
+                print(f'\t{line}', end='')
+            process.wait()
             print(f'Nested environments is not well supported. '
                   f'Consider using docker instead')
+
         self.run_prefix = f'cd {self.path} && source {venvact} &&'
 
     def get_source(self, zenodo_id: int = None, giturl: str = None,
-                   repo_hash: str = None, force: bool = False,
+                   force: bool = False,
                    **kwargs) -> None:
         """
 
@@ -213,7 +215,7 @@ class Model:
         elif giturl:
             try:
                 from_git(giturl, self.dir if self.fmt else self.path,
-                         branch=repo_hash, **kwargs)
+                         **kwargs)
             except (git.NoSuchPathError, git.CommandError) as msg:
                 raise git.NoSuchPathError(f'git url was not found {msg}')
         else:
@@ -334,7 +336,7 @@ class Model:
         """
         start_date, end_date = str2timewindow(tstring)
         # Model src is a file
-        if self.fmt:
+        if self.model_class == 'ti':
             self.forecast_from_file(start_date, end_date, **kwargs)
         # Model src is a func or binary
         else:

@@ -10,6 +10,7 @@ from unittest.mock import patch
 import filecmp
 
 from floatcsep.model import Model
+from floatcsep.utils import str2timewindow
 import shutil
 
 
@@ -191,7 +192,9 @@ class TestModel(TestCase):
         model.create_forecast('2020-01-01_2021-01-01')
         self.assertTrue(mock_file.called)
 
-        model = self.initmodel_noreg('mock', 'mockbin')
+        model = self.initmodel_noreg('mock', 'mockbin', model_class='td')
+
+        model.tree.set_pathtree([str2timewindow('2020-01-01_2021-01-01')])
         model.create_forecast('2020-01-01_2021-01-01')
         self.assertTrue(mock_func.called)
 

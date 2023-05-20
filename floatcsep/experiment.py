@@ -347,6 +347,33 @@ class Experiment:
             else:
                 print(f"Downloading catalog from function {cat}")
 
+    def get_test_cat(self, tstring: str = None) -> CSEPCatalog:
+        """
+
+        Filters the complete experiment catalog to a test sub-catalog bounded
+        by the test time-window. Writes it to filepath defined in
+        :attr:`Experiment.filetree`
+
+        Args:
+            tstring (str): Time window string
+
+        """
+
+        if tstring:
+            start, end = str2timewindow(tstring)
+        else:
+            start = self.start_date
+            end = self.end_date
+        sub_cat = self.catalog.filter(
+            [f'origin_time < {end.timestamp() * 1000}',
+             f'origin_time >= {start.timestamp() * 1000}',
+             f'magnitude >= {self.mag_min}',
+             f'magnitude < {self.mag_max}'], in_place=False)
+        if self.region:
+            sub_cat.filter_spatial(region=self.region)
+
+        return sub_cat
+
     def set_test_cat(self, tstring: str) -> None:
         """
 
@@ -634,24 +661,37 @@ class Experiment:
                      }
         plot_args.update(self.postproc_config.get('plot_catalog', {}))
 
-        if self.postproc_config.get('all_time_windows'):
-            timewindow = self.timewindows
-        else:
-            timewindow = [self.timewindows[-1]]
-
-        for tw in timewindow:
-            catpath = self.filetree(tw, 'catalog')
-            catalog = CSEPCatalog.load_json(catpath)
-
+        catalog = self.get_test_cat()
+        if catalog.get_number_of_events() != 0:
             ax = catalog.plot(plot_args=plot_args, show=show)
             ax.get_figure().tight_layout()
-            ax.get_figure().savefig(self.filetree(tw, 'figures', 'catalog'),
+            ax.get_figure().savefig(self.filetree('catalog_figure'),
                                     dpi=dpi)
 
             ax2 = magnitude_vs_time(catalog)
             ax2.get_figure().tight_layout()
-            ax2.get_figure().savefig(self.filetree(tw, 'figures',
-                                                   'magnitude_time'), dpi=dpi)
+            ax2.get_figure().savefig(self.filetree('magnitude_time'),
+                                     dpi=dpi)
+
+        if self.postproc_config.get('all_time_windows'):
+            timewindow = self.timewindows
+
+            for tw in timewindow:
+                catpath = self.filetree(tw, 'catalog')
+                catalog = CSEPCatalog.load_json(catpath)
+                if catalog.get_number_of_events() != 0:
+
+                    ax = catalog.plot(plot_args=plot_args, show=show)
+                    ax.get_figure().tight_layout()
+                    ax.get_figure().savefig(self.filetree(tw, 'figures',
+                                                          'catalog'),
+                                            dpi=dpi)
+
+                    ax2 = magnitude_vs_time(catalog)
+                    ax2.get_figure().tight_layout()
+                    ax2.get_figure().savefig(self.filetree(tw, 'figures',
+                                                           'magnitude_time'),
+                                             dpi=dpi)
 
     def plot_forecasts(self) -> None:
         """

@@ -242,6 +242,8 @@ class PathTree:
 
         target_paths = {
             'config': 'run_config.yml',
+            'catalog_figure': 'catalog',
+            'magnitude_time': 'magnitude_time',
             **{win: {
                 'models': {model: {'forecasts': None} for model in models},
                 'catalog': os.path.join(win, 'catalog', 'catalog.json'),

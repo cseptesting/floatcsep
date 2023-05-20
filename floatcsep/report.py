@@ -37,12 +37,12 @@ def generate_report(experiment, timewindow=-1):
         experiment.plot_catalog()
         report.add_figure(
             f"Input catalog",
-            [experiment.filetree(timestr, 'figures', 'catalog'),
-             experiment.filetree(timestr, 'figures', 'magnitude_time')],
+            [experiment.filetree('catalog_figure'),
+             experiment.filetree('magnitude_time')],
             level=3,
             ncols=1,
             caption="Evaluation catalog from "
-                    f"{timewindow[0]} until {timewindow[1]}. "  
+                    f"{experiment.start_date} until {experiment.end_date}. "  
                     f"Earthquakes are filtered above Mw"
                     f" {min(experiment.magnitudes)}.",
             add_ext=True
