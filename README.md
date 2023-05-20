@@ -15,6 +15,7 @@
 <a href="https://codecov.io/gh/cseptesting/floatcsep" > 
  <img src="https://codecov.io/gh/cseptesting/floatcsep/branch/main/graph/badge.svg?token=LI4RSDOKA1"/> 
  </a>
+<a href="https://doi.org/10.5281/zenodo.7953817"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.7953817.svg" alt="DOI"></a>
 </p>
 
 * Set up a testing **experiment** for your earthquake forecasts using authoritative data sources and benchmarks.
