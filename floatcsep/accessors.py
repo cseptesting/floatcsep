@@ -3,7 +3,7 @@ from urllib import request
 from urllib.parse import urlencode
 from csep.utils.time_utils import datetime_to_utc_epoch, utc_now_datetime
 from csep.core.catalogs import CSEPCatalog
-from git import Repo, InvalidGitRepositoryError, NoSuchPathError
+import git
 import requests
 import hashlib
 import os
@@ -97,10 +97,12 @@ def from_git(url, path, branch=None, depth=1, **kwargs):
     """
 
     kwargs.update({'depth': depth})
+    git.refresh()
+
     try:
-        repo = Repo(path)
-    except (NoSuchPathError, InvalidGitRepositoryError):
-        repo = Repo.clone_from(url, path, branch=branch, **kwargs)
+        repo = git.Repo(path)
+    except (git.NoSuchPathError, git.InvalidGitRepositoryError):
+        repo = git.Repo.clone_from(url, path, branch=branch, **kwargs)
         git_dir = os.path.join(path, '.git')
         if os.path.isdir(git_dir):
             shutil.rmtree(git_dir)

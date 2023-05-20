@@ -96,7 +96,7 @@ class TestZenodoGetter(unittest.TestCase):
 
 
 class TestGitter(unittest.TestCase):
-    @mock.patch('floatcsep.accessors.Repo')
+    @mock.patch('floatcsep.accessors.git.Repo')
     @mock.patch('git.Git')
     def runTest(self, mock_git, mock_repo):
         p = mock.PropertyMock(return_value=False)
