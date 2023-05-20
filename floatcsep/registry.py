@@ -65,7 +65,8 @@ class ModelTree:
         return os.path.exists(abspath)
 
     def set_pathtree(self,
-                     timewindows=None) -> None:
+                     timewindows=None,
+                     prefix=None) -> None:
         """
 
         Creates the run directory, and reads the file structure inside
@@ -105,7 +106,7 @@ class ModelTree:
 
         # set forecast names
         fc_files = {win: os.path.join('forecasts',
-                                      f'{self.name}_{win}.{self.fmt}') for win
+                                      f'{prefix or self.name}_{win}.{self.fmt}') for win
                     in windows}
 
         exists = {win: any(file for file in

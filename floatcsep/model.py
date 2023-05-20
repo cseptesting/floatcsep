@@ -1,3 +1,4 @@
+import json
 import os
 import numpy
 import csep
@@ -133,8 +134,8 @@ class Model:
             - Initialize database
             - Run model quality assurance (unit tests, runnable from floatcsep)
         """
-
-        self.get_source(self.zenodo_id, self.giturl)
+        kwargs = {}
+        self.get_source(self.zenodo_id, self.giturl, self.repo_hash)
         if self.model_class == 'td':
             self.build_model()
         if self.use_db:
@@ -142,7 +143,8 @@ class Model:
         check_format(self.path, self.fmt, self.func)
         self.model_qa()
         if self.model_class == 'td':
-            self.tree.set_pathtree(timewindows)
+            prefix = self.__dict__.get('prefix', None)
+            self.tree.set_pathtree(timewindows, prefix=prefix)
 
     def build_model(self):
 
@@ -167,7 +169,7 @@ class Model:
             p = subprocess.Popen(cmd,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE,
-                                 text=True)
+                                 shell=True)
             output, errors = p.communicate()
             output = output.replace('\n', '\n\t')
             print(f'Build output:\n\t{output}')
@@ -176,7 +178,8 @@ class Model:
         self.run_prefix = f'cd {self.path} && source {venvact} &&'
 
     def get_source(self, zenodo_id: int = None, giturl: str = None,
-                   force: bool = False, **kwargs) -> None:
+                   repo_hash: str = None, force: bool = False,
+                   **kwargs) -> None:
         """
 
         Search, download or clone the model source in the filesystem, zenodo
@@ -209,7 +212,8 @@ class Model:
 
         elif giturl:
             try:
-                from_git(giturl, self.dir if self.fmt else self.path, **kwargs)
+                from_git(giturl, self.dir if self.fmt else self.path,
+                         branch=repo_hash, **kwargs)
             except (git.NoSuchPathError, git.CommandError) as msg:
                 raise git.NoSuchPathError(f'git url was not found {msg}')
         else:
@@ -334,8 +338,7 @@ class Model:
             self.forecast_from_file(start_date, end_date, **kwargs)
         # Model src is a func or binary
         else:
-            fc_fname = f'{self.name}_{tstring}.csv'
-            fc_path = os.path.join(self.path, 'forecasts', fc_fname)
+            fc_path = self.tree('forecasts', tstring)
             if kwargs.get('force') or not os.path.exists(fc_path):
                 self.forecast_from_func(start_date, end_date,
                                         **self.func_kwargs,
@@ -393,26 +396,39 @@ class Model:
     def prepare_args(self, start, end, **kwargs):
 
         filepath = os.path.join(self.path, self.tree('args'))
+        fmt = os.path.splitext(filepath)[1]
 
-        def replace_arg(arg, val, fp):
-            with open(fp, 'r') as file_:
-                lines = file_.readlines()
+        if fmt == '.txt':
+            def replace_arg(arg, val, fp):
+                with open(fp, 'r') as file_:
+                    lines = file_.readlines()
 
-            pattern_exists = False
-            for k, line in enumerate(lines):
-                if line.startswith(arg):
-                    lines[k] = f"{arg} = {val}\n"
-                    pattern_exists = True
-                    break  # Assuming there's only one occurrence of the key
-            if not pattern_exists:
-                lines.append(f"{arg} = {val}\n")
-            with open(fp, 'w') as file:
-                file.writelines(lines)
+                pattern_exists = False
+                for k, line in enumerate(lines):
+                    if line.startswith(arg):
+                        lines[k] = f"{arg} = {val}\n"
+                        pattern_exists = True
+                        break  # Assuming there's only one occurrence of the key
+                if not pattern_exists:
+                    lines.append(f"{arg} = {val}\n")
+                with open(fp, 'w') as file:
+                    file.writelines(lines)
 
-        replace_arg('start_date', start.isoformat(), filepath)
-        replace_arg('end_date', end.isoformat(), filepath)
-        for i, j in kwargs.items():
-            replace_arg(i, j, filepath)
+            replace_arg('start_date', start.isoformat(), filepath)
+            replace_arg('end_date', end.isoformat(), filepath)
+            for i, j in kwargs.items():
+                replace_arg(i, j, filepath)
+        elif fmt == '.json':
+            with open(filepath, 'r') as file_:
+                args = json.load(file_)
+            args['start_date'] = start.isoformat()
+            args['end_date'] = end.isoformat()
+
+            args.update(kwargs)
+
+            with open(filepath, 'w') as file_:
+                json.dump(args, file_, indent=2)
+
 
     def run_model(self):
 
@@ -421,17 +437,13 @@ class Model:
             run_func = f'{self.func} {self.tree("args")}'
             cmd = ['bash', '-c',
                    f'{self.run_prefix} {run_func}']
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 text=True)
-            output, errors = p.communicate()
-            if output:
-                output = output.replace('\n', '\n\t')
-                print(f'Run output:\n\t{output}')
-            if errors:
-                errors = errors.replace('\n', '\n\t')
-                print(f'Run error:\n\t{errors}')
+            process = subprocess.Popen(cmd,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.STDOUT,
+                                       universal_newlines=True)
+            for line in process.stdout:
+                print(f'\t{line}', end='')
+            process.wait()
 
     def to_dict(self, excluded=('name', 'forecasts')):
         """
