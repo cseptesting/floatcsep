@@ -16,6 +16,5 @@ dependencies:
     - pyyaml
     - requests
     - seaborn
-    - tables
     - pytables
     - xmltodict
