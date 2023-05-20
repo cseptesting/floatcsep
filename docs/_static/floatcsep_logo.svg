@@ -2,15 +2,16 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="210mm"
-   height="297mm"
-   viewBox="0 0 210 297"
+   width="101.3041mm"
+   height="48.533264mm"
+   viewBox="0 0 101.3041 48.533264"
    version="1.1"
    id="svg5"
-   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
-   sodipodi:docname="floatcsep logo.svg"
+   inkscape:version="1.1.1 (1:1.1+202109281943+c3084ef5ed)"
+   sodipodi:docname="floatcsep_logo.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
   <sodipodi:namedview
@@ -23,17 +24,41 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="mm"
      showgrid="false"
-     inkscape:zoom="1.8116734"
-     inkscape:cx="329.2536"
-     inkscape:cy="220.23837"
+     inkscape:zoom="2.5620931"
+     inkscape:cx="249.60061"
+     inkscape:cy="111.62748"
      inkscape:window-width="1920"
-     inkscape:window-height="1013"
-     inkscape:window-x="1200"
-     inkscape:window-y="718"
+     inkscape:window-height="1011"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer1" />
+     inkscape:current-layer="layer1"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0" />
   <defs
      id="defs2">
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient4792">
+      <stop
+         style="stop-color:#a0062c;stop-opacity:1;"
+         offset="0"
+         id="stop4788" />
+      <stop
+         style="stop-color:#00ffff;stop-opacity:1"
+         offset="1"
+         id="stop4790" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient4768"
+       inkscape:swatch="solid">
+      <stop
+         style="stop-color:#a0062c;stop-opacity:1;"
+         offset="0"
+         id="stop4766" />
+    </linearGradient>
     <clipPath
        clipPathUnits="userSpaceOnUse"
        id="clipPath30293">
@@ -46,16 +71,27 @@
          y="31.609118"
          transform="scale(-1,1)" />
     </clipPath>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient4792"
+       id="linearGradient4817"
+       gradientUnits="userSpaceOnUse"
+       x1="73.575798"
+       y1="21.952711"
+       x2="80.623436"
+       y2="46.617847" />
   </defs>
   <g
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
-     id="layer1">
+     id="layer1"
+     transform="translate(-0.14471016,-0.5102486)">
     <g
        id="g35130"
        inkscape:export-filename="/home/pciturri/PycharmProjects/floatcsep/docs/_static/floatCSEP_Logo_CMYK.png"
        inkscape:export-xdpi="150.03999"
-       inkscape:export-ydpi="150.03999">
+       inkscape:export-ydpi="150.03999"
+       transform="translate(1.5537814,-28.172035)">
       <g
          id="g31265"
          transform="translate(10.755472,26.839997)"
@@ -102,17 +138,17 @@
     </g>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:27.5883px;line-height:1000;font-family:'TeX Gyre Chorus';-inkscape-font-specification:'TeX Gyre Chorus';letter-spacing:0px;word-spacing:0px;fill:#a02c2c;fill-opacity:1;stroke:none;stroke-width:1.2932"
-       x="30.781456"
-       y="48.960556"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:27.5883px;line-height:1000;font-family:'TeX Gyre Chorus';-inkscape-font-specification:'TeX Gyre Chorus';letter-spacing:0px;word-spacing:0px;fill:#aa0000;fill-opacity:1;stroke:none;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       x="3.0414817"
+       y="32.552109"
        id="text1982"
        inkscape:export-filename="/home/pciturri/PycharmProjects/floatcsep/docs/_static/floatCSEP_Logo_CMYK.png"
        inkscape:export-xdpi="150.03999"
        inkscape:export-ydpi="150.03999"><tspan
          sodipodi:role="line"
          id="tspan1980"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'TeX Gyre Chorus';-inkscape-font-specification:'TeX Gyre Chorus';fill:#a02c2c;stroke-width:1.2932"
-         x="30.781456"
-         y="48.960556">fe</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'TeX Gyre Chorus';-inkscape-font-specification:'TeX Gyre Chorus';fill:#aa0000;fill-opacity:1;stroke:none;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+         x="3.0414817"
+         y="32.552109">float</tspan></text>
   </g>
 </svg>

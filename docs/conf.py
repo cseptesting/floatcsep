@@ -55,5 +55,5 @@ html_theme_options = {
     'style_nav_header_background': '#343131ff',
     'logo_only': True,
 }
-html_logo = '_static/floatCSEP_Logo_CMYK.png'
+html_logo = '_static/floatcsep_logo.svg'
 todo_include_todos = False

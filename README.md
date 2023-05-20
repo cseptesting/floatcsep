@@ -1,6 +1,6 @@
 # CSEP Floating Experiments
 
-<img src="https://i.postimg.cc/4y1q8BZt/fe-CSEP-Logo-CMYK.png" width="320"> 
+<img src="https://i.postimg.cc/6p5krRnB/float-CSEP-Logo-CMYK.png" width="320"> 
 
 **An application to deploy reproducible and prospective experiments of earthquake forecasting**
 
