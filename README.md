@@ -12,6 +12,8 @@
 <a href='https://github.com/cseptesting/floatcsep/actions/workflows/build-test.yml'>
     <img src='https://github.com/cseptesting/floatcsep/actions/workflows/build-test.yml/badge.svg' alt='Documentation Status' />
 </a>
+<img alt="PyPI" src="https://img.shields.io/pypi/v/floatcsep">
+
 <a href="https://codecov.io/gh/cseptesting/floatcsep" > 
  <img src="https://codecov.io/gh/cseptesting/floatcsep/branch/main/graph/badge.svg?token=LI4RSDOKA1"/> 
  </a>
