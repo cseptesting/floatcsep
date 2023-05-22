@@ -135,7 +135,7 @@ class Model:
             - Run model quality assurance (unit tests, runnable from floatcsep)
         """
         kwargs = {}
-        self.get_source(self.zenodo_id, self.giturl, self.repo_hash)
+        self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
         if self.model_class == 'td':
             self.build_model()
         if self.use_db:
