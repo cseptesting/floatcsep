@@ -385,15 +385,21 @@ class Experiment:
             tstring (str): Time window string
 
         """
-        start, end = str2timewindow(tstring)
-        sub_cat = self.catalog.filter(
-            [f'origin_time < {end.timestamp() * 1000}',
-             f'origin_time >= {start.timestamp() * 1000}',
-             f'magnitude >= {self.mag_min}',
-             f'magnitude < {self.mag_max}'], in_place=False)
-        if self.region:
-            sub_cat.filter_spatial(region=self.region)
-        sub_cat.write_json(filename=self.filetree(tstring, 'catalog'))
+        ""
+
+        testcat_name = self.filetree(tstring, 'catalog')
+        if not os.path.exists(testcat_name):
+            start, end = str2timewindow(tstring)
+            sub_cat = self.catalog.filter(
+                [f'origin_time < {end.timestamp() * 1000}',
+                 f'origin_time >= {start.timestamp() * 1000}',
+                 f'magnitude >= {self.mag_min}',
+                 f'magnitude < {self.mag_max}'], in_place=False)
+            if self.region:
+                sub_cat.filter_spatial(region=self.region)
+            sub_cat.write_json(filename=testcat_name)
+        else:
+            print('Using stored test sub-catalog')
 
     def set_input_cat(self, tstring: str, model: Model) -> None:
         """
