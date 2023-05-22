@@ -341,7 +341,6 @@ class Model:
         # Model src is a func or binary
         else:
             fc_path = self.tree('forecasts', tstring)
-            print(fc_path)
             if kwargs.get('force') or not os.path.exists(fc_path):
                 self.forecast_from_func(start_date, end_date,
                                         **self.func_kwargs,
