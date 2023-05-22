@@ -10,7 +10,7 @@ floatCSEP: Floating Experiments
 Preliminary documentation.
 
 .. toctree::
-   :maxdepth: 0
+   :maxdepth: 1
    :caption: Get Started
 
    intro/installation.rst
