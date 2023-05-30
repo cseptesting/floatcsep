@@ -391,6 +391,7 @@ class Experiment:
         ""
 
         testcat_name = self.filetree(tstring, 'catalog')
+        print(testcat_name)
         if not os.path.exists(testcat_name):
             start, end = str2timewindow(tstring)
             sub_cat = self.catalog.filter(
