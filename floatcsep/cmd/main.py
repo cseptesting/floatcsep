@@ -1,39 +1,29 @@
+
 from floatcsep.experiment import Experiment
+import logging
 import argparse
+log = logging.getLogger(__name__)
+
 
 def stage(config, show=True):
 
     exp = Experiment.from_yml(config)
     exp.stage_models()
-    print('\n==================')
-    print('Staging experiment')
-    print('==================\n')
-
+    log.info('Completed')
 
 def run(config, show=True):
     exp = Experiment.from_yml(config)
 
     exp.stage_models()
-    print('\n==================')
-    print('Running experiment')
-    print('==================\n')
     exp.set_tasks()
     exp.run()
-    print('\n================')
-    print('Calculation done')
-    print('================\n')
 
     if show:
-        print('\n=============================')
-        print("Plotting experiment's results")
-        print('=============================\n')
         exp.plot_results()
         exp.plot_forecasts()
         exp.generate_report()
+    log.info('Completed')
 
-    print('\n========')
-    print('Complete')
-    print('========\n')
 
 
 def plot(config, **_):

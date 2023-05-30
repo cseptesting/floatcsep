@@ -5,6 +5,7 @@ import csep
 import numpy
 import yaml
 import json
+import logging
 
 from typing import Union, List, Dict, Callable, Mapping, Sequence
 from matplotlib import pyplot
@@ -25,6 +26,7 @@ import warnings
 
 numpy.seterr(all="ignore")
 warnings.filterwarnings("ignore")
+log = logging.getLogger(__name__)
 
 
 class Experiment:
@@ -241,7 +243,7 @@ class Experiment:
             reps = set(
                 [i for i in names_ if (sum([j == i for j in names_]) > 1)])
             one = not bool(len(reps) - 1)
-            print(f'Warning: Model{"s" * (not one)} {reps}'
+            log.warning(f'Warning: Model{"s" * (not one)} {reps}'
                   f' {"is" * one + "are" * (not one)} repeated')
 
         return models
@@ -257,6 +259,7 @@ class Experiment:
         Stages all the experiment's models. See
         :meth:`floatcsep.model.Model.stage`
         """
+        log.info('Staging models')
         for i in self.models:
             i.stage(self.timewindows)
 
@@ -332,7 +335,7 @@ class Experiment:
             self._catpath = None
 
         elif os.path.isfile(self.filetree.abs(cat)):
-            print(f"Using catalog from {cat}")
+            log.info(f"Using catalog from {cat}")
             self._catalog = self.filetree.abs(cat)
             self._catpath = self.filetree.abs(cat)
 
@@ -341,11 +344,11 @@ class Experiment:
             self._catalog = parse_csep_func(cat)
             self._catpath = self.filetree.abs('catalog.json')
             if os.path.isfile(self._catpath):
-                print(f"Using stored catalog "
-                      f"'{os.path.relpath(self._catpath, self.path)}', "
-                      f"obtained from function '{cat}'")
+                log.info(f"Using stored catalog "
+                         f"'{os.path.relpath(self._catpath, self.path)}', "
+                         f"obtained from function '{cat}'")
             else:
-                print(f"Downloading catalog from function {cat}")
+                log.info(f"Downloading catalog from function {cat}")
 
     def get_test_cat(self, tstring: str = None) -> CSEPCatalog:
         """
@@ -399,7 +402,7 @@ class Experiment:
                 sub_cat.filter_spatial(region=self.region)
             sub_cat.write_json(filename=testcat_name)
         else:
-            print('Using stored test sub-catalog')
+            log.info('Using stored test sub-catalog')
 
     def set_input_cat(self, tstring: str, model: Model) -> None:
         """
@@ -443,7 +446,7 @@ class Experiment:
         Returns:
 
         """
-
+        log.info('Setting up Tasks')
         # Set the file path structure
         self.filetree.set_pathtree(self.timewindows,
                                    self.models,
@@ -620,7 +623,9 @@ class Experiment:
          - Queuer?
 
         """
+        log.info(f'Running {self.task_graph.ntasks} Tasks')
         self.task_graph.run()
+        log.info(f'Calculation completed')
         self.to_yml(self.filetree('config'), extended=True)
 
     def read_results(self, test: Evaluation, window: str) -> List:
@@ -641,7 +646,7 @@ class Experiment:
             show: show in runtime
 
         """
-
+        log.info("Plotting experiment's results")
         timewindows = timewindow2str(self.timewindows)
 
         for test in self.tests:
@@ -686,7 +691,6 @@ class Experiment:
                 catpath = self.filetree(tw, 'catalog')
                 catalog = CSEPCatalog.load_json(catpath)
                 if catalog.get_number_of_events() != 0:
-
                     ax = catalog.plot(plot_args=plot_args, show=show)
                     ax.get_figure().tight_layout()
                     ax.get_figure().savefig(self.filetree(tw, 'figures',
@@ -705,6 +709,7 @@ class Experiment:
         Plots and saves all the generated forecasts
 
         """
+        log.info("Plotting forecasts")
 
         plot_fc_config = self.postproc_config.get('plot_forecasts')
         if plot_fc_config:
@@ -778,6 +783,7 @@ class Experiment:
         Creates a report summarizing the Experiment's results
 
         """
+        log.info("Generating report")
 
         report.generate_report(self)
 
@@ -890,6 +896,7 @@ class Experiment:
             An :class:`~floatcsep.experiment.Experiment` class instance
 
         """
+        log.info('Initializing experiment from .yml file')
         with open(config_yml, 'r') as yml:
             config_dict = yaml.safe_load(yml)
             if 'path' not in config_dict:

@@ -4,6 +4,7 @@ import numpy
 import csep
 import git
 import subprocess
+import logging
 
 from typing import List, Callable, Union, Dict, Mapping, Sequence
 from datetime import datetime
@@ -15,6 +16,9 @@ from floatcsep.accessors import from_zenodo, from_git
 from floatcsep.readers import ForecastParsers, HDF5Serializer, check_format
 from floatcsep.utils import timewindow2str, str2timewindow
 from floatcsep.registry import ModelTree
+
+log = logging.getLogger(__name__)
+
 
 class Model:
     """
@@ -157,9 +161,9 @@ class Model:
         venvact = os.path.join(venv, 'bin', 'activate')
 
         if not os.path.exists(venv):
-            print(f'Building model {self.name} using pip')
+            log.info(f'Building model {self.name} using pip')
             subprocess.run(['python', '-m', 'venv', venv])
-            print(f'\tVirtual environment created in {venv}')
+            log.info(f'\tVirtual environment created in {venv}')
 
             build_cmd = f'source {venvact} &&' \
                         f'pip install --upgrade pip &&' \
