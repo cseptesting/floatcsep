@@ -335,7 +335,7 @@ class Experiment:
             self._catpath = None
 
         elif os.path.isfile(self.filetree.abs(cat)):
-            log.info(f"Using catalog from {cat}")
+            log.info(f"Using catalog from file '{cat}'")
             self._catalog = self.filetree.abs(cat)
             self._catpath = self.filetree.abs(cat)
 
@@ -344,11 +344,11 @@ class Experiment:
             self._catalog = parse_csep_func(cat)
             self._catpath = self.filetree.abs('catalog.json')
             if os.path.isfile(self._catpath):
-                log.info(f"Using stored catalog "
-                         f"'{os.path.relpath(self._catpath, self.path)}', "
+                log.info(f"Using stored "
+                         f"'{os.path.relpath(self._catpath, self.path)}' "
                          f"obtained from function '{cat}'")
             else:
-                log.info(f"Downloading catalog from function {cat}")
+                log.info(f"Downloading catalog using function '{cat}'")
 
     def get_test_cat(self, tstring: str = None) -> CSEPCatalog:
         """
@@ -391,8 +391,9 @@ class Experiment:
         ""
 
         testcat_name = self.filetree(tstring, 'catalog')
-        print(testcat_name)
         if not os.path.exists(testcat_name):
+            log.debug(f'Filtering catalog to testing sub-catalog and saving to '
+                      f'{testcat_name}')
             start, end = str2timewindow(tstring)
             sub_cat = self.catalog.filter(
                 [f'origin_time < {end.timestamp() * 1000}',
@@ -403,7 +404,7 @@ class Experiment:
                 sub_cat.filter_spatial(region=self.region)
             sub_cat.write_json(filename=testcat_name)
         else:
-            log.info('Using stored test sub-catalog')
+            log.debug(f'Using stored test sub-catalog from {testcat_name}')
 
     def set_input_cat(self, tstring: str, model: Model) -> None:
         """
@@ -447,7 +448,7 @@ class Experiment:
         Returns:
 
         """
-        log.info('Setting up Tasks')
+        log.info("Setting up experiment's tasks")
         # Set the file path structure
         self.filetree.set_pathtree(self.timewindows,
                                    self.models,
@@ -624,7 +625,7 @@ class Experiment:
          - Queuer?
 
         """
-        log.info(f'Running {self.task_graph.ntasks} Tasks')
+        log.info(f'Running {self.task_graph.ntasks} tasks')
         self.task_graph.run()
         log.info(f'Calculation completed')
         self.to_yml(self.filetree('config'), extended=True)
@@ -647,7 +648,7 @@ class Experiment:
             show: show in runtime
 
         """
-        log.info("Plotting experiment's results")
+        log.info("Plotting evaluations")
         timewindows = timewindow2str(self.timewindows)
 
         for test in self.tests:
@@ -710,10 +711,10 @@ class Experiment:
         Plots and saves all the generated forecasts
 
         """
-        log.info("Plotting forecasts")
 
         plot_fc_config = self.postproc_config.get('plot_forecasts')
         if plot_fc_config:
+            log.info("Plotting forecasts")
             if plot_fc_config is True:
                 plot_fc_config = {}
             try:
@@ -784,7 +785,7 @@ class Experiment:
         Creates a report summarizing the Experiment's results
 
         """
-        log.info("Generating report")
+        log.info(f"Saving report into {self.filetree.run_folder}")
 
         report.generate_report(self)
 

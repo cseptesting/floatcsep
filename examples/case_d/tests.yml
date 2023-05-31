@@ -7,7 +7,6 @@
         figsize: !!python/tuple [4, 6]
         title_fontsize: 16
     plot_kwargs:
-        normalize: True
         one_sided_lower: True
 - Poisson_T:
     func: poisson_evaluations.paired_t_test

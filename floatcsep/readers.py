@@ -1,15 +1,15 @@
 import os.path
-
 import h5py
 import pandas
 import argparse
 import numpy
 import xml.etree.ElementTree as eTree
-import itertools
 from csep.models import Polygon
 from csep.core.regions import QuadtreeGrid2D, CartesianGrid2D
 import time
+import logging
 
+log = logging.getLogger(__name__)
 
 class ForecastParsers:
 
@@ -75,7 +75,7 @@ class ForecastParsers:
                 cells = root[0][k]
                 metadata['depthLayer'] = depth
         if verbose:
-            print(f'Forecast with metadata:\n{metadata}')
+            log.debug(f'Forecast with metadata:\n{metadata}')
 
         for cell in cells:
             cell_data = []
@@ -199,7 +199,8 @@ class ForecastParsers:
                 region = CartesianGrid2D(
                     [Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
 
-        print(f'Loading from hdf5 took: {time.process_time() - start}')
+        log.debug(f'Loading from hdf5 {filename} took:'
+                  f' {time.process_time() - start:.2f}')
 
         return rates, region, magnitudes
 
@@ -250,7 +251,8 @@ class HDF5Serializer:
                                           dtype=dtype)
                     hfile[f'{grp}/{key}'][:] = v
 
-        print(f'Serializing from csv took: {time.process_time() - start}')
+        log.info(f'Storing to hdf5 {hdf5_filename} took:'
+                  f' {time.process_time() - start:2f}')
 
 
 def check_format(filename, fmt=None, func=None):

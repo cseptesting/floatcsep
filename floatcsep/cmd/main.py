@@ -9,33 +9,30 @@ def stage(config, show=True):
 
     exp = Experiment.from_yml(config)
     exp.stage_models()
-    log.info('Completed')
+    log.info('Finalized')
+
 
 def run(config, show=True):
-    exp = Experiment.from_yml(config)
 
+    exp = Experiment.from_yml(config)
     exp.stage_models()
     exp.set_tasks()
     exp.run()
-
     if show:
         exp.plot_results()
         exp.plot_forecasts()
         exp.generate_report()
-    log.info('Completed')
-
+    log.info('Finalized')
 
 
 def plot(config, **_):
     exp = Experiment.from_yml(config)
     exp.stage_models()
     exp.set_tasks()
-    print('\n=============================')
-    print("Plotting experiment's results")
-    print('=============================\n')
     exp.plot_results()
     exp.plot_forecasts()
     exp.generate_report()
+    log.info('Finalized')
 
 
 def reproduce(config, show=True):

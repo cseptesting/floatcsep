@@ -176,10 +176,10 @@ class Model:
                                        stderr=subprocess.STDOUT,
                                        universal_newlines=True)
             for line in process.stdout:
-                print(f'\t{line}', end='')
+                log.debug(f'\t{line}', end='')
             process.wait()
-            print(f'Nested environments is not well supported. '
-                  f'Consider using docker instead')
+            log.info(f'Nested environments is not well supported. '
+                     f'Consider using docker instead')
 
         self.run_prefix = f'cd {self.path} && source {venvact} &&'
 
@@ -272,7 +272,7 @@ class Model:
             if os.path.isfile(self.path) and self.fmt == 'hdf5':
                 os.remove(self.path)
             else:
-                print("The HDF5 file does not exist")
+                log.warning(f"The HDF5 file {self.path} does not exist")
 
     def model_qa(self) -> None:
         """ Run model quality assurance (Unit and Integration tests).
@@ -350,7 +350,8 @@ class Model:
                                         **self.func_kwargs,
                                         **kwargs)
             else:
-                print('Forecast already exists')
+                log.info(f'Forecast of {tstring} of model {self.name} already '
+                         f'exists')
 
     def forecast_from_file(self, start_date: datetime, end_date: datetime,
                            **kwargs) -> None:
@@ -386,8 +387,9 @@ class Model:
         if scale != 1.0:
             forecast = forecast.scale(scale)
 
-        print(
-            f"Forecast expected count: {forecast.event_count:.2f}"
+        log.debug(
+            f"Model {self.name}:\n"
+            f"\tForecast expected count: {forecast.event_count:.2f}"
             f" with scaling parameter: {time_horizon:.1f}")
 
         self.forecasts[tstring] = forecast
@@ -435,11 +437,10 @@ class Model:
             with open(filepath, 'w') as file_:
                 json.dump(args, file_, indent=2)
 
-
     def run_model(self):
 
         if self.build == 'pip' or self.build == 'venv':
-            print(f'Running model {self.name} using venv')
+            log.info(f'Running model {self.name} using venv')
             run_func = f'{self.func} {self.tree("args")}'
             cmd = ['bash', '-c',
                    f'{self.run_prefix} {run_func}']
@@ -448,7 +449,7 @@ class Model:
                                        stderr=subprocess.STDOUT,
                                        universal_newlines=True)
             for line in process.stdout:
-                print(f'\t{line}', end='')
+                log.debug(f'\t{line}', end='')
             process.wait()
 
     def to_dict(self, excluded=('name', 'forecasts')):
