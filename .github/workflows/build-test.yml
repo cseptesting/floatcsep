@@ -21,25 +21,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: mamba-org/setup-micromamba@v1
       with:
-        python-version: ${{ matrix.python-version }}
-        activate-environment: floatcsep-dev
-        channels: conda-forge
+        generate-run-shell: true
+        environment-file: environment.yml
+        create-args: >-
+          python=${{ matrix.python-version }}
 
-    - name: Install conda dependencies
-      run: |
-        PACKAGES="$PACKAGES numpy==1.23.4 geos cartopy pycsep"
-        conda install $PACKAGES
-        conda info -a
-        conda list
-
-    - name: Install pip dependencies
-      run: |
-        pip install -r requirements_dev.txt
 
     - name: Install floatCSEP
       run: |
+        pip install pytest pytest-cov vcrpy==4.3.1
         pip install --no-deps -e .
         python -c "import floatcsep; print('Version: ', floatcsep.__version__)"
 
