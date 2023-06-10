@@ -297,8 +297,8 @@ class Evaluation:
                         fig_path = tree(time_str, 'figures', self.name)
                         results = self.read_results(time_str, models, tree)
                         ax = func(results, plot_args=fargs, **fkwargs)
-                        if 'code' in self.plot_args:
-                            exec(self.plot_args['code'])
+                        if 'code' in fargs:
+                            exec(fargs['code'])
                         pyplot.savefig(fig_path, dpi=dpi)
                         if show:
                             pyplot.show()
@@ -315,8 +315,8 @@ class Evaluation:
                                 fig_path = tree(time_str, 'figures', fig_name)
                                 ax = func(result, plot_args=fargs, **fkwargs,
                                           show=False)
-                                if 'code' in self.plot_args:
-                                    exec(self.plot_args['code'])
+                                if 'code' in fargs:
+                                    exec(fargs['code'])
                                 pyplot.savefig(fig_path, dpi=dpi)
                                 if show:
                                     pyplot.show()
@@ -326,8 +326,8 @@ class Evaluation:
                 results = self.read_results(timewindow[-1], models, tree)
                 ax = func(results, plot_args=fargs, **fkwargs)
 
-                if 'code' in self.plot_args:
-                    exec(self.plot_args['code'])
+                if 'code' in fargs:
+                    exec(fargs['code'])
                 pyplot.savefig(fig_path, dpi=dpi)
                 if show:
                     pyplot.show()
