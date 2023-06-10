@@ -6,7 +6,7 @@ import git
 import subprocess
 import logging
 
-from typing import List, Callable, Union, Dict, Mapping, Sequence
+from typing import List, Callable, Union, Mapping, Sequence
 from datetime import datetime
 
 from csep.core.forecasts import GriddedForecast, CatalogForecast
@@ -138,7 +138,6 @@ class Model:
             - Initialize database
             - Run model quality assurance (unit tests, runnable from floatcsep)
         """
-        kwargs = {}
         self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
         if self.model_class == 'td':
             self.build_model()
@@ -210,6 +209,8 @@ class Model:
         os.makedirs(self.dir, exist_ok=True)
 
         if zenodo_id:
+            log.info(f'Retrieving model {self.name} from zenodo id: '
+                     f'{zenodo_id}')
             try:
                 from_zenodo(zenodo_id, self.dir if self.fmt else self.path,
                             force=force)
@@ -217,6 +218,8 @@ class Model:
                 raise KeyError(f'Zenodo identifier is not valid: {msg}')
 
         elif giturl:
+            log.info(f'Retrieving model {self.name} from git url: '
+                     f'{giturl}')
             try:
                 from_git(giturl, self.dir if self.fmt else self.path,
                          **kwargs)
@@ -255,7 +258,7 @@ class Model:
                 dbpath = self.path.replace(self.fmt, 'hdf5')
 
             if not os.path.isfile(dbpath) or force:
-                # Drop Source file into DB
+                log.info(f'Serializing model {self.name} into HDF5 format')
                 db_func(rates, region, mag,
                         hdf5_filename=dbpath,
                         unit=self.forecast_unit)
@@ -416,7 +419,7 @@ class Model:
                     if line.startswith(arg):
                         lines[k] = f"{arg} = {val}\n"
                         pattern_exists = True
-                        break  # Assuming there's only one occurrence of the key
+                        break  # assume there's only one occurrence of the key
                 if not pattern_exists:
                     lines.append(f"{arg} = {val}\n")
                 with open(fp, 'w') as file:

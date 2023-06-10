@@ -4,7 +4,7 @@
     plot_kwargs:
       one_sided_lower: True
     plot_args:
-      title: $\mathcal{S}-$test
+      title: S-test
       title_fontsize: 16
       xlabel: Spatial log-likelihood
       linewidth: 0.5
@@ -14,9 +14,9 @@
     func: poisson_evaluations.conditional_likelihood_test
     plot_func: plot_poisson_consistency_test
     plot_args:
-      title: $\mathcal{L}_{N}-$test
+      title: CL-test
       xlabel: Log-Likelihood
-      title_fontsize: 16
+      title_fontsize: 16.0
       linewidth: 0.5
       capsize: 0
     plot_kwargs:

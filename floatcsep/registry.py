@@ -199,7 +199,6 @@ class PathTree:
              evaluation results)
 
         """
-
         # grab names for creating directories
         windows = timewindow2str(timewindows)
         models = [i.name for i in models]
@@ -269,41 +268,4 @@ class PathTree:
         self.paths = target_paths
         self.run_folder = run_folder
 
-
-ERROR_LOG_FILENAME = f".floatcsep.log"
-LOGGING_CONFIG = {
-    "version": 1,
-    "formatters": {
-        "default": {
-            "format": '%(asctime)s %(levelname)s - %(message)s',
-            "datefmt": '%Y-%m-%d %H:%M:%S'},
-    },
-    "handlers": {
-        "logfile": {  # The handler name
-            "formatter": "default",  # Refer to the formatter defined above
-            "level": "INFO",  # FILTER: Only ERROR and CRITICAL logs
-            "class": "logging.handlers.RotatingFileHandler",
-            # OUTPUT: Which class to use
-            "filename": ERROR_LOG_FILENAME,
-            # Param for class above. Defines filename to use, load it from constant
-            "backupCount": 2,
-            # Param for class above. Defines how many log files to keep as it grows
-        },
-        "console": {  # The handler name
-            "formatter": "default",  # Refer to the formatter defined above
-            "level": "INFO",  # FILTER: All logs
-            "class": "logging.StreamHandler",  # OUTPUT: Which class to use
-            "stream": "ext://sys.stdout",
-            # Param for class above. It means stream to console
-        }
-    },
-    'loggers': {
-        'sampleLogger':
-            {'level': 'INFO',
-             'handlers': ['console'],
-             'propagate': 'no'}},
-    'root': {
-        'level': 'INFO',
-        'handlers': ['console']}
-}
 

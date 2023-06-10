@@ -11,7 +11,6 @@ from typing import Union, List, Dict, Callable, Mapping, Sequence
 from matplotlib import pyplot
 from cartopy import crs as ccrs
 
-from csep.models import EvaluationResult
 from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
 
@@ -26,7 +25,9 @@ import warnings
 
 numpy.seterr(all="ignore")
 warnings.filterwarnings("ignore")
+
 log = logging.getLogger(__name__)
+flog = logging.getLogger("file_logger")
 
 
 class Experiment:
@@ -135,6 +136,14 @@ class Experiment:
         self.model_config = models if isinstance(models, str) else None
         self.test_config = tests if isinstance(tests, str) else None
 
+        log.info(f'Setting up experiment {self.name}:')
+        log.info(f'\tstart: {self.start_date}')
+        log.info(f'\tend: {self.start_date}')
+        log.info(f'\ttime windows: {len(self.timewindows)}')
+        log.info(f'\tregion: {self.region.name if self.region else None}')
+        log.info(f'\tmagnitude range: [{numpy.min(self.magnitudes)},'
+                 f' {numpy.max(self.magnitudes)}]')
+
         self.catalog = None
         self.models = []
         self.tests = []
@@ -229,7 +238,6 @@ class Experiment:
                     # updates path to absolute
                     path_super = element[name_super].get('path', '')
                     path_sub = self.filetree.abs(_dir, path_super, flav_path)
-                    # path_sub = self._abspath(_dir, path_super, flav_path)[1]
                     # updates name of submodel
                     name_flav = f'{name_super}@{flav}'
                     model_ = {name_flav: {**element[name_super],
@@ -244,7 +252,8 @@ class Experiment:
                 [i for i in names_ if (sum([j == i for j in names_]) > 1)])
             one = not bool(len(reps) - 1)
             log.warning(f'Warning: Model{"s" * (not one)} {reps}'
-                  f' {"is" * one + "are" * (not one)} repeated')
+                        f' {"is" * one + "are" * (not one)} repeated')
+        log.info(f'\tModels: {[i.name for i in models]}')
 
         return models
 
@@ -285,6 +294,8 @@ class Experiment:
         elif isinstance(test_config, (dict, list)):
             for eval_dict in test_config:
                 tests.append(Evaluation.from_dict(eval_dict))
+
+        log.info(f'\tEvaluations: {[i.name for i in tests]}')
 
         return tests
 
@@ -335,7 +346,7 @@ class Experiment:
             self._catpath = None
 
         elif os.path.isfile(self.filetree.abs(cat)):
-            log.info(f"Using catalog from file '{cat}'")
+            log.info(f"\tCatalog: '{cat}'")
             self._catalog = self.filetree.abs(cat)
             self._catpath = self.filetree.abs(cat)
 
@@ -344,11 +355,11 @@ class Experiment:
             self._catalog = parse_csep_func(cat)
             self._catpath = self.filetree.abs('catalog.json')
             if os.path.isfile(self._catpath):
-                log.info(f"Using stored "
+                log.info(f"\tCatalog: stored "
                          f"'{os.path.relpath(self._catpath, self.path)}' "
-                         f"obtained from function '{cat}'")
+                         f"from '{cat}'")
             else:
-                log.info(f"Downloading catalog using function '{cat}'")
+                log.info(f"\tCatalog: '{cat}'")
 
     def get_test_cat(self, tstring: str = None) -> CSEPCatalog:
         """
@@ -448,7 +459,7 @@ class Experiment:
         Returns:
 
         """
-        log.info("Setting up experiment's tasks")
+
         # Set the file path structure
         self.filetree.set_pathtree(self.timewindows,
                                    self.models,
@@ -456,6 +467,7 @@ class Experiment:
                                    results_path=results_path,
                                    run_name=run_name)
 
+        log.info("Setting up experiment's tasks")
         # Get the time windows strings
         tw_strings = timewindow2str(self.timewindows)
 
@@ -735,7 +747,7 @@ class Experiment:
             cat_args = {}
             if cat:
                 cat_args = {'markersize': 7, 'markercolor': 'black',
-                            'title': None,
+                            'title': 'asd', 'grid': False,
                             'legend': False, 'basemap': None,
                             'region_border': False}
                 if self.region:

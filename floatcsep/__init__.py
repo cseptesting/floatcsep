@@ -1,8 +1,10 @@
-import logging
-import logging.config
-from floatcsep.registry import LOGGING_CONFIG
+from floatcsep import logger
+from floatcsep import registry
+from floatcsep import accessors
+from floatcsep import evaluation
+from floatcsep import experiment
+from floatcsep import extras
+from floatcsep import model
+from floatcsep import readers
 
 __version__ = '0.1.2'
-logging.config.dictConfig(LOGGING_CONFIG)
-a = logging.getLogger(__name__)
-a.info(f'Running floatCSEP v{__version__}')

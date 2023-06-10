@@ -681,8 +681,7 @@ def plot_matrix_comparative_test(evaluation_results,
                 ax.scatter(n + 0.5, m + 0.5, marker='o', s=5, color='black')
 
     legend_elements = [Line2D([0], [0], marker='o', lw=0,
-                              label=r'$\mathcal{T}$ and $\mathcal{W}$ '
-                                    'significant',
+                              label=r'T and W significant',
                               markerfacecolor="black", markeredgecolor='black',
                               markersize=4)]
     fig.legend(handles=legend_elements, loc='lower right',

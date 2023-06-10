@@ -1,4 +1,4 @@
-
+from floatcsep import __version__
 from floatcsep.experiment import Experiment
 import logging
 import argparse
@@ -7,12 +7,14 @@ log = logging.getLogger(__name__)
 
 def stage(config, show=True):
 
+    log.info(f'Running floatCSEP v{__version__}')
     exp = Experiment.from_yml(config)
     exp.stage_models()
     log.info('Finalized')
 
 
 def run(config, show=True):
+    log.info(f'Running floatCSEP v{__version__}')
 
     exp = Experiment.from_yml(config)
     exp.stage_models()
@@ -26,6 +28,8 @@ def run(config, show=True):
 
 
 def plot(config, **_):
+
+    log.info(f'Running floatCSEP v{__version__}')
     exp = Experiment.from_yml(config)
     exp.stage_models()
     exp.set_tasks()
@@ -36,12 +40,11 @@ def plot(config, **_):
 
 
 def reproduce(config, show=True):
-    exp = Experiment.from_yml(config)
 
+    log.info(f'Running floatCSEP v{__version__}')
+
+    exp = Experiment.from_yml(config)
     exp.stage_models()
-    print('\n==================')
-    print('Re-running experiment')
-    print('==================\n')
     exp.set_tasks(run_name='reproducibility')
     exp.run()
     print('\n================')

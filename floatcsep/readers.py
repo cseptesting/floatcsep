@@ -8,8 +8,8 @@ from csep.models import Polygon
 from csep.core.regions import QuadtreeGrid2D, CartesianGrid2D
 import time
 import logging
-
 log = logging.getLogger(__name__)
+
 
 class ForecastParsers:
 
@@ -251,8 +251,8 @@ class HDF5Serializer:
                                           dtype=dtype)
                     hfile[f'{grp}/{key}'][:] = v
 
-        log.info(f'Storing to hdf5 {hdf5_filename} took:'
-                  f' {time.process_time() - start:2f}')
+        log.debug(f'Storing to hdf5 {hdf5_filename} took:'
+                  f'{time.process_time() - start:2f}')
 
 
 def check_format(filename, fmt=None, func=None):
