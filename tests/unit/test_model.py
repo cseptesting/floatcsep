@@ -93,10 +93,12 @@ class TestModel(TestCase):
         model_b = self.initmodel_noreg(name=name, path=path,
                                        zenodo_id=zenodo_id)
         model_b.stage()
-        self.assertEqual(os.path.basename(model_a.path),
-                         os.path.basename(model_b.path))
+
+        self.assertEqual(os.path.basename(model_a.path('path')),
+                         os.path.basename(model_b.path('path')))
         self.assertEqual(model_a.name, model_b.name)
-        self.assertTrue(filecmp.cmp(model_a.path, model_b.path))
+        self.assertTrue(filecmp.cmp(model_a.path('path'),
+                                    model_b.path('path')))
 
     def test_fail_zenodo(self):
         name = 'mock_zenodo'
@@ -154,7 +156,7 @@ class TestModel(TestCase):
         fname = os.path.join(self._dir, 'model.csv')
 
         dict_ = {'mock':
-                 {'path': fname,
+                 {'model_path': fname,
                   'forecast_unit': 5,
                   'authors': ['Darwin, C.', 'Bell, J.', 'Et, Al.'],
                   'doi': '10.1010/10101010',
@@ -172,8 +174,8 @@ class TestModel(TestCase):
         model_b = Model.from_dict(py_dict)
 
         self.assertEqual(name, model_a.name)
-        self.assertEqual(fname, model_a.path)
-        self.assertEqual('csv', model_a.fmt)
+        self.assertEqual(fname, model_a.path.path)
+        self.assertEqual('csv', model_a.path.fmt)
         self.assertEqual(self._dir, model_a.dir)
 
         self.assertEqualModel(model_a, model_b)
@@ -192,9 +194,9 @@ class TestModel(TestCase):
         model.create_forecast('2020-01-01_2021-01-01')
         self.assertTrue(mock_file.called)
 
-        model = self.initmodel_noreg('mock', 'mockbin', model_class='td')
+        model = self.initmodel_noreg('mock', 'mockbins', model_class='td')
 
-        model.tree.build([str2timewindow('2020-01-01_2021-01-01')])
+        model.path.build_tree([str2timewindow('2020-01-01_2021-01-01')])
         model.create_forecast('2020-01-01_2021-01-01')
         self.assertTrue(mock_func.called)
 
@@ -217,6 +219,7 @@ class TestModel(TestCase):
             model = self.initmodel_noreg(name, fname)
             start = datetime(1900, 1, 1)
             end = datetime(2000, 1, 1)
+            model.path.build_tree([[start, end]])
             model.forecast_from_file(start, end)
             numpy.testing.assert_almost_equal(220., model.forecasts[
                 '1900-01-01_2000-01-01'].data.sum())
@@ -229,9 +232,9 @@ class TestModel(TestCase):
         model = self.initmodel_noreg('a',
                                      model_path,
                                      func='func')
-        model.stage()
         start = datetime(2000, 1, 1)
         end = datetime(2000, 1, 2)
+        model.stage([[start, end]])
         model.prepare_args(start, end)
 
         with open(os.path.join(model_path, 'input', 'args.txt'), 'r') as args:
@@ -274,19 +277,17 @@ class TestModel(TestCase):
             'model_class': 'ti'
         }
         model = self.initmodel_noreg(name='mock', **dict_)
-        model_dict = model.to_dict()
+        model_dict = model.as_dict()
         eq = True
 
         for k, v in dict_.items():
             if k not in list(model_dict['mock'].keys()):
-                print('a', k)
                 eq = False
             else:
                 if v != model_dict['mock'][k]:
-                    print('b', k)
                     eq = False
         excl = ['path', 'giturl', 'forecast_unit']
-        keys = list(model.to_dict(excluded=excl).keys())
+        keys = list(model.as_dict(excluded=excl).keys())
         for i in excl:
             if i in keys and i != 'path':  # path always gets printed
                 eq = False

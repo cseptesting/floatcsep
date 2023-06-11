@@ -39,6 +39,7 @@ class TestModelFromFile(TestCase):
         model = self.init_model(name, fname)
         start = datetime(1900, 1, 1)
         end = datetime(2000, 1, 1)
+        model.stage([[start, end]])
         model.forecast_from_file(start, end)
         numpy.testing.assert_almost_equal(440., model.forecasts[
             '1900-01-01_2000-01-01'].data.sum())
@@ -52,6 +53,7 @@ class TestModelFromFile(TestCase):
         model = Model(name, fname)
         start = datetime(1900, 1, 1)
         end = datetime(2000, 1, 1)
+        model.stage([[start, end]])
         model.forecast_from_file(start, end)
 
         numpy.testing.assert_almost_equal(1618.5424321406535, model.forecasts[
@@ -64,10 +66,9 @@ class TestModelFromFile(TestCase):
         numpy.seterr(all="ignore")
 
         model = self.init_model(name=name, path=fname, use_db=True)
-        model.stage()
-
         start = datetime(1900, 1, 1)
         end = datetime(2000, 1, 1)
+        model.stage([[start, end]])
         model.forecast_from_file(start, end)
 
         numpy.testing.assert_almost_equal(1618.5424321406535, model.forecasts[
@@ -82,6 +83,7 @@ class TestModelFromFile(TestCase):
 
         start = datetime(2020, 1, 1)
         end = datetime(2023, 1, 1)
+        model.stage([[start, end]])
         model.forecast_from_file(start, end)
         numpy.testing.assert_almost_equal(13.2, model.forecasts[
             '2020-01-01_2023-01-01'].data.sum())

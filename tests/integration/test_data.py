@@ -50,7 +50,10 @@ class TimeIndependentTest(DataTest):
         self.run_evaluation(cfg)
         self.assertEqual(1, 1)
 
-    def test_case_e(self):
+
+class TimeDependentTest(DataTest):
+
+    def test_case_f(self):
         cfg = self.get_path('f')
         self.run_evaluation(cfg)
         self.assertEqual(1, 1)

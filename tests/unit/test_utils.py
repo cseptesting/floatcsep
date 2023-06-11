@@ -148,7 +148,7 @@ class RegionUtilsTest(unittest.TestCase):
                   'depth_max': 1}
 
         region_config = read_region_config(config)
-        self.assertEqual(8, len(region_config))
+        self.assertEqual(9, len(region_config))
         numpy.testing.assert_equal(region_origins,
                                    region_config['region'].origins())
 

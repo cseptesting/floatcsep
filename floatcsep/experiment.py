@@ -1,3 +1,4 @@
+import os
 import shutil
 from os.path import join, abspath, dirname, isfile, split, exists
 
@@ -126,7 +127,9 @@ class Experiment:
         #    Or filter region?
         # Instantiate
         self.name = name if name else 'floatingExp'
-        self.path = PathTree(abspath(kwargs.get('path')), rundir)
+
+        workdir = abspath(kwargs.get('path', os.getcwd()))
+        self.path = PathTree(workdir, rundir)
 
         self.time_config = read_time_config(time_config, **kwargs)
         self.region_config = read_region_config(region_config, **kwargs)
@@ -208,8 +211,7 @@ class Experiment:
                 config_dict = yaml.load(file_, NoAliasLoader)
         elif isinstance(model_config, (dict, list)):
             config_dict = model_config
-            _path = [i['path'] for i in model_config[0].values()][0]
-            _dir = self.path.absdir(_path)
+            _dir = self.path.workdir
         elif model_config is None:
             return models
         else:
@@ -221,8 +223,9 @@ class Experiment:
 
             if not any('flavours' in i for i in element.values()):
                 name_ = next(iter(element))
+                path_ = self.path.rel(_dir, element[name_]['path'])
                 model_i = {name_: {**element[name_],
-                                   'model_path': element[name_]['path'],
+                                   'model_path': path_,
                                    'workdir': self.path.workdir}}
                 model_i[name_].pop('path')
                 models.append(Model.from_dict(model_i))
@@ -797,7 +800,7 @@ class Experiment:
         repr_config = self.path('config')
 
         # Dropping region to results folder if it is a file
-        region_path = self.region_config['path']
+        region_path = self.region_config.get('path', None)
         if region_path:
             if isfile(region_path) and region_path:
                 new_path = join(self.path.rundir, self.region_config['path'])
@@ -834,7 +837,7 @@ class Experiment:
 
         def _get_value(x):
             # For each element type, transforms to desired string/output
-            if hasattr(x, 'as_dict') and extended:
+            if hasattr(x, 'as_dict'):
                 # e.g. model, test, etc.
                 o = x.as_dict()
             else:

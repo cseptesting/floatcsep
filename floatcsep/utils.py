@@ -218,15 +218,14 @@ def read_region_config(region_config, **kwargs):
                                         parsed_region[1:]], dtype=float)
                 region = CartesianGrid2D.from_origins(data, name=region_data,
                                                       magnitudes=magnitudes)
+                region_config.update({'path': region_data})
         else:
             region_data['magnitudes'] = magnitudes
             region = CartesianGrid2D.from_dict(region_data)
 
     region_config.update({'depths': depths,
                           'magnitudes': magnitudes,
-                          'region': region,
-                          'path': '' if isinstance(region_data, dict)
-                          else region_data})
+                          'region': region})
 
     return region_config
 
@@ -320,7 +319,6 @@ def timewindows_ti(start_date=None,
                                        periods=periods,
                                        freq=frequency).to_pydatetime()
     except ValueError as e_:
-        print(e_)
         raise ValueError(
             'The following experiment parameters combinations are possible:\n'
             '   (start_date, end_date)\n'

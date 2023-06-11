@@ -73,7 +73,6 @@ class TestExperiment(TestCase):
 
         exp_a = Experiment(name='test', **time_config, **region_config,
                            catalog=_cat)
-
         dict_ = {'name': 'test',
                  'path': os.getcwd(),
                  'time_config':
@@ -90,9 +89,9 @@ class TestExperiment(TestCase):
                      'depth_min': -2,
                      'depth_max': 70
                  },
-                 'catalog': _cat
+                 'catalog': os.path.relpath(_cat, os.getcwd())
                  }
-        self.assertEqual(dict_, exp_a.to_dict())
+        self.assertEqual(dict_, exp_a.as_dict())
 
     def test_to_yml(self):
         time_config = {'start_date': datetime(2021, 1, 1),
@@ -133,12 +132,11 @@ class TestExperiment(TestCase):
         exp = Experiment(**_time_config, **_region_config,
                          model_config=_model_cfg,
                          catalog=_cat)
-
         exp.stage_models()
 
-        dbpath = os.path.normpath(
+        dbpath = os.path.relpath(
             os.path.join(_dir, '../artifacts', 'models', 'model.hdf5'))
-        self.assertEqual(exp.models[0].path, dbpath)
+        self.assertEqual(exp.models[0].path.database, dbpath)
 
     def test_set_tests(self):
         test_cfg = os.path.normpath(

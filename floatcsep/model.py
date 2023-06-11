@@ -97,7 +97,7 @@ class Model:
         self.func_kwargs = func_kwargs or {}
         self.use_db = use_db
 
-        self.path = ModelTree(kwargs['workdir'], model_path)
+        self.path = ModelTree(kwargs.get('workdir', os.getcwd()), model_path)
         # Set model temporal class
         if self.func:
             # Time-Dependent
@@ -134,7 +134,6 @@ class Model:
         """
         self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
         if self.use_db:
-            check_format(self.path('path'), self.path.fmt, self.func)
             self.init_db()
 
         if self.model_class == 'td':
@@ -252,11 +251,11 @@ class Model:
             if not dbpath:
                 dbpath = self.path.path.replace(self.path.fmt, 'hdf5')
                 self.path.database = dbpath
-                # self.path.fmt = 'hdf5'
+
             if not os.path.isfile(self.path.abs(dbpath)) or force:
                 log.info(f'Serializing model {self.name} into HDF5 format')
                 db_func(rates, region, mag,
-                        hdf5_filename=dbpath,
+                        hdf5_filename=self.path.abs(dbpath),
                         unit=self.forecast_unit)
 
         else:

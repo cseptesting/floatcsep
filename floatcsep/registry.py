@@ -98,7 +98,6 @@ class ModelTree:
         if timewindows is None:
             return
         windows = timewindow2str(timewindows)
-
         if model_class == 'ti':
             fname = self.database if self.database else self.path
             fc_files = {win: fname for win in windows}
