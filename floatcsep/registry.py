@@ -1,16 +1,15 @@
 import os
-from dataclasses import dataclass, field, asdict
+from os.path import join, abspath, relpath, normpath, dirname, exists
+from dataclasses import dataclass, field
 from typing import Sequence
 from floatcsep.utils import timewindow2str
 
 
 @dataclass
 class ModelTree:
-    name: str
+    workdir: str
     path: str
-    fmt: str = 'csv'
-    args: str = None
-    cat: str = None
+    database: str = None
     forecasts: dict = field(default_factory=dict)
     inventory: dict = field(default_factory=dict)
 
@@ -21,7 +20,15 @@ class ModelTree:
             parsed_arg = self._parse_arg(i)
             val = val[parsed_arg]
 
-        return self.abs(self.path, val)
+        return self.abs(val)
+
+
+    @property
+    def fmt(self) -> str:
+        if self.database:
+            return os.path.splitext(self.database)[1][1:]
+        else:
+            return os.path.splitext(self.path)[1][1:]
 
     @staticmethod
     def _parse_arg(arg):
@@ -39,45 +46,41 @@ class ModelTree:
     def __eq__(self, other):
         return self.path == other
 
-    def to_dict(self):
-        return asdict(self)
+    def as_dict(self):
+        return self.path
 
     def abs(self, *paths: Sequence[str]) -> str:
         """ Gets the absolute path of a file, when it was defined relative to
          the experiment working dir."""
 
-        _path = os.path.normpath(
-            os.path.abspath(os.path.join(self.path, *paths)))
-        _dir = os.path.dirname(_path)
+        _path = normpath(abspath(join(self.workdir, *paths)))
+        _dir = dirname(_path)
         return _path
 
     def absdir(self, *paths: Sequence[str]) -> str:
         """ Gets the absolute path of a file, when it was defined relative to
          the experiment working dir."""
 
-        _path = os.path.normpath(
-            os.path.abspath(os.path.join(self.workdir, *paths)))
-        _dir = os.path.dirname(_path)
+        _path = normpath(abspath(join(self.workdir, *paths)))
+        _dir = dirname(_path)
         return _dir
 
     def fileexists(self, *args):
-        abspath = self.__call__(*args)
-        return os.path.exists(abspath)
+        file_abspath = self.__call__(*args)
+        return exists(file_abspath)
 
-    def set_pathtree(self,
-                     timewindows=None,
-                     prefix=None) -> None:
+    def build_tree(self,
+                   timewindows=None,
+                   prefix=None,
+                   model_class='ti') -> None:
         """
 
         Creates the run directory, and reads the file structure inside
 
         Args:
-            timewindows: List of time windows, or representing string.
-            models: List of models or model names
-            tests: List of tests or test names
-            results_path: path to store
-            run_name: name of run
-
+            timewindows (list(str)): List of time windows or strings.
+            prefix (str): prefix of the model forecast filenames
+            model_class (str):
         Returns:
             run_folder: Path to the run.
              exists: flag if forecasts, catalogs and test_results if they
@@ -86,42 +89,70 @@ class ModelTree:
              evaluation results)
 
         """
-
-        # grab names for creating directories
-        subfolders = ['input', 'forecasts']
-        dirtree = {folder: self.abs(self.path, folder) for
-                   folder in subfolders}
-        # set args path
-        self.args = os.path.join('input', self.args or 'args.txt')
-        # set cat path
-        self.cat = os.path.join('input', self.cat or 'catalog.csv')
-
-        # create directories if they don't exist
-        for _, folder_ in dirtree.items():
-            os.makedirs(folder_, exist_ok=True)
-
         if timewindows is None:
             return
         windows = timewindow2str(timewindows)
 
-        # set forecast names
-        fc_files = {win: os.path.join('forecasts',
-                                      f'{prefix or self.name}_{win}.{self.fmt}')
-                    for win
-                    in windows}
+        if model_class == 'ti':
+            fname = self.database if self.database else self.path
+            fc_files = {win: fname for win in windows}
+            exists = {win: os.path.exists(fc_files[win])
+                      for win in windows}
 
-        exists = {win: any(file for file in
-                           list(os.listdir(dirtree['forecasts'])))
-                  for win in windows}
+        elif model_class == 'td':
+            # set args path
+            self.args = join('input', self.args or 'args.txt')
+            # set cat path
+            self.cat = join('input', self.cat or 'catalog.csv')
+            # grab names for creating directories
+            subfolders = ['input', 'forecasts']
+            dirtree = {folder: self.abs(self.path, folder) for
+                       folder in subfolders}
+
+            # create directories if they don't exist
+            for _, folder_ in dirtree.items():
+                os.makedirs(folder_, exist_ok=True)
+
+
+
+            # set forecast names
+            fc_files = {win: join('forecasts',
+                                  f'{prefix}_{win}.{self.fmt}')
+                        for win in windows}
+
+            exists = {win: any(file for file in
+                               list(os.listdir(dirtree['forecasts'])))
+                      for win in windows}
+
 
         self.forecasts = fc_files
         self.inventory = exists
+
+    def update_repr(self, rundir=''):
+
+        self.path = relpath(self.path, rundir)
+
+        # set forecast names
+
+        # windows = list(self.forecasts.keys())
+        # for win in windows:
+        #     self.forecasts[win] = relpath(rundir, self.forecasts[win])
+
+        # exists = {win: any(file for file in
+        #                list(os.listdir(dirtree['forecasts'])))
+        #           for win in windows}
+        #
+        # self.forecasts = fc_files
+        # self.inventory = exists
+
+        # forecasts: dict = field(default_factory=dict)
+        # inventory: dict = field(default_factory=dict)
 
 
 @dataclass
 class PathTree:
     workdir: str
-    run_folder: str = 'results'
+    rundir: str = 'results'
     paths: dict = field(default_factory=dict)
 
     def __call__(self, *args):
@@ -129,8 +160,7 @@ class PathTree:
         for i in args:
             parsed_arg = self._parse_arg(i)
             val = val[parsed_arg]
-
-        return self.abs(self.run_folder, val)
+        return self.abs(self.rundir, val)
 
     @staticmethod
     def _parse_arg(arg):
@@ -148,38 +178,55 @@ class PathTree:
     def __eq__(self, other):
         return self.workdir == other
 
-    def to_dict(self):
-        return asdict(self)
+    def as_dict(self):
+
+        return self.workdir
 
     def abs(self, *paths: Sequence[str]) -> str:
         """ Gets the absolute path of a file, when it was defined relative to
          the experiment working dir."""
 
-        _path = os.path.normpath(
-            os.path.abspath(os.path.join(self.workdir, *paths)))
-        _dir = os.path.dirname(_path)
+        _path = normpath(
+            abspath(join(self.workdir, *paths)))
         return _path
+
+    def rel(self, *paths: Sequence[str]) -> str:
+        """ Gets the relative path of a file, when it was defined relative to
+         the experiment working dir."""
+
+        _abspath = normpath(
+            abspath(join(self.workdir, *paths)))
+        _relpath = relpath(_abspath, self.workdir)
+        return _relpath
 
     def absdir(self, *paths: Sequence[str]) -> str:
         """ Gets the absolute path of a file, when it was defined relative to
          the experiment working dir."""
 
-        _path = os.path.normpath(
-            os.path.abspath(os.path.join(self.workdir, *paths)))
-        _dir = os.path.dirname(_path)
+        _path = normpath(
+            abspath(join(self.workdir, *paths)))
+        _dir = dirname(_path)
         return _dir
+
+    def reldir(self, *paths: Sequence[str]) -> str:
+        """ Gets the absolute path of a file, when it was defined relative to
+         the experiment working dir."""
+
+        _path = normpath(
+            abspath(join(self.workdir, *paths)))
+        _dir = dirname(_path)
+        _reldir = relpath(_dir, self.workdir)
+        return _reldir
 
     def fileexists(self, *args):
 
-        abspath = self.__call__(*args)
-        return os.path.exists(abspath)
+        file_abspath = self.__call__(*args)
+        return exists(file_abspath)
 
-    def set_pathtree(self,
-                     timewindows=None,
-                     models=None,
-                     tests=None,
-                     results_path: str = None,
-                     run_name: str = None) -> None:
+    def build(self,
+              timewindows=None,
+              models=None,
+              tests=None) -> None:
         """
 
         Creates the run directory, and reads the file structure inside
@@ -188,8 +235,6 @@ class PathTree:
             timewindows: List of time windows, or representing string.
             models: List of models or model names
             tests: List of tests or test names
-            results_path: path to store
-            run_name: name of run
 
         Returns:
             run_folder: Path to the run.
@@ -208,15 +253,14 @@ class PathTree:
         # todo find better way to name paths
 
         # Determine required directory structure for run
-        # results > test_date > time_window > cats / evals / figures
+        # results > time_window > cats / evals / figures
 
-        run_folder = os.path.join(results_path or 'results', run_name or '')
+        run_folder = self.rundir
 
         subfolders = ['catalog', 'evaluations', 'figures', 'forecasts']
         dirtree = {
-            win: {folder: self.abs(run_folder, win, folder) for
-                  folder
-                  in subfolders} for win in windows}
+            win: {folder: self.abs(run_folder, win, folder)
+                  for folder in subfolders} for win in windows}
 
         # create directories if they don't exist
         for tw, tw_folder in dirtree.items():
@@ -241,31 +285,27 @@ class PathTree:
         } for win in windows}
 
         target_paths = {
-            'config': 'run_config.yml',
+            'config': 'repr_config.yml',
             'catalog_figure': 'catalog',
-            'magnitude_time': 'magnitude_time',
+            'magnitude_time': 'events',
             **{win: {
-                'models': {model: {'forecasts': None} for model in models},
-                'catalog': os.path.join(win, 'catalog', 'catalog.json'),
+                'catalog': join(win, 'catalog', 'test_catalog.json'),
                 'evaluations': {
                     test: {
-                        model: os.path.join(win, 'evaluations',
-                                            f'{test}_{model}.json')
+                        model: join(win, 'evaluations',
+                                    f'{test}_{model}.json')
                         for model in models
                     }
                     for test in tests},
                 'figures': {
-                    **{test: os.path.join(win, 'figures', f'{test}')
+                    **{test: join(win, 'figures', f'{test}')
                        for test in tests},
-                    'catalog': os.path.join(win, 'figures', 'catalog'),
-                    'magnitude_time': os.path.join(win, 'figures',
-                                                   'magnitude_time')
+                    'catalog': join(win, 'figures', 'catalog'),
+                    'magnitude_time': join(win, 'figures',
+                                           'magnitude_time')
                 },
-                'forecasts': {model: os.path.join(win, 'forecasts', f'{model}')
+                'forecasts': {model: join(win, 'forecasts', f'{model}')
                               for model in models}
             } for win in windows}
         }
         self.paths = target_paths
-        self.run_folder = run_folder
-
-

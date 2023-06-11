@@ -1,8 +1,6 @@
-import os
 import logging.config
 
-os.makedirs('results', exist_ok=True)
-LOG_NAME = 'results/experiment.log'
+LOG_NAME = 'experiment.log'
 LOGGING_CONFIG = {
     "version": 1,
     "formatters": {

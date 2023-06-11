@@ -37,8 +37,8 @@ def generate_report(experiment, timewindow=-1):
         experiment.plot_catalog()
         report.add_figure(
             f"Input catalog",
-            [experiment.filetree('catalog_figure'),
-             experiment.filetree('magnitude_time')],
+            [experiment.path('catalog_figure'),
+             experiment.path('magnitude_time')],
             level=3,
             ncols=1,
             caption="Evaluation catalog from "
@@ -62,7 +62,7 @@ def generate_report(experiment, timewindow=-1):
 
     # Include results from Experiment
     for test in experiment.tests:
-        fig_path = experiment.filetree(timestr, 'figures', test)
+        fig_path = experiment.path(timestr, 'figures', test)
         width = test.plot_args[0].get('figsize', [4])[0] * 96
         report.add_figure(
             f"{test.name}",
@@ -74,7 +74,7 @@ def generate_report(experiment, timewindow=-1):
         )
         for model in experiment.models:
             try:
-                fig_path = experiment.filetree(timestr, 'figures',
+                fig_path = experiment.path(timestr, 'figures',
                                                f'{test.name}_{model.name}')
                 width = test.plot_args[0].get('figsize', [4])[0] * 96
                 report.add_figure(
@@ -88,4 +88,4 @@ def generate_report(experiment, timewindow=-1):
             except KeyError:
                 pass
     report.table_of_contents()
-    report.save(experiment.filetree.abs(experiment.filetree.run_folder))
+    report.save(experiment.path.abs(experiment.path.rundir))

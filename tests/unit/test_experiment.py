@@ -164,7 +164,7 @@ class TestExperiment(TestCase):
         with tempfile.NamedTemporaryFile() as file_:
             def filetree(*args):
                 return file_.name
-            exp.filetree = filetree
+            exp.path = filetree
             # with patch.object(exp, 'filetree', filetree):
             #     print(file_.name)
             #     exp.set_test_cat(tstring)

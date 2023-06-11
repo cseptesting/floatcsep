@@ -332,7 +332,7 @@ class Evaluation:
                 if show:
                     pyplot.show()
 
-    def to_dict(self) -> dict:
+    def as_dict(self) -> dict:
         """
         Represents an Evaluation instance as a dictionary, which can be
         serialized and then parsed

@@ -185,8 +185,7 @@ def read_region_config(region_config, **kwargs):
     """
     region_config = copy.deepcopy(region_config)
     _attrs = ['region', 'mag_min', 'mag_max', 'mag_bin', 'magnitudes',
-              'depth_min', 'depth_max', 'path']
-
+              'depth_min', 'depth_max']
     if region_config is None:
         region_config = {}
     region_config.update({i: j for i, j in kwargs.items() if i in _attrs})
@@ -208,8 +207,7 @@ def read_region_config(region_config, **kwargs):
             if region_data else None
     except AttributeError:
         if isinstance(region_data, str):
-            filename = os.path.join(region_config.get('path', ''),
-                                    region_data)
+            filename = os.path.join(kwargs.get('path', ''), region_data)
             with open(filename, 'r') as file_:
                 parsed_region = file_.readlines()
                 try:
@@ -226,7 +224,9 @@ def read_region_config(region_config, **kwargs):
 
     region_config.update({'depths': depths,
                           'magnitudes': magnitudes,
-                          'region': region})
+                          'region': region,
+                          'path': '' if isinstance(region_data, dict)
+                          else region_data})
 
     return region_config
 
@@ -562,7 +562,6 @@ class TaskGraph:
 
 
 def plot_sequential_likelihood(evaluation_results, plot_args=None):
-
     if plot_args is None:
         plot_args = {}
     title = plot_args.get('title', None)
@@ -855,7 +854,6 @@ class MarkdownReport:
                 desired.
         """
         table = ['<div class="table table-striped">', f'<table>']
-
 
         def make_header(row):
             header = []

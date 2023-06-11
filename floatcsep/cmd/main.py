@@ -10,7 +10,7 @@ def stage(config, show=True):
     log.info(f'Running floatCSEP v{__version__}')
     exp = Experiment.from_yml(config)
     exp.stage_models()
-    log.info('Finalized')
+    log.info('Finalized\n')
 
 
 def run(config, show=True):
@@ -24,7 +24,9 @@ def run(config, show=True):
         exp.plot_results()
         exp.plot_forecasts()
         exp.generate_report()
-    log.info('Finalized')
+    exp.make_repr()
+
+    log.info('Finalized\n')
 
 
 def plot(config, **_):
@@ -36,7 +38,7 @@ def plot(config, **_):
     exp.plot_results()
     exp.plot_forecasts()
     exp.generate_report()
-    log.info('Finalized')
+    log.info('Finalized\n')
 
 
 def reproduce(config, show=True):

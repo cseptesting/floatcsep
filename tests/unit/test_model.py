@@ -194,7 +194,7 @@ class TestModel(TestCase):
 
         model = self.initmodel_noreg('mock', 'mockbin', model_class='td')
 
-        model.tree.set_pathtree([str2timewindow('2020-01-01_2021-01-01')])
+        model.tree.build([str2timewindow('2020-01-01_2021-01-01')])
         model.create_forecast('2020-01-01_2021-01-01')
         self.assertTrue(mock_func.called)
 

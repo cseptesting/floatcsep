@@ -1,5 +1,7 @@
 import os
 import os.path
+from os.path import join
+import shutil
 
 import csep
 import numpy
@@ -119,6 +121,7 @@ class Experiment:
                  tests: str = None,
                  postproc_config: str = None,
                  default_test_kwargs: dict = None,
+                 rundir: str = 'results',
                  **kwargs) -> None:
         # todo
         #  - instantiate from full experiment register (ignoring test/models
@@ -128,8 +131,7 @@ class Experiment:
         #    Or filter region?
         # Instantiate
         self.name = name if name else 'floatingExp'
-        self.path = kwargs.get('path') if kwargs.get('path',
-                                                     None) else os.getcwd()
+        self.path = PathTree(os.path.abspath(kwargs.get('path')), rundir)
 
         self.time_config = read_time_config(time_config, **kwargs)
         self.region_config = read_region_config(region_config, **kwargs)
@@ -137,11 +139,11 @@ class Experiment:
         self.test_config = tests if isinstance(tests, str) else None
 
         log.info(f'Setting up experiment {self.name}:')
-        log.info(f'\tstart: {self.start_date}')
-        log.info(f'\tend: {self.start_date}')
-        log.info(f'\ttime windows: {len(self.timewindows)}')
-        log.info(f'\tregion: {self.region.name if self.region else None}')
-        log.info(f'\tmagnitude range: [{numpy.min(self.magnitudes)},'
+        log.info(f'\tStart: {self.start_date}')
+        log.info(f'\tEnd: {self.start_date}')
+        log.info(f'\tTime windows: {len(self.timewindows)}')
+        log.info(f'\tRegion: {self.region.name if self.region else None}')
+        log.info(f'\tMagnitude range: [{numpy.min(self.magnitudes)},'
                  f' {numpy.max(self.magnitudes)}]')
 
         self.catalog = None
@@ -150,8 +152,6 @@ class Experiment:
 
         self.postproc_config = postproc_config if postproc_config else {}
         self.default_test_kwargs = default_test_kwargs
-
-        self.filetree = PathTree(self.path)
 
         self.catalog = catalog
         self.models = self.set_models(models or kwargs.get('model_config'))
@@ -207,41 +207,41 @@ class Experiment:
 
         models = []
         if isinstance(model_config, str):
-            modelcfg_path = self.filetree.abs(model_config)
-            _dir = self.filetree.absdir(model_config)
+            modelcfg_path = self.path.abs(model_config)
+            _dir = self.path.absdir(model_config)
             with open(modelcfg_path, 'r') as file_:
                 config_dict = yaml.load(file_, NoAliasLoader)
         elif isinstance(model_config, (dict, list)):
             config_dict = model_config
             _path = [i['path'] for i in model_config[0].values()][0]
-            _dir = self.filetree.absdir(_path)
+            _dir = self.path.absdir(_path)
         elif model_config is None:
             return models
         else:
             raise NotImplementedError(f'Load for model type'
                                       f' {model_config.__class__}'
                                       f'not implemented ')
-
         for element in config_dict:
             # Check if the model is unique or has multiple submodels
-            if not any('flavours' in i for i in element.values()):
 
+            if not any('flavours' in i for i in element.values()):
                 name_ = next(iter(element))
-                # updates path to absolute
-                model_path = self.filetree.abs(_dir, element[name_]['path'])
-                model_i = {name_: {**element[name_], 'path': model_path}}
+                model_i = {name_: {**element[name_],
+                                   'model_path': element[name_]['path'],
+                                   'workdir': self.path.workdir}}
                 models.append(Model.from_dict(model_i))
+
             else:
                 model_flavours = list(element.values())[0]['flavours'].items()
                 for flav, flav_path in model_flavours:
                     name_super = next(iter(element))
-                    # updates path to absolute
                     path_super = element[name_super].get('path', '')
-                    path_sub = self.filetree.abs(_dir, path_super, flav_path)
+                    path_sub = self.path.rel(_dir, path_super, flav_path)
                     # updates name of submodel
                     name_flav = f'{name_super}@{flav}'
                     model_ = {name_flav: {**element[name_super],
-                                          'path': path_sub}}
+                                          'model_path': path_sub,
+                                          'workdir': self.path.workdir}}
                     model_[name_flav].pop('flavours')
                     models.append(Model.from_dict(model_))
 
@@ -287,7 +287,7 @@ class Experiment:
         tests = []
 
         if isinstance(test_config, str):
-            with open(self.filetree.abs(test_config), 'r') as config:
+            with open(self.path.abs(test_config), 'r') as config:
                 config_dict = yaml.load(config, NoAliasLoader)
             for eval_dict in config_dict:
                 tests.append(Evaluation.from_dict(eval_dict))
@@ -321,7 +321,7 @@ class Experiment:
                                    self.region.get_bbox())})
 
             catalog = self._catalog(
-                catalog_id='cat',  # todo name as run
+                catalog_id='catalog',  # todo name as run
                 **bounds
             )
 
@@ -345,18 +345,18 @@ class Experiment:
             self._catalog = None
             self._catpath = None
 
-        elif os.path.isfile(self.filetree.abs(cat)):
+        elif os.path.isfile(self.path.abs(cat)):
             log.info(f"\tCatalog: '{cat}'")
-            self._catalog = self.filetree.abs(cat)
-            self._catpath = self.filetree.abs(cat)
+            self._catalog = self.path.rel(cat)
+            self._catpath = self.path.rel(cat)
 
         else:
             # catalog can be a function
             self._catalog = parse_csep_func(cat)
-            self._catpath = self.filetree.abs('catalog.json')
+            self._catpath = self.path.abs('catalog.json')
             if os.path.isfile(self._catpath):
                 log.info(f"\tCatalog: stored "
-                         f"'{os.path.relpath(self._catpath, self.path)}' "
+                         f"'{self._catpath}' "
                          f"from '{cat}'")
             else:
                 log.info(f"\tCatalog: '{cat}'")
@@ -401,10 +401,11 @@ class Experiment:
         """
         ""
 
-        testcat_name = self.filetree(tstring, 'catalog')
+        testcat_name = self.path(tstring, 'catalog')
         if not os.path.exists(testcat_name):
-            log.debug(f'Filtering catalog to testing sub-catalog and saving to '
-                      f'{testcat_name}')
+            log.debug(
+                f'Filtering catalog to testing sub-catalog and saving to '
+                f'{testcat_name}')
             start, end = str2timewindow(tstring)
             sub_cat = self.catalog.filter(
                 [f'origin_time < {end.timestamp() * 1000}',
@@ -435,7 +436,7 @@ class Experiment:
             [f'origin_time < {start.timestamp() * 1000}'])
         sub_cat.write_ascii(filename=model.tree('cat'))
 
-    def set_tasks(self, results_path=None, run_name=None):
+    def set_tasks(self):
         """
         Lazy definition of the experiment core tasks by wrapping instances,
         methods and arguments. Creates a graph with task nodes, while assigning
@@ -461,11 +462,7 @@ class Experiment:
         """
 
         # Set the file path structure
-        self.filetree.set_pathtree(self.timewindows,
-                                   self.models,
-                                   self.tests,
-                                   results_path=results_path,
-                                   run_name=run_name)
+        self.path.build(self.timewindows, self.models, self.tests)
 
         log.info("Setting up experiment's tasks")
         # Get the time windows strings
@@ -520,11 +517,11 @@ class Experiment:
                             instance=test_k,
                             method='compute',
                             timewindow=time_i,
-                            catalog=self.filetree(time_i, 'catalog'),
+                            catalog=self.path(time_i, 'catalog'),
                             model=model_j,
                             region=self.region,
-                            path=self.filetree(time_i, 'evaluations',
-                                               test_k, model_j))
+                            path=self.path(time_i, 'evaluations',
+                                           test_k, model_j))
                         task_graph.add(task_ijk)
                         # the forecast needs to have been created
                         task_graph.add_dependency(task_ijk,
@@ -539,12 +536,12 @@ class Experiment:
                             instance=test_k,
                             method='compute',
                             timewindow=time_i,
-                            catalog=self.filetree(time_i, 'catalog'),
+                            catalog=self.path(time_i, 'catalog'),
                             model=model_j,
                             ref_model=self.get_model(test_k.ref_model),
                             region=self.region,
-                            path=self.filetree(time_i, 'evaluations', test_k,
-                                               model_j)
+                            path=self.path(time_i, 'evaluations', test_k,
+                                           model_j)
                         )
                         task_graph.add(task_ik)
                         task_graph.add_dependency(task_ik,
@@ -563,12 +560,12 @@ class Experiment:
                         instance=test_k,
                         method='compute',
                         timewindow=tw_strings,
-                        catalog=[self.filetree(i, 'catalog')
+                        catalog=[self.path(i, 'catalog')
                                  for i in tw_strings],
                         model=model_j,
                         region=self.region,
-                        path=self.filetree(tw_strings[-1], 'evaluations',
-                                           test_k, model_j)
+                        path=self.path(tw_strings[-1], 'evaluations',
+                                       test_k, model_j)
                     )
                     task_graph.add(task_k)
                     for tw_i in tw_strings:
@@ -584,12 +581,12 @@ class Experiment:
                         instance=test_k,
                         method='compute',
                         timewindow=tw_strs,
-                        catalog=[self.filetree(i, 'catalog') for i in tw_strs],
+                        catalog=[self.path(i, 'catalog') for i in tw_strs],
                         model=model_j,
                         ref_model=self.get_model(test_k.ref_model),
                         region=self.region,
-                        path=self.filetree(tw_strs[-1], 'evaluations', test_k,
-                                           model_j)
+                        path=self.path(tw_strs[-1], 'evaluations', test_k,
+                                       model_j)
                     )
                     task_graph.add(task_k)
                     for tw_i in tw_strings:
@@ -610,12 +607,12 @@ class Experiment:
                         instance=test_k,
                         method='compute',
                         timewindow=time_str,
-                        catalog=self.filetree(time_str, 'catalog'),
+                        catalog=self.path(time_str, 'catalog'),
                         ref_model=self.models,
                         model=model_j,
                         region=self.region,
-                        path=self.filetree(time_str, 'evaluations', test_k,
-                                           model_j)
+                        path=self.path(time_str, 'evaluations', test_k,
+                                       model_j)
                     )
                     task_graph.add(task_k)
                     for m_j in self.models:
@@ -640,7 +637,6 @@ class Experiment:
         log.info(f'Running {self.task_graph.ntasks} tasks')
         self.task_graph.run()
         log.info(f'Calculation completed')
-        self.to_yml(self.filetree('config'), extended=True)
 
     def read_results(self, test: Evaluation, window: str) -> List:
         """
@@ -648,9 +644,9 @@ class Experiment:
         of the results for all tested models.
         """
 
-        return test.read_results(window, self.models, self.filetree)
+        return test.read_results(window, self.models, self.path)
 
-    def plot_results(self, dpi: int = 300, show: bool = False) -> None:
+    def plot_results(self) -> None:
         """
         
         Plots all evaluation results
@@ -664,7 +660,7 @@ class Experiment:
         timewindows = timewindow2str(self.timewindows)
 
         for test in self.tests:
-            test.plot_results(timewindows, self.models, self.filetree)
+            test.plot_results(timewindows, self.models, self.path)
 
     def plot_catalog(self, dpi: int = 300, show: bool = False) -> None:
         """
@@ -690,31 +686,31 @@ class Experiment:
         if catalog.get_number_of_events() != 0:
             ax = catalog.plot(plot_args=plot_args, show=show)
             ax.get_figure().tight_layout()
-            ax.get_figure().savefig(self.filetree('catalog_figure'),
+            ax.get_figure().savefig(self.path('catalog_figure'),
                                     dpi=dpi)
 
             ax2 = magnitude_vs_time(catalog)
             ax2.get_figure().tight_layout()
-            ax2.get_figure().savefig(self.filetree('magnitude_time'),
+            ax2.get_figure().savefig(self.path('magnitude_time'),
                                      dpi=dpi)
 
         if self.postproc_config.get('all_time_windows'):
             timewindow = self.timewindows
 
             for tw in timewindow:
-                catpath = self.filetree(tw, 'catalog')
+                catpath = self.path(tw, 'catalog')
                 catalog = CSEPCatalog.load_json(catpath)
                 if catalog.get_number_of_events() != 0:
                     ax = catalog.plot(plot_args=plot_args, show=show)
                     ax.get_figure().tight_layout()
-                    ax.get_figure().savefig(self.filetree(tw, 'figures',
-                                                          'catalog'),
+                    ax.get_figure().savefig(self.path(tw, 'figures',
+                                                      'catalog'),
                                             dpi=dpi)
 
                     ax2 = magnitude_vs_time(catalog)
                     ax2.get_figure().tight_layout()
-                    ax2.get_figure().savefig(self.filetree(tw, 'figures',
-                                                           'magnitude_time'),
+                    ax2.get_figure().savefig(self.path(tw, 'figures',
+                                                       'magnitude_time'),
                                              dpi=dpi)
 
     def plot_forecasts(self) -> None:
@@ -759,7 +755,7 @@ class Experiment:
             winstr = timewindow2str(window)
 
             for model in self.models:
-                fig_path = self.filetree(winstr, 'forecasts', model.name)
+                fig_path = self.path(winstr, 'forecasts', model.name)
                 start = decimal_year(window[0])
                 end = decimal_year(window[1])
                 time = f'{round(end - start, 3)} years'
@@ -797,7 +793,7 @@ class Experiment:
         Creates a report summarizing the Experiment's results
 
         """
-        log.info(f"Saving report into {self.filetree.run_folder}")
+        log.info(f"Saving report into {self.path.rundir}")
 
         report.generate_report(self)
 
@@ -805,7 +801,34 @@ class Experiment:
 
         pass
 
-    def to_dict(self, exclude: Sequence = ('magnitudes', 'depths',
+    def make_repr(self):
+
+        log.info('Creating reproducibility config file')
+        repr_config = self.path('config')
+
+        # Dropping region to results folder if it is a file
+        region_path = self.region_config['path']
+        if region_path:
+            if os.path.isfile(region_path) and region_path:
+                new_path = os.path.join(self.path.rundir,
+                                        self.region_config['path'])
+                shutil.copy2(region_path, new_path)
+                self.region_config.pop('path')
+                self.region_config['region'] = self.path.rel(new_path)
+
+        # Dropping catalog to results folder
+        target_cat = os.path.join(self.path.workdir,
+                                  self.path.rundir,
+                                  os.path.split(self._catpath)[-1])
+        if not os.path.exists(target_cat):
+            shutil.copy2(self.path.abs(self._catpath), target_cat)
+        self._catpath = self.path.rel(target_cat)
+
+        self.path.workdir = '../'
+
+        self.to_yml(repr_config, extended=True)
+
+    def as_dict(self, exclude: Sequence = ('magnitudes', 'depths',
                                            'timewindows', 'filetree',
                                            'task_graph', 'tasks',
                                            'models', 'tests'),
@@ -824,9 +847,9 @@ class Experiment:
 
         def _get_value(x):
             # For each element type, transforms to desired string/output
-            if hasattr(x, 'to_dict') and extended:
-                # e.g. csep region, model, test, etc.
-                o = x.to_dict()
+            if hasattr(x, 'as_dict') and extended:
+                # e.g. model, test, etc.
+                o = x.as_dict()
             else:
                 try:
                     try:
@@ -851,7 +874,7 @@ class Experiment:
                 return _get_value(val)
 
         listwalk = [(i, j) for i, j in self.__dict__.items() if
-                    not i.startswith('_')]
+                    not i.startswith('_') and j]
         listwalk.insert(3, ('catalog', self._catpath))
 
         dictwalk = {i: j for i, j in listwalk}
@@ -874,7 +897,7 @@ class Experiment:
 
         Args:
             filename: Name of the file onto which dump the instance
-            **kwargs: Passed to :meth:`~floatcsep.experiment.Experiment.to_dict`
+            **kwargs: Passed to :meth:`~floatcsep.experiment.Experiment.as_dict`
 
         Returns:
 
@@ -886,7 +909,7 @@ class Experiment:
 
         with open(filename, 'w') as f_:
             yaml.dump(
-                self.to_dict(**kwargs), f_,
+                self.as_dict(**kwargs), f_,
                 Dumper=NoAliasDumper,
                 sort_keys=False,
                 default_flow_style=False,

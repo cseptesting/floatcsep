@@ -30,7 +30,7 @@ class Model:
 
     Args:
         name (str): Name of the model
-        path (str): Relative path of the model (file or runnable code)
+        model_path (str): Relative path of the model (file or runnable code)
                     to the Experiment's instance path
         forecast_unit (float): Temporal unit of the forecast. Default to
                                years in time-independent models and days
@@ -74,7 +74,7 @@ class Model:
 
     '''
 
-    def __init__(self, name: str, path: str,
+    def __init__(self, name: str, model_path: str,
                  forecast_unit: float = 1, use_db: bool = False,
                  func: Union[str, Callable] = None, func_kwargs: dict = None,
                  zenodo_id: int = None, giturl: str = None,
@@ -91,15 +91,13 @@ class Model:
         self.repo_hash = repo_hash
         self.authors = authors
         self.doi = doi
+
         self.forecast_unit = forecast_unit
         self.func = func
         self.func_kwargs = func_kwargs or {}
         self.use_db = use_db
 
-        self.path = path
-        args = kwargs.get('args_file', 'args.txt')
-        self.tree = ModelTree(self.name, path, args=args)
-
+        self.path = ModelTree(kwargs['workdir'], model_path)
         # Set model temporal class
         if self.func:
             # Time-Dependent
@@ -113,7 +111,7 @@ class Model:
 
         # Instantiate attributes to be filled in run-time
         self.forecasts = {}
-        self.__dict__.update(**kwargs)
+        # self.__dict__.update(**kwargs)
 
     @property
     def dir(self) -> str:
@@ -121,14 +119,11 @@ class Model:
         Returns:
             The directory containing the model source.
         """
-        if os.path.isdir(self.path):
-            return self.path
+        if os.path.isdir(self.path('path')):
+            return self.path('path')
         else:
-            return os.path.dirname(self.path)
+            return os.path.dirname(self.path('path'))
 
-    @property
-    def fmt(self) -> str:
-        return os.path.splitext(self.path)[1][1:]
 
     def stage(self, timewindows=None) -> None:
         """
@@ -139,15 +134,15 @@ class Model:
             - Run model quality assurance (unit tests, runnable from floatcsep)
         """
         self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
+        if self.use_db:
+            check_format(self.path.path, self.path.fmt, self.func)
+            self.init_db()
+
         if self.model_class == 'td':
             self.build_model()
-        if self.use_db:
-            self.init_db()
-        check_format(self.path, self.fmt, self.func)
-        self.model_qa()
-        if self.model_class == 'td':
-            prefix = self.__dict__.get('prefix', None)
-            self.tree.set_pathtree(timewindows, prefix=prefix)
+        prefix = self.__dict__.get('prefix', None)
+        self.path.build_tree(timewindows, prefix, self.model_class)
+
 
     def build_model(self):
 
@@ -202,8 +197,7 @@ class Model:
 
 
         """
-
-        if os.path.exists(self.path) and not force:
+        if os.path.exists(self.path('path')) and not force:
             return
 
         os.makedirs(self.dir, exist_ok=True)
@@ -228,7 +222,8 @@ class Model:
         else:
             raise FileNotFoundError('Model has no path or identified')
 
-        if not os.path.exists(self.dir) or not os.path.exists(self.path):
+        if not os.path.exists(self.dir) or not\
+                os.path.exists(self.path('path')):
             raise FileNotFoundError(
                 f"Directory '{self.dir}' or file {self.path}' do not exist. "
                 f"Please check the specified 'path' matches the repo "
@@ -248,22 +243,21 @@ class Model:
 
         """
         # todo Think about distinction btwn 'TI' and 'Gridded' models.
-        if self.fmt and self.model_class == 'ti':
 
-            parser = getattr(ForecastParsers, self.fmt)
-            rates, region, mag = parser(self.path)
-
+        if self.model_class == 'ti':
+            parser = getattr(ForecastParsers, self.path.fmt)
+            rates, region, mag = parser(self.path('path'))
             db_func = HDF5Serializer.grid2hdf5
-            if not dbpath:
-                dbpath = self.path.replace(self.fmt, 'hdf5')
 
-            if not os.path.isfile(dbpath) or force:
+            if not dbpath:
+                dbpath = self.path.path.replace(self.path.fmt, 'hdf5')
+                self.path.database = dbpath
+                # self.path.fmt = 'hdf5'
+            if not os.path.isfile(self.path.abs(dbpath)) or force:
                 log.info(f'Serializing model {self.name} into HDF5 format')
                 db_func(rates, region, mag,
                         hdf5_filename=dbpath,
                         unit=self.forecast_unit)
-
-            self.path = dbpath
 
         else:
             raise NotImplementedError('TD serialization not implemented')
@@ -277,12 +271,6 @@ class Model:
             else:
                 log.warning(f"The HDF5 file {self.path} does not exist")
 
-    def model_qa(self) -> None:
-        """ Run model quality assurance (Unit and Integration tests).
-        Should not run if the repo has not been modified.
-        Not implemented """
-        pass
-
     def get_forecast(self,
                      tstring: Union[str, list] = None,
                      region=None
@@ -293,7 +281,6 @@ class Model:
          access method (db storage, ti_td, etc.) under the hood"""
 
         if self.model_class == 'ti':
-
             if isinstance(tstring, str):
                 # If only one timewindow string is passed
                 try:
@@ -318,7 +305,7 @@ class Model:
             if isinstance(tstring, str):
                 # If one time window string is passed
                 # default forecast naming
-                fc_path = self.tree('forecasts', tstring)
+                fc_path = self.path('forecasts', tstring)
                 # default forecasts folder
                 # A region must be given to the forecast
                 return csep.load_catalog_forecast(fc_path, region=region)
@@ -347,7 +334,7 @@ class Model:
             self.forecast_from_file(start_date, end_date, **kwargs)
         # Model src is a func or binary
         else:
-            fc_path = self.tree('forecasts', tstring)
+            fc_path = self.path('forecasts', tstring)
             if kwargs.get('force') or not os.path.exists(fc_path):
                 self.forecast_from_func(start_date, end_date,
                                         **self.func_kwargs,
@@ -374,8 +361,10 @@ class Model:
         time_horizon = decimal_year(end_date) - decimal_year(start_date)
         tstring = timewindow2str([start_date, end_date])
 
-        f_parser = getattr(ForecastParsers, self.fmt)
-        rates, region, mags = f_parser(self.path)
+        f_path = self.path('forecasts', tstring)
+        f_parser = getattr(ForecastParsers, self.path.fmt)
+
+        rates, region, mags = f_parser(f_path)
 
         forecast = GriddedForecast(
             name=f'{self.name}',
@@ -406,7 +395,7 @@ class Model:
 
     def prepare_args(self, start, end, **kwargs):
 
-        filepath = os.path.join(self.path, self.tree('args'))
+        filepath = os.path.join(self.path, self.path('args'))
         fmt = os.path.splitext(filepath)[1]
 
         if fmt == '.txt':
@@ -444,7 +433,7 @@ class Model:
 
         if self.build == 'pip' or self.build == 'venv':
             log.info(f'Running model {self.name} using venv')
-            run_func = f'{self.func} {self.tree("args")}'
+            run_func = f'{self.func} {self.path("args")}'
             cmd = ['bash', '-c',
                    f'{self.run_prefix} {run_func}']
             process = subprocess.Popen(cmd,
@@ -455,7 +444,7 @@ class Model:
                 log.debug(f'\t{line}', end='')
             process.wait()
 
-    def to_dict(self, excluded=('name', 'forecasts')):
+    def as_dict(self, excluded=('name', 'forecasts')):
         """
 
         Returns:
@@ -465,9 +454,9 @@ class Model:
         """
         def _get_value(x):
             # For each element type, transforms to desired string/output
-            if hasattr(x, 'to_dict'):
-                # e.g. csep region, model, test, etc.
-                o = x.to_dict()
+            if hasattr(x, 'as_dict'):
+                # e.g. model, evaluation, filetree, etc.
+                o = x.as_dict()
             else:
                 try:
                     try:
@@ -491,8 +480,8 @@ class Model:
             else:
                 return _get_value(val)
 
-        listwalk = [(i, j) for i, j in self.__dict__.items() if
-                    not i.startswith('_')]
+        listwalk = [(i, j) for i, j in sorted(self.__dict__.items()) if
+                    not i.startswith('_') and j]
 
         dictwalk = {i: j for i, j in listwalk}
         # if self.model_config is None:
