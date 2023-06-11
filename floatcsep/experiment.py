@@ -305,6 +305,8 @@ class Experiment:
         Returns a CSEP catalog loaded from the given query function or
          a stored file if it exists.
         """
+        cat_path = self.path.abs(self._catpath)
+
         if callable(self._catalog):
             if os.path.isfile(self._catpath):
                 return CSEPCatalog.load_json(self._catpath)
@@ -332,11 +334,11 @@ class Experiment:
 
             return catalog
 
-        elif os.path.isfile(self._catalog):
+        elif os.path.isfile(cat_path):
             try:
-                return CSEPCatalog.load_json(self._catpath)
+                return CSEPCatalog.load_json(cat_path)
             except json.JSONDecodeError:
-                return csep.load_catalog(self._catpath)
+                return csep.load_catalog(cat_path)
 
     @catalog.setter
     def catalog(self, cat: Union[Callable, CSEPCatalog, str]) -> None:
@@ -735,7 +737,7 @@ class Experiment:
                     proj_args = {}
                 plot_fc_config['projection'] = getattr(ccrs, proj_name)(
                     **proj_args)
-            except (IndexError, KeyError, TypeError):
+            except (IndexError, KeyError, TypeError, AttributeError):
                 plot_fc_config['projection'] = ccrs.PlateCarree(
                     central_longitude=0.0)
 

@@ -124,7 +124,6 @@ class Model:
         else:
             return os.path.dirname(self.path('path'))
 
-
     def stage(self, timewindows=None) -> None:
         """
         Pre-steps to make the model runnable before integrating
@@ -135,14 +134,13 @@ class Model:
         """
         self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
         if self.use_db:
-            check_format(self.path.path, self.path.fmt, self.func)
+            check_format(self.path('path'), self.path.fmt, self.func)
             self.init_db()
 
         if self.model_class == 'td':
             self.build_model()
         prefix = self.__dict__.get('prefix', None)
         self.path.build_tree(timewindows, prefix, self.model_class)
-
 
     def build_model(self):
 
@@ -206,8 +204,8 @@ class Model:
             log.info(f'Retrieving model {self.name} from zenodo id: '
                      f'{zenodo_id}')
             try:
-                from_zenodo(zenodo_id, self.dir if self.fmt else self.path,
-                            force=force)
+                from_zenodo(zenodo_id, self.dir if self.path.fmt
+                            else self.path('path'), force=force)
             except (KeyError, TypeError) as msg:
                 raise KeyError(f'Zenodo identifier is not valid: {msg}')
 
@@ -222,7 +220,7 @@ class Model:
         else:
             raise FileNotFoundError('Model has no path or identified')
 
-        if not os.path.exists(self.dir) or not\
+        if not os.path.exists(self.dir) or not \
                 os.path.exists(self.path('path')):
             raise FileNotFoundError(
                 f"Directory '{self.dir}' or file {self.path}' do not exist. "
@@ -452,6 +450,7 @@ class Model:
             from this dict
 
         """
+
         def _get_value(x):
             # For each element type, transforms to desired string/output
             if hasattr(x, 'as_dict'):

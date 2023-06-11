@@ -186,8 +186,7 @@ class PathTree:
         """ Gets the absolute path of a file, when it was defined relative to
          the experiment working dir."""
 
-        _path = normpath(
-            abspath(join(self.workdir, *paths)))
+        _path = normpath(abspath(join(self.workdir, *paths)))
         return _path
 
     def rel(self, *paths: Sequence[str]) -> str:
