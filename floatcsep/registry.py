@@ -10,6 +10,8 @@ class ModelTree:
     workdir: str
     path: str
     database: str = None
+    args_file: str = None
+    input_cat: str = None
     forecasts: dict = field(default_factory=dict)
     inventory: dict = field(default_factory=dict)
 
@@ -21,7 +23,6 @@ class ModelTree:
             val = val[parsed_arg]
 
         return self.abs(val)
-
 
     @property
     def fmt(self) -> str:
@@ -71,16 +72,21 @@ class ModelTree:
 
     def build_tree(self,
                    timewindows=None,
+                   model_class='ti',
                    prefix=None,
-                   model_class='ti') -> None:
+                   args_file=None,
+                   input_cat=None) -> None:
         """
 
         Creates the run directory, and reads the file structure inside
 
         Args:
             timewindows (list(str)): List of time windows or strings.
-            prefix (str): prefix of the model forecast filenames
-            model_class (str):
+            model_class (str): Time-indendent (ti) or time-dependent (td)
+            prefix (str): prefix of the model forecast filenames if TD
+            args_file (str): input arguments path of the model if TD
+            input_cat (str): input catalog path of the model if TD
+
         Returns:
             run_folder: Path to the run.
              exists: flag if forecasts, catalogs and test_results if they
@@ -96,14 +102,15 @@ class ModelTree:
         if model_class == 'ti':
             fname = self.database if self.database else self.path
             fc_files = {win: fname for win in windows}
-            exists = {win: os.path.exists(fc_files[win])
-                      for win in windows}
+            fc_exists = {win: os.path.exists(fc_files[win])
+                         for win in windows}
 
         elif model_class == 'td':
-            # set args path
-            self.args = join('input', self.args or 'args.txt')
-            # set cat path
-            self.cat = join('input', self.cat or 'catalog.csv')
+            args = args_file if args_file else join('input', 'args.txt')
+            self.args_file = join(self.path, args)
+            input_cat = input_cat if input_cat else join('input',
+                                                         'catalog.csv')
+            self.input_cat = join(self.path, input_cat)
             # grab names for creating directories
             subfolders = ['input', 'forecasts']
             dirtree = {folder: self.abs(self.path, folder) for
@@ -113,20 +120,17 @@ class ModelTree:
             for _, folder_ in dirtree.items():
                 os.makedirs(folder_, exist_ok=True)
 
-
-
             # set forecast names
-            fc_files = {win: join('forecasts',
-                                  f'{prefix}_{win}.{self.fmt}')
+            fc_files = {win: join(dirtree['forecasts'],
+                                  f'{prefix}_{win}.csv')  # todo other formats?
                         for win in windows}
 
-            exists = {win: any(file for file in
+            fc_exists = {win: any(file for file in
                                list(os.listdir(dirtree['forecasts'])))
                       for win in windows}
 
-
         self.forecasts = fc_files
-        self.inventory = exists
+        self.inventory = fc_exists
 
     def update_repr(self, rundir=''):
 

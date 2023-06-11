@@ -2,7 +2,7 @@ name: case_f
 
 time_config:
   start_date: 2016-8-25T00:00:00
-  end_date: 2016-9-2T00:00:00
+  end_date: 2016-8-27T00:00:00
   horizon: 1days
   exp_class: td
 

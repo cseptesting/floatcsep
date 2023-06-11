@@ -1,7 +1,5 @@
-import os
-import os.path
-from os.path import join
 import shutil
+from os.path import join, abspath, dirname, isfile, split, exists
 
 import csep
 import numpy
@@ -40,9 +38,6 @@ class Experiment:
 
     Args:
         name (str): Experiment name
-        path (str): Experiment working directory. All artifacts relative paths'
-                    are defined from here (e.g. model files, source code,
-                    catalog files, etc.)
         time_config (dict): Contains all the temporal specifications.
             It can contain the following keys:
 
@@ -59,8 +54,8 @@ class Experiment:
             - growth (:class:`str`): `incremental` or `cumulative`
             - offset (:class:`float`): recurrence of forecast creation.
 
-            For further details, see :func:`~floatcsep.utils.timewindows_ti` and
-            :func:`~floatcsep.utils.timewindows_td`
+            For further details, see :func:`~floatcsep.utils.timewindows_ti`
+            and :func:`~floatcsep.utils.timewindows_td`
 
         region_config (dict): Contains all the spatial and magnitude
             specifications. It must contain the following keys:
@@ -131,7 +126,7 @@ class Experiment:
         #    Or filter region?
         # Instantiate
         self.name = name if name else 'floatingExp'
-        self.path = PathTree(os.path.abspath(kwargs.get('path')), rundir)
+        self.path = PathTree(abspath(kwargs.get('path')), rundir)
 
         self.time_config = read_time_config(time_config, **kwargs)
         self.region_config = read_region_config(region_config, **kwargs)
@@ -229,6 +224,7 @@ class Experiment:
                 model_i = {name_: {**element[name_],
                                    'model_path': element[name_]['path'],
                                    'workdir': self.path.workdir}}
+                model_i[name_].pop('path')
                 models.append(Model.from_dict(model_i))
 
             else:
@@ -242,6 +238,7 @@ class Experiment:
                     model_ = {name_flav: {**element[name_super],
                                           'model_path': path_sub,
                                           'workdir': self.path.workdir}}
+                    model_[name_flav].pop('path')
                     model_[name_flav].pop('flavours')
                     models.append(Model.from_dict(model_))
 
@@ -308,7 +305,7 @@ class Experiment:
         cat_path = self.path.abs(self._catpath)
 
         if callable(self._catalog):
-            if os.path.isfile(self._catpath):
+            if isfile(self._catpath):
                 return CSEPCatalog.load_json(self._catpath)
             bounds = {'start_time': min([item for sublist in self.timewindows
                                          for item in sublist]),
@@ -334,7 +331,7 @@ class Experiment:
 
             return catalog
 
-        elif os.path.isfile(cat_path):
+        elif isfile(cat_path):
             try:
                 return CSEPCatalog.load_json(cat_path)
             except json.JSONDecodeError:
@@ -347,7 +344,7 @@ class Experiment:
             self._catalog = None
             self._catpath = None
 
-        elif os.path.isfile(self.path.abs(cat)):
+        elif isfile(self.path.abs(cat)):
             log.info(f"\tCatalog: '{cat}'")
             self._catalog = self.path.rel(cat)
             self._catpath = self.path.rel(cat)
@@ -356,7 +353,7 @@ class Experiment:
             # catalog can be a function
             self._catalog = parse_csep_func(cat)
             self._catpath = self.path.abs('catalog.json')
-            if os.path.isfile(self._catpath):
+            if isfile(self._catpath):
                 log.info(f"\tCatalog: stored "
                          f"'{self._catpath}' "
                          f"from '{cat}'")
@@ -404,7 +401,7 @@ class Experiment:
         ""
 
         testcat_name = self.path(tstring, 'catalog')
-        if not os.path.exists(testcat_name):
+        if not exists(testcat_name):
             log.debug(
                 f'Filtering catalog to testing sub-catalog and saving to '
                 f'{testcat_name}')
@@ -436,7 +433,7 @@ class Experiment:
         start, end = str2timewindow(tstring)
         sub_cat = self.catalog.filter(
             [f'origin_time < {start.timestamp() * 1000}'])
-        sub_cat.write_ascii(filename=model.tree('cat'))
+        sub_cat.write_ascii(filename=model.path('input_cat'))
 
     def set_tasks(self):
         """
@@ -453,11 +450,6 @@ class Experiment:
         * A sequential test requires the forecasts exist for all windows
         * A batch test requires all forecast exist for a given window.
 
-        Args:
-            results_path (str, None): Path where the results will be stored.
-             Defaults to `results`.
-            run_name (str, None): Sub-folder where this particular run will be
-             stored. Default is ''
 
         Returns:
 
@@ -652,10 +644,6 @@ class Experiment:
         """
         
         Plots all evaluation results
- 
-        Args:
-            dpi: Figure resolution with which to save
-            show: show in runtime
 
         """
         log.info("Plotting evaluations")
@@ -811,23 +799,20 @@ class Experiment:
         # Dropping region to results folder if it is a file
         region_path = self.region_config['path']
         if region_path:
-            if os.path.isfile(region_path) and region_path:
-                new_path = os.path.join(self.path.rundir,
-                                        self.region_config['path'])
+            if isfile(region_path) and region_path:
+                new_path = join(self.path.rundir, self.region_config['path'])
                 shutil.copy2(region_path, new_path)
                 self.region_config.pop('path')
                 self.region_config['region'] = self.path.rel(new_path)
 
         # Dropping catalog to results folder
-        target_cat = os.path.join(self.path.workdir,
-                                  self.path.rundir,
-                                  os.path.split(self._catpath)[-1])
-        if not os.path.exists(target_cat):
+        target_cat = join(self.path.workdir, self.path.rundir,
+                          split(self._catpath)[-1])
+        if not exists(target_cat):
             shutil.copy2(self.path.abs(self._catpath), target_cat)
         self._catpath = self.path.rel(target_cat)
 
         self.path.workdir = '../'
-
         self.to_yml(repr_config, extended=True)
 
     def as_dict(self, exclude: Sequence = ('magnitudes', 'depths',
@@ -890,8 +875,8 @@ class Experiment:
     def to_yml(self, filename: str, **kwargs) -> None:
         """
 
-        Serializes the :class:`~floatcsep.experiment.Experiment` instance into a
-        .yml file.
+        Serializes the :class:`~floatcsep.experiment.Experiment` instance into
+        a .yml file.
 
         Note:
             This instance can then be reinstantiated using
@@ -899,7 +884,7 @@ class Experiment:
 
         Args:
             filename: Name of the file onto which dump the instance
-            **kwargs: Passed to :meth:`~floatcsep.experiment.Experiment.as_dict`
+            **kwargs: Pass to :meth:`~floatcsep.experiment.Experiment.as_dict`
 
         Returns:
 
@@ -939,6 +924,5 @@ class Experiment:
         with open(config_yml, 'r') as yml:
             config_dict = yaml.safe_load(yml)
             if 'path' not in config_dict:
-                config_dict['path'] = os.path.abspath(
-                    os.path.dirname(config_yml))
+                config_dict['path'] = abspath(dirname(config_yml))
         return cls(**config_dict)

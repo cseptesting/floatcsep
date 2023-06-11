@@ -111,7 +111,7 @@ class Model:
 
         # Instantiate attributes to be filled in run-time
         self.forecasts = {}
-        # self.__dict__.update(**kwargs)
+        self.__dict__.update(**kwargs)
 
     @property
     def dir(self) -> str:
@@ -139,41 +139,43 @@ class Model:
 
         if self.model_class == 'td':
             self.build_model()
-        prefix = self.__dict__.get('prefix', None)
-        self.path.build_tree(timewindows, prefix, self.model_class)
+        self.path.build_tree(timewindows=timewindows,
+                             model_class=self.model_class,
+                             prefix=self.__dict__.get('prefix', self.name),
+                             args_file=self.__dict__.get('args_file', None),
+                             input_cat=self.__dict__.get('input_cat', None))
 
     def build_model(self):
 
         if self.build == 'pip' or self.build == 'venv':
-            self.build_venv()
+            venv = os.path.join(self.path('path'),
+                                self.__dict__.get('venv', 'venv'))
+            venvact = os.path.join(venv, 'bin', 'activate')
 
-    def build_venv(self):
+            if not os.path.exists(venv):
+                log.info(f'Building model {self.name} using pip')
+                subprocess.run(['python', '-m', 'venv', venv])
+                log.info(f'\tVirtual environment created in {venv}')
+                build_cmd = f'source {venvact} && ' \
+                            f'pip install --upgrade pip && ' \
+                            f'pip install -e {self.path("path")}'
 
-        venv = os.path.join(self.path, self.__dict__.get('venv', 'venv'))
-        venvact = os.path.join(venv, 'bin', 'activate')
+                cmd = ['bash', '-c', build_cmd]
 
-        if not os.path.exists(venv):
-            log.info(f'Building model {self.name} using pip')
-            subprocess.run(['python', '-m', 'venv', venv])
-            log.info(f'\tVirtual environment created in {venv}')
+                log.info(f'\tInstalling dependencies')
 
-            build_cmd = f'source {venvact} &&' \
-                        f'pip install --upgrade pip &&' \
-                        f'pip install -e {self.path}'
+                process = subprocess.Popen(cmd,
+                                           stdout=subprocess.PIPE,
+                                           stderr=subprocess.STDOUT,
+                                           universal_newlines=True)
+                for line in process.stdout:
+                    log.info(f'\t{line[:-1]}')
+                process.wait()
+                log.info(f'\tEnvironment ready')
+                log.warning(f'\tNested environments is not fully supported. '
+                            f'Consider using docker instead')
 
-            cmd = ['bash', '-c', build_cmd]
-
-            process = subprocess.Popen(cmd,
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.STDOUT,
-                                       universal_newlines=True)
-            for line in process.stdout:
-                log.debug(f'\t{line}', end='')
-            process.wait()
-            log.info(f'Nested environments is not well supported. '
-                     f'Consider using docker instead')
-
-        self.run_prefix = f'cd {self.path} && source {venvact} &&'
+            self.run_prefix = f'cd {self.path("path")} && source {venvact} && '
 
     def get_source(self, zenodo_id: int = None, giturl: str = None,
                    force: bool = False,
@@ -213,8 +215,8 @@ class Model:
             log.info(f'Retrieving model {self.name} from git url: '
                      f'{giturl}')
             try:
-                from_git(giturl, self.dir if self.fmt else self.path,
-                         **kwargs)
+                from_git(giturl, self.dir if self.path.fmt
+                         else self.path('path'), **kwargs)
             except (git.NoSuchPathError, git.CommandError) as msg:
                 raise git.NoSuchPathError(f'git url was not found {msg}')
         else:
@@ -388,18 +390,20 @@ class Model:
                            **kwargs) -> None:
 
         self.prepare_args(start_date, end_date, **kwargs)
+        log.info(f'Running {self.name} using {self.build}:'
+                 f' {timewindow2str([start_date, end_date])}')
 
         self.run_model()
 
     def prepare_args(self, start, end, **kwargs):
 
-        filepath = os.path.join(self.path, self.path('args'))
+        filepath = self.path('args_file')
         fmt = os.path.splitext(filepath)[1]
 
         if fmt == '.txt':
             def replace_arg(arg, val, fp):
-                with open(fp, 'r') as file_:
-                    lines = file_.readlines()
+                with open(fp, 'r') as filearg_:
+                    lines = filearg_.readlines()
 
                 pattern_exists = False
                 for k, line in enumerate(lines):
@@ -430,19 +434,17 @@ class Model:
     def run_model(self):
 
         if self.build == 'pip' or self.build == 'venv':
-            log.info(f'Running model {self.name} using venv')
-            run_func = f'{self.func} {self.path("args")}'
-            cmd = ['bash', '-c',
-                   f'{self.run_prefix} {run_func}']
+            run_func = f'{self.func} {self.path("args_file")}'
+            cmd = ['bash', '-c', f'{self.run_prefix} {run_func}']
             process = subprocess.Popen(cmd,
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.STDOUT,
                                        universal_newlines=True)
             for line in process.stdout:
-                log.debug(f'\t{line}', end='')
+                log.info(f'\t{line[:-1]}')
             process.wait()
 
-    def as_dict(self, excluded=('name', 'forecasts')):
+    def as_dict(self, excluded=('name', 'forecasts', 'workdir')):
         """
 
         Returns:

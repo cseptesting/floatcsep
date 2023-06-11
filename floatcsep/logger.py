@@ -36,7 +36,5 @@ LOGGING_CONFIG = {
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logging.getLogger('numexpr').setLevel(logging.WARNING)
+logging.getLogger('matplotlib').setLevel(logging.CRITICAL)
 logger = logging.getLogger()
-# if not os.path.exists(LOG_NAME):
-#     for i in logger.handlers:
-#         i.doRollover()

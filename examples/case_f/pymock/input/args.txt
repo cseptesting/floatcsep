@@ -7,7 +7,7 @@ start_date = 2012-06-13T00:00:00
 end_date = 2012-06-20T00:00:00
 catalog = catalog.csv
 seed = 23
-n_sims = 10000
+n_sims = 100
 
 mag_min = 3.5
 
