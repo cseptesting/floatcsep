@@ -133,6 +133,7 @@ class Experiment:
         self.config_file = kwargs.get('config_file', None)
         self.original_config = kwargs.get('original_config', None)
         self.rundir = rundir
+        self.seed = kwargs.get('seed', None)
 
         self.time_config = read_time_cfg(time_config, **kwargs)
         self.region_config = read_region_cfg(region_config, **kwargs)
@@ -635,6 +636,10 @@ class Experiment:
 
         """
         log.info(f'Running {self.task_graph.ntasks} tasks')
+
+        if self.seed:
+            numpy.random.seed(self.seed)
+
         self.task_graph.run()
         log.info(f'Calculation completed')
 

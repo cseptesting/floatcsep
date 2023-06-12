@@ -1,16 +1,20 @@
 # python libraries
 import copy
+import hashlib
+
 import numpy
 import re
 import multiprocessing
 import os
 import mercantile
 import shapely.geometry
+import scipy.stats
 import itertools
 import functools
 import yaml
 import pandas
 import seaborn
+import filecmp
 from datetime import datetime, date
 from functools import partial
 from typing import Sequence, Union
@@ -748,7 +752,7 @@ class MarkdownReport:
         table.append('</table>')
         table.append('</div>')
         table = '\n'.join(table)
-        self.markdown.append(table + '\n')
+        self.markdown.append(table + '\n\n')
 
     def save(self, save_dir):
         output = list(itertools.chain.from_iterable(self.markdown))
@@ -763,22 +767,230 @@ class NoAliasLoader(yaml.Loader):
         return True
 
 
-# class ExperimentComparison:
-#
-#     def __init__(self, original, reproduced, **kwargs):
-#         """
-#
-#         """
-#         self.original = original
-#         self.reproduced = reproduced
-#
-#     def compare_results(self):
-#
-#         tests_orig =
-#         results_original = original.read
+class ExperimentComparison:
 
+    def __init__(self, original, reproduced, **kwargs):
+        """
 
+        """
+        self.original = original
+        self.reproduced = reproduced
 
+        self.num_results = {}
+        self.file_comp = {}
+
+    @staticmethod
+    def obs_diff(obs_orig, obs_repr):
+
+        return numpy.abs(numpy.divide((numpy.array(obs_orig) -
+                                       numpy.array(obs_repr)),
+                                      numpy.array(obs_orig))) * 100
+
+    @staticmethod
+    def test_stat(test_orig, test_repr):
+
+        if isinstance(test_orig[0], str):
+            if not isinstance(test_orig[1], str):
+                stats = numpy.array([0,
+                                     numpy.divide((test_repr[1] - test_orig[1]),
+                                                  test_orig[1]) * 100, 0, 0])
+            else:
+                stats = None
+        else:
+            stats_orig = numpy.array([numpy.mean(test_orig),
+                                      numpy.std(test_orig),
+                                      scipy.stats.skew(test_orig)])
+            stats_repr = numpy.array([numpy.mean(test_repr),
+                                      numpy.std(test_repr),
+                                      scipy.stats.skew(test_repr)])
+
+            ks = scipy.stats.ks_2samp(test_orig, test_repr)
+            stats = [*numpy.divide(
+                numpy.abs(stats_repr - stats_orig),
+                stats_orig
+            ) * 100, ks.pvalue]
+        return stats
+
+    def get_results(self):
+
+        win_orig = timewindow2str(self.original.timewindows)
+        win_repr = timewindow2str(self.reproduced.timewindows)
+
+        tests_orig = self.original.tests
+        tests_repr = self.reproduced.tests
+
+        models_orig = [i.name for i in self.original.models]
+        models_repr = [i.name for i in self.reproduced.models]
+
+        results = dict.fromkeys([i.name for i in tests_orig])
+
+        for test in tests_orig:
+            if test.type in ['consistency', 'comparative']:
+                results[test.name] = dict.fromkeys(win_orig)
+                for tw in win_orig:
+                    results_orig = self.original.read_results(test, tw)
+                    results_repr = self.reproduced.read_results(test, tw)
+                    results[test.name][tw] = {
+                        models_orig[i]: {
+                            'observed_statistic': self.obs_diff(
+                                results_orig[i].observed_statistic,
+                                results_repr[i].observed_statistic),
+                            'test_statistic': self.test_stat(
+                                results_orig[i].test_distribution,
+                                results_repr[i].test_distribution)
+                        }
+                        for i in range(len(models_orig))}
+
+            else:
+                results_orig = self.original.read_results(test, win_orig[-1])
+                results_repr = self.reproduced.read_results(test, win_orig[-1])
+                results[test.name] = {
+                    models_orig[i]: {
+                        'observed_statistic': self.obs_diff(
+                            results_orig[i].observed_statistic,
+                            results_repr[i].observed_statistic),
+                        'test_statistic': self.test_stat(
+                            results_orig[i].test_distribution,
+                            results_repr[i].test_distribution)
+                    }
+                    for i in range(len(models_orig))}
+
+        return results
+
+    @staticmethod
+    def get_hash(filename):
+
+        with open(filename, "rb") as f:
+            bytes_file = f.read()
+            readable_hash = hashlib.sha256(bytes_file).hexdigest()
+        return readable_hash
+
+    def get_filecomp(self):
+
+        win_orig = timewindow2str(self.original.timewindows)
+        win_repr = timewindow2str(self.reproduced.timewindows)
+
+        tests_orig = self.original.tests
+        tests_repr = self.reproduced.tests
+
+        models_orig = [i.name for i in self.original.models]
+        models_repr = [i.name for i in self.reproduced.models]
+
+        results = dict.fromkeys([i.name for i in tests_orig])
+
+        for test in tests_orig:
+            if test.type in ['consistency', 'comparative']:
+                results[test.name] = dict.fromkeys(win_orig)
+                for tw in win_orig:
+                    results[test.name][tw] = dict.fromkeys(models_orig)
+                    for model in models_orig:
+                        orig_path = self.original.path(
+                            tw, 'evaluations', test, model)
+                        repr_path = self.reproduced.path(
+                            tw, 'evaluations', test, model)
+
+                        results[test.name][tw][model] ={
+                                'hash': (
+                                        self.get_hash(orig_path) ==
+                                        self.get_hash(repr_path)),
+                                'byte2byte': filecmp.cmp(orig_path,
+                                                         repr_path)}
+            else:
+                results[test.name] = dict.fromkeys(models_orig)
+                for model in models_orig:
+                    orig_path = self.original.path(
+                        win_orig[-1], 'evaluations', test, model)
+                    repr_path = self.reproduced.path(
+                        win_orig[-1], 'evaluations', test, model)
+                    results[test.name][model] ={
+                            'hash': (
+                                    self.get_hash(orig_path) ==
+                                    self.get_hash(repr_path)),
+                            'byte2byte': filecmp.cmp(orig_path,
+                                                     repr_path)}
+        return results
+
+    def compare_results(self):
+
+        self.num_results = self.get_results()
+        self.file_comp = self.get_filecomp()
+        self.write_report()
+
+    def write_report(self):
+
+        numerical = self.num_results
+        data = self.file_comp
+        outname = os.path.join('reproducibility_report.md')
+        save_path = os.path.dirname(os.path.join(self.reproduced.path.workdir,
+                                 self.reproduced.path.rundir))
+        report = MarkdownReport(outname=outname)
+        report.add_title(
+            f"Reproducibility Report - {self.original.name}", ''
+        )
+
+        report.add_heading("Objectives", level=2)
+        objs = [
+            "Analyze the statistic reproducibility and data reproducibility of"
+            " the experiment. Compares the differences between "
+            "(i) the original and reproduced scores,"
+            " (ii) the statistical descriptors of the test distributions,"
+            " (iii) The p-value of a Kolmogorov-Smirnov test -"
+            " values beneath 0.1 means we can't reject the distributions are"
+            " similar -,"
+            " (iv) Hash (SHA-256) comparison between the results' files and "
+            "(v) byte-to-byte comparison"
+        ]
+
+        report.add_list(objs)
+        for num, dat in zip(numerical.items(), data.items()):
+
+            res_keys = list(num[1].keys())
+            is_time = False
+            try:
+                str2timewindow(res_keys[0])
+                is_time = True
+            except ValueError:
+                pass
+            if is_time:
+                report.add_heading(num[0], level=2)
+                for tw in res_keys:
+                    rows = [[tw,
+                             'Score difference',
+                             'Test Mean  diff.',
+                             'Test Std  diff.',
+                             'Test Skew  diff.',
+                             'KS-test p value',
+                             'Hash (SHA-256) equal',
+                             'Byte-to-byte equal']]
+
+                    for model_stat, model_file in zip(num[1][tw].items(),
+                                                      dat[1][tw].items()):
+                        obs = model_stat[1]['observed_statistic']
+                        test = model_stat[1]['test_statistic']
+                        rows.append([model_stat[0], obs,
+                                     *[f'{i:.2f}%' for i in test[:-1]],
+                                     f'{test[-1]:.2f}',
+                                     model_file[1]['hash'],
+                                     model_file[1]['byte2byte']])
+                    report.add_table(rows)
+            else:
+                report.add_heading(num[0], level=2)
+                rows = [[tw,
+                         'Max Score difference',
+                         'Hash (SHA-256) equal',
+                         'Byte-to-byte equal']]
+
+                for model_stat, model_file in zip(num[1].items(),
+                                                  dat[1].items()):
+                    obs = numpy.nanmax(model_stat[1]['observed_statistic'])
+
+                    rows.append([model_stat[0], obs,
+                                 model_file[1]['hash'],
+                                 model_file[1]['byte2byte']])
+
+                report.add_table(rows)
+        report.table_of_contents()
+        report.save(save_path)
 #######################
 # Perhaps add to pycsep
 #######################

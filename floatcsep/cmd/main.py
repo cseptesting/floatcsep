@@ -1,5 +1,6 @@
 from floatcsep import __version__
 from floatcsep.experiment import Experiment
+from floatcsep.utils import ExperimentComparison
 import logging
 import argparse
 log = logging.getLogger(__name__)
@@ -55,6 +56,9 @@ def reproduce(config, **_):
     original_exp = Experiment.from_yml(original_config)
     original_exp.stage_models()
     original_exp.set_tasks()
+
+    comp = ExperimentComparison(original_exp, reproduced_exp)
+    comp.compare_results()
 
     log.info('Finalized\n')
 
