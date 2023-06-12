@@ -75,6 +75,7 @@ class TestExperiment(TestCase):
                            catalog=_cat)
         dict_ = {'name': 'test',
                  'path': os.getcwd(),
+                 'rundir': 'results',
                  'time_config':
                      {'exp_class': 'ti',
                       'start_date': datetime(2020, 1, 1),
