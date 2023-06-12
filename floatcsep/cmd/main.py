@@ -14,8 +14,8 @@ def stage(config, **_):
 
 
 def run(config, show=True):
-    log.info(f'Running floatCSEP v{__version__} | Run')
 
+    log.info(f'Running floatCSEP v{__version__} | Run')
     exp = Experiment.from_yml(config)
     exp.stage_models()
     exp.set_tasks()
@@ -40,18 +40,22 @@ def plot(config, **_):
     exp.generate_report()
     log.info('Finalized\n')
 
+    return exp
+
 
 def reproduce(config, **_):
 
     log.info(f'Running floatCSEP v{__version__} | Reproduce')
-    exp = Experiment.from_yml(config, reprdir='reproduced')
-    exp.stage_models()
-    exp.set_tasks()
-    exp.run()
+    reproduced_exp = Experiment.from_yml(config, reprdir='reproduced')
+    reproduced_exp.stage_models()
+    reproduced_exp.set_tasks()
+    reproduced_exp.run()
 
-    exp.plot_results()
-    exp.plot_forecasts()
-    exp.generate_report()
+    original_config = reproduced_exp.original_config
+    original_exp = Experiment.from_yml(original_config)
+    original_exp.stage_models()
+    original_exp.set_tasks()
+
     log.info('Finalized\n')
 
 

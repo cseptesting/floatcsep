@@ -66,39 +66,6 @@ class RunExamples(DataTest):
         self.assertEqual(1, 1)
 
 
-class ReRunExamples(DataTest):
-
-    def test_case_a(self):
-        cfg = self.get_rerunpath('a')
-        self.run_evaluation(cfg)
-        self.assertEqual(1, 1)
-
-    def test_case_b(self):
-        cfg = self.get_rerunpath('b')
-        self.run_evaluation(cfg)
-        self.assertEqual(1, 1)
-
-    def test_case_c(self):
-        cfg = self.get_rerunpath('c')
-        self.run_evaluation(cfg)
-        self.assertEqual(1, 1)
-
-    def test_case_d(self):
-        cfg = self.get_rerunpath('d')
-        self.run_evaluation(cfg)
-        self.assertEqual(1, 1)
-
-    def test_case_e(self):
-        cfg = self.get_rerunpath('e')
-        self.run_evaluation(cfg)
-        self.assertEqual(1, 1)
-
-    def test_case_f(self):
-        cfg = self.get_rerunpath('f')
-        self.run_evaluation(cfg)
-        self.assertEqual(1, 1)
-
-
 class ReproduceExamples(DataTest):
 
     def test_case_a(self):

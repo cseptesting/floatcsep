@@ -167,7 +167,7 @@ def read_time_cfg(time_config, **kwargs):
         return time_config
 
 
-def read_region_cfg(region_config, workdir=None, **kwargs):
+def read_region_cfg(region_config, **kwargs):
     """
 
     Builds the region configuration of an experiment.
@@ -230,9 +230,8 @@ def read_region_cfg(region_config, workdir=None, **kwargs):
     return region_config
 
 
-def timewindow2str(
-        datetimes: Union[Sequence[datetime],
-                         Sequence[Sequence[datetime]]]):
+def timewindow2str(datetimes: Union[Sequence[datetime],
+                                    Sequence[Sequence[datetime]]]):
     """
     Converts a time window (list/tuple of datetimes) to a string that
     represents it.  Can be a single timewindow or a list of time windows.
@@ -559,133 +558,6 @@ class TaskGraph:
         pass
 
 
-def plot_sequential_likelihood(evaluation_results, plot_args=None):
-    if plot_args is None:
-        plot_args = {}
-    title = plot_args.get('title', None)
-    titlesize = plot_args.get('titlesize', None)
-    ylabel = plot_args.get('ylabel', None)
-    colors = plot_args.get('colors', [None] * len(evaluation_results))
-    linestyles = plot_args.get('linestyles', [None] * len(evaluation_results))
-    markers = plot_args.get('markers', [None] * len(evaluation_results))
-    markersize = plot_args.get('markersize', 1)
-    linewidth = plot_args.get('linewidth', 0.5)
-    figsize = plot_args.get('figsize', (6, 4))
-    timestrs = plot_args.get('timestrs', None)
-    if timestrs:
-        startyear = [date.fromisoformat(j.split('_')[0]) for j in
-                     timestrs][0]
-        endyears = [date.fromisoformat(j.split('_')[1]) for j in
-                    timestrs]
-        years = [startyear] + endyears
-    else:
-        startyear = 0
-        years = numpy.arange(0, len(evaluation_results[0].observed_statistic)
-                             + 1)
-
-    seaborn.set_style("white",
-                      {"axes.facecolor": ".9", 'font.family': 'Ubuntu'})
-    pyplot.rcParams.update({'xtick.bottom': True, 'axes.labelweight': 'bold',
-                            'xtick.labelsize': 8, 'ytick.labelsize': 8,
-                            'legend.fontsize': 9})
-
-    if isinstance(colors, list):
-        assert len(colors) == len(evaluation_results)
-    elif isinstance(colors, str):
-        colors = [colors] * len(evaluation_results)
-    if isinstance(linestyles, list):
-        assert len(linestyles) == len(evaluation_results)
-    elif isinstance(linestyles, str):
-        linestyles = [linestyles] * len(evaluation_results)
-    if isinstance(markers, list):
-        assert len(markers) == len(evaluation_results)
-    elif isinstance(markers, str):
-        markers = [markers] * len(evaluation_results)
-
-    fig, ax = pyplot.subplots(figsize=figsize)
-    for i, result in enumerate(evaluation_results):
-        data = [0] + result.observed_statistic
-        ax.plot(years, data, color=colors[i],
-                linewidth=linewidth, linestyle=linestyles[i],
-                marker=markers[i],
-                markersize=markersize,
-                label=result.sim_name)
-        ax.set_ylabel(ylabel)
-        ax.set_xlim([startyear, None])
-        ax.set_title(title, fontsize=titlesize)
-        ax.grid(True)
-    ax.legend(loc=(1.04, 0), fontsize=7)
-    fig.tight_layout()
-
-
-def magnitude_vs_time(catalog):
-    mag = catalog.data['magnitude']
-    time = [datetime.fromtimestamp(i / 1000.) for i in
-            catalog.data['origin_time']]
-    fig, ax = pyplot.subplots(figsize=(12, 4))
-    ax.plot(time, mag, marker='o', linewidth=0, color='r', alpha=0.2)
-    ax.set_xlabel('Date', fontsize=16)
-    ax.set_ylabel('$M_w$', fontsize=16)
-    ax.set_title('Magnitude vs. Time', fontsize=18)
-    return ax
-
-
-def plot_matrix_comparative_test(evaluation_results,
-                                 p=0.05,
-                                 order=True,
-                                 plot_args={}):
-    """ Produces matrix plot for comparative tests for all models
-
-        Args:
-            evaluation_results (list of result objects): paired t-test results
-            p (float): significance level
-            order (bool): columns/rows ordered by ranking
-
-        Returns:
-            ax (matplotlib.Axes): handle for figure
-    """
-    names = [i.sim_name for i in evaluation_results]
-
-    t_value = numpy.array(
-        [Tw_i.observed_statistic for Tw_i in evaluation_results])
-    t_quantile = numpy.array(
-        [Tw_i.quantile[0] for Tw_i in evaluation_results])
-    w_quantile = numpy.array(
-        [Tw_i.quantile[1] for Tw_i in evaluation_results])
-    score = numpy.sum(t_value, axis=1) / t_value.shape[0]
-
-    if order:
-        arg_ind = numpy.flip(numpy.argsort(score))
-    else:
-        arg_ind = numpy.arange(len(score))
-
-    # Flip rows/cols if ordered by value
-    data_t = t_value[arg_ind, :][:, arg_ind]
-    data_w = w_quantile[arg_ind, :][:, arg_ind]
-    data_tq = t_quantile[arg_ind, :][:, arg_ind]
-    fig, ax = pyplot.subplots(1, 1, figsize=(7, 6))
-
-    cmap = seaborn.diverging_palette(220, 20, as_cmap=True)
-    seaborn.heatmap(data_t, vmin=-3, vmax=3, center=0, cmap=cmap,
-                    ax=ax, cbar_kws={'pad': 0.01, 'shrink': 0.7,
-                                     'label': 'Information Gain',
-                                     'anchor': (0., 0.)}),
-    ax.set_yticklabels([names[i] for i in arg_ind], rotation='horizontal')
-    ax.set_xticklabels([names[i] for i in arg_ind], rotation='vertical')
-    for n, i in enumerate(data_tq):
-        for m, j in enumerate(i):
-            if j > 0 and data_w[n, m] < p:
-                ax.scatter(n + 0.5, m + 0.5, marker='o', s=5, color='black')
-
-    legend_elements = [Line2D([0], [0], marker='o', lw=0,
-                              label=r'T and W significant',
-                              markerfacecolor="black", markeredgecolor='black',
-                              markersize=4)]
-    fig.legend(handles=legend_elements, loc='lower right',
-               bbox_to_anchor=(0.75, 0.0, 0.2, 0.2), handletextpad=0)
-    pyplot.tight_layout()
-
-
 class MarkdownReport:
     """ Class to generate a Markdown report from a study """
 
@@ -889,6 +761,153 @@ class NoAliasLoader(yaml.Loader):
     @staticmethod
     def ignore_aliases(self):
         return True
+
+
+# class ExperimentComparison:
+#
+#     def __init__(self, original, reproduced, **kwargs):
+#         """
+#
+#         """
+#         self.original = original
+#         self.reproduced = reproduced
+#
+#     def compare_results(self):
+#
+#         tests_orig =
+#         results_original = original.read
+
+
+
+#######################
+# Perhaps add to pycsep
+#######################
+
+def plot_sequential_likelihood(evaluation_results, plot_args=None):
+    if plot_args is None:
+        plot_args = {}
+    title = plot_args.get('title', None)
+    titlesize = plot_args.get('titlesize', None)
+    ylabel = plot_args.get('ylabel', None)
+    colors = plot_args.get('colors', [None] * len(evaluation_results))
+    linestyles = plot_args.get('linestyles', [None] * len(evaluation_results))
+    markers = plot_args.get('markers', [None] * len(evaluation_results))
+    markersize = plot_args.get('markersize', 1)
+    linewidth = plot_args.get('linewidth', 0.5)
+    figsize = plot_args.get('figsize', (6, 4))
+    timestrs = plot_args.get('timestrs', None)
+    if timestrs:
+        startyear = [date.fromisoformat(j.split('_')[0]) for j in
+                     timestrs][0]
+        endyears = [date.fromisoformat(j.split('_')[1]) for j in
+                    timestrs]
+        years = [startyear] + endyears
+    else:
+        startyear = 0
+        years = numpy.arange(0, len(evaluation_results[0].observed_statistic)
+                             + 1)
+
+    seaborn.set_style("white",
+                      {"axes.facecolor": ".9", 'font.family': 'Ubuntu'})
+    pyplot.rcParams.update({'xtick.bottom': True, 'axes.labelweight': 'bold',
+                            'xtick.labelsize': 8, 'ytick.labelsize': 8,
+                            'legend.fontsize': 9})
+
+    if isinstance(colors, list):
+        assert len(colors) == len(evaluation_results)
+    elif isinstance(colors, str):
+        colors = [colors] * len(evaluation_results)
+    if isinstance(linestyles, list):
+        assert len(linestyles) == len(evaluation_results)
+    elif isinstance(linestyles, str):
+        linestyles = [linestyles] * len(evaluation_results)
+    if isinstance(markers, list):
+        assert len(markers) == len(evaluation_results)
+    elif isinstance(markers, str):
+        markers = [markers] * len(evaluation_results)
+
+    fig, ax = pyplot.subplots(figsize=figsize)
+    for i, result in enumerate(evaluation_results):
+        data = [0] + result.observed_statistic
+        ax.plot(years, data, color=colors[i],
+                linewidth=linewidth, linestyle=linestyles[i],
+                marker=markers[i],
+                markersize=markersize,
+                label=result.sim_name)
+        ax.set_ylabel(ylabel)
+        ax.set_xlim([startyear, None])
+        ax.set_title(title, fontsize=titlesize)
+        ax.grid(True)
+    ax.legend(loc=(1.04, 0), fontsize=7)
+    fig.tight_layout()
+
+
+def magnitude_vs_time(catalog):
+    mag = catalog.data['magnitude']
+    time = [datetime.fromtimestamp(i / 1000.) for i in
+            catalog.data['origin_time']]
+    fig, ax = pyplot.subplots(figsize=(12, 4))
+    ax.plot(time, mag, marker='o', linewidth=0, color='r', alpha=0.2)
+    ax.set_xlabel('Date', fontsize=16)
+    ax.set_ylabel('$M_w$', fontsize=16)
+    ax.set_title('Magnitude vs. Time', fontsize=18)
+    return ax
+
+
+def plot_matrix_comparative_test(evaluation_results,
+                                 p=0.05,
+                                 order=True,
+                                 plot_args={}):
+    """ Produces matrix plot for comparative tests for all models
+
+        Args:
+            evaluation_results (list of result objects): paired t-test results
+            p (float): significance level
+            order (bool): columns/rows ordered by ranking
+
+        Returns:
+            ax (matplotlib.Axes): handle for figure
+    """
+    names = [i.sim_name for i in evaluation_results]
+
+    t_value = numpy.array(
+        [Tw_i.observed_statistic for Tw_i in evaluation_results])
+    t_quantile = numpy.array(
+        [Tw_i.quantile[0] for Tw_i in evaluation_results])
+    w_quantile = numpy.array(
+        [Tw_i.quantile[1] for Tw_i in evaluation_results])
+    score = numpy.sum(t_value, axis=1) / t_value.shape[0]
+
+    if order:
+        arg_ind = numpy.flip(numpy.argsort(score))
+    else:
+        arg_ind = numpy.arange(len(score))
+
+    # Flip rows/cols if ordered by value
+    data_t = t_value[arg_ind, :][:, arg_ind]
+    data_w = w_quantile[arg_ind, :][:, arg_ind]
+    data_tq = t_quantile[arg_ind, :][:, arg_ind]
+    fig, ax = pyplot.subplots(1, 1, figsize=(7, 6))
+
+    cmap = seaborn.diverging_palette(220, 20, as_cmap=True)
+    seaborn.heatmap(data_t, vmin=-3, vmax=3, center=0, cmap=cmap,
+                    ax=ax, cbar_kws={'pad': 0.01, 'shrink': 0.7,
+                                     'label': 'Information Gain',
+                                     'anchor': (0., 0.)}),
+    ax.set_yticklabels([names[i] for i in arg_ind], rotation='horizontal')
+    ax.set_xticklabels([names[i] for i in arg_ind], rotation='vertical')
+    for n, i in enumerate(data_tq):
+        for m, j in enumerate(i):
+            if j > 0 and data_w[n, m] < p:
+                ax.scatter(n + 0.5, m + 0.5, marker='o', s=5, color='black')
+
+    legend_elements = [Line2D([0], [0], marker='o', lw=0,
+                              label=r'T and W significant',
+                              markerfacecolor="black", markeredgecolor='black',
+                              markersize=4)]
+    fig.legend(handles=legend_elements, loc='lower right',
+               bbox_to_anchor=(0.75, 0.0, 0.2, 0.2), handletextpad=0)
+    pyplot.tight_layout()
 
 
 #########################

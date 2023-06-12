@@ -1,6 +1,6 @@
 import os
 import shutil
-from os.path import join, abspath, dirname, isfile, split, exists
+from os.path import join, abspath, relpath, dirname, isfile, split, exists
 
 import csep
 import numpy
@@ -130,6 +130,8 @@ class Experiment:
 
         workdir = abspath(kwargs.get('path', os.getcwd()))
         self.path = PathTree(workdir, rundir)
+        self.config_file = kwargs.get('config_file', None)
+        self.original_config = kwargs.get('original_config', None)
         self.rundir = rundir
 
         self.time_config = read_time_cfg(time_config, **kwargs)
@@ -791,10 +793,6 @@ class Experiment:
 
         report.generate_report(self)
 
-    def check_reproducibility(self) -> None:
-
-        pass
-
     def make_repr(self):
 
         log.info('Creating reproducibility config file')
@@ -866,7 +864,7 @@ class Experiment:
 
         listwalk = [(i, j) for i, j in self.__dict__.items() if
                     not i.startswith('_') and j]
-        listwalk.insert(3, ('catalog', self._catpath))
+        listwalk.insert(6, ('catalog', self._catpath))
 
         dictwalk = {i: j for i, j in listwalk}
         # if self.model_config is None:
@@ -927,15 +925,23 @@ class Experiment:
         """
         log.info('Initializing experiment from .yml file')
         with open(config_yml, 'r') as yml:
-            _dir_yml = dirname(config_yml)
-            _dict = yaml.safe_load(yml)
 
+            # experiment configuration file
+            _dict = yaml.safe_load(yml)
+            _dir_yml = dirname(config_yml)
             # uses yml path and append if a rel/abs path is given in config.
+            _path = _dict.get('path', '')
+
+            # Only ABSOLUTE PATH
             _dict['path'] = abspath(join(_dir_yml, _dict.get('path', '')))
 
             # replaces rundir case reproduce option is used
             if reprdir:
-                _dict['rundir'] = abspath(join(_dir_yml, reprdir))
+                _dict['rundir'] = relpath(join(_dir_yml, reprdir),
+                                          _dict['path'])
+                _dict['original_config'] = abspath(join(_dict['path'],
+                                                        _dict['config_file']))
             else:
                 _dict['rundir'] = _dict.get('rundir', 'results')
+            _dict['config_file'] = relpath(config_yml, _dir_yml)
         return cls(**_dict)
