@@ -24,8 +24,12 @@ from floatcsep.utils import NoAliasLoader, parse_csep_func, read_time_cfg, \
     magnitude_vs_time
 from floatcsep.model import Model
 from floatcsep.evaluation import Evaluation
+import warnings
 
-log = logging.getLogger('floatLogger')
+numpy.seterr(all="ignore")
+warnings.filterwarnings("ignore")
+
+log = logging.getLogger("floatLogger")
 
 
 class Experiment:
