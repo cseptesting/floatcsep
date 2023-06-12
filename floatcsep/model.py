@@ -17,7 +17,7 @@ from floatcsep.readers import ForecastParsers, HDF5Serializer, check_format
 from floatcsep.utils import timewindow2str, str2timewindow
 from floatcsep.registry import ModelTree
 
-log = logging.getLogger(__name__)
+log = logging.getLogger('floatLogger')
 
 
 class Model:

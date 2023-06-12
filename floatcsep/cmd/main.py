@@ -31,6 +31,7 @@ def run(config, **kwargs):
     log.info('Finalized')
     log.debug('')
 
+
 def plot(config, **kwargs):
 
     log.info(f'floatCSEP v{__version__} | Plot')
@@ -46,7 +47,6 @@ def plot(config, **kwargs):
     log.debug('')
 
 
-
 def reproduce(config, **kwargs):
 
     log.info(f'floatCSEP v{__version__} | Reproduce')
@@ -58,7 +58,8 @@ def reproduce(config, **kwargs):
     reproduced_exp.run()
 
     original_config = reproduced_exp.original_config
-    original_exp = Experiment.from_yml(original_config)
+    original_exp = Experiment.from_yml(original_config,
+                                       rundir=reproduced_exp.rundir)
     original_exp.stage_models()
     original_exp.set_tasks()
 
@@ -68,8 +69,8 @@ def reproduce(config, **kwargs):
     log.info('Finalized')
     log.debug('')
 
-def floatcsep():
 
+def floatcsep():
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
     parser.add_argument('func', type=str, choices=['run', 'stage',
                                                    'plot', 'reproduce'],
@@ -78,7 +79,8 @@ def floatcsep():
                         help='Experiment Configuration file')
     parser.add_argument('-l', '--log', action='store_false', default=True,
                         help="Don't log experiment")
-
+    parser.add_argument('-t', '--timestamp', action='store_true',
+                        default=False, help="Timestamp results")
     args = parser.parse_args()
     try:
         func = globals()[args.func]

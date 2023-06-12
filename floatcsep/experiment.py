@@ -1,5 +1,6 @@
 import os
 import shutil
+import datetime
 from os.path import join, abspath, relpath, dirname, isfile, split, exists
 
 import csep
@@ -23,10 +24,7 @@ from floatcsep.utils import NoAliasLoader, parse_csep_func, read_time_cfg, \
     magnitude_vs_time
 from floatcsep.model import Model
 from floatcsep.evaluation import Evaluation
-import warnings
 
-# numpy.seterr(all="ignore")
-# warnings.filterwarnings("ignore")
 log = logging.getLogger('floatLogger')
 
 
@@ -125,19 +123,24 @@ class Experiment:
         #  - check if model region matches experiment region for nonQuadTree?
         #    Or filter region?
         # Instantiate
-        self.name = name if name else 'floatingExp'
-        workdir = abspath(kwargs.get('path', os.getcwd()))
 
+        workdir = abspath(kwargs.get('path', os.getcwd()))
+        if kwargs.get('timestamp', False):
+            rundir = os.path.join(
+                rundir,
+                f'run_{datetime.datetime.utcnow().date().isoformat()}')
+        os.makedirs(os.path.join(workdir, rundir), exist_ok=True)
         if kwargs.get(log, True):
             logpath = os.path.join(workdir, rundir, 'experiment.log')
             log.info(f'Logging at {logpath}')
             add_fhandler(logpath)
+
+        self.name = name if name else 'floatingExp'
         self.path = PathTree(workdir, rundir)
         self.config_file = kwargs.get('config_file', None)
         self.original_config = kwargs.get('original_config', None)
         self.rundir = rundir
         self.seed = kwargs.get('seed', None)
-
         self.time_config = read_time_cfg(time_config, **kwargs)
         self.region_config = read_region_cfg(region_config, **kwargs)
         self.model_config = models if isinstance(models, str) else None
@@ -826,7 +829,10 @@ class Experiment:
             shutil.copy2(self.path.abs(self._catpath), target_cat)
         self._catpath = self.path.rel(target_cat)
 
-        self.path.workdir = '../'
+        relative_path = os.path.relpath(
+            self.path.workdir, os.path.join(self.path.workdir,
+                                            self.path.rundir))
+        self.path.workdir = relative_path
         self.to_yml(repr_config, extended=True)
 
     def as_dict(self, exclude: Sequence = ('magnitudes', 'depths',
@@ -954,6 +960,9 @@ class Experiment:
                 _dict['original_config'] = abspath(join(_dict['path'],
                                                         _dict['config_file']))
             else:
-                _dict['rundir'] = _dict.get('rundir', 'results')
+
+                _dict['rundir'] = _dict.get('rundir',
+                                            kwargs.pop('rundir', 'results'))
             _dict['config_file'] = relpath(config_yml, _dir_yml)
+            # print(_dict['rundir'])
         return cls(**_dict, **kwargs)
