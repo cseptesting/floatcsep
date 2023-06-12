@@ -36,7 +36,7 @@ def plot(config, **kwargs):
 
     log.info(f'floatCSEP v{__version__} | Plot')
 
-    exp = Experiment.from_yml(config)
+    exp = Experiment.from_yml(config, **kwargs)
     exp.stage_models()
     exp.set_tasks()
     exp.plot_results()
