@@ -5,16 +5,16 @@ import argparse
 log = logging.getLogger(__name__)
 
 
-def stage(config, show=True):
+def stage(config, **_):
 
-    log.info(f'Running floatCSEP v{__version__}')
+    log.info(f'Running floatCSEP v{__version__} | Stage')
     exp = Experiment.from_yml(config)
     exp.stage_models()
     log.info('Finalized\n')
 
 
 def run(config, show=True):
-    log.info(f'Running floatCSEP v{__version__}')
+    log.info(f'Running floatCSEP v{__version__} | Run')
 
     exp = Experiment.from_yml(config)
     exp.stage_models()
@@ -31,7 +31,7 @@ def run(config, show=True):
 
 def plot(config, **_):
 
-    log.info(f'Running floatCSEP v{__version__}')
+    log.info(f'Running floatCSEP v{__version__} | Plot')
     exp = Experiment.from_yml(config)
     exp.stage_models()
     exp.set_tasks()
@@ -41,35 +41,22 @@ def plot(config, **_):
     log.info('Finalized\n')
 
 
-def reproduce(config, show=True):
+def reproduce(config, **_):
 
-    log.info(f'Running floatCSEP v{__version__}')
-
-    exp = Experiment.from_yml(config)
+    log.info(f'Running floatCSEP v{__version__} | Reproduce')
+    exp = Experiment.from_yml(config, reprdir='reproduced')
     exp.stage_models()
-    exp.set_tasks(run_name='reproducibility')
+    exp.set_tasks()
     exp.run()
-    print('\n================')
-    print('Calculation done')
-    print('================\n')
 
-    if show:
-        print('\n=============================')
-        print("Recreating experiment's figures")
-        print('=============================\n')
-        exp.plot_results()
-        exp.plot_forecasts()
-        exp.generate_report()
-
-    print('\n========')
-    print('Complete')
-    print('========\n')
+    exp.plot_results()
+    exp.plot_forecasts()
+    exp.generate_report()
+    log.info('Finalized\n')
 
 
 def floatcsep():
-    """
 
-    """
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
     parser.add_argument('func', type=str, choices=['run', 'stage',
                                                    'plot', 'reproduce'],

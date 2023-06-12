@@ -17,8 +17,8 @@ from csep.utils.time_utils import decimal_year
 
 from floatcsep import report
 from floatcsep.registry import PathTree
-from floatcsep.utils import NoAliasLoader, parse_csep_func, read_time_config, \
-    read_region_config, Task, TaskGraph, timewindow2str, str2timewindow, \
+from floatcsep.utils import NoAliasLoader, parse_csep_func, read_time_cfg, \
+    read_region_cfg, Task, TaskGraph, timewindow2str, str2timewindow, \
     magnitude_vs_time
 from floatcsep.model import Model
 from floatcsep.evaluation import Evaluation
@@ -130,9 +130,10 @@ class Experiment:
 
         workdir = abspath(kwargs.get('path', os.getcwd()))
         self.path = PathTree(workdir, rundir)
+        self.rundir = rundir
 
-        self.time_config = read_time_config(time_config, **kwargs)
-        self.region_config = read_region_config(region_config, **kwargs)
+        self.time_config = read_time_cfg(time_config, **kwargs)
+        self.region_config = read_region_cfg(region_config, **kwargs)
         self.model_config = models if isinstance(models, str) else None
         self.test_config = tests if isinstance(tests, str) else None
 
@@ -908,7 +909,7 @@ class Experiment:
             )
 
     @classmethod
-    def from_yml(cls, config_yml: str):
+    def from_yml(cls, config_yml: str, reprdir=None):
         """
 
         Initializes an experiment from a .yml file. It must contain the
@@ -918,6 +919,7 @@ class Experiment:
 
         Args:
             config_yml (str): The path to the .yml file
+            reprdir (str): folder where to reproduce results
 
         Returns:
             An :class:`~floatcsep.experiment.Experiment` class instance
@@ -925,7 +927,15 @@ class Experiment:
         """
         log.info('Initializing experiment from .yml file')
         with open(config_yml, 'r') as yml:
-            config_dict = yaml.safe_load(yml)
-            if 'path' not in config_dict:
-                config_dict['path'] = abspath(dirname(config_yml))
-        return cls(**config_dict)
+            _dir_yml = dirname(config_yml)
+            _dict = yaml.safe_load(yml)
+
+            # uses yml path and append if a rel/abs path is given in config.
+            _dict['path'] = abspath(join(_dir_yml, _dict.get('path', '')))
+
+            # replaces rundir case reproduce option is used
+            if reprdir:
+                _dict['rundir'] = abspath(join(_dir_yml, reprdir))
+            else:
+                _dict['rundir'] = _dict.get('rundir', 'results')
+        return cls(**_dict)

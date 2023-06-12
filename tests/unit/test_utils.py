@@ -11,7 +11,7 @@ import floatcsep
 import floatcsep.accessors
 import floatcsep.extras
 from floatcsep.utils import parse_timedelta_string, timewindows_ti, \
-    read_time_config, read_region_config, parse_csep_func
+    read_time_cfg, read_region_cfg, parse_csep_func
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -97,8 +97,8 @@ class TimeUtilsTest(unittest.TestCase):
         config = {'start_date': start,
                   'end_date': end,
                   'intervals': intervals}
-        self.assertEqual(read_time_config(None, **config),
-                         read_time_config(config))
+        self.assertEqual(read_time_cfg(None, **config),
+                         read_time_cfg(config))
 
         short_config = {'start_date': start,
                         'end_date': end}
@@ -106,8 +106,8 @@ class TimeUtilsTest(unittest.TestCase):
         full_config = {'start_date': start,
                        'end_date': end,
                        'intervals': 2}
-        self.assertEqual(read_time_config(time_config, **short_config),
-                         read_time_config(None, **full_config))
+        self.assertEqual(read_time_cfg(time_config, **short_config),
+                         read_time_cfg(None, **full_config))
 
 
 class RegionUtilsTest(unittest.TestCase):
@@ -126,7 +126,7 @@ class RegionUtilsTest(unittest.TestCase):
                   'depth_min': depth_min,
                   'depth_max': depth_max}
 
-        region_config = read_region_config(config)
+        region_config = read_region_cfg(config)
         self.assertEqual(8, len(region_config))
         numpy.testing.assert_equal(magnitudes,
                                    region_config['magnitudes'])
@@ -147,7 +147,7 @@ class RegionUtilsTest(unittest.TestCase):
                   'depth_min': 0,
                   'depth_max': 1}
 
-        region_config = read_region_config(config)
+        region_config = read_region_cfg(config)
         self.assertEqual(9, len(region_config))
         numpy.testing.assert_equal(region_origins,
                                    region_config['region'].origins())
@@ -161,6 +161,6 @@ class RegionUtilsTest(unittest.TestCase):
         region_path = os.path.join(os.path.dirname(__file__), '../artifacts',
                                    'regions', 'italy_midpoints')
         midpoints = numpy.genfromtxt(region_path)
-        region_config = read_region_config(config)
+        region_config = read_region_cfg(config)
         numpy.testing.assert_almost_equal(midpoints,
                                           region_config['region'].midpoints())

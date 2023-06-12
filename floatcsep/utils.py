@@ -124,7 +124,7 @@ def parse_timedelta_string(window, exp_class='ti'):
         return f'{n}-{unit}s'
 
 
-def read_time_config(time_config, **kwargs):
+def read_time_cfg(time_config, **kwargs):
     """
 
     Builds the temporal configuration of an experiment.
@@ -167,7 +167,7 @@ def read_time_config(time_config, **kwargs):
         return time_config
 
 
-def read_region_config(region_config, **kwargs):
+def read_region_cfg(region_config, workdir=None, **kwargs):
     """
 
     Builds the region configuration of an experiment.
@@ -189,10 +189,10 @@ def read_region_config(region_config, **kwargs):
     if region_config is None:
         region_config = {}
     region_config.update({i: j for i, j in kwargs.items() if i in _attrs})
+
     dmin = region_config.get('depth_min', -2)
     dmax = region_config.get('depth_max', 6000)
     depths = cleaner_range(dmin, dmax, dmax - dmin)
-
     magnitudes = region_config.get('magnitudes', None)
     if magnitudes is None:
         magmin = region_config['mag_min']
