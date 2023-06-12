@@ -42,6 +42,7 @@ class Evaluation:
         'brier_score': 'consistency',
         'binary_conditional_likelihood_test': 'consistency',
         'paired_t_test': 'comparative',
+        'paired_ttest_point_process': 'comparative',
         'w_test': 'comparative',
         'binary_paired_t_test': 'comparative',
         'vector_poisson_t_w_test': 'batch',
