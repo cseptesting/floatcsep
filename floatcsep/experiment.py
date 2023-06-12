@@ -139,6 +139,7 @@ class Experiment:
         self.path = PathTree(workdir, rundir)
         self.config_file = kwargs.get('config_file', None)
         self.original_config = kwargs.get('original_config', None)
+        self.original_rundir = kwargs.get('original_rundir', None)
         self.rundir = rundir
         self.seed = kwargs.get('seed', None)
         self.time_config = read_time_cfg(time_config, **kwargs)
@@ -955,6 +956,7 @@ class Experiment:
 
             # replaces rundir case reproduce option is used
             if reprdir:
+                _dict['original_rundir'] = _dict.get('rundir', 'results')
                 _dict['rundir'] = relpath(join(_dir_yml, reprdir),
                                           _dict['path'])
                 _dict['original_config'] = abspath(join(_dict['path'],

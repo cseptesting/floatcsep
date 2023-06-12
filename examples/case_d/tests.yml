@@ -16,6 +16,3 @@
 - Matrix T:
     func: vector_poisson_t_w_test
     plot_func: plot_matrix_comparative_test
-
-
-
