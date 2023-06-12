@@ -1,3 +1,4 @@
+import dataclasses
 import os
 from os.path import join, abspath, relpath, normpath, dirname, exists
 from dataclasses import dataclass, field
@@ -50,6 +51,9 @@ class ModelTree:
     def as_dict(self):
         return self.path
 
+    def asdict(self):
+        return dataclasses.asdict(self)
+
     def abs(self, *paths: Sequence[str]) -> str:
         """ Gets the absolute path of a file, when it was defined relative to
          the experiment working dir."""
@@ -101,8 +105,7 @@ class ModelTree:
         if model_class == 'ti':
             fname = self.database if self.database else self.path
             fc_files = {win: fname for win in windows}
-            fc_exists = {win: os.path.exists(fc_files[win])
-                         for win in windows}
+            fc_exists = {win: exists(fc_files[win]) for win in windows}
 
         elif model_class == 'td':
             args = args_file if args_file else join('input', 'args.txt')
@@ -131,32 +134,13 @@ class ModelTree:
         self.forecasts = fc_files
         self.inventory = fc_exists
 
-    def update_repr(self, rundir=''):
-
-        self.path = relpath(self.path, rundir)
-
-        # set forecast names
-
-        # windows = list(self.forecasts.keys())
-        # for win in windows:
-        #     self.forecasts[win] = relpath(rundir, self.forecasts[win])
-
-        # exists = {win: any(file for file in
-        #                list(os.listdir(dirtree['forecasts'])))
-        #           for win in windows}
-        #
-        # self.forecasts = fc_files
-        # self.inventory = exists
-
-        # forecasts: dict = field(default_factory=dict)
-        # inventory: dict = field(default_factory=dict)
-
 
 @dataclass
 class PathTree:
     workdir: str
     rundir: str = 'results'
     paths: dict = field(default_factory=dict)
+    result_exists: dict = field(default_factory=dict)
 
     def __call__(self, *args):
         val = self.paths
@@ -182,8 +166,10 @@ class PathTree:
         return self.workdir == other
 
     def as_dict(self):
-
         return self.workdir
+
+    def asdict(self):
+        return dataclasses.asdict(self)
 
     def abs(self, *paths: Sequence[str]) -> str:
         """ Gets the absolute path of a file, when it was defined relative to
@@ -273,7 +259,7 @@ class PathTree:
         files = {win: {name: list(os.listdir(path)) for name, path in
                        windir.items()} for win, windir in dirtree.items()}
 
-        exists = {win: {
+        file_exists = {win: {
             'forecasts': False,
             'catalog': any(file for file in files[win]['catalog']),
             'evaluations': {
@@ -311,3 +297,5 @@ class PathTree:
             } for win in windows}
         }
         self.paths = target_paths
+        self.result_exists = file_exists
+

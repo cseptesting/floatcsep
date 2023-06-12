@@ -16,6 +16,7 @@ from csep.core.catalogs import CSEPCatalog
 from csep.utils.time_utils import decimal_year
 
 from floatcsep import report
+from floatcsep.logger import add_fhandler
 from floatcsep.registry import PathTree
 from floatcsep.utils import NoAliasLoader, parse_csep_func, read_time_cfg, \
     read_region_cfg, Task, TaskGraph, timewindow2str, str2timewindow, \
@@ -24,11 +25,9 @@ from floatcsep.model import Model
 from floatcsep.evaluation import Evaluation
 import warnings
 
-numpy.seterr(all="ignore")
-warnings.filterwarnings("ignore")
-
-log = logging.getLogger(__name__)
-flog = logging.getLogger("file_logger")
+# numpy.seterr(all="ignore")
+# warnings.filterwarnings("ignore")
+log = logging.getLogger('floatLogger')
 
 
 class Experiment:
@@ -127,8 +126,12 @@ class Experiment:
         #    Or filter region?
         # Instantiate
         self.name = name if name else 'floatingExp'
-
         workdir = abspath(kwargs.get('path', os.getcwd()))
+
+        if kwargs.get(log, True):
+            logpath = os.path.join(workdir, rundir, 'experiment.log')
+            log.info(f'Logging at {logpath}')
+            add_fhandler(logpath)
         self.path = PathTree(workdir, rundir)
         self.config_file = kwargs.get('config_file', None)
         self.original_config = kwargs.get('original_config', None)
@@ -466,6 +469,7 @@ class Experiment:
         self.path.build(self.timewindows, self.models, self.tests)
 
         log.info("Setting up experiment's tasks")
+        log.debug("Pre-run: results' paths\n" + yaml.dump(self.path.asdict()))
         # Get the time windows strings
         tw_strings = timewindow2str(self.timewindows)
 
@@ -796,6 +800,9 @@ class Experiment:
         """
         log.info(f"Saving report into {self.path.rundir}")
 
+        self.path.build(self.timewindows, self.models, self.tests)
+        log.debug("Post-run: results' paths\n" + yaml.dump(self.path.asdict()))
+
         report.generate_report(self)
 
     def make_repr(self):
@@ -912,7 +919,7 @@ class Experiment:
             )
 
     @classmethod
-    def from_yml(cls, config_yml: str, reprdir=None):
+    def from_yml(cls, config_yml: str, reprdir=None, **kwargs):
         """
 
         Initializes an experiment from a .yml file. It must contain the
@@ -949,4 +956,4 @@ class Experiment:
             else:
                 _dict['rundir'] = _dict.get('rundir', 'results')
             _dict['config_file'] = relpath(config_yml, _dir_yml)
-        return cls(**_dict)
+        return cls(**_dict, **kwargs)

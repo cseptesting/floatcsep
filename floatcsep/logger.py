@@ -9,14 +9,6 @@ LOGGING_CONFIG = {
             "datefmt": '%Y-%m-%d %H:%M:%S'},
     },
     "handlers": {
-        "logfile": {
-            "formatter": "default",
-            "level": "INFO",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": LOG_NAME,
-            "backupCount": 2,
-            "delay": True
-        },
         "console": {
             "formatter": "default",
             "level": "INFO",
@@ -25,16 +17,30 @@ LOGGING_CONFIG = {
         }
     },
     'loggers': {
-        'fileLogger':
-            {'level': 'INFO',
-             'handlers': ['logfile'],
-             'propagate': False}},
+        'floatLogger': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+            'propagate': False
+        }
+    },
     'root': {
         'level': 'INFO',
-        'handlers': ['console', 'logfile']}
+        'handlers': ['console']}
 }
+
+
+def add_fhandler(filename):
+    formatter = logging.Formatter(
+        fmt=LOGGING_CONFIG['formatters']['default']['format'],
+        datefmt=LOGGING_CONFIG['formatters']['default']['datefmt']
+    )
+    fhandler = logging.FileHandler(filename)
+    fhandler.setFormatter(formatter)
+    fhandler.setLevel(logging.DEBUG)
+
+    logging.getLogger('floatLogger').addHandler(fhandler)
+
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logging.getLogger('numexpr').setLevel(logging.WARNING)
 logging.getLogger('matplotlib').setLevel(logging.CRITICAL)
-logger = logging.getLogger()

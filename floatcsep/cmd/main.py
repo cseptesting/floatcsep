@@ -3,51 +3,56 @@ from floatcsep.experiment import Experiment
 from floatcsep.utils import ExperimentComparison
 import logging
 import argparse
-log = logging.getLogger(__name__)
+log = logging.getLogger('floatLogger')
 
 
 def stage(config, **_):
 
-    log.info(f'Running floatCSEP v{__version__} | Stage')
+    log.info(f'floatCSEP v{__version__} | Stage')
     exp = Experiment.from_yml(config)
     exp.stage_models()
-    log.info('Finalized\n')
+
+    log.info('Finalized')
+    log.debug('')
 
 
-def run(config, show=True):
+def run(config, **kwargs):
 
-    log.info(f'Running floatCSEP v{__version__} | Run')
-    exp = Experiment.from_yml(config)
+    log.info(f'floatCSEP v{__version__} | Run')
+    exp = Experiment.from_yml(config, **kwargs)
     exp.stage_models()
     exp.set_tasks()
     exp.run()
-    if show:
-        exp.plot_results()
-        exp.plot_forecasts()
-        exp.generate_report()
+    exp.plot_results()
+    exp.plot_forecasts()
+    exp.generate_report()
     exp.make_repr()
 
-    log.info('Finalized\n')
+    log.info('Finalized')
+    log.debug('')
 
+def plot(config, **kwargs):
 
-def plot(config, **_):
+    log.info(f'floatCSEP v{__version__} | Plot')
 
-    log.info(f'Running floatCSEP v{__version__} | Plot')
     exp = Experiment.from_yml(config)
     exp.stage_models()
     exp.set_tasks()
     exp.plot_results()
     exp.plot_forecasts()
     exp.generate_report()
-    log.info('Finalized\n')
 
-    return exp
+    log.info('Finalized')
+    log.debug('')
 
 
-def reproduce(config, **_):
 
-    log.info(f'Running floatCSEP v{__version__} | Reproduce')
-    reproduced_exp = Experiment.from_yml(config, reprdir='reproduced')
+def reproduce(config, **kwargs):
+
+    log.info(f'floatCSEP v{__version__} | Reproduce')
+
+    reproduced_exp = Experiment.from_yml(config, reprdir='reproduced',
+                                         **kwargs)
     reproduced_exp.stage_models()
     reproduced_exp.set_tasks()
     reproduced_exp.run()
@@ -60,8 +65,8 @@ def reproduce(config, **_):
     comp = ExperimentComparison(original_exp, reproduced_exp)
     comp.compare_results()
 
-    log.info('Finalized\n')
-
+    log.info('Finalized')
+    log.debug('')
 
 def floatcsep():
 
@@ -71,8 +76,8 @@ def floatcsep():
                         help='Run a calculation')
     parser.add_argument('config', type=str,
                         help='Experiment Configuration file')
-    parser.add_argument('-s', '--show', type=str,
-                        help='Use saved results', default=True)
+    parser.add_argument('-l', '--log', action='store_false', default=True,
+                        help="Don't log experiment")
 
     args = parser.parse_args()
     try:
