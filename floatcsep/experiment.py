@@ -167,7 +167,8 @@ class Experiment:
         self.default_test_kwargs = default_test_kwargs
 
         self.catalog = catalog
-        self.models = self.set_models(models or kwargs.get('model_config'))
+        self.models = self.set_models(models or kwargs.get('model_config'),
+                                      kwargs.get('order', None))
         self.tests = self.set_tests(tests or kwargs.get('test_config'))
 
         self.tasks = []
@@ -203,7 +204,8 @@ class Experiment:
             self.region_config)
         return sorted(_dir)
 
-    def set_models(self, model_config: Union[Dict, str, List]) -> List:
+    def set_models(self, model_config: Union[Dict, str, List],
+                   order: List = None) -> List:
         """
 
         Parse the models' configuration file/dict. Instantiates all the models
@@ -214,7 +216,7 @@ class Experiment:
             model_config (dict, list, str): configuration file or dictionary
              containing the model initialization attributes, as defined in
              :meth:`~floatcsep.model.Model`
-
+            order (list): desired order of models
 
         """
 
@@ -269,6 +271,9 @@ class Experiment:
             log.warning(f'Warning: Model{"s" * (not one)} {reps}'
                         f' {"is" * one + "are" * (not one)} repeated')
         log.info(f'\tModels: {[i.name for i in models]}')
+
+        if order:
+            models = [models[i] for i in order]
 
         return models
 
