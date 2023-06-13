@@ -18,16 +18,24 @@ def generate_report(experiment, timewindow=-1):
     timewindow = experiment.timewindows[timewindow]
     timestr = timewindow2str(timewindow)
 
+    hooks = experiment.report_hook
     report = MarkdownReport()
     report.add_title(
-        f"Experiment Report - {experiment.name}", ''
+        f"Experiment Report - {experiment.name}", hooks.get('title_text', '')
     )
+
     report.add_heading("Objectives", level=2)
+
     objs = [
         "Describe the predictive skills of posited hypothesis about "
         "seismogenesis with earthquakes of"
         f" M>{min(experiment.magnitudes)}.",
     ]
+
+    if hooks.get('objectives', None):
+        for i in hooks.get('objectives'):
+            objs.append(i)
+
     report.add_list(objs)
 
     report.add_heading("Authoritative Data", level=2)

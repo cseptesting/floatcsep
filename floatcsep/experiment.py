@@ -119,6 +119,7 @@ class Experiment:
                  postproc_config: str = None,
                  default_test_kwargs: dict = None,
                  rundir: str = 'results',
+                 report_hook: dict = None,
                  **kwargs) -> None:
         # todo
         #  - instantiate from full experiment register (ignoring test/models
@@ -174,6 +175,7 @@ class Experiment:
         self.tasks = []
         self.task_graph = None
 
+        self.report_hook = report_hook if report_hook else {}
         self.force_rerun = kwargs.get('force_rerun', False)
 
     def __getattr__(self, item: str) -> object:
