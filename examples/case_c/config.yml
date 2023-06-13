@@ -1,5 +1,5 @@
 name: case_c
-
+seed: 23
 time_config:
   start_date: 2010-1-1T00:00:00
   end_date: 2020-1-1T00:00:00

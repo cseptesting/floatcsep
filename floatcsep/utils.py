@@ -784,7 +784,7 @@ class ExperimentComparison:
 
         return numpy.abs(numpy.divide((numpy.array(obs_orig) -
                                        numpy.array(obs_repr)),
-                                      numpy.array(obs_orig))) * 100
+                                      numpy.array(obs_orig)))
 
     @staticmethod
     def test_stat(test_orig, test_repr):
@@ -793,7 +793,7 @@ class ExperimentComparison:
             if not isinstance(test_orig[1], str):
                 stats = numpy.array([0,
                                      numpy.divide((test_repr[1] - test_orig[1]),
-                                                  test_orig[1]) * 100, 0, 0])
+                                                  test_orig[1]), 0, 0])
             else:
                 stats = None
         else:
@@ -808,7 +808,7 @@ class ExperimentComparison:
             stats = [*numpy.divide(
                 numpy.abs(stats_repr - stats_orig),
                 stats_orig
-            ) * 100, ks.pvalue]
+            ), ks.pvalue]
         return stats
 
     def get_results(self):
@@ -968,8 +968,8 @@ class ExperimentComparison:
                         obs = model_stat[1]['observed_statistic']
                         test = model_stat[1]['test_statistic']
                         rows.append([model_stat[0], obs,
-                                     *[f'{i:.2f}%' for i in test[:-1]],
-                                     f'{test[-1]:.2f}',
+                                     *[f'{i:.1e}' for i in test[:-1]],
+                                     f'{test[-1]:.1e}',
                                      model_file[1]['hash'],
                                      model_file[1]['byte2byte']])
                     report.add_table(rows)
@@ -984,7 +984,7 @@ class ExperimentComparison:
                                                   dat[1].items()):
                     obs = numpy.nanmax(model_stat[1]['observed_statistic'])
 
-                    rows.append([model_stat[0], obs,
+                    rows.append([model_stat[0], f'{obs:.1e}',
                                  model_file[1]['hash'],
                                  model_file[1]['byte2byte']])
 
