@@ -80,7 +80,7 @@ A runtime directory will be created in a `results` folder. The experiment result
 * Add multiple logging/levels
 * Create tool to check a TD model's interface with ``fecsep``
 * Define a dependency strategy to ensure experiments' reproducibility.
-* Publish in `pypi`/`conda` and Zenodo
+* Publish in `conda`
 
 # Contributing
 

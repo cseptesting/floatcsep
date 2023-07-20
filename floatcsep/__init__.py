@@ -7,4 +7,4 @@ from floatcsep import extras
 from floatcsep import model
 from floatcsep import readers
 
-__version__ = '0.1.2'
+__version__ = '0.1.3'
