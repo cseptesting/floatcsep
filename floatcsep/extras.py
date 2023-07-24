@@ -1,5 +1,6 @@
 import numpy
 import scipy.stats
+from matplotlib import pyplot
 from csep.models import EvaluationResult
 from csep.core.poisson_evaluations import _simulate_catalog, paired_t_test, \
     w_test, _poisson_likelihood_test
@@ -806,3 +807,159 @@ def paired_ttest_point_process(
     result.status = 'normal'
     result.min_mw = numpy.min(forecast.magnitudes)
     return result
+
+
+def plot_negbinom_consistency_test(eval_results, normalize=False, axes=None,
+                          one_sided_lower=False, variance=None, plot_args=None,
+                          show=False):
+    """ Plots results from CSEP1 tests following the CSEP1 convention.
+
+    Note: All of the evaluations should be from the same type of evaluation, otherwise the results will not be
+          comparable on the same figure.
+
+    Args:
+        eval_results (list): Contains the tests results :class:`csep.core.evaluations.EvaluationResult` (see note above)
+        normalize (bool): select this if the forecast likelihood should be normalized by the observed likelihood. useful
+                          for plotting simulation based simulation tests.
+        one_sided_lower (bool): select this if the plot should be for a one sided test
+        plot_args(dict): optional argument containing a dictionary of plotting arguments, with keys as strings and items as described below
+
+    Optional plotting arguments:
+        * figsize: (:class:`list`/:class:`tuple`) - default: [6.4, 4.8]
+        * title: (:class:`str`) - default: name of the first evaluation result type
+        * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 10
+        * xlabel: (:class:`str`) - default: 'X'
+        * xlabel_fontsize: (:class:`float`) - default: 10
+        * xticks_fontsize: (:class:`float`) - default: 10
+        * ylabel_fontsize: (:class:`float`) - default: 10
+        * color: (:class:`float`/:class:`None`) If None, sets it to red/green according to :func:`_get_marker_style` - default: 'black'
+        * linewidth: (:class:`float`) - default: 1.5
+        * capsize: (:class:`float`) - default: 4
+        * hbars:  (:class:`bool`)  Flag to draw horizontal bars for each model - default: True
+        * tight_layout: (:class:`bool`) Set matplotlib.figure.tight_layout to remove excess blank space in the plot - default: True
+
+    Returns:
+        ax (:class:`matplotlib.pyplot.axes` object)
+    """
+
+    try:
+        results = list(eval_results)
+    except TypeError:
+        results = [eval_results]
+    results.reverse()
+    # Parse plot arguments. More can be added here
+    if plot_args is None:
+        plot_args = {}
+    figsize = plot_args.get('figsize', None)
+    title = plot_args.get('title', results[0].name)
+    title_fontsize = plot_args.get('title_fontsize', None)
+    xlabel = plot_args.get('xlabel', '')
+    xlabel_fontsize = plot_args.get('xlabel_fontsize', None)
+    xticks_fontsize = plot_args.get('xticks_fontsize', None)
+    ylabel_fontsize = plot_args.get('ylabel_fontsize', None)
+    color = plot_args.get('color', 'black')
+    linewidth = plot_args.get('linewidth', None)
+    capsize = plot_args.get('capsize', 4)
+    hbars = plot_args.get('hbars', True)
+    tight_layout = plot_args.get('tight_layout', True)
+    percentile = plot_args.get('percentile', 95)
+    plot_mean = plot_args.get('mean', False)
+
+    if axes is None:
+        fig, ax = pyplot.subplots(figsize=figsize)
+    else:
+        ax = axes
+        fig = ax.get_figure()
+
+    xlims = []
+
+    for index, res in enumerate(results):
+        var = variance
+        observed_statistic = res.observed_statistic
+        mean = res.test_distribution[1]
+        upsilon = 1.0 - ((var - mean) / var)
+        tau = (mean ** 2 / (var - mean))
+        phigh = scipy.stats.nbinom.ppf((1 - percentile / 100.) / 2., tau,
+                                       upsilon)
+        plow = scipy.stats.nbinom.ppf(1 - (1 - percentile / 100.) / 2.,
+                                      tau, upsilon)
+
+        if not numpy.isinf(
+                observed_statistic):  # Check if test result does not diverges
+            percentile_lims = numpy.array([[mean - plow, phigh - mean]]).T
+            ax.plot(observed_statistic, index,
+                    _get_marker_style(observed_statistic, (plow, phigh),
+                                      one_sided_lower))
+            ax.errorbar(mean, index, xerr=percentile_lims,
+                        fmt='ko' * plot_mean, capsize=capsize,
+                        linewidth=linewidth, ecolor=color)
+            # determine the limits to use
+            xlims.append((plow, phigh, observed_statistic))
+            # we want to only extent the distribution where it falls outside of it in the acceptable tail
+            if one_sided_lower:
+                if observed_statistic >= plow and phigh < observed_statistic:
+                    # draw dashed line to infinity
+                    xt = numpy.linspace(phigh, 99999, 100)
+                    yt = numpy.ones(100) * index
+                    ax.plot(xt, yt, linestyle='--', linewidth=linewidth,
+                            color=color)
+
+        else:
+            print('Observed statistic diverges for forecast %s, index %i.'
+                  ' Check for zero-valued bins within the forecast' % (
+                      res.sim_name, index))
+            ax.barh(index, 99999, left=-10000, height=1, color=['red'],
+                    alpha=0.5)
+
+    try:
+        ax.set_xlim(*_get_axis_limits(xlims))
+    except ValueError:
+        raise ValueError(
+            'All EvaluationResults have infinite observed_statistics')
+    ax.set_yticks(numpy.arange(len(results)))
+    ax.set_yticklabels([res.sim_name for res in results],
+                       fontsize=ylabel_fontsize)
+    ax.set_ylim([-0.5, len(results) - 0.5])
+    if hbars:
+        yTickPos = ax.get_yticks()
+        if len(yTickPos) >= 2:
+            ax.barh(yTickPos, numpy.array([99999] * len(yTickPos)),
+                    left=-10000,
+                    height=(yTickPos[1] - yTickPos[0]), color=['w', 'gray'],
+                    alpha=0.2, zorder=0)
+    ax.set_title(title, fontsize=title_fontsize)
+    ax.set_xlabel(xlabel, fontsize=xlabel_fontsize)
+    ax.tick_params(axis='x', labelsize=xticks_fontsize)
+    if tight_layout:
+        ax.figure.tight_layout()
+        fig.tight_layout()
+
+    if show:
+        pyplot.show()
+
+    return ax
+
+
+def _get_marker_style(obs_stat, p, one_sided_lower):
+    """Returns matplotlib marker style as fmt string"""
+    if obs_stat < p[0] or obs_stat > p[1]:
+        # red circle
+        fmt = 'ro'
+    else:
+        # green square
+        fmt = 'gs'
+    if one_sided_lower:
+        if obs_stat < p[0]:
+            fmt = 'ro'
+        else:
+            fmt = 'gs'
+    return fmt
+
+
+def _get_axis_limits(pnts, border=0.05):
+    """Returns a tuple of x_min and x_max given points on plot."""
+    x_min = numpy.min(pnts)
+    x_max = numpy.max(pnts)
+    xd = (x_max - x_min) * border
+    return (x_min - xd, x_max + xd)
+
