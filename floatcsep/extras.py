@@ -340,13 +340,13 @@ def brier_score(forecast, catalog, spatial_only=False, binary=True):
 
 
 def _nbd_number_test_ndarray(fore_cnt, obs_cnt, variance, epsilon=1e-6):
-    """ 
+    """
     Computes delta1 and delta2 values from the Negative Binomial (NBD) number test.
 
     Args:
         fore_cnt (float): parameter of negative binomial distribution coming from expected value of the forecast
         obs_cnt (float): count of earthquakes observed during the testing period.
-        variance (float): variance parameter of negative binomial distribution coming from historical catalog. 
+        variance (float): variance parameter of negative binomial distribution coming from historical catalog.
         A variance value of approximately 23541 has been calculated using M5.95+ earthquakes observed worldwide from 1982 to 2013.
         epsilon (float): tolerance level to satisfy the requirements of two-sided p-value
 
@@ -371,7 +371,7 @@ def negative_binomial_number_test(gridded_forecast, observed_catalog,
     Computes "negative binomial N-Test" on a gridded forecast.
 
     Computes Number (N) test for Observed and Forecasts. Both data sets are expected to be in terms of event counts.
-    We find the Total number of events in Observed Catalog and Forecasted Catalogs. Which are then employed to compute the 
+    We find the Total number of events in Observed Catalog and Forecasted Catalogs. Which are then employed to compute the
     probablities of
     (i) At least no. of events (delta 1)
     (ii) At most no. of events (delta 2) assuming the negative binomial distribution.
@@ -383,7 +383,7 @@ def negative_binomial_number_test(gridded_forecast, observed_catalog,
         observed_catalog:   Observed (Gridded) seismicity (Numpy Array):
                     An Observation has to be Number of Events in Each Bin
                     It has to be a either zero or positive integer only (No Floating Point)
-        variance:   Variance parameter of negative binomial distribution obtained from historical catalog.            
+        variance:   Variance parameter of negative binomial distribution obtained from historical catalog.
 
     Returns:
         out (tuple): (delta_1, delta_2)
@@ -418,7 +418,7 @@ def negative_binomial_number_test(gridded_forecast, observed_catalog,
 def binomial_joint_log_likelihood_ndarray(forecast, catalog):
     """
     Computes Bernoulli log-likelihood scores, assuming that earthquakes follow a binomial distribution.
-    
+
     Args:
         forecast:   Forecast of a Model (Gridded) (Numpy Array)
                     A forecast has to be in terms of Average Number of Events in Each Bin
@@ -455,7 +455,7 @@ def _binomial_likelihood_test(forecast_data, observed_data,
         num_simulations: default number of simulations to use for likelihood based simulations
         seed: used for reproducibility of the prng
         random_numbers (numpy.ndarray): can supply an explicit list of random numbers, primarily used for software testing
-        use_observed_counts (bool): if true, will simulate catalogs using the observed events, if false will draw from poisson 
+        use_observed_counts (bool): if true, will simulate catalogs using the observed events, if false will draw from poisson
         distribution
     """
 
@@ -582,15 +582,15 @@ def binomial_conditional_likelihood_test(
 
 def _binary_t_test_ndarray(target_event_rates1, target_event_rates2, n_obs,
                            n_f1, n_f2, catalog, alpha=0.05):
-    """ 
+    """
     Computes binary T test statistic by comparing two target event rate distributions.
 
-    We compare Forecast from Model 1 and with Forecast of Model 2. Information Gain per Active Bin (IGPA) is computed, which is then 
-    employed to compute T statistic. Confidence interval of Information Gain can be computed using T_critical. For a complete 
-    explanation see Rhoades, D. A., et al., (2011). Efficient testing of earthquake forecasting models. Acta Geophysica, 59(4), 
-    728-747. doi:10.2478/s11600-011-0013-5, and Bayona J.A. et al., (2022). Prospective evaluation of multiplicative hybrid earthquake 
+    We compare Forecast from Model 1 and with Forecast of Model 2. Information Gain per Active Bin (IGPA) is computed, which is then
+    employed to compute T statistic. Confidence interval of Information Gain can be computed using T_critical. For a complete
+    explanation see Rhoades, D. A., et al., (2011). Efficient testing of earthquake forecasting models. Acta Geophysica, 59(4),
+    728-747. doi:10.2478/s11600-011-0013-5, and Bayona J.A. et al., (2022). Prospective evaluation of multiplicative hybrid earthquake
     forecasting models in California. doi: 10.1093/gji/ggac018.
-    
+
     Args:
         target_event_rates1 (numpy.ndarray): nd-array storing target event rates
         target_event_rates2 (numpy.ndarray): nd-array storing target event rates
@@ -666,8 +666,8 @@ def _standard_deviation(gridded_forecast1, gridded_forecast2,
                         cell_area2):
     """
     Calculate Variance using forecast 1 and forecast 2.
-    But It is calculated using the forecast values corresponding to the non-zero observations. 
-    The same process is repeated as repeated during calculation of Point Process LL. 
+    But It is calculated using the forecast values corresponding to the non-zero observations.
+    The same process is repeated as repeated during calculation of Point Process LL.
     After we get forecast rates for non-zeros observations, then Pooled Variance is calculated.
 
 
