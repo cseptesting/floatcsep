@@ -1,0 +1,35 @@
+name: Build and upload to PyPI
+
+# Only build on tagged releases
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: Build and upload sdist
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          generate-run-shell: true
+          environment-file: environment.yml
+          create-args: >-
+            python=3.10
+
+      - name: Install py-build
+        run: |
+          python3 -m pip install --upgrade build
+
+      - name: Build
+        run: |
+          python3 -m build --sdist --wheel --outdir dist/
+
+      - name: Publish Package
+        uses: pypa/gh-action-pypi-publish@master
