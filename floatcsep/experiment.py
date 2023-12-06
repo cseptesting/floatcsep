@@ -350,7 +350,7 @@ class Experiment:
             )
 
             if self.region:
-                catalog.filter_spatial(region=self.region)
+                catalog.filter_spatial(region=self.region, in_place=True)
                 catalog.region = None
             catalog.write_json(self._catpath)
 
@@ -408,7 +408,7 @@ class Experiment:
              f'magnitude >= {self.mag_min}',
              f'magnitude < {self.mag_max}'], in_place=False)
         if self.region:
-            sub_cat.filter_spatial(region=self.region)
+            sub_cat.filter_spatial(region=self.region, in_place=True)
 
         return sub_cat
 
@@ -437,7 +437,7 @@ class Experiment:
                  f'magnitude >= {self.mag_min}',
                  f'magnitude < {self.mag_max}'], in_place=False)
             if self.region:
-                sub_cat.filter_spatial(region=self.region)
+                sub_cat.filter_spatial(region=self.region, in_place=True)
             sub_cat.write_json(filename=testcat_name)
         else:
             log.debug(f'Using stored test sub-catalog from {testcat_name}')

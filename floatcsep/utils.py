@@ -220,8 +220,13 @@ def read_region_cfg(region_config, **kwargs):
                 except ValueError:
                     data = numpy.array([re.split(r'\s+|,', i.strip()) for i in
                                         parsed_region[1:]], dtype=float)
-                region = CartesianGrid2D.from_origins(data, name=region_data,
-                                                      magnitudes=magnitudes)
+                dh1 = scipy.stats.mode(np.diff(np.unique(data[:, 0]))).mode
+                dh2 = scipy.stats.mode(np.diff(np.unique(data[:, 1]))).mode
+                dh = np.min([dh1, dh2])
+                region = CartesianGrid2D.from_origins(data,
+                                                      name=region_data,
+                                                      magnitudes=magnitudes,
+                                                      dh=dh)
                 region_config.update({'path': region_data})
         else:
             region_data['magnitudes'] = magnitudes
