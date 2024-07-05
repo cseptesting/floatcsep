@@ -154,7 +154,7 @@ class Experiment:
 
         log.info(f'Setting up experiment {self.name}:')
         log.info(f'\tStart: {self.start_date}')
-        log.info(f'\tEnd: {self.start_date}')
+        log.info(f'\tEnd: {self.end_date}')
         log.info(f'\tTime windows: {len(self.timewindows)}')
         log.info(f'\tRegion: {self.region.name if self.region else None}')
         log.info(f'\tMagnitude range: [{numpy.min(self.magnitudes)},'
@@ -957,7 +957,7 @@ class Experiment:
         with open(config_yml, 'r') as yml:
 
             # experiment configuration file
-            _dict = yaml.safe_load(yml)
+            _dict = yaml.load(yml, NoAliasLoader)
             _dir_yml = dirname(config_yml)
             # uses yml path and append if a rel/abs path is given in config.
             _path = _dict.get('path', '')
