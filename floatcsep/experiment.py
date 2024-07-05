@@ -135,10 +135,6 @@ class Experiment:
                 rundir,
                 f'run_{datetime.datetime.utcnow().date().isoformat()}')
         os.makedirs(os.path.join(workdir, rundir), exist_ok=True)
-        if kwargs.get(log, True):
-            logpath = os.path.join(workdir, rundir, 'experiment.log')
-            log.info(f'Logging at {logpath}')
-            add_fhandler(logpath)
 
         self.name = name if name else 'floatingExp'
         self.path = PathTree(workdir, rundir)
@@ -152,6 +148,14 @@ class Experiment:
         self.model_config = models if isinstance(models, str) else None
         self.test_config = tests if isinstance(tests, str) else None
 
+        logger = kwargs.get('logging', True)
+        if logger:
+            filename = 'experiment.log' if logger is True else logger
+            self.path.logger = os.path.join(workdir, rundir, filename)
+            log.info(f'Logging at {self.path.logger}')
+            add_fhandler(self.path.logger)
+
+        log.debug(f'-------- BEGIN OF RUN --------')
         log.info(f'Setting up experiment {self.name}:')
         log.info(f'\tStart: {self.start_date}')
         log.info(f'\tEnd: {self.end_date}')
@@ -977,5 +981,7 @@ class Experiment:
                 _dict['rundir'] = _dict.get('rundir',
                                             kwargs.pop('rundir', 'results'))
             _dict['config_file'] = relpath(config_yml, _dir_yml)
-            # print(_dict['rundir'])
+            if 'logging' in _dict:
+                kwargs.pop('logging')
+
         return cls(**_dict, **kwargs)
