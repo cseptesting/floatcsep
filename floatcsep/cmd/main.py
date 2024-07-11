@@ -29,7 +29,7 @@ def run(config, **kwargs):
     exp.make_repr()
 
     log.info('Finalized')
-    log.debug('')
+    log.debug(f'-------- END OF RUN --------')
 
 
 def plot(config, **kwargs):
@@ -43,7 +43,7 @@ def plot(config, **kwargs):
     exp.plot_forecasts()
     exp.generate_report()
 
-    log.info('Finalized')
+    log.info('Finalized\n')
     log.debug('')
 
 
@@ -77,7 +77,7 @@ def floatcsep():
                         help='Run a calculation')
     parser.add_argument('config', type=str,
                         help='Experiment Configuration file')
-    parser.add_argument('-l', '--log', action='store_false', default=True,
+    parser.add_argument('-l', '--logging', action='store_true', default=False,
                         help="Don't log experiment")
     parser.add_argument('-t', '--timestamp', action='store_true',
                         default=False, help="Timestamp results")
