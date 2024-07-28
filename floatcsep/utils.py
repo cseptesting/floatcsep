@@ -38,8 +38,8 @@ import floatcsep.accessors
 import floatcsep.extras
 import floatcsep.readers
 
-_UNITS = ['years', 'months', 'weeks', 'days']
-_PD_FORMAT = ['YS', 'MS', 'W', 'D']
+_UNITS = ["years", "months", "weeks", "days"]
+_PD_FORMAT = ["YS", "MS", "W", "D"]
 
 
 def parse_csep_func(func):
@@ -63,33 +63,36 @@ def parse_csep_func(func):
         def _getattr(obj_, attr_):
             return getattr(obj_, attr_, *args)
 
-        return functools.reduce(_getattr, [obj] + attr.split('.'))
+        return functools.reduce(_getattr, [obj] + attr.split("."))
 
     if callable(func):
         return func
     elif func is None:
         return func
     else:
-        _target_modules = [csep,
-                           csep.utils,
-                           csep.utils.plots,
-                           csep.core.regions,
-                           floatcsep.utils,
-                           floatcsep.accessors,
-                           floatcsep.extras,
-                           floatcsep.readers.HDF5Serializer,
-                           floatcsep.readers.ForecastParsers]
+        _target_modules = [
+            csep,
+            csep.utils,
+            csep.utils.plots,
+            csep.core.regions,
+            floatcsep.utils,
+            floatcsep.accessors,
+            floatcsep.extras,
+            floatcsep.readers.HDF5Serializer,
+            floatcsep.readers.ForecastParsers,
+        ]
         for module in _target_modules:
             try:
                 return recgetattr(module, func)
             except AttributeError:
                 pass
         raise AttributeError(
-            f'Evaluation/Plot/Region function {func} has not yet been'
-            f' implemented in floatcsep or pycsep')
+            f"Evaluation/Plot/Region function {func} has not yet been"
+            f" implemented in floatcsep or pycsep"
+        )
 
 
-def parse_timedelta_string(window, exp_class='ti'):
+def parse_timedelta_string(window, exp_class="ti"):
     """
 
     Parses a float or string representing the testing time window length
@@ -113,19 +116,20 @@ def parse_timedelta_string(window, exp_class='ti'):
 
     if isinstance(window, str):
         try:
-            n, unit_ = [i for i in re.split(r'(\d+)', window) if i]
-            unit = [i for i in [j[:-1] for j in _UNITS] if i in unit_.lower()][
-                0]
-            return f'{n}-{unit}s'
+            n, unit_ = [i for i in re.split(r"(\d+)", window) if i]
+            unit = [i for i in [j[:-1] for j in _UNITS] if i in unit_.lower()][0]
+            return f"{n}-{unit}s"
 
         except (ValueError, IndexError):
-            raise ValueError('Time window is misspecified. '
-                             'Try the amount followed by the time unit '
-                             '(e.g. 1 day, 1 months, 3 years)')
+            raise ValueError(
+                "Time window is misspecified. "
+                "Try the amount followed by the time unit "
+                "(e.g. 1 day, 1 months, 3 years)"
+            )
     elif isinstance(window, float):
         n = window
-        unit = 'year' if exp_class == 'ti' else 'day'
-        return f'{n}-{unit}s'
+        unit = "year" if exp_class == "ti" else "day"
+        return f"{n}-{unit}s"
 
 
 def read_time_cfg(time_config, **kwargs):
@@ -145,29 +149,28 @@ def read_time_cfg(time_config, **kwargs):
         windows to be evaluated
 
     """
-    _attrs = ['start_date', 'end_date', 'intervals', 'horizon', 'offset',
-              'growth', 'exp_class']
+    _attrs = ["start_date", "end_date", "intervals", "horizon", "offset", "growth", "exp_class"]
     time_config = copy.deepcopy(time_config)
     if time_config is None:
         time_config = {}
 
     try:
-        experiment_class = time_config.get('exp_class', kwargs['exp_class'])
+        experiment_class = time_config.get("exp_class", kwargs["exp_class"])
     except KeyError:
-        experiment_class = 'ti'
-        time_config['exp_class'] = experiment_class
+        experiment_class = "ti"
+        time_config["exp_class"] = experiment_class
 
     time_config.update({i: j for i, j in kwargs.items() if i in _attrs})
-    if 'horizon' in time_config.keys():
-        time_config['horizon'] = parse_timedelta_string(time_config['horizon'])
-    if 'offset' in time_config.keys():
-        time_config['offset'] = parse_timedelta_string(time_config['offset'])
+    if "horizon" in time_config.keys():
+        time_config["horizon"] = parse_timedelta_string(time_config["horizon"])
+    if "offset" in time_config.keys():
+        time_config["offset"] = parse_timedelta_string(time_config["offset"])
 
-    if experiment_class == 'ti':
-        time_config['timewindows'] = timewindows_ti(**time_config)
+    if experiment_class == "ti":
+        time_config["timewindows"] = timewindows_ti(**time_config)
         return time_config
-    elif experiment_class == 'td':
-        time_config['timewindows'] = timewindows_td(**time_config)
+    elif experiment_class == "td":
+        time_config["timewindows"] = timewindows_td(**time_config)
         return time_config
 
 
@@ -188,61 +191,58 @@ def read_region_cfg(region_config, **kwargs):
 
     """
     region_config = copy.deepcopy(region_config)
-    _attrs = ['region', 'mag_min', 'mag_max', 'mag_bin', 'magnitudes',
-              'depth_min', 'depth_max']
+    _attrs = ["region", "mag_min", "mag_max", "mag_bin", "magnitudes", "depth_min", "depth_max"]
     if region_config is None:
         region_config = {}
     region_config.update({i: j for i, j in kwargs.items() if i in _attrs})
 
-    dmin = region_config.get('depth_min', -2)
-    dmax = region_config.get('depth_max', 6000)
+    dmin = region_config.get("depth_min", -2)
+    dmax = region_config.get("depth_max", 6000)
     depths = cleaner_range(dmin, dmax, dmax - dmin)
-    magnitudes = region_config.get('magnitudes', None)
+    magnitudes = region_config.get("magnitudes", None)
     if magnitudes is None:
-        magmin = region_config['mag_min']
-        magmax = region_config['mag_max']
-        magbin = region_config['mag_bin']
+        magmin = region_config["mag_min"]
+        magmax = region_config["mag_max"]
+        magbin = region_config["mag_bin"]
         magnitudes = cleaner_range(magmin, magmax, magbin)
 
-    region_data = region_config.get('region', None)
+    region_data = region_config.get("region", None)
     try:
-        region = parse_csep_func(region_data)(name=region_data,
-                                              magnitudes=magnitudes) \
-            if region_data else None
+        region = (
+            parse_csep_func(region_data)(name=region_data, magnitudes=magnitudes)
+            if region_data
+            else None
+        )
     except AttributeError:
         if isinstance(region_data, str):
-            filename = os.path.join(kwargs.get('path', ''), region_data)
-            with open(filename, 'r') as file_:
+            filename = os.path.join(kwargs.get("path", ""), region_data)
+            with open(filename, "r") as file_:
                 parsed_region = file_.readlines()
                 try:
-                    data = numpy.array([re.split(r'\s+|,', i.strip()) for i in
-                                        parsed_region], dtype=float)
+                    data = numpy.array(
+                        [re.split(r"\s+|,", i.strip()) for i in parsed_region], dtype=float
+                    )
                 except ValueError:
-                    data = numpy.array([re.split(r'\s+|,', i.strip()) for i in
-                                        parsed_region[1:]], dtype=float)
-                dh1 = scipy.stats.mode(
-                    numpy.diff(numpy.unique(data[:, 0]))).mode
-                dh2 = scipy.stats.mode(
-                    numpy.diff(numpy.unique(data[:, 1]))).mode
+                    data = numpy.array(
+                        [re.split(r"\s+|,", i.strip()) for i in parsed_region[1:]], dtype=float
+                    )
+                dh1 = scipy.stats.mode(numpy.diff(numpy.unique(data[:, 0]))).mode
+                dh2 = scipy.stats.mode(numpy.diff(numpy.unique(data[:, 1]))).mode
                 dh = numpy.nanmin([dh1, dh2])
-                region = CartesianGrid2D.from_origins(data,
-                                                      name=region_data,
-                                                      magnitudes=magnitudes,
-                                                      dh=dh)
-                region_config.update({'path': region_data})
+                region = CartesianGrid2D.from_origins(
+                    data, name=region_data, magnitudes=magnitudes, dh=dh
+                )
+                region_config.update({"path": region_data})
         else:
-            region_data['magnitudes'] = magnitudes
+            region_data["magnitudes"] = magnitudes
             region = CartesianGrid2D.from_dict(region_data)
 
-    region_config.update({'depths': depths,
-                          'magnitudes': magnitudes,
-                          'region': region})
+    region_config.update({"depths": depths, "magnitudes": magnitudes, "region": region})
 
     return region_config
 
 
-def timewindow2str(datetimes: Union[Sequence[datetime],
-                                    Sequence[Sequence[datetime]]]):
+def timewindow2str(datetimes: Union[Sequence[datetime], Sequence[Sequence[datetime]]]):
     """
     Converts a time window (list/tuple of datetimes) to a string that
     represents it.  Can be a single timewindow or a list of time windows.
@@ -253,10 +253,10 @@ def timewindow2str(datetimes: Union[Sequence[datetime],
 
     """
     if isinstance(datetimes[0], datetime):
-        return '_'.join([j.date().isoformat() for j in datetimes])
+        return "_".join([j.date().isoformat() for j in datetimes])
 
     elif isinstance(datetimes[0], (list, tuple)):
-        return ['_'.join([j.date().isoformat() for j in i]) for i in datetimes]
+        return ["_".join([j.date().isoformat() for j in i]) for i in datetimes]
 
 
 def str2timewindow(tw_string: Union[str, Sequence[str]]):
@@ -270,25 +270,20 @@ def str2timewindow(tw_string: Union[str, Sequence[str]]):
 
     """
     if isinstance(tw_string, str):
-        start_date, end_date = [datetime.fromisoformat(i) for i in
-                                tw_string.split('_')]
+        start_date, end_date = [datetime.fromisoformat(i) for i in tw_string.split("_")]
         return start_date, end_date
 
     elif isinstance(tw_string, (list, tuple)):
         datetimes = []
         for twstr in tw_string:
-            start_date, end_date = [datetime.fromisoformat(i) for i in
-                                    twstr.split('_')]
+            start_date, end_date = [datetime.fromisoformat(i) for i in twstr.split("_")]
             datetimes.append([start_date, end_date])
         return datetimes
 
 
-def timewindows_ti(start_date=None,
-                   end_date=None,
-                   intervals=None,
-                   horizon=None,
-                   growth='incremental',
-                   **_):
+def timewindows_ti(
+    start_date=None, end_date=None, intervals=None, horizon=None, growth="incremental", **_
+):
     """
 
     Creates the testing intervals for a time-independent experiment.
@@ -319,37 +314,33 @@ def timewindows_ti(start_date=None,
     if (intervals is None) and (horizon is None):
         intervals = 1
     elif horizon:
-        n, unit = horizon.split('-')
-        frequency = f'{n}{_PD_FORMAT[_UNITS.index(unit)]}'
+        n, unit = horizon.split("-")
+        frequency = f"{n}{_PD_FORMAT[_UNITS.index(unit)]}"
 
     periods = intervals + 1 if intervals else intervals
     try:
-        timelimits = pandas.date_range(start=start_date,
-                                       end=end_date,
-                                       periods=periods,
-                                       freq=frequency).to_pydatetime()
+        timelimits = pandas.date_range(
+            start=start_date, end=end_date, periods=periods, freq=frequency
+        ).to_pydatetime()
     except ValueError as e_:
         raise ValueError(
-            'The following experiment parameters combinations are possible:\n'
-            '   (start_date, end_date)\n'
-            '   (start_date, end_date, intervals)\n'
-            '   (start_date, end_date, timewindow)\n'
-            '   (start_date, intervals, timewindow)\n')
+            "The following experiment parameters combinations are possible:\n"
+            "   (start_date, end_date)\n"
+            "   (start_date, end_date, intervals)\n"
+            "   (start_date, end_date, timewindow)\n"
+            "   (start_date, intervals, timewindow)\n"
+        )
 
-    if growth == 'incremental':
-        return [(i, j) for i, j in zip(timelimits[:-1],
-                                       timelimits[1:])]
+    if growth == "incremental":
+        return [(i, j) for i, j in zip(timelimits[:-1], timelimits[1:])]
 
-    elif growth == 'cumulative':
+    elif growth == "cumulative":
         return [(timelimits[0], i) for i in timelimits[1:]]
 
 
-def timewindows_td(start_date=None,
-                   end_date=None,
-                   timeintervals=None,
-                   timehorizon=None,
-                   timeoffset=None,
-                   **_):
+def timewindows_td(
+    start_date=None, end_date=None, timeintervals=None, timehorizon=None, timeoffset=None, **_
+):
     """
 
     Creates the testing intervals for a time-dependent experiment.
@@ -380,33 +371,38 @@ def timewindows_td(start_date=None,
     frequency = None
 
     if timehorizon:
-        n, unit = timehorizon.split('-')
-        frequency = f'{n}{_PD_FORMAT[_UNITS.index(unit)]}'
+        n, unit = timehorizon.split("-")
+        frequency = f"{n}{_PD_FORMAT[_UNITS.index(unit)]}"
 
     periods = timeintervals + 1 if timeintervals else timeintervals
 
     try:
-        offset = timeoffset.split('-') if timeoffset else None
-        start_offset = start_date + pandas.DateOffset(
-            **{offset[1]: float(offset[0])}) if offset else start_date
-        end_offset = end_date - pandas.DateOffset(
-            **{offset[1]: float(offset[0])}) if offset else start_date
+        offset = timeoffset.split("-") if timeoffset else None
+        start_offset = (
+            start_date + pandas.DateOffset(**{offset[1]: float(offset[0])})
+            if offset
+            else start_date
+        )
+        end_offset = (
+            end_date - pandas.DateOffset(**{offset[1]: float(offset[0])})
+            if offset
+            else start_date
+        )
 
-        lower_limits = pandas.date_range(start=start_date,
-                                         end=end_offset,
-                                         periods=periods,
-                                         freq=frequency).to_pydatetime()[:-1]
-        upper_limits = pandas.date_range(start=start_offset,
-                                         end=end_date,
-                                         periods=periods,
-                                         freq=frequency).to_pydatetime()[:-1]
+        lower_limits = pandas.date_range(
+            start=start_date, end=end_offset, periods=periods, freq=frequency
+        ).to_pydatetime()[:-1]
+        upper_limits = pandas.date_range(
+            start=start_offset, end=end_date, periods=periods, freq=frequency
+        ).to_pydatetime()[:-1]
     except ValueError as e_:
         raise ValueError(
-            'The following experiment parameters combinations are possible:\n'
-            '   (start_date, end_date)\n'
-            '   (start_date, end_date, intervals)\n'
-            '   (start_date, end_date, timewindow)\n'
-            '   (start_date, intervals, timewindow)\n')
+            "The following experiment parameters combinations are possible:\n"
+            "   (start_date, end_date)\n"
+            "   (start_date, end_date, intervals)\n"
+            "   (start_date, end_date, timewindow)\n"
+            "   (start_date, intervals, timewindow)\n"
+        )
 
     # if growth == 'incremental':
     #     timewindows = [(i, j) for i, j in zip(timelimits[:-1],
@@ -455,26 +451,25 @@ class Task:
 
         """
 
-        if self.obj == obj or obj == getattr(self.obj, 'name', None):
+        if self.obj == obj or obj == getattr(self.obj, "name", None):
             if met == self.method:
                 if kw_arg in self.kwargs.values():
                     return True
         return False
 
     def __str__(self):
-        task_str = f'{self.__class__}\n\t' \
-                   f'Instance: {self.obj.__class__.__name__}\n'
-        a = getattr(self.obj, 'name', None)
+        task_str = f"{self.__class__}\n\t" f"Instance: {self.obj.__class__.__name__}\n"
+        a = getattr(self.obj, "name", None)
         if a:
-            task_str += f'\tName: {a}\n'
-        task_str += f'\tMethod: {self.method}\n'
+            task_str += f"\tName: {a}\n"
+        task_str += f"\tMethod: {self.method}\n"
         for i, j in self.kwargs.items():
-            task_str += f'\t\t{i}: {j} \n'
+            task_str += f"\t\t{i}: {j} \n"
 
         return task_str[:-2]
 
     def run(self):
-        if hasattr(self.obj, 'store'):
+        if hasattr(self.obj, "store"):
             self.obj = self.obj.store
         output = getattr(self.obj, self.method)(**self.kwargs)
 
@@ -504,7 +499,7 @@ class TaskGraph:
 
         self.tasks = OrderedDict()
         self._ntasks = 0
-        self.name = 'floatcsep.utils.TaskGraph'
+        self.name = "floatcsep.utils.TaskGraph"
 
     @property
     def ntasks(self):
@@ -526,10 +521,7 @@ class TaskGraph:
         self.tasks[task] = []
         self.ntasks += 1
 
-    def add_dependency(self, task,
-                       dinst=None,
-                       dmeth=None,
-                       dkw=None):
+    def add_dependency(self, task, dinst=None, dmeth=None, dkw=None):
         """
         Adds a dependency to a task already inserted to the TaskGraph. Searchs
         within the pre-added tasks a signature match by their name/instance,
@@ -552,7 +544,6 @@ class TaskGraph:
         self.tasks[task].extend(deps)
 
     def run(self):
-
         """
         Iterates through all the graph tasks and runs them.
         Returns:
@@ -570,9 +561,9 @@ class TaskGraph:
 
 
 class MarkdownReport:
-    """ Class to generate a Markdown report from a study """
+    """Class to generate a Markdown report from a study"""
 
-    def __init__(self, outname='report.md'):
+    def __init__(self, outname="report.md"):
         self.outname = outname
         self.toc = []
         self.has_title = True
@@ -580,13 +571,15 @@ class MarkdownReport:
         self.markdown = []
 
     def add_introduction(self, adict):
-        """ Generate document header from dictionary """
-        first = f"# CSEP Testing Results: {adict['simulation_name']}  \n" \
-                f"**Forecast Name:** {adict['forecast_name']}  \n" \
-                f"**Simulation Start Time:** {adict['origin_time']}  \n" \
-                f"**Evaluation Time:** {adict['evaluation_time']}  \n" \
-                f"**Catalog Source:** {adict['catalog_source']}  \n" \
-                f"**Number Simulations:** {adict['num_simulations']}\n"
+        """Generate document header from dictionary"""
+        first = (
+            f"# CSEP Testing Results: {adict['simulation_name']}  \n"
+            f"**Forecast Name:** {adict['forecast_name']}  \n"
+            f"**Simulation Start Time:** {adict['origin_time']}  \n"
+            f"**Evaluation Time:** {adict['evaluation_time']}  \n"
+            f"**Catalog Source:** {adict['catalog_source']}  \n"
+            f"**Number Simulations:** {adict['num_simulations']}\n"
+        )
 
         # used to determine to place TOC at beginning of document or after
         # introduction.
@@ -604,10 +597,19 @@ class MarkdownReport:
             text (list): lines to write
         Returns:
         """
-        self.markdown.append('  '.join(text) + '\n\n')
+        self.markdown.append("  ".join(text) + "\n\n")
 
-    def add_figure(self, title, relative_filepaths, level=2, ncols=1,
-                   add_ext=False, text='', caption='', width=None):
+    def add_figure(
+        self,
+        title,
+        relative_filepaths,
+        level=2,
+        ncols=1,
+        add_ext=False,
+        text="",
+        caption="",
+        width=None,
+    ):
         """
         This function expects a list of filepaths. If you want the output
         stacked, select a value of ncols. ncols should be divisible by
@@ -632,13 +634,12 @@ class MarkdownReport:
         correct_paths = []
         if add_ext:
             for fp in paths:
-                correct_paths.append(fp + '.png')
+                correct_paths.append(fp + ".png")
         else:
             correct_paths = paths
 
         # generate new lists with size ncols
-        formatted_paths = [correct_paths[i:i + ncols] for i in
-                           range(0, len(paths), ncols)]
+        formatted_paths = [correct_paths[i : i + ncols] for i in range(0, len(paths), ncols)]
 
         # convert str into a list, where each potential row is an iter not str
         def build_header(_row):
@@ -649,14 +650,14 @@ class MarkdownReport:
                     break
                 top += " |"
                 bottom += " --- |"
-            return top + '\n' + bottom
+            return top + "\n" + bottom
 
-        size_ = bool(width) * f'width={width}'
+        size_ = bool(width) * f"width={width}"
 
         def add_to_row(_row):
             if len(_row) == 1:
                 return f'<img src="{_row[0]}" {size_}/>'
-            string = '| '
+            string = "| "
             for item in _row:
                 string = string + f'<img src="{item}" width={width}/>'
             return string
@@ -664,23 +665,22 @@ class MarkdownReport:
         level_string = f"{level * '#'}"
         result_cell = []
         locator = title.lower().replace(" ", "_")
-        result_cell.append(
-            f'{level_string} {title}  <a name="{locator}"></a>\n')
-        result_cell.append(f'{text}\n')
+        result_cell.append(f'{level_string} {title}  <a name="{locator}"></a>\n')
+        result_cell.append(f"{text}\n")
 
         for i, row in enumerate(formatted_paths):
             if i == 0 and not is_single and ncols > 1:
                 result_cell.append(build_header(row))
             result_cell.append(add_to_row(row))
-        result_cell.append('\n')
-        result_cell.append(f'{caption}')
+        result_cell.append("\n")
+        result_cell.append(f"{caption}")
 
-        self.markdown.append('\n'.join(result_cell) + '\n')
+        self.markdown.append("\n".join(result_cell) + "\n")
 
         # generate metadata for TOC
         self.toc.append((title, level, locator))
 
-    def add_heading(self, title, level=1, text='', add_toc=True):
+    def add_heading(self, title, level=1, text="", add_toc=True):
         # multipying char simply repeats it
         if isinstance(text, str):
             text = [text]
@@ -693,9 +693,8 @@ class MarkdownReport:
             for item in list(text):
                 cell.append(item)
         except Exception as ex:
-            raise RuntimeWarning(
-                "Unable to add document subhead, text must be iterable.")
-        self.markdown.append('\n'.join(cell) + '\n')
+            raise RuntimeWarning("Unable to add document subhead, text must be iterable.")
+        self.markdown.append("\n".join(cell) + "\n")
 
         # generate metadata for TOC
         if add_toc:
@@ -705,24 +704,24 @@ class MarkdownReport:
         cell = []
         for item in _list:
             cell.append(f"* {item}")
-        self.markdown.append('\n'.join(cell) + '\n\n')
+        self.markdown.append("\n".join(cell) + "\n\n")
 
     def add_title(self, title, text):
         self.has_title = True
         self.add_heading(title, 1, text, add_toc=False)
 
     def table_of_contents(self):
-        """ generates table of contents based on contents of document. """
+        """generates table of contents based on contents of document."""
         if len(self.toc) == 0:
             return
         toc = ["# Table of Contents"]
 
         for i, elem in enumerate(self.toc):
             title, level, locator = elem
-            space = '   ' * (level - 1)
+            space = "   " * (level - 1)
             toc.append(f"{space}1. [{title}](#{locator})")
         insert_loc = 1 if self.has_title else 0
-        self.markdown.insert(insert_loc, '\n'.join(toc) + '\n\n')
+        self.markdown.insert(insert_loc, "\n".join(toc) + "\n\n")
 
     def add_table(self, data, use_header=True):
         """
@@ -734,37 +733,37 @@ class MarkdownReport:
             table (str): this can be added to subheading or other cell if
                 desired.
         """
-        table = ['<div class="table table-striped">', f'<table>']
+        table = ['<div class="table table-striped">', f"<table>"]
 
         def make_header(row):
             header = []
-            header.append('<tr>')
+            header.append("<tr>")
             for item in row:
-                header.append(f'<th>{item}</th>')
-            header.append('</tr>')
-            return '\n'.join(header)
+                header.append(f"<th>{item}</th>")
+            header.append("</tr>")
+            return "\n".join(header)
 
         def add_row(row):
-            table_row = ['<tr>']
+            table_row = ["<tr>"]
             for item in row:
                 table_row.append(f"<td>{item}</td>")
-            table_row.append('</tr>')
-            return '\n'.join(table_row)
+            table_row.append("</tr>")
+            return "\n".join(table_row)
 
         for i, row in enumerate(data):
             if i == 0 and use_header:
                 table.append(make_header(row))
             else:
                 table.append(add_row(row))
-        table.append('</table>')
-        table.append('</div>')
-        table = '\n'.join(table)
-        self.markdown.append(table + '\n\n')
+        table.append("</table>")
+        table.append("</div>")
+        table = "\n".join(table)
+        self.markdown.append(table + "\n\n")
 
     def save(self, save_dir):
         output = list(itertools.chain.from_iterable(self.markdown))
         full_md_fname = os.path.join(save_dir, self.outname)
-        with open(full_md_fname, 'w') as f:
+        with open(full_md_fname, "w") as f:
             f.writelines(output)
 
 
@@ -777,9 +776,7 @@ class NoAliasLoader(yaml.Loader):
 class ExperimentComparison:
 
     def __init__(self, original, reproduced, **kwargs):
-        """
-
-        """
+        """ """
         self.original = original
         self.reproduced = reproduced
 
@@ -789,33 +786,30 @@ class ExperimentComparison:
     @staticmethod
     def obs_diff(obs_orig, obs_repr):
 
-        return numpy.abs(numpy.divide((numpy.array(obs_orig) -
-                                       numpy.array(obs_repr)),
-                                      numpy.array(obs_orig)))
+        return numpy.abs(
+            numpy.divide((numpy.array(obs_orig) - numpy.array(obs_repr)), numpy.array(obs_orig))
+        )
 
     @staticmethod
     def test_stat(test_orig, test_repr):
 
         if isinstance(test_orig[0], str):
             if not isinstance(test_orig[1], str):
-                stats = numpy.array([0,
-                                     numpy.divide((test_repr[1] - test_orig[1]),
-                                                  test_orig[1]), 0, 0])
+                stats = numpy.array(
+                    [0, numpy.divide((test_repr[1] - test_orig[1]), test_orig[1]), 0, 0]
+                )
             else:
                 stats = None
         else:
-            stats_orig = numpy.array([numpy.mean(test_orig),
-                                      numpy.std(test_orig),
-                                      scipy.stats.skew(test_orig)])
-            stats_repr = numpy.array([numpy.mean(test_repr),
-                                      numpy.std(test_repr),
-                                      scipy.stats.skew(test_repr)])
+            stats_orig = numpy.array(
+                [numpy.mean(test_orig), numpy.std(test_orig), scipy.stats.skew(test_orig)]
+            )
+            stats_repr = numpy.array(
+                [numpy.mean(test_repr), numpy.std(test_repr), scipy.stats.skew(test_repr)]
+            )
 
             ks = scipy.stats.ks_2samp(test_orig, test_repr)
-            stats = [*numpy.divide(
-                numpy.abs(stats_repr - stats_orig),
-                stats_orig
-            ), ks.pvalue]
+            stats = [*numpy.divide(numpy.abs(stats_repr - stats_orig), stats_orig), ks.pvalue]
         return stats
 
     def get_results(self):
@@ -832,35 +826,40 @@ class ExperimentComparison:
         results = dict.fromkeys([i.name for i in tests_orig])
 
         for test in tests_orig:
-            if test.type in ['consistency', 'comparative']:
+            if test.type in ["consistency", "comparative"]:
                 results[test.name] = dict.fromkeys(win_orig)
                 for tw in win_orig:
                     results_orig = self.original.read_results(test, tw)
                     results_repr = self.reproduced.read_results(test, tw)
                     results[test.name][tw] = {
                         models_orig[i]: {
-                            'observed_statistic': self.obs_diff(
+                            "observed_statistic": self.obs_diff(
                                 results_orig[i].observed_statistic,
-                                results_repr[i].observed_statistic),
-                            'test_statistic': self.test_stat(
+                                results_repr[i].observed_statistic,
+                            ),
+                            "test_statistic": self.test_stat(
                                 results_orig[i].test_distribution,
-                                results_repr[i].test_distribution)
+                                results_repr[i].test_distribution,
+                            ),
                         }
-                        for i in range(len(models_orig))}
+                        for i in range(len(models_orig))
+                    }
 
             else:
                 results_orig = self.original.read_results(test, win_orig[-1])
                 results_repr = self.reproduced.read_results(test, win_orig[-1])
                 results[test.name] = {
                     models_orig[i]: {
-                        'observed_statistic': self.obs_diff(
+                        "observed_statistic": self.obs_diff(
                             results_orig[i].observed_statistic,
-                            results_repr[i].observed_statistic),
-                        'test_statistic': self.test_stat(
-                            results_orig[i].test_distribution,
-                            results_repr[i].test_distribution)
+                            results_repr[i].observed_statistic,
+                        ),
+                        "test_statistic": self.test_stat(
+                            results_orig[i].test_distribution, results_repr[i].test_distribution
+                        ),
                     }
-                    for i in range(len(models_orig))}
+                    for i in range(len(models_orig))
+                }
 
         return results
 
@@ -886,35 +885,27 @@ class ExperimentComparison:
         results = dict.fromkeys([i.name for i in tests_orig])
 
         for test in tests_orig:
-            if test.type in ['consistency', 'comparative']:
+            if test.type in ["consistency", "comparative"]:
                 results[test.name] = dict.fromkeys(win_orig)
                 for tw in win_orig:
                     results[test.name][tw] = dict.fromkeys(models_orig)
                     for model in models_orig:
-                        orig_path = self.original.path(
-                            tw, 'evaluations', test, model)
-                        repr_path = self.reproduced.path(
-                            tw, 'evaluations', test, model)
+                        orig_path = self.original.path(tw, "evaluations", test, model)
+                        repr_path = self.reproduced.path(tw, "evaluations", test, model)
 
-                        results[test.name][tw][model] ={
-                                'hash': (
-                                        self.get_hash(orig_path) ==
-                                        self.get_hash(repr_path)),
-                                'byte2byte': filecmp.cmp(orig_path,
-                                                         repr_path)}
+                        results[test.name][tw][model] = {
+                            "hash": (self.get_hash(orig_path) == self.get_hash(repr_path)),
+                            "byte2byte": filecmp.cmp(orig_path, repr_path),
+                        }
             else:
                 results[test.name] = dict.fromkeys(models_orig)
                 for model in models_orig:
-                    orig_path = self.original.path(
-                        win_orig[-1], 'evaluations', test, model)
-                    repr_path = self.reproduced.path(
-                        win_orig[-1], 'evaluations', test, model)
-                    results[test.name][model] ={
-                            'hash': (
-                                    self.get_hash(orig_path) ==
-                                    self.get_hash(repr_path)),
-                            'byte2byte': filecmp.cmp(orig_path,
-                                                     repr_path)}
+                    orig_path = self.original.path(win_orig[-1], "evaluations", test, model)
+                    repr_path = self.reproduced.path(win_orig[-1], "evaluations", test, model)
+                    results[test.name][model] = {
+                        "hash": (self.get_hash(orig_path) == self.get_hash(repr_path)),
+                        "byte2byte": filecmp.cmp(orig_path, repr_path),
+                    }
         return results
 
     def compare_results(self):
@@ -927,13 +918,12 @@ class ExperimentComparison:
 
         numerical = self.num_results
         data = self.file_comp
-        outname = os.path.join('reproducibility_report.md')
-        save_path = os.path.dirname(os.path.join(self.reproduced.path.workdir,
-                                 self.reproduced.path.rundir))
-        report = MarkdownReport(outname=outname)
-        report.add_title(
-            f"Reproducibility Report - {self.original.name}", ''
+        outname = os.path.join("reproducibility_report.md")
+        save_path = os.path.dirname(
+            os.path.join(self.reproduced.path.workdir, self.reproduced.path.rundir)
         )
+        report = MarkdownReport(outname=outname)
+        report.add_title(f"Reproducibility Report - {self.original.name}", "")
 
         report.add_heading("Objectives", level=2)
         objs = [
@@ -961,76 +951,92 @@ class ExperimentComparison:
             if is_time:
                 report.add_heading(num[0], level=2)
                 for tw in res_keys:
-                    rows = [[tw,
-                             'Score difference',
-                             'Test Mean  diff.',
-                             'Test Std  diff.',
-                             'Test Skew  diff.',
-                             'KS-test p value',
-                             'Hash (SHA-256) equal',
-                             'Byte-to-byte equal']]
+                    rows = [
+                        [
+                            tw,
+                            "Score difference",
+                            "Test Mean  diff.",
+                            "Test Std  diff.",
+                            "Test Skew  diff.",
+                            "KS-test p value",
+                            "Hash (SHA-256) equal",
+                            "Byte-to-byte equal",
+                        ]
+                    ]
 
-                    for model_stat, model_file in zip(num[1][tw].items(),
-                                                      dat[1][tw].items()):
-                        obs = model_stat[1]['observed_statistic']
-                        test = model_stat[1]['test_statistic']
-                        rows.append([model_stat[0], obs,
-                                     *[f'{i:.1e}' for i in test[:-1]],
-                                     f'{test[-1]:.1e}',
-                                     model_file[1]['hash'],
-                                     model_file[1]['byte2byte']])
+                    for model_stat, model_file in zip(num[1][tw].items(), dat[1][tw].items()):
+                        obs = model_stat[1]["observed_statistic"]
+                        test = model_stat[1]["test_statistic"]
+                        rows.append(
+                            [
+                                model_stat[0],
+                                obs,
+                                *[f"{i:.1e}" for i in test[:-1]],
+                                f"{test[-1]:.1e}",
+                                model_file[1]["hash"],
+                                model_file[1]["byte2byte"],
+                            ]
+                        )
                     report.add_table(rows)
             else:
                 report.add_heading(num[0], level=2)
-                rows = [[tw,
-                         'Max Score difference',
-                         'Hash (SHA-256) equal',
-                         'Byte-to-byte equal']]
+                rows = [
+                    [tw, "Max Score difference", "Hash (SHA-256) equal", "Byte-to-byte equal"]
+                ]
 
-                for model_stat, model_file in zip(num[1].items(),
-                                                  dat[1].items()):
-                    obs = numpy.nanmax(model_stat[1]['observed_statistic'])
+                for model_stat, model_file in zip(num[1].items(), dat[1].items()):
+                    obs = numpy.nanmax(model_stat[1]["observed_statistic"])
 
-                    rows.append([model_stat[0], f'{obs:.1e}',
-                                 model_file[1]['hash'],
-                                 model_file[1]['byte2byte']])
+                    rows.append(
+                        [
+                            model_stat[0],
+                            f"{obs:.1e}",
+                            model_file[1]["hash"],
+                            model_file[1]["byte2byte"],
+                        ]
+                    )
 
                 report.add_table(rows)
         report.table_of_contents()
         report.save(save_path)
+
+
 #######################
 # Perhaps add to pycsep
 #######################
 
+
 def plot_sequential_likelihood(evaluation_results, plot_args=None):
     if plot_args is None:
         plot_args = {}
-    title = plot_args.get('title', None)
-    titlesize = plot_args.get('titlesize', None)
-    ylabel = plot_args.get('ylabel', None)
-    colors = plot_args.get('colors', [None] * len(evaluation_results))
-    linestyles = plot_args.get('linestyles', [None] * len(evaluation_results))
-    markers = plot_args.get('markers', [None] * len(evaluation_results))
-    markersize = plot_args.get('markersize', 1)
-    linewidth = plot_args.get('linewidth', 0.5)
-    figsize = plot_args.get('figsize', (6, 4))
-    timestrs = plot_args.get('timestrs', None)
+    title = plot_args.get("title", None)
+    titlesize = plot_args.get("titlesize", None)
+    ylabel = plot_args.get("ylabel", None)
+    colors = plot_args.get("colors", [None] * len(evaluation_results))
+    linestyles = plot_args.get("linestyles", [None] * len(evaluation_results))
+    markers = plot_args.get("markers", [None] * len(evaluation_results))
+    markersize = plot_args.get("markersize", 1)
+    linewidth = plot_args.get("linewidth", 0.5)
+    figsize = plot_args.get("figsize", (6, 4))
+    timestrs = plot_args.get("timestrs", None)
     if timestrs:
-        startyear = [date.fromisoformat(j.split('_')[0]) for j in
-                     timestrs][0]
-        endyears = [date.fromisoformat(j.split('_')[1]) for j in
-                    timestrs]
+        startyear = [date.fromisoformat(j.split("_")[0]) for j in timestrs][0]
+        endyears = [date.fromisoformat(j.split("_")[1]) for j in timestrs]
         years = [startyear] + endyears
     else:
         startyear = 0
-        years = numpy.arange(0, len(evaluation_results[0].observed_statistic)
-                             + 1)
+        years = numpy.arange(0, len(evaluation_results[0].observed_statistic) + 1)
 
-    seaborn.set_style("white",
-                      {"axes.facecolor": ".9", 'font.family': 'Ubuntu'})
-    pyplot.rcParams.update({'xtick.bottom': True, 'axes.labelweight': 'bold',
-                            'xtick.labelsize': 8, 'ytick.labelsize': 8,
-                            'legend.fontsize': 9})
+    seaborn.set_style("white", {"axes.facecolor": ".9", "font.family": "Ubuntu"})
+    pyplot.rcParams.update(
+        {
+            "xtick.bottom": True,
+            "axes.labelweight": "bold",
+            "xtick.labelsize": 8,
+            "ytick.labelsize": 8,
+            "legend.fontsize": 9,
+        }
+    )
 
     if isinstance(colors, list):
         assert len(colors) == len(evaluation_results)
@@ -1048,11 +1054,16 @@ def plot_sequential_likelihood(evaluation_results, plot_args=None):
     fig, ax = pyplot.subplots(figsize=figsize)
     for i, result in enumerate(evaluation_results):
         data = [0] + result.observed_statistic
-        ax.plot(years, data, color=colors[i],
-                linewidth=linewidth, linestyle=linestyles[i],
-                marker=markers[i],
-                markersize=markersize,
-                label=result.sim_name)
+        ax.plot(
+            years,
+            data,
+            color=colors[i],
+            linewidth=linewidth,
+            linestyle=linestyles[i],
+            marker=markers[i],
+            markersize=markersize,
+            label=result.sim_name,
+        )
         ax.set_ylabel(ylabel)
         ax.set_xlim([startyear, None])
         ax.set_title(title, fontsize=titlesize)
@@ -1062,39 +1073,32 @@ def plot_sequential_likelihood(evaluation_results, plot_args=None):
 
 
 def magnitude_vs_time(catalog):
-    mag = catalog.data['magnitude']
-    time = [datetime.fromtimestamp(i / 1000.) for i in
-            catalog.data['origin_time']]
+    mag = catalog.data["magnitude"]
+    time = [datetime.fromtimestamp(i / 1000.0) for i in catalog.data["origin_time"]]
     fig, ax = pyplot.subplots(figsize=(12, 4))
-    ax.plot(time, mag, marker='o', linewidth=0, color='r', alpha=0.2)
-    ax.set_xlabel('Date', fontsize=16)
-    ax.set_ylabel('$M_w$', fontsize=16)
-    ax.set_title('Magnitude vs. Time', fontsize=18)
+    ax.plot(time, mag, marker="o", linewidth=0, color="r", alpha=0.2)
+    ax.set_xlabel("Date", fontsize=16)
+    ax.set_ylabel("$M_w$", fontsize=16)
+    ax.set_title("Magnitude vs. Time", fontsize=18)
     return ax
 
 
-def plot_matrix_comparative_test(evaluation_results,
-                                 p=0.05,
-                                 order=True,
-                                 plot_args={}):
-    """ Produces matrix plot for comparative tests for all models
+def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True, plot_args={}):
+    """Produces matrix plot for comparative tests for all models
 
-        Args:
-            evaluation_results (list of result objects): paired t-test results
-            p (float): significance level
-            order (bool): columns/rows ordered by ranking
+    Args:
+        evaluation_results (list of result objects): paired t-test results
+        p (float): significance level
+        order (bool): columns/rows ordered by ranking
 
-        Returns:
-            ax (matplotlib.Axes): handle for figure
+    Returns:
+        ax (matplotlib.Axes): handle for figure
     """
     names = [i.sim_name for i in evaluation_results]
 
-    t_value = numpy.array(
-        [Tw_i.observed_statistic for Tw_i in evaluation_results])
-    t_quantile = numpy.array(
-        [Tw_i.quantile[0] for Tw_i in evaluation_results])
-    w_quantile = numpy.array(
-        [Tw_i.quantile[1] for Tw_i in evaluation_results])
+    t_value = numpy.array([Tw_i.observed_statistic for Tw_i in evaluation_results])
+    t_quantile = numpy.array([Tw_i.quantile[0] for Tw_i in evaluation_results])
+    w_quantile = numpy.array([Tw_i.quantile[1] for Tw_i in evaluation_results])
     score = numpy.sum(t_value, axis=1) / t_value.shape[0]
 
     if order:
@@ -1109,29 +1113,52 @@ def plot_matrix_comparative_test(evaluation_results,
     fig, ax = pyplot.subplots(1, 1, figsize=(7, 6))
 
     cmap = seaborn.diverging_palette(220, 20, as_cmap=True)
-    seaborn.heatmap(data_t, vmin=-3, vmax=3, center=0, cmap=cmap,
-                    ax=ax, cbar_kws={'pad': 0.01, 'shrink': 0.7,
-                                     'label': 'Information Gain',
-                                     'anchor': (0., 0.)}),
-    ax.set_yticklabels([names[i] for i in arg_ind], rotation='horizontal')
-    ax.set_xticklabels([names[i] for i in arg_ind], rotation='vertical')
+    seaborn.heatmap(
+        data_t,
+        vmin=-3,
+        vmax=3,
+        center=0,
+        cmap=cmap,
+        ax=ax,
+        cbar_kws={
+            "pad": 0.01,
+            "shrink": 0.7,
+            "label": "Information Gain",
+            "anchor": (0.0, 0.0),
+        },
+    ),
+    ax.set_yticklabels([names[i] for i in arg_ind], rotation="horizontal")
+    ax.set_xticklabels([names[i] for i in arg_ind], rotation="vertical")
     for n, i in enumerate(data_tq):
         for m, j in enumerate(i):
             if j > 0 and data_w[n, m] < p:
-                ax.scatter(n + 0.5, m + 0.5, marker='o', s=5, color='black')
+                ax.scatter(n + 0.5, m + 0.5, marker="o", s=5, color="black")
 
-    legend_elements = [Line2D([0], [0], marker='o', lw=0,
-                              label=r'T and W significant',
-                              markerfacecolor="black", markeredgecolor='black',
-                              markersize=4)]
-    fig.legend(handles=legend_elements, loc='lower right',
-               bbox_to_anchor=(0.75, 0.0, 0.2, 0.2), handletextpad=0)
+    legend_elements = [
+        Line2D(
+            [0],
+            [0],
+            marker="o",
+            lw=0,
+            label=r"T and W significant",
+            markerfacecolor="black",
+            markeredgecolor="black",
+            markersize=4,
+        )
+    ]
+    fig.legend(
+        handles=legend_elements,
+        loc="lower right",
+        bbox_to_anchor=(0.75, 0.0, 0.2, 0.2),
+        handletextpad=0,
+    )
     pyplot.tight_layout()
 
 
 #########################
 # Below needs refactoring
 #########################
+
 
 def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
     """
@@ -1148,14 +1175,14 @@ def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
          level than the other grid.
     """
     from csep.core.forecasts import GriddedForecast
+
     bounds_target = target_grid.bounds
     bounds = forecast_gridded.region.bounds
     data = forecast_gridded.data
-    data_mapped_bounds = _forecast_mapping_generic(bounds_target, bounds, data,
-                                                   ncpu=ncpu)
-    target_forecast = GriddedForecast(data=data_mapped_bounds,
-                                      region=target_grid,
-                                      magnitudes=forecast_gridded.magnitudes)
+    data_mapped_bounds = _forecast_mapping_generic(bounds_target, bounds, data, ncpu=ncpu)
+    target_forecast = GriddedForecast(
+        data=data_mapped_bounds, region=target_grid, magnitudes=forecast_gridded.magnitudes
+    )
     return target_forecast
 
 
@@ -1179,11 +1206,15 @@ def plot_quadtree_forecast(qtree_forecast):
         # single-resolution grid
         ax = qtree_forecast.plot()
     else:
-        print('Multi-resolution grid detected.')
-        print('Currently, we do not offer utility to plot a forecast with '
-              'multi-resolution grid')
-        print('Therefore, forecast is being aggregated on a single-resolution '
-              'grid (L8) for plotting')
+        print("Multi-resolution grid detected.")
+        print(
+            "Currently, we do not offer utility to plot a forecast with "
+            "multi-resolution grid"
+        )
+        print(
+            "Therefore, forecast is being aggregated on a single-resolution "
+            "grid (L8) for plotting"
+        )
 
         single_res_grid_l8 = QuadtreeGrid2D.from_single_resolution(8)
         forecast_l8 = forecast_mapping(qtree_forecast, single_res_grid_l8)
@@ -1202,8 +1233,8 @@ def plot_forecast_lowres(forecast, plot_args, k=4):
 
     """
 
-    print('\tPlotting Forecast')
-    plot_args['title'] = forecast.name
+    print("\tPlotting Forecast")
+    plot_args["title"] = forecast.name
     region = forecast.region
     coords = region.origins()
     dataset = numpy.log10(forecast.spatial_counts(cartesian=True))[::k, ::k]
@@ -1213,26 +1244,26 @@ def plot_forecast_lowres(forecast, plot_args, k=4):
 
 
 def quadtree_csv_loader(csv_fname):
-    """ Load quadtree forecasted stored as csv file
-        The format expects forecast as a comma separated file, in which first
-        column corresponds to quadtree grid cell (quadkey).
-        The second and thrid columns indicate depth range.
-        The corresponding enteries in the respective row are forecast rates
-        corresponding to the magnitude bins.
-        The first line of forecast is a header, and its format is listed here:
-            'Quadkey', depth_min, depth_max, Mag_0, Mag_1, Mag_2, Mag_3 , ....
-             Quadkey is a string. Rest of the values are floats.
-        For the purposes of defining region objects quadkey is used.
-        We assume that the starting value of magnitude bins are provided in the
-         header.
-        Args:
-            csv_fname: file name of csep forecast in csv format
-        Returns:
-            rates, region, mws (np.ndarray, QuadtreeRegion2D, np.ndarray):
-             rates, region, and magnitude bins needed to define QuadTree models
-     """
+    """Load quadtree forecasted stored as csv file
+    The format expects forecast as a comma separated file, in which first
+    column corresponds to quadtree grid cell (quadkey).
+    The second and thrid columns indicate depth range.
+    The corresponding enteries in the respective row are forecast rates
+    corresponding to the magnitude bins.
+    The first line of forecast is a header, and its format is listed here:
+        'Quadkey', depth_min, depth_max, Mag_0, Mag_1, Mag_2, Mag_3 , ....
+         Quadkey is a string. Rest of the values are floats.
+    For the purposes of defining region objects quadkey is used.
+    We assume that the starting value of magnitude bins are provided in the
+     header.
+    Args:
+        csv_fname: file name of csep forecast in csv format
+    Returns:
+        rates, region, mws (np.ndarray, QuadtreeRegion2D, np.ndarray):
+         rates, region, and magnitude bins needed to define QuadTree models
+    """
 
-    data = numpy.genfromtxt(csv_fname, dtype='str', delimiter=',')
+    data = numpy.genfromtxt(csv_fname, dtype="str", delimiter=",")
     quadkeys = data[1:, 0]
     mws = data[0, 3:].astype(float)
     rates = data[1:, 3:]
@@ -1248,8 +1279,7 @@ def geographical_area_from_qk(quadk):
     Wrapper around function geographical_area_from_bounds
     """
     bounds = tile_bounds(quadk)
-    return geographical_area_from_bounds(bounds[0], bounds[1], bounds[2],
-                                         bounds[3])
+    return geographical_area_from_bounds(bounds[0], bounds[1], bounds[2], bounds[3])
 
 
 def tile_bounds(quad_cell_id):
@@ -1277,7 +1307,8 @@ def create_polygon(fg):
     Required for parallel processing
     """
     return shapely.geometry.Polygon(
-        [(fg[0], fg[1]), (fg[2], fg[1]), (fg[2], fg[3]), (fg[0], fg[3])])
+        [(fg[0], fg[1]), (fg[2], fg[1]), (fg[2], fg[3]), (fg[0], fg[3])]
+    )
 
 
 def calc_cell_area(cell):
@@ -1287,8 +1318,7 @@ def calc_cell_area(cell):
     return geographical_area_from_bounds(cell[0], cell[1], cell[2], cell[3])
 
 
-def _map_overlapping_cells(fcst_grid_poly, fcst_cell_area, fcst_rate_poly,
-                           target_poly):  # ,
+def _map_overlapping_cells(fcst_grid_poly, fcst_cell_area, fcst_rate_poly, target_poly):  # ,
     """
     This functions work for Cells that do not directly conside with target
      polygon cells. This function uses 3 variables i.e. fcst_grid_poly,
@@ -1316,12 +1346,13 @@ def _map_overlapping_cells(fcst_grid_poly, fcst_cell_area, fcst_rate_poly,
         if target_poly.intersects(fcst_grid_poly[j]):  # overlaps
 
             intersect = target_poly.intersection(fcst_grid_poly[j])
-            shared_area = geographical_area_from_bounds(intersect.bounds[0],
-                                                        intersect.bounds[1],
-                                                        intersect.bounds[2],
-                                                        intersect.bounds[3])
-            map_rate = map_rate + (
-                    fcst_rate_poly[j] * (shared_area / fcst_cell_area[j]))
+            shared_area = geographical_area_from_bounds(
+                intersect.bounds[0],
+                intersect.bounds[1],
+                intersect.bounds[2],
+                intersect.bounds[3],
+            )
+            map_rate = map_rate + (fcst_rate_poly[j] * (shared_area / fcst_cell_area[j]))
     return map_rate
 
 
@@ -1339,10 +1370,10 @@ def _map_exact_inside_cells(fcst_grid, fcst_rate, boundary):
          boundary cell
         2 - Array of the corresponding cells that fall inside
     """
-    c = numpy.logical_and(numpy.logical_and(fcst_grid[:, 0] >= boundary[0],
-                                            fcst_grid[:, 1] >= boundary[1]),
-                          numpy.logical_and(fcst_grid[:, 2] <= boundary[2],
-                                            fcst_grid[:, 3] <= boundary[3]))
+    c = numpy.logical_and(
+        numpy.logical_and(fcst_grid[:, 0] >= boundary[0], fcst_grid[:, 1] >= boundary[1]),
+        numpy.logical_and(fcst_grid[:, 2] <= boundary[2], fcst_grid[:, 3] <= boundary[3]),
+    )
 
     exact_cells = numpy.where(c == True)
 
@@ -1382,7 +1413,7 @@ def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
         pool = multiprocessing.Pool(ncpu)
     else:
         pool = multiprocessing.Pool(ncpu)  # mp.cpu_count()
-    print('Number of CPUs :', ncpu)
+    print("Number of CPUs :", ncpu)
 
     func_exact = partial(_map_exact_inside_cells, fcst_grid, fcst_rate)
     exact_rate = pool.map(func_exact, [poly for poly in target_grid])
@@ -1418,11 +1449,11 @@ def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
 
     # print('--2nd Step: Start Polygon mapping--')
     pool = multiprocessing.Pool(ncpu)
-    func_overlapping = partial(_map_overlapping_cells, fcst_grid_poly,
-                               fcst_cell_area, fcst_rate_poly)
+    func_overlapping = partial(
+        _map_overlapping_cells, fcst_grid_poly, fcst_cell_area, fcst_rate_poly
+    )
     # Uses above three Global Parameters
-    rate_tgt = pool.map(func_overlapping, [poly for poly in
-                                           target_grid_poly])
+    rate_tgt = pool.map(func_overlapping, [poly for poly in target_grid_poly])
     pool.close()
 
     zero_pad_len = numpy.shape(fcst_rate)[1]
@@ -1470,7 +1501,7 @@ USER $USERNAME
 
 
 def _global_region(dh=0.1, name="global", magnitudes=None):
-    """ Creates a global region used for evaluating gridded models on the
+    """Creates a global region used for evaluating gridded models on the
     global scale.
 
     Modified from csep.core.regions.global_region
@@ -1489,8 +1520,8 @@ def _global_region(dh=0.1, name="global", magnitudes=None):
     lats = numpy.arange(-90, 90, dh)
     coords = itertools.product(lons, lats)
     region = CartesianGrid2D(
-        [Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh,
-        name=name)
+        [Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh, name=name
+    )
     if magnitudes is not None:
         region.magnitudes = magnitudes
     return region
@@ -1504,30 +1535,38 @@ def _check_zero_bins(exp, catalog, test_date):
         zero_forecast = numpy.argwhere(forecast.spatial_counts()[bins] == 0)
         if zero_forecast:
             print(zero_forecast)
-        ax = catalog.plot(plot_args={'basemap': 'stock_img'})
-        ax = forecast.plot(ax=ax, plot_args={'alpha': 0.8})
-        ax.plot(catalog.get_longitudes()[zero_forecast.ravel()],
-                catalog.get_latitudes()[zero_forecast.ravel()], 'o',
-                markersize=10)
-        pyplot.savefig(f'{model.path}/{model.name}.png', dpi=300)
+        ax = catalog.plot(plot_args={"basemap": "stock_img"})
+        ax = forecast.plot(ax=ax, plot_args={"alpha": 0.8})
+        ax.plot(
+            catalog.get_longitudes()[zero_forecast.ravel()],
+            catalog.get_latitudes()[zero_forecast.ravel()],
+            "o",
+            markersize=10,
+        )
+        pyplot.savefig(f"{model.path}/{model.name}.png", dpi=300)
     for model in exp.models:
         forecast = model.create_forecast(exp.start_date, test_date)
         catalog.filter_spatial(forecast.region)
         sbins = catalog.get_spatial_idx()
         mbins = catalog.get_mag_idx()
         zero_forecast = numpy.argwhere(forecast.data[sbins, mbins] == 0)
-        print('event', 'cell', sbins[zero_forecast], 'datum',
-              catalog.data[zero_forecast])
+        print("event", "cell", sbins[zero_forecast], "datum", catalog.data[zero_forecast])
         if zero_forecast:
             print(zero_forecast)
-            print('cellfc', forecast.get_longitudes()[sbins[zero_forecast]],
-                  forecast.get_latitudes()[sbins[zero_forecast]])
-            print('scounts', forecast.spatial_counts()[sbins[zero_forecast]])
-            print('data', forecast.data[sbins[zero_forecast]])
+            print(
+                "cellfc",
+                forecast.get_longitudes()[sbins[zero_forecast]],
+                forecast.get_latitudes()[sbins[zero_forecast]],
+            )
+            print("scounts", forecast.spatial_counts()[sbins[zero_forecast]])
+            print("data", forecast.data[sbins[zero_forecast]])
             print(forecast.data[zero_forecast[0]])
-        ax = catalog.plot(plot_args={'basemap': 'stock_img'})
-        ax = forecast.plot(ax=ax, plot_args={'alpha': 0.8})
-        ax.plot(catalog.get_longitudes()[zero_forecast.ravel()],
-                catalog.get_latitudes()[zero_forecast.ravel()], 'o',
-                markersize=10)
-        pyplot.savefig(f'{model.path}/{model.name}.png', dpi=300)
+        ax = catalog.plot(plot_args={"basemap": "stock_img"})
+        ax = forecast.plot(ax=ax, plot_args={"alpha": 0.8})
+        ax.plot(
+            catalog.get_longitudes()[zero_forecast.ravel()],
+            catalog.get_latitudes()[zero_forecast.ravel()],
+            "o",
+            markersize=10,
+        )
+        pyplot.savefig(f"{model.path}/{model.name}.png", dpi=300)

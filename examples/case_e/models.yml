@@ -1,12 +1,12 @@
 - ALM:
     path: models/gulia-wiemer.ALM.italy.10yr.2010-01-01.xml
     forecast_unit: 10
-    use_db: True
+    store_db: True
 - MPS04:
     path: models/meletti.MPS04.italy.10yr.2010-01-01.xml
     forecast_unit: 10
-    use_db: True
+    store_db: True
 - TripleS-CPTI:
     path: models/zechar.TripleS-CPTI.italy.10yr.2010-01-01.xml
     forecast_unit: 10
-    use_db: True
+    store_db: True

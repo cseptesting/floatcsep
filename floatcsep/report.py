@@ -20,9 +20,7 @@ def generate_report(experiment, timewindow=-1):
 
     hooks = experiment.report_hook
     report = MarkdownReport()
-    report.add_title(
-        f"Experiment Report - {experiment.name}", hooks.get('title_text', '')
-    )
+    report.add_title(f"Experiment Report - {experiment.name}", hooks.get("title_text", ""))
 
     report.add_heading("Objectives", level=2)
 
@@ -32,8 +30,8 @@ def generate_report(experiment, timewindow=-1):
         f" M>{min(experiment.magnitudes)}.",
     ]
 
-    if hooks.get('objectives', None):
-        for i in hooks.get('objectives'):
+    if hooks.get("objectives", None):
+        for i in hooks.get("objectives"):
             objs.append(i)
 
     report.add_list(objs)
@@ -45,24 +43,23 @@ def generate_report(experiment, timewindow=-1):
         experiment.plot_catalog()
         report.add_figure(
             f"Input catalog",
-            [experiment.path('catalog_figure'),
-             experiment.path('magnitude_time')],
+            [experiment.path("catalog_figure"), experiment.path("magnitude_time")],
             level=3,
             ncols=1,
             caption="Evaluation catalog from "
-                    f"{experiment.start_date} until {experiment.end_date}. "  
-                    f"Earthquakes are filtered above Mw"
-                    f" {min(experiment.magnitudes)}.",
-            add_ext=True
+            f"{experiment.start_date} until {experiment.end_date}. "
+            f"Earthquakes are filtered above Mw"
+            f" {min(experiment.magnitudes)}.",
+            add_ext=True,
         )
 
     report.add_heading(
         "Results",
         level=2,
         text="The following tests are applied to each of the experiment's "
-             "forecasts. More information regarding the tests can be found "
-             "[here]"
-             "(https://docs.cseptesting.org/getting_started/theory.html)."
+        "forecasts. More information regarding the tests can be found "
+        "[here]"
+        "(https://docs.cseptesting.org/getting_started/theory.html).",
     )
 
     test_names = [test.name for test in experiment.tests]
@@ -70,28 +67,22 @@ def generate_report(experiment, timewindow=-1):
 
     # Include results from Experiment
     for test in experiment.tests:
-        fig_path = experiment.path(timestr, 'figures', test)
-        width = test.plot_args[0].get('figsize', [4])[0] * 96
+        fig_path = experiment.path(timestr, "figures", test)
+        width = test.plot_args[0].get("figsize", [4])[0] * 96
         report.add_figure(
-            f"{test.name}",
-            fig_path,
-            level=3,
-            caption=test.markdown,
-            add_ext=True,
-            width=width
+            f"{test.name}", fig_path, level=3, caption=test.markdown, add_ext=True, width=width
         )
         for model in experiment.models:
             try:
-                fig_path = experiment.path(timestr, 'figures',
-                                               f'{test.name}_{model.name}')
-                width = test.plot_args[0].get('figsize', [4])[0] * 96
+                fig_path = experiment.path(timestr, "figures", f"{test.name}_{model.name}")
+                width = test.plot_args[0].get("figsize", [4])[0] * 96
                 report.add_figure(
                     f"{test.name}: {model.name}",
                     fig_path,
                     level=3,
                     caption=test.markdown,
                     add_ext=True,
-                    width=width
+                    width=width,
                 )
             except KeyError:
                 pass

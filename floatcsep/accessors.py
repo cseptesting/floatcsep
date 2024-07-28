@@ -14,25 +14,32 @@ HOST_CATALOG = "https://service.iris.edu/fdsnws/event/1/query?"
 TIMEOUT = 180
 
 
-def query_gcmt(start_time, end_time, min_magnitude=5.0,
-               max_depth=None,
-               catalog_id=None,
-               min_latitude=None, max_latitude=None,
-               min_longitude=None, max_longitude=None):
+def query_gcmt(
+    start_time,
+    end_time,
+    min_magnitude=5.0,
+    max_depth=None,
+    catalog_id=None,
+    min_latitude=None,
+    max_latitude=None,
+    min_longitude=None,
+    max_longitude=None,
+):
 
-    eventlist = _query_gcmt(start_time=start_time,
-                            end_time=end_time,
-                            min_magnitude=min_magnitude,
-                            min_latitude=min_latitude,
-                            max_latitude=max_latitude,
-                            min_longitude=min_longitude,
-                            max_longitude=max_longitude,
-                            max_depth=max_depth)
+    eventlist = _query_gcmt(
+        start_time=start_time,
+        end_time=end_time,
+        min_magnitude=min_magnitude,
+        min_latitude=min_latitude,
+        max_latitude=max_latitude,
+        min_longitude=min_longitude,
+        max_longitude=max_longitude,
+        max_depth=max_depth,
+    )
 
-    catalog = CSEPCatalog(data=eventlist,
-                          name='gCMT',
-                          catalog_id=catalog_id,
-                          date_accessed=utc_now_datetime())
+    catalog = CSEPCatalog(
+        data=eventlist, name="gCMT", catalog_id=catalog_id, date_accessed=utc_now_datetime()
+    )
     return catalog
 
 
@@ -51,9 +58,9 @@ def from_zenodo(record_id, folder, force=False):
 
     """
     # Grab the urls and filenames and checksums
-    r = requests.get(f"https://zenodo.org/api/records/{record_id}")
-    download_urls = [f['links']['self'] for f in r.json()['files']]
-    filenames = [(f['key'], f['checksum']) for f in r.json()['files']]
+    r = requests.get(f"https://zenodo.org/api/records/{record_id}", timeout=3)
+    download_urls = [f["links"]["self"] for f in r.json()["files"]]
+    filenames = [(f["key"], f["checksum"]) for f in r.json()["files"]]
 
     # Download and verify checksums
     for (fname, checksum), url in zip(filenames, download_urls):
@@ -61,15 +68,13 @@ def from_zenodo(record_id, folder, force=False):
         if os.path.exists(full_path):
             value, digest = _check_hash(full_path, checksum)
             if value != digest:
-                print(
-                    f"Checksum is different: re-downloading {fname}"
-                    f" from Zenodo...")
+                print(f"Checksum is different: re-downloading {fname}" f" from Zenodo...")
                 _download_file(url, full_path)
             elif force:
                 print(f"Re-downloading {fname} from Zenodo...")
                 _download_file(url, full_path)
             else:
-                print(f'Found file {fname}. Checksum OK.')
+                print(f"Found file {fname}. Checksum OK.")
 
         else:
             print(f"Downloading {fname} from Zenodo...")
@@ -96,24 +101,31 @@ def from_git(url, path, branch=None, depth=1, **kwargs):
         the pygit repository
     """
 
-    kwargs.update({'depth': depth})
+    kwargs.update({"depth": depth})
     git.refresh()
 
     try:
         repo = git.Repo(path)
     except (git.NoSuchPathError, git.InvalidGitRepositoryError):
         repo = git.Repo.clone_from(url, path, branch=branch, **kwargs)
-        git_dir = os.path.join(path, '.git')
+        git_dir = os.path.join(path, ".git")
         if os.path.isdir(git_dir):
             shutil.rmtree(git_dir)
 
     return repo
 
 
-def _query_gcmt(start_time, end_time, min_magnitude=3.50,
-                min_latitude=None, max_latitude=None,
-                min_longitude=None, max_longitude=None,
-                max_depth=1000, extra_gcmt_params=None):
+def _query_gcmt(
+    start_time,
+    end_time,
+    min_magnitude=3.50,
+    min_latitude=None,
+    max_latitude=None,
+    min_longitude=None,
+    max_longitude=None,
+    max_depth=1000,
+    extra_gcmt_params=None,
+):
     """
     Return GCMT eventlist from IRIS web service.
     For details see "https://service.iris.edu/fdsnws/event/1/"
@@ -134,38 +146,44 @@ def _query_gcmt(start_time, end_time, min_magnitude=3.50,
     """
     extra_gcmt_params = extra_gcmt_params or {}
 
-    eventlist = gcmt_search(minmagnitude=min_magnitude,
-                            minlatitude=min_latitude,
-                            maxlatitude=max_latitude,
-                            minlongitude=min_longitude,
-                            maxlongitude=max_longitude,
-                            starttime=start_time.isoformat(),
-                            endtime=end_time.isoformat(),
-                            maxdepth=max_depth, **extra_gcmt_params)
+    eventlist = gcmt_search(
+        minmagnitude=min_magnitude,
+        minlatitude=min_latitude,
+        maxlatitude=max_latitude,
+        minlongitude=min_longitude,
+        maxlongitude=max_longitude,
+        starttime=start_time.isoformat(),
+        endtime=end_time.isoformat(),
+        maxdepth=max_depth,
+        **extra_gcmt_params,
+    )
 
     return eventlist
 
-def gcmt_search(format='text',
-                starttime=None,
-                endtime=None,
-                updatedafter=None,
-                minlatitude=None,
-                maxlatitude=None,
-                minlongitude=None,
-                maxlongitude=None,
-                latitude=None,
-                longitude=None,
-                maxradius=None,
-                catalog='GCMT',
-                contributor=None,
-                maxdepth=1000,
-                maxmagnitude=10.0,
-                mindepth=-100,
-                minmagnitude=0,
-                offset=1,
-                orderby='time-asc',
-                host=None,
-                verbose=False):
+
+def gcmt_search(
+    format="text",
+    starttime=None,
+    endtime=None,
+    updatedafter=None,
+    minlatitude=None,
+    maxlatitude=None,
+    minlongitude=None,
+    maxlongitude=None,
+    latitude=None,
+    longitude=None,
+    maxradius=None,
+    catalog="GCMT",
+    contributor=None,
+    maxdepth=1000,
+    maxmagnitude=10.0,
+    mindepth=-100,
+    minmagnitude=0,
+    offset=1,
+    orderby="time-asc",
+    host=None,
+    verbose=False,
+):
     """Search the IRIS database for events matching input criteria.
     This search function is a wrapper around the ComCat Web API described here:
     https://service.iris.edu/fdsnws/event/1/
@@ -225,16 +243,16 @@ def gcmt_search(format='text',
 
     for key, value in inputargs.items():
         if value is True:
-            newargs[key] = 'true'
+            newargs[key] = "true"
             continue
         if value is False:
-            newargs[key] = 'false'
+            newargs[key] = "false"
             continue
         if value is None:
             continue
         newargs[key] = value
 
-    del newargs['verbose']
+    del newargs["verbose"]
 
     events = _search_gcmt(**newargs)
 
@@ -249,11 +267,11 @@ def _search_gcmt(**_newargs):
     paramstr = urlencode(_newargs)
     url = HOST_CATALOG + paramstr
     fh = request.urlopen(url, timeout=TIMEOUT)
-    data = fh.read().decode('utf8').split('\n')
+    data = fh.read().decode("utf8").split("\n")
     fh.close()
     eventlist = []
     for line in data[1:]:
-        line_ = line.split('|')
+        line_ = line.split("|")
         if len(line_) != 1:
             id_ = line_[0]
             time_ = datetime.fromisoformat(line_[1])
@@ -280,47 +298,47 @@ def _download_file(url: str, filename: str) -> None:
     progress_bar_length = 72
     block_size = 1024
 
-    r = requests.get(url, stream=True)
-    total_size = r.headers.get('content-length', False)
+    r = requests.get(url, timeout=3, stream=True)
+    total_size = r.headers.get("content-length", False)
     if not total_size:
         with requests.head(url) as h:
             try:
-                total_size = int(h.headers.get('Content-Length', 0))
+                total_size = int(h.headers.get("Content-Length", 0))
             except TypeError:
                 total_size = 0
     else:
         total_size = int(total_size)
     download_size = 0
     if total_size:
-        print(
-            f'Downloading file with size of {total_size / block_size:.3f} kB')
+        print(f"Downloading file with size of {total_size / block_size:.3f} kB")
     else:
-        print(f'Downloading file with unknown size')
-    with open(filename, 'wb') as f:
+        print(f"Downloading file with unknown size")
+    with open(filename, "wb") as f:
         for data in r.iter_content(chunk_size=block_size):
             download_size += len(data)
             f.write(data)
             if total_size:
-                progress = int(
-                    progress_bar_length * download_size / total_size)
+                progress = int(progress_bar_length * download_size / total_size)
                 sys.stdout.write(
-                    '\r[{}{}] {:.1f}%'.format('█' * progress, '.' *
-                                              (progress_bar_length - progress),
-                                              100 * download_size / total_size)
+                    "\r[{}{}] {:.1f}%".format(
+                        "█" * progress,
+                        "." * (progress_bar_length - progress),
+                        100 * download_size / total_size,
+                    )
                 )
                 sys.stdout.flush()
-        sys.stdout.write('\n')
+        sys.stdout.write("\n")
 
 
 def _check_hash(filename, checksum):
     """
     Checks if existing file hash matches checksum from url
     """
-    algorithm, value = checksum.split(':')
+    algorithm, value = checksum.split(":")
     if not os.path.exists(filename):
-        return value, 'invalid'
+        return value, "invalid"
     h = hashlib.new(algorithm)
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         while True:
             data = f.read(4096)
             if not data:
