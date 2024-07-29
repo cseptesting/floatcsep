@@ -65,6 +65,11 @@ class RunExamples(DataTest):
         self.run_evaluation(cfg)
         self.assertEqual(1, 1)
 
+    def test_case_g(self):
+        cfg = self.get_runpath('g')
+        self.run_evaluation(cfg)
+        self.assertEqual(1, 1)
+
 
 class ReproduceExamples(DataTest):
 
@@ -95,5 +100,10 @@ class ReproduceExamples(DataTest):
 
     def test_case_f(self):
         cfg = self.get_rerunpath('f')
+        self.repr_evaluation(cfg)
+        self.assertEqual(1, 1)
+
+    def test_case_g(self):
+        cfg = self.get_rerunpath('g')
         self.repr_evaluation(cfg)
         self.assertEqual(1, 1)

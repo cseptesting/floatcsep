@@ -124,7 +124,9 @@ class Model(ABC):
         elif giturl:
             log.info(f"Retrieving model {self.name} from git url: " f"{giturl}")
             try:
-                from_git(giturl, self.dir if self.path.fmt else self.path("path"), **kwargs)
+                from_git(
+                    giturl, self.dir if self.path.fmt else self.path("path"), **kwargs
+                )
             except (git.NoSuchPathError, git.CommandError) as msg:
                 raise git.NoSuchPathError(f"git url was not found {msg}")
         else:
@@ -175,7 +177,9 @@ class Model(ABC):
                 return _get_value(val)
 
         list_walk = [
-            (i, j) for i, j in sorted(self.__dict__.items()) if not i.startswith("_") and j
+            (i, j)
+            for i, j in sorted(self.__dict__.items())
+            if not i.startswith("_") and j
         ]
 
         dict_walk = {i: j for i, j in list_walk}
@@ -219,7 +223,9 @@ class TimeIndependentModel(Model):
         store_db (bool): flag to indicate whether to store the model in a database.
     """
 
-    def __init__(self, name: str, model_path: str, forecast_unit=1, store_db=False, **kwargs):
+    def __init__(
+        self, name: str, model_path: str, forecast_unit=1, store_db=False, **kwargs
+    ):
         super().__init__(name, model_path, **kwargs)
         self.forecast_unit = forecast_unit
         self.store_db = store_db
@@ -283,7 +289,9 @@ class TimeIndependentModel(Model):
 
     def get_forecast(
         self, tstring: Union[str, list] = None, region=None
-    ) -> Union[GriddedForecast, CatalogForecast, List[GriddedForecast], List[CatalogForecast]]:
+    ) -> Union[
+        GriddedForecast, CatalogForecast, List[GriddedForecast], List[CatalogForecast]
+    ]:
         """
         Wrapper that just returns a forecast when requested.
         """
@@ -325,7 +333,9 @@ class TimeIndependentModel(Model):
         start_date, end_date = str2timewindow(tstring)
         self.forecast_from_file(start_date, end_date, **kwargs)
 
-    def forecast_from_file(self, start_date: datetime, end_date: datetime, **kwargs) -> None:
+    def forecast_from_file(
+        self, start_date: datetime, end_date: datetime, **kwargs
+    ) -> None:
         """
         Generates a forecast from a file, by parsing and scaling it to.
 
@@ -352,7 +362,7 @@ class TimeIndependentModel(Model):
             region=region,
             magnitudes=mags,
             start_time=start_date,
-            end_time=end_date
+            end_time=end_date,
         )
 
         scale = time_horizon / self.forecast_unit
@@ -451,21 +461,29 @@ class TimeDependentModel(Model):
 
     def get_forecast(
         self, tstring: Union[str, list] = None, region=None
-    ) -> Union[GriddedForecast, CatalogForecast, List[GriddedForecast], List[CatalogForecast]]:
+    ) -> Union[
+        GriddedForecast, CatalogForecast, List[GriddedForecast], List[CatalogForecast]
+    ]:
         """Wrapper that just returns a forecast, hiding the access method  under the hood"""
 
         if isinstance(tstring, str):
             # If one time window string is passed
             fc_path = self.path("forecasts", tstring)
             # A region must be given to the forecast
-            return csep.load_catalog_forecast(fc_path, region=region)
+            return csep.load_catalog_forecast(
+                fc_path, region=region, apply_filters=True, filter_spatial=True
+            )
 
         else:
             forecasts = []
             for t in tstring:
                 fc_path = self.path("forecasts", t)
                 # A region must be given to the forecast
-                forecasts.append(csep.load_catalog_forecast(fc_path, region=region))
+                forecasts.append(
+                    csep.load_catalog_forecast(
+                        fc_path, region=region, apply_filters=True, filter_spatial=True
+                    )
+                )
             return forecasts
 
     def create_forecast(self, tstring: str, **kwargs) -> None:
@@ -493,7 +511,9 @@ class TimeDependentModel(Model):
         else:
             log.info(f"Forecast of {tstring} of model {self.name} already " f"exists")
 
-    def forecast_from_func(self, start_date: datetime, end_date: datetime, **kwargs) -> None:
+    def forecast_from_func(
+        self, start_date: datetime, end_date: datetime, **kwargs
+    ) -> None:
 
         self.prepare_args(start_date, end_date, **kwargs)
         log.info(
@@ -560,14 +580,14 @@ class ModelFactory:
     @staticmethod
     def create_model(model_cfg) -> Model:
 
-        model_path = [*model_cfg.values()][0]['model_path']
-        workdir = [*model_cfg.values()][0].get('workdir', '')
-        model_class = [*model_cfg.values()][0].get('class', '')
+        model_path = [*model_cfg.values()][0]["model_path"]
+        workdir = [*model_cfg.values()][0].get("workdir", "")
+        model_class = [*model_cfg.values()][0].get("class", "")
 
-        if model_class == 'ti':
+        if model_class == "ti":
             return TimeIndependentModel.from_dict(model_cfg)
 
-        elif model_class == 'td':
+        elif model_class == "td":
             return TimeDependentModel.from_dict(model_cfg)
 
         if os.path.isfile(os.path.join(workdir, model_path)):
@@ -578,4 +598,3 @@ class ModelFactory:
 
         else:
             return TimeIndependentModel.from_dict(model_cfg)
-

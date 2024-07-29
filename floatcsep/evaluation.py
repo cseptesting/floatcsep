@@ -141,6 +141,7 @@ class Evaluation:
             model (:class:`floatcsep:model.Model`): Model to be evaluated
             ref_model (:class:`floatcsep:model.Model`, list): Reference model (or
              models) reference for the evaluation.
+            region (:class:`csep:core.regions.CartesianGrid2D`): Experiment region
 
         Returns:
             A tuple of the positional arguments required by the evaluation
@@ -287,6 +288,9 @@ class Evaluation:
         Plots all evaluation results
 
         Args:
+            timewindow: string representing the desired timewindow to plot
+            models: a list of :class:`floatcsep:models.Model`
+            tree: a :class:`floatcsep:models.PathTree` containing path of the results
             dpi: Figure resolution with which to save
             show: show in runtime
 
