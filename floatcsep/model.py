@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import subprocess
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import List, Callable, Union, Mapping, Sequence
@@ -13,6 +12,7 @@ from csep.core.forecasts import GriddedForecast, CatalogForecast
 from csep.utils.time_utils import decimal_year
 
 from floatcsep.accessors import from_zenodo, from_git
+from floatcsep.environments import EnvironmentFactory
 from floatcsep.readers import ForecastParsers, HDF5Serializer
 from floatcsep.registry import ModelTree
 from floatcsep.utils import timewindow2str, str2timewindow
@@ -124,9 +124,7 @@ class Model(ABC):
         elif giturl:
             log.info(f"Retrieving model {self.name} from git url: " f"{giturl}")
             try:
-                from_git(
-                    giturl, self.dir if self.path.fmt else self.path("path"), **kwargs
-                )
+                from_git(giturl, self.dir if self.path.fmt else self.path("path"), **kwargs)
             except (git.NoSuchPathError, git.CommandError) as msg:
                 raise git.NoSuchPathError(f"git url was not found {msg}")
         else:
@@ -177,9 +175,7 @@ class Model(ABC):
                 return _get_value(val)
 
         list_walk = [
-            (i, j)
-            for i, j in sorted(self.__dict__.items())
-            if not i.startswith("_") and j
+            (i, j) for i, j in sorted(self.__dict__.items()) if not i.startswith("_") and j
         ]
 
         dict_walk = {i: j for i, j in list_walk}
@@ -223,9 +219,7 @@ class TimeIndependentModel(Model):
         store_db (bool): flag to indicate whether to store the model in a database.
     """
 
-    def __init__(
-        self, name: str, model_path: str, forecast_unit=1, store_db=False, **kwargs
-    ):
+    def __init__(self, name: str, model_path: str, forecast_unit=1, store_db=False, **kwargs):
         super().__init__(name, model_path, **kwargs)
         self.forecast_unit = forecast_unit
         self.store_db = store_db
@@ -289,9 +283,7 @@ class TimeIndependentModel(Model):
 
     def get_forecast(
         self, tstring: Union[str, list] = None, region=None
-    ) -> Union[
-        GriddedForecast, CatalogForecast, List[GriddedForecast], List[CatalogForecast]
-    ]:
+    ) -> Union[GriddedForecast, CatalogForecast, List[GriddedForecast], List[CatalogForecast]]:
         """
         Wrapper that just returns a forecast when requested.
         """
@@ -333,9 +325,7 @@ class TimeIndependentModel(Model):
         start_date, end_date = str2timewindow(tstring)
         self.forecast_from_file(start_date, end_date, **kwargs)
 
-    def forecast_from_file(
-        self, start_date: datetime, end_date: datetime, **kwargs
-    ) -> None:
+    def forecast_from_file(self, start_date: datetime, end_date: datetime, **kwargs) -> None:
         """
         Generates a forecast from a file, by parsing and scaling it to.
 
@@ -403,42 +393,10 @@ class TimeDependentModel(Model):
         self.build = kwargs.get("build", "docker")
         self.run_prefix = ""
 
-    def build_model(self):
-
-        if self.build == "pip" or self.build == "venv":
-            venv = os.path.join(self.path("path"), self.__dict__.get("venv", "venv"))
-            venvact = os.path.join(venv, "bin", "activate")
-
-            if not os.path.exists(venv):
-                log.info(f"Building model {self.name} using pip")
-                subprocess.run(["python", "-m", "venv", venv])
-                log.info(f"\tVirtual environment created in {venv}")
-                build_cmd = (
-                    f"source {venvact} && "
-                    f"pip install --upgrade pip && "
-                    f'pip install {self.path("path")}'
-                )
-
-                cmd = ["bash", "-c", build_cmd]
-
-                log.info("\tInstalling dependencies")
-
-                process = subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    universal_newlines=True,
-                )
-                for line in process.stdout:
-                    log.info(f"\t{line[:-1]}")
-                process.wait()
-                log.info("\tEnvironment ready")
-                log.warning(
-                    "\tNested environments is not fully supported. "
-                    "Consider using docker instead"
-                )
-
-            self.run_prefix = f'cd {self.path("path")} && source {venvact} && '
+        if self.func:
+            self.environment = EnvironmentFactory.get_env(
+                self.build, self.name, self.path.abs(self.model_path)
+            )
 
     def stage(self, timewindows=None) -> None:
         """
@@ -450,7 +408,10 @@ class TimeDependentModel(Model):
             - Run model quality assurance (unit tests, runnable from floatcsep)
         """
         self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
-        self.build_model()
+
+        if hasattr(self, "environment"):
+            self.environment.create_environment()
+
         self.path.build_tree(
             timewindows=timewindows,
             model_class="td",
@@ -461,9 +422,7 @@ class TimeDependentModel(Model):
 
     def get_forecast(
         self, tstring: Union[str, list] = None, region=None
-    ) -> Union[
-        GriddedForecast, CatalogForecast, List[GriddedForecast], List[CatalogForecast]
-    ]:
+    ) -> Union[GriddedForecast, CatalogForecast, List[GriddedForecast], List[CatalogForecast]]:
         """Wrapper that just returns a forecast, hiding the access method  under the hood"""
 
         if isinstance(tstring, str):
@@ -511,9 +470,7 @@ class TimeDependentModel(Model):
         else:
             log.info(f"Forecast of {tstring} of model {self.name} already " f"exists")
 
-    def forecast_from_func(
-        self, start_date: datetime, end_date: datetime, **kwargs
-    ) -> None:
+    def forecast_from_func(self, start_date: datetime, end_date: datetime, **kwargs) -> None:
 
         self.prepare_args(start_date, end_date, **kwargs)
         log.info(
@@ -562,18 +519,7 @@ class TimeDependentModel(Model):
 
     def run_model(self):
 
-        if self.build == "pip" or self.build == "venv":
-            run_func = f'{self.func} {self.path("args_file")}'
-            cmd = ["bash", "-c", f"{self.run_prefix} {run_func}"]
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True,
-            )
-            for line in process.stdout:
-                log.info(f"\t{line[:-1]}")
-            process.wait()
+        self.environment.run_command(f'{self.func} {self.path("args_file")}')
 
 
 class ModelFactory:

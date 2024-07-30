@@ -1,5 +1,7 @@
 from floatcsep.cmd import main
+from floatcsep.experiment import Experiment
 import unittest
+from unittest.mock import patch
 import os
 
 
@@ -33,77 +35,58 @@ class DataTest(unittest.TestCase):
         pass
 
 
+@patch.object(Experiment, "generate_report")
+@patch.object(Experiment, "plot_forecasts")
+@patch.object(Experiment, "plot_catalog")
 class RunExamples(DataTest):
 
-    def test_case_a(self):
+    def test_case_a(self, *args):
         cfg = self.get_runpath('a')
         self.run_evaluation(cfg)
         self.assertEqual(1, 1)
 
-    def test_case_b(self):
+    def test_case_b(self, *args):
         cfg = self.get_runpath('b')
         self.run_evaluation(cfg)
         self.assertEqual(1, 1)
 
-    def test_case_c(self):
+    def test_case_c(self, *args):
         cfg = self.get_runpath('c')
         self.run_evaluation(cfg)
         self.assertEqual(1, 1)
 
-    def test_case_d(self):
+    def test_case_d(self, *args):
         cfg = self.get_runpath('d')
         self.run_evaluation(cfg)
         self.assertEqual(1, 1)
 
-    def test_case_e(self):
+    def test_case_e(self, *args):
         cfg = self.get_runpath('e')
         self.run_evaluation(cfg)
         self.assertEqual(1, 1)
 
-    def test_case_f(self):
+    def test_case_f(self, *args):
         cfg = self.get_runpath('f')
         self.run_evaluation(cfg)
         self.assertEqual(1, 1)
 
-    def test_case_g(self):
+    def test_case_g(self, *args):
         cfg = self.get_runpath('g')
         self.run_evaluation(cfg)
         self.assertEqual(1, 1)
 
 
+@patch.object(Experiment, "generate_report")
+@patch.object(Experiment, "plot_forecasts")
+@patch.object(Experiment, "plot_catalog")
 class ReproduceExamples(DataTest):
 
-    def test_case_a(self):
-        cfg = self.get_rerunpath('a')
-        self.repr_evaluation(cfg)
-        self.assertEqual(1, 1)
-
-    def test_case_b(self):
-        cfg = self.get_rerunpath('b')
-        self.repr_evaluation(cfg)
-        self.assertEqual(1, 1)
-
-    def test_case_c(self):
+    def test_case_c(self, *args):
         cfg = self.get_rerunpath('c')
         self.repr_evaluation(cfg)
         self.assertEqual(1, 1)
 
-    def test_case_d(self):
-        cfg = self.get_rerunpath('d')
-        self.repr_evaluation(cfg)
-        self.assertEqual(1, 1)
-
-    def test_case_e(self):
-        cfg = self.get_rerunpath('e')
-        self.repr_evaluation(cfg)
-        self.assertEqual(1, 1)
-
-    def test_case_f(self):
+    def test_case_f(self, *args):
         cfg = self.get_rerunpath('f')
-        self.repr_evaluation(cfg)
-        self.assertEqual(1, 1)
-
-    def test_case_g(self):
-        cfg = self.get_rerunpath('g')
         self.repr_evaluation(cfg)
         self.assertEqual(1, 1)

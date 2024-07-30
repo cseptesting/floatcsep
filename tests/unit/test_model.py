@@ -9,6 +9,7 @@ from unittest.mock import patch, MagicMock, mock_open
 import csep.core.regions
 import numpy.testing
 
+from floatcsep.environments import EnvironmentManager
 from floatcsep.model import TimeIndependentModel, TimeDependentModel
 from floatcsep.utils import str2timewindow
 
@@ -229,14 +230,14 @@ class TestTimeDependentModel(TestModel):
 
         return model
 
-    def test_from_git(self):
+    @patch.object(EnvironmentManager, "create_environment")
+    def test_from_git(self, mock_create_environment):
         """clones model from git, checks with test artifacts"""
         name = "mock_git"
         _dir = "git_template"
         path_ = os.path.join(tempfile.tempdir, _dir)
         giturl = (
-            "https://git.gfz-potsdam.de/csep-group/"
-            "rise_italy_experiment/models/template.git"
+            "https://git.gfz-potsdam.de/csep-group/" "rise_italy_experiment/models/template.git"
         )
         model_a = self.init_model(name=name, path=path_, giturl=giturl)
         model_a.stage()
@@ -335,42 +336,6 @@ class TestTimeDependentModel(TestModel):
         self.assertEqual(result[0], mock_forecast1)
         self.assertEqual(result[1], mock_forecast2)
 
-    @patch("subprocess.run")  # Mock subprocess.run
-    @patch("subprocess.Popen")  # Mock subprocess.Popen
-    @patch("os.path.exists")  # Mock os.path.exists
-    def test_build_model_creates_venv(self, mock_exists, mock_popen, mock_run):
-        # Arrange
-        model_path = "../artifacts/models/td_model"
-        model = self.init_model(name="TestModel", path=model_path, build="venv")
-        mock_exists.return_value = False  # Simulate that the venv does not exist
-
-        # Act
-        model.build_model()
-
-        # Assert
-        mock_run.assert_called_once_with(
-            ["python", "-m", "venv", model.path("path") + "/venv"]
-        )
-        mock_popen.assert_called_once()  # Ensure Popen was called to install dependencies
-        self.assertIn(f"cd {os.path.abspath(model_path)} && source", model.run_prefix)
-
-    @patch("subprocess.run")
-    @patch("subprocess.Popen")
-    @patch("os.path.exists")
-    def test_build_model_when_venv_exists(self, mock_exists, mock_popen, mock_run):
-        # Arrange
-        model_path = "../artifacts/models/td_model"
-        model = self.init_model(name="TestModel", path=model_path, build="venv")
-        mock_exists.return_value = True  # Simulate that the venv already exists
-
-        # Act
-        model.build_model()
-
-        # Assert
-        mock_run.assert_not_called()
-        mock_popen.assert_not_called()
-        self.assertIn(f"cd {os.path.abspath(model_path)} && source", model.run_prefix)
-
     def test_argprep(self):
         model_path = os.path.join(self._dir, "td_model")
         with open(os.path.join(model_path, "input", "args.txt"), "w") as args:
@@ -396,12 +361,8 @@ class TestTimeDependentModel(TestModel):
     @patch("floatcsep.model.open", new_callable=mock_open, read_data='{"key": "value"}')
     @patch("json.dump")
     def test_argprep_json(self, mock_json_dump, mock_file):
-        model = self.init_model(
-            name="TestModel", path=os.path.join(self._dir, "td_model")
-        )
-        model.path = MagicMock(
-            return_value="path/to/model/args.json"
-        )  # Mock path method
+        model = self.init_model(name="TestModel", path=os.path.join(self._dir, "td_model"))
+        model.path = MagicMock(return_value="path/to/model/args.json")
         start = MagicMock()
         end = MagicMock()
         start.isoformat.return_value = "2023-01-01"

@@ -118,8 +118,7 @@ class ModelTree:
 
             # set forecast names
             fc_files = {
-                win: join(dirtree["forecasts"], f"{prefix}_{win}.csv")
-                for win in windows
+                win: join(dirtree["forecasts"], f"{prefix}_{win}.csv") for win in windows
             }
 
             fc_exists = {
