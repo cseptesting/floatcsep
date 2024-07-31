@@ -2,8 +2,8 @@ name: docs
 
 on:
   push:
-    branches-ignore:
-      - 'v*'
+    branches:
+      - main
   pull_request:
     branches: [ main ]
 
@@ -23,12 +23,9 @@ jobs:
           create-args: >-
             python=${{ matrix.python-version }}
 
-      - name: Install pip dependencies
-        run: |
-          pip install -r requirements_dev.txt
-
       - name: Install floatCSEP
         run: |
+          pip install sphinx sphinx-autoapi sphinx-gallery sphinx-rtd-theme
           pip install --no-deps -e .
           python -c "import floatcsep; print('Version: ', floatcsep.__version__)"
 

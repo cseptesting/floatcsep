@@ -2,9 +2,10 @@ name: tests
 
 on:
   push:
-    branches-ignore:
-    - 'v*'
+    branches:
+      - main
   pull_request:
+    branches: [ main ]
 
 jobs:
   build:
@@ -37,7 +38,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        pytest --cov=./ --cov-config=.coveragerc
+        pytest --durations=0 --cov=./ --cov-config=.coveragerc
 
     - name: Upload coverage
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10'
