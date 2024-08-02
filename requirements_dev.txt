@@ -19,7 +19,6 @@ pyproj
 pyshp
 pytest
 pytest-cov
-pytest-asyncio
 pyyaml
 requests
 scipy

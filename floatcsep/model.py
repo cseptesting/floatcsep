@@ -390,7 +390,7 @@ class TimeDependentModel(Model):
         self.func_kwargs = func_kwargs or {}
 
         self.path = ModelTree(kwargs.get("workdir", os.getcwd()), model_path)
-        self.build = kwargs.get("build", "docker")
+        self.build = kwargs.get("build", None)
         self.run_prefix = ""
 
         if self.func:
@@ -474,7 +474,7 @@ class TimeDependentModel(Model):
 
         self.prepare_args(start_date, end_date, **kwargs)
         log.info(
-            f"Running {self.name} using {self.build}:"
+            f"Running {self.name} using {self.environment.__class__.__name__}:"
             f" {timewindow2str([start_date, end_date])}"
         )
 

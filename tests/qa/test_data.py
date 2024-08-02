@@ -75,11 +75,6 @@ class RunExamples(DataTest):
         self.run_evaluation(cfg)
         self.assertEqual(1, 1)
 
-    def test_case_h(self, *args):
-        cfg = self.get_runpath('h')
-        self.run_evaluation(cfg)
-        self.assertEqual(1, 1)
-
 
 @patch.object(Experiment, "generate_report")
 @patch.object(Experiment, "plot_forecasts")

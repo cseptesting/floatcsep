@@ -99,7 +99,7 @@ class CondaEnvironmentManager(EnvironmentManager):
             base_name (str): The base name, i.e., model name, for the conda environment.
             model_directory (str): The directory containing the model files.
         """
-        self.base_name = base_name
+        self.base_name = base_name.replace(' ', '_')
         self.model_directory = model_directory
         self.env_name = self.generate_env_name()
         self.package_manager = self.detect_package_manager()

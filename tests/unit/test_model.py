@@ -341,7 +341,7 @@ class TestTimeDependentModel(TestModel):
         with open(os.path.join(model_path, "input", "args.txt"), "w") as args:
             args.write("start_date = foo\nend_date = bar")
 
-        model = self.init_model("a", model_path, func="func")
+        model = self.init_model("a", model_path, func="func", build='docker')
         start = datetime(2000, 1, 1)
         end = datetime(2000, 1, 2)
         model.stage([[start, end]])
