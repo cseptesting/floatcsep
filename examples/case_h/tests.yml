@@ -1,0 +1,16 @@
+- Catalog_N-test:
+    func: catalog_evaluations.number_test
+    func_kwargs:
+        verbose: False
+    plot_func:
+        - plot_number_test:
+            plot_args:
+                title: Number consistency test
+                bins: 30
+        - plot_consistency_test:
+            plot_args:
+                title: Number consistency test
+
+
+
+

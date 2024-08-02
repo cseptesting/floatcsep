@@ -7,3 +7,8 @@ addopts = "--cov=floatcsep"
 testpaths = [
     "tests",
 ]
+
+[tool.black]
+line-length = 96
+skip-string-normalization = false
+target-version = ["py39", "py310", "py311"]

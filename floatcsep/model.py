@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import subprocess
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import List, Callable, Union, Mapping, Sequence
@@ -13,6 +12,7 @@ from csep.core.forecasts import GriddedForecast, CatalogForecast
 from csep.utils.time_utils import decimal_year
 
 from floatcsep.accessors import from_zenodo, from_git
+from floatcsep.environments import EnvironmentFactory
 from floatcsep.readers import ForecastParsers, HDF5Serializer
 from floatcsep.registry import ModelTree
 from floatcsep.utils import timewindow2str, str2timewindow
@@ -352,7 +352,7 @@ class TimeIndependentModel(Model):
             region=region,
             magnitudes=mags,
             start_time=start_date,
-            end_time=end_date
+            end_time=end_date,
         )
 
         scale = time_horizon / self.forecast_unit
@@ -390,45 +390,13 @@ class TimeDependentModel(Model):
         self.func_kwargs = func_kwargs or {}
 
         self.path = ModelTree(kwargs.get("workdir", os.getcwd()), model_path)
-        self.build = kwargs.get("build", "docker")
+        self.build = kwargs.get("build", None)
         self.run_prefix = ""
 
-    def build_model(self):
-
-        if self.build == "pip" or self.build == "venv":
-            venv = os.path.join(self.path("path"), self.__dict__.get("venv", "venv"))
-            venvact = os.path.join(venv, "bin", "activate")
-
-            if not os.path.exists(venv):
-                log.info(f"Building model {self.name} using pip")
-                subprocess.run(["python", "-m", "venv", venv])
-                log.info(f"\tVirtual environment created in {venv}")
-                build_cmd = (
-                    f"source {venvact} && "
-                    f"pip install --upgrade pip && "
-                    f'pip install {self.path("path")}'
-                )
-
-                cmd = ["bash", "-c", build_cmd]
-
-                log.info("\tInstalling dependencies")
-
-                process = subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    universal_newlines=True,
-                )
-                for line in process.stdout:
-                    log.info(f"\t{line[:-1]}")
-                process.wait()
-                log.info("\tEnvironment ready")
-                log.warning(
-                    "\tNested environments is not fully supported. "
-                    "Consider using docker instead"
-                )
-
-            self.run_prefix = f'cd {self.path("path")} && source {venvact} && '
+        if self.func:
+            self.environment = EnvironmentFactory.get_env(
+                self.build, self.name, self.path.abs(self.model_path)
+            )
 
     def stage(self, timewindows=None) -> None:
         """
@@ -440,7 +408,10 @@ class TimeDependentModel(Model):
             - Run model quality assurance (unit tests, runnable from floatcsep)
         """
         self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
-        self.build_model()
+
+        if hasattr(self, "environment"):
+            self.environment.create_environment()
+
         self.path.build_tree(
             timewindows=timewindows,
             model_class="td",
@@ -458,14 +429,20 @@ class TimeDependentModel(Model):
             # If one time window string is passed
             fc_path = self.path("forecasts", tstring)
             # A region must be given to the forecast
-            return csep.load_catalog_forecast(fc_path, region=region)
+            return csep.load_catalog_forecast(
+                fc_path, region=region, apply_filters=True, filter_spatial=True
+            )
 
         else:
             forecasts = []
             for t in tstring:
                 fc_path = self.path("forecasts", t)
                 # A region must be given to the forecast
-                forecasts.append(csep.load_catalog_forecast(fc_path, region=region))
+                forecasts.append(
+                    csep.load_catalog_forecast(
+                        fc_path, region=region, apply_filters=True, filter_spatial=True
+                    )
+                )
             return forecasts
 
     def create_forecast(self, tstring: str, **kwargs) -> None:
@@ -497,7 +474,7 @@ class TimeDependentModel(Model):
 
         self.prepare_args(start_date, end_date, **kwargs)
         log.info(
-            f"Running {self.name} using {self.build}:"
+            f"Running {self.name} using {self.environment.__class__.__name__}:"
             f" {timewindow2str([start_date, end_date])}"
         )
 
@@ -542,32 +519,21 @@ class TimeDependentModel(Model):
 
     def run_model(self):
 
-        if self.build == "pip" or self.build == "venv":
-            run_func = f'{self.func} {self.path("args_file")}'
-            cmd = ["bash", "-c", f"{self.run_prefix} {run_func}"]
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True,
-            )
-            for line in process.stdout:
-                log.info(f"\t{line[:-1]}")
-            process.wait()
+        self.environment.run_command(f'{self.func} {self.path("args_file")}')
 
 
 class ModelFactory:
     @staticmethod
     def create_model(model_cfg) -> Model:
 
-        model_path = [*model_cfg.values()][0]['model_path']
-        workdir = [*model_cfg.values()][0].get('workdir', '')
-        model_class = [*model_cfg.values()][0].get('class', '')
+        model_path = [*model_cfg.values()][0]["model_path"]
+        workdir = [*model_cfg.values()][0].get("workdir", "")
+        model_class = [*model_cfg.values()][0].get("class", "")
 
-        if model_class == 'ti':
+        if model_class == "ti":
             return TimeIndependentModel.from_dict(model_cfg)
 
-        elif model_class == 'td':
+        elif model_class == "td":
             return TimeDependentModel.from_dict(model_cfg)
 
         if os.path.isfile(os.path.join(workdir, model_path)):
@@ -578,4 +544,3 @@ class ModelFactory:
 
         else:
             return TimeIndependentModel.from_dict(model_cfg)
-

@@ -1,20 +1,19 @@
-name: case_f
+name: case_g
 
 time_config:
-  start_date: 2012-5-23T00:00:00
-  end_date: 2012-6-23T00:00:00
-  horizon: 7days
+  start_date: 2016-11-14T00:00:00
+  end_date: 2016-11-21T00:00:00
+  horizon: 1day
   exp_class: td
 
 region_config:
-  region: italy_csep_region
-  mag_min: 3.5
+  region: nz_csep_region
+  mag_min: 3.6
   mag_max: 8.0
-  mag_bin: 0.5
+  mag_bin: 0.1
   depth_min: 0
-  depth_max: 70
+  depth_max: 30
 
-force_rerun: True
-catalog: catalog.csv
+catalog: catalog.json
 model_config: models.yml
 test_config: tests.yml

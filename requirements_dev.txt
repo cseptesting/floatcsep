@@ -1,5 +1,6 @@
 numpy
 cartopy
+black
 dateparser
 docker
 flake8
@@ -10,16 +11,14 @@ matplotlib
 mercantile
 mypy
 obspy
+packaging
 pandas
-pillow
-pyblack
 pycsep
 pydocstringformatter
 pyproj
 pyshp
 pytest
 pytest-cov
-pytest-asyncio
 pyyaml
 requests
 scipy

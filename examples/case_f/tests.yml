@@ -8,7 +8,12 @@
         - plot_consistency_test:
               plot_kwargs:
                   one_sided_lower: True
-
+- Catalog_S-test:
+    func: catalog_evaluations.spatial_test
+    plot_func:
+        - plot_consistency_test:
+              plot_kwargs:
+                  one_sided_lower: True
 
 
 
