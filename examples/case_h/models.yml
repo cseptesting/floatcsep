@@ -1,28 +1,35 @@
 - etas:
     giturl: https://git.gfz-potsdam.de/csep/it_experiment/models/vetas.git
+    repo_hash: v3.2
     args_file: input/args.json
     path: models/etas
     func: etas-run
     func_kwargs:
-      n_sims: 1000
+      n_sims: 100
       mc: 3.5
-    build: pip
+      seed: 23
+    build: venv
 - Poisson Mock:
     giturl: https://git.gfz-potsdam.de/csep/it_experiment/models/pymock.git
+    repo_hash: v0.1
     path: models/pymock_poisson
     func: pymock
     prefix: pymock
     func_kwargs:
-      n_sims: 1000
+      n_sims: 100
       mag_min: 3.5
-    build: pip
+      seed: 23
+    build: venv
 - Negbinom Mock:
     giturl: https://git.gfz-potsdam.de/csep/it_experiment/models/pymock.git
+    repo_hash: v0.1
     path: models/pymock_nb
     func: pymock
     func_kwargs:
-      n_sims: 1000
+      n_sims: 100
       mag_min: 3.5
+      apply_mc_to_lambda: True
       distribution: negbinom
-    build: pip
+      seed: 23
+    build: venv
     prefix: pymock

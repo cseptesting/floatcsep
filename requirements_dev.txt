@@ -13,7 +13,6 @@ mypy
 obspy
 packaging
 pandas
-pillow
 pycsep
 pydocstringformatter
 pyproj

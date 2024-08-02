@@ -285,7 +285,7 @@ class CondaEnvironmentManager(EnvironmentManager):
             universal_newlines=True,
         )
         for line in process.stdout:
-            log.info(f"\t{line[:-1]}")
+            log.info(f"[{self.base_name}]: {line[:-1]}")
         process.wait()
 
 
@@ -305,7 +305,7 @@ class VenvEnvironmentManager(EnvironmentManager):
             model_directory (str): The directory containing the model files.
         """
 
-        self.base_name = base_name
+        self.base_name = base_name.replace(' ', '_')
         self.model_directory = model_directory
         self.env_name = self.generate_env_name()
         self.env_path = os.path.join(model_directory, self.env_name)
@@ -375,7 +375,7 @@ class VenvEnvironmentManager(EnvironmentManager):
         )
         for line in process.stdout:
             stripped_line = line.strip()
-            log.info(stripped_line)
+            log.info(f'[{self.base_name}]: ' + stripped_line)
         process.wait()
 
 
