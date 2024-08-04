@@ -1,51 +1,56 @@
 # python libraries
 import copy
+import filecmp
+import functools
 import hashlib
-
-import numpy
-import re
+import itertools
+import logging
 import multiprocessing
 import os
-import mercantile
-import shapely.geometry
-import scipy.stats
-import itertools
-import functools
-import yaml
-import pandas
-import seaborn
-import filecmp
+import re
+from collections import OrderedDict
 from datetime import datetime, date
 from functools import partial
-from typing import Sequence, Union
-from matplotlib import pyplot
-from matplotlib.lines import Line2D
-from collections import OrderedDict
+from typing import Sequence, Union, Mapping
+
+import csep.core
+import csep.utils
+import mercantile
+import numpy
+import pandas
+import scipy.stats
+import seaborn
+import shapely.geometry
 
 # pyCSEP libraries
 import six
-import csep.core
-import csep.utils
+import yaml
+from csep.core.forecasts import GriddedForecast
 from csep.core.regions import CartesianGrid2D, compute_vertices
-from csep.utils.plots import plot_spatial_dataset
-from csep.models import Polygon
 from csep.core.regions import QuadtreeGrid2D, geographical_area_from_bounds
+from csep.models import Polygon
 from csep.utils.calc import cleaner_range
-
-# floatCSEP libraries
+from csep.utils.plots import plot_spatial_dataset
+from matplotlib import pyplot
+from matplotlib.lines import Line2D
 
 import floatcsep.accessors
 import floatcsep.extras
 import floatcsep.readers
 
+# floatCSEP libraries
+
 _UNITS = ["years", "months", "weeks", "days"]
 _PD_FORMAT = ["YS", "MS", "W", "D"]
 
 
+log = logging.getLogger("floatLogger")
+
+
 def parse_csep_func(func):
     """
+    Searchs in pyCSEP and floatCSEP a function or method whose name matches the.
 
-    Searchs in pyCSEP and floatCSEP a function or method whose name matches the
     provided string.
 
     Args:
@@ -56,7 +61,6 @@ def parse_csep_func(func):
 
         The callable function/method object. If it was already callable,
         returns the same input
-
     """
 
     def recgetattr(obj, attr, *args):
@@ -94,8 +98,7 @@ def parse_csep_func(func):
 
 def parse_timedelta_string(window, exp_class="ti"):
     """
-
-    Parses a float or string representing the testing time window length
+    Parses a float or string representing the testing time window length.
 
     Note:
 
@@ -111,7 +114,6 @@ def parse_timedelta_string(window, exp_class="ti"):
 
         Formatted :py:class:`str` representing the length and
         unit (year, month, week, day) of the time window
-
     """
 
     if isinstance(window, str):
@@ -134,7 +136,6 @@ def parse_timedelta_string(window, exp_class="ti"):
 
 def read_time_cfg(time_config, **kwargs):
     """
-
     Builds the temporal configuration of an experiment.
 
     Args:
@@ -147,7 +148,6 @@ def read_time_cfg(time_config, **kwargs):
     Returns:
         A dictionary containing the experiment time attributes and the time
         windows to be evaluated
-
     """
     _attrs = ["start_date", "end_date", "intervals", "horizon", "offset", "growth", "exp_class"]
     time_config = copy.deepcopy(time_config)
@@ -176,7 +176,6 @@ def read_time_cfg(time_config, **kwargs):
 
 def read_region_cfg(region_config, **kwargs):
     """
-
     Builds the region configuration of an experiment.
 
     Args:
@@ -188,7 +187,6 @@ def read_region_cfg(region_config, **kwargs):
 
     Returns:
         A dictionary containing the region attributes of the experiment
-
     """
     region_config = copy.deepcopy(region_config)
     _attrs = ["region", "mag_min", "mag_max", "mag_bin", "magnitudes", "depth_min", "depth_max"]
@@ -244,13 +242,13 @@ def read_region_cfg(region_config, **kwargs):
 
 def timewindow2str(datetimes: Union[Sequence[datetime], Sequence[Sequence[datetime]]]):
     """
-    Converts a time window (list/tuple of datetimes) to a string that
+    Converts a time window (list/tuple of datetimes) to a string that.
+
     represents it.  Can be a single timewindow or a list of time windows.
     Args:
         datetimes:
 
     Returns:
-
     """
     if isinstance(datetimes[0], datetime):
         return "_".join([j.date().isoformat() for j in datetimes])
@@ -261,13 +259,13 @@ def timewindow2str(datetimes: Union[Sequence[datetime], Sequence[Sequence[dateti
 
 def str2timewindow(tw_string: Union[str, Sequence[str]]):
     """
-    Converts a string representation of a time window into a list of datetimes
+    Converts a string representation of a time window into a list of datetimes.
+
     representing the time window edges.
     Args:
         tw_string:
 
     Returns:
-
     """
     if isinstance(tw_string, str):
         start_date, end_date = [datetime.fromisoformat(i) for i in tw_string.split("_")]
@@ -285,7 +283,6 @@ def timewindows_ti(
     start_date=None, end_date=None, intervals=None, horizon=None, growth="incremental", **_
 ):
     """
-
     Creates the testing intervals for a time-independent experiment.
 
     Note:
@@ -307,7 +304,6 @@ def timewindows_ti(
 
         List of tuples containing the lower and upper boundaries of each
         testing window, as :py:class:`datetime.datetime`.
-
     """
     frequency = None
 
@@ -342,7 +338,6 @@ def timewindows_td(
     start_date=None, end_date=None, timeintervals=None, timehorizon=None, timeoffset=None, **_
 ):
     """
-
     Creates the testing intervals for a time-dependent experiment.
 
     Note:
@@ -365,7 +360,6 @@ def timewindows_td(
     Returns:
         List of tuples containing the lower and upper boundaries of each
         testing window, as :py:class:`datetime.datetime`.
-
     """
 
     frequency = None
@@ -413,16 +407,55 @@ def timewindows_td(
     # return timewindows
 
 
+def parse_nested_dicts(
+    nested_dict: dict, excluded: Sequence = (), extended: bool = False
+) -> dict:
+    """
+    Parses nested dictionaries to flatten them
+    """
+
+    def _get_value(x):
+        # For each element type, transforms to desired string/output
+        if hasattr(x, "as_dict"):
+            # e.g. model, test, etc.
+            o = x.as_dict()
+        else:
+            try:
+                try:
+                    o = getattr(x, "__name__")
+                except AttributeError:
+                    o = getattr(x, "name")
+            except AttributeError:
+                if isinstance(x, numpy.ndarray):
+                    o = x.tolist()
+                else:
+                    o = x
+        return o
+
+    def iter_attr(val):
+        # recursive iter through nested dicts/lists
+        if isinstance(val, Mapping):
+            return {
+                item: iter_attr(val_)
+                for item, val_ in val.items()
+                if ((item not in excluded) and val_) or extended
+            }
+        elif isinstance(val, Sequence) and not isinstance(val, str):
+            return [iter_attr(i) for i in val]
+        else:
+            return _get_value(val)
+
+    return iter_attr(nested_dict)
+
+
 class Task:
 
     def __init__(self, instance, method, **kwargs):
         """
-        Base node of the workload distribution.
-        Wraps lazily objects, methods and their arguments for them to be
-        executed later. For instance, can wrap a floatcsep.Model, its method
-        'create_forecast' and the argument 'time_window', which can be executed
-        later with Task.call() when, for example, task dependencies (parent
-        nodes) have been completed.
+        Base node of the workload distribution. Wraps lazily objects, methods and their
+        arguments for them to be executed later. For instance, can wrap a floatcsep.Model, its
+        method 'create_forecast' and the argument 'time_window', which can be executed later
+        with Task.call() when, for example, task dependencies (parent nodes) have been completed.
 
         Args:
             instance: can be floatcsep.Experiment, floatcsep.Model, floatcsep.Evaluation
@@ -438,17 +471,16 @@ class Task:
 
     def sign_match(self, obj=None, met=None, kw_arg=None):
         """
-        Checks if the Task matchs a given signature for simplicity.
+        Checks if the Task matches a given signature for simplicity.
 
         Purpose is to check from the outside if the Task is from a given object
-        (Model, Experiment, etc), matching either name or object or description
+        (Model, Experiment, etc.), matching either name or object or description
         Args:
             obj: Instance or instance's name str. Instance is preferred
             met: Name of the method
             kw_arg: Only the value (not key) of the kwargs dictionary
 
         Returns:
-
         """
 
         if self.obj == obj or obj == getattr(self.obj, "name", None):
@@ -488,11 +520,11 @@ class Task:
 
 class TaskGraph:
     """
-    Context manager of floatcsep workload distribution
+    Context manager of floatcsep workload distribution.
+
     Assign tasks to a node and defines their dependencies (parent nodes).
     Contains a 'tasks' dictionary whose dict_keys are the Task to be
     executed with dict_values as the Task's dependencies.
-
     """
 
     def __init__(self):
@@ -511,19 +543,21 @@ class TaskGraph:
 
     def add(self, task):
         """
-        Simply adds a defined task to the graph
+        Simply adds a defined task to the graph.
+
         Args:
             task: floatcsep.utils.Task
 
         Returns:
-
         """
         self.tasks[task] = []
         self.ntasks += 1
 
     def add_dependency(self, task, dinst=None, dmeth=None, dkw=None):
         """
-        Adds a dependency to a task already inserted to the TaskGraph. Searchs
+        Adds a dependency to a task already inserted to the TaskGraph.
+
+        Searchs
         within the pre-added tasks a signature match by their name/instance,
         method and keyword_args.
 
@@ -534,7 +568,6 @@ class TaskGraph:
             dkw: keyword argument of the dependency
 
         Returns:
-
         """
         deps = []
         for i, other_tasks in enumerate(self.tasks.keys()):
@@ -546,8 +579,8 @@ class TaskGraph:
     def run(self):
         """
         Iterates through all the graph tasks and runs them.
-        Returns:
 
+        Returns:
         """
         for task, deps in self.tasks.items():
             task.run()
@@ -561,7 +594,7 @@ class TaskGraph:
 
 
 class MarkdownReport:
-    """Class to generate a Markdown report from a study"""
+    """Class to generate a Markdown report from a study."""
 
     def __init__(self, outname="report.md"):
         self.outname = outname
@@ -571,7 +604,7 @@ class MarkdownReport:
         self.markdown = []
 
     def add_introduction(self, adict):
-        """Generate document header from dictionary"""
+        """Generate document header from dictionary."""
         first = (
             f"# CSEP Testing Results: {adict['simulation_name']}  \n"
             f"**Forecast Name:** {adict['forecast_name']}  \n"
@@ -590,7 +623,8 @@ class MarkdownReport:
 
     def add_text(self, text):
         """
-        Text should be a list of strings where each string will be on its own
+        Text should be a list of strings where each string will be on its own.
+
         line. Each add_text command represents a paragraph.
 
         Args:
@@ -611,11 +645,18 @@ class MarkdownReport:
         width=None,
     ):
         """
-        This function expects a list of filepaths. If you want the output
+        This function expects a list of filepaths.
+
+        If you want the output
         stacked, select a value of ncols. ncols should be divisible by
         filepaths. todo: modify formatted_paths to work when not divis.
 
         Args:
+            width:
+            caption:
+            text:
+            add_ext:
+            ncols:
             title: name of the figure
             level (int): value 1-6 depending on the heading
             relative_filepaths (str or List[Tuple[str]]): list of paths in
@@ -681,7 +722,7 @@ class MarkdownReport:
         self.toc.append((title, level, locator))
 
     def add_heading(self, title, level=1, text="", add_toc=True):
-        # multipying char simply repeats it
+        # multiplying char simply repeats it
         if isinstance(text, str):
             text = [text]
         cell = []
@@ -711,7 +752,7 @@ class MarkdownReport:
         self.add_heading(title, 1, text, add_toc=False)
 
     def table_of_contents(self):
-        """generates table of contents based on contents of document."""
+        """Generates table of contents based on contents of document."""
         if len(self.toc) == 0:
             return
         toc = ["# Table of Contents"]
@@ -725,7 +766,8 @@ class MarkdownReport:
 
     def add_table(self, data, use_header=True):
         """
-        Generates table from HTML and styles using bootstrap class
+        Generates table from HTML and styles using bootstrap class.
+
         Args:
            data List[Tuple[str]]: should be (nrows, ncols) in size. all rows
             should be the same sizes
@@ -736,8 +778,7 @@ class MarkdownReport:
         table = ['<div class="table table-striped">', f"<table>"]
 
         def make_header(row):
-            header = []
-            header.append("<tr>")
+            header = ["<tr>"]
             for item in row:
                 header.append(f"<th>{item}</th>")
             header.append("</tr>")
@@ -776,7 +817,7 @@ class NoAliasLoader(yaml.Loader):
 class ExperimentComparison:
 
     def __init__(self, original, reproduced, **kwargs):
-        """ """
+        """"""
         self.original = original
         self.reproduced = reproduced
 
@@ -1084,7 +1125,7 @@ def magnitude_vs_time(catalog):
 
 
 def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True, plot_args={}):
-    """Produces matrix plot for comparative tests for all models
+    """Produces matrix plot for comparative tests for all models.
 
     Args:
         evaluation_results (list of result objects): paired t-test results
@@ -1162,7 +1203,8 @@ def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True, plot_ar
 
 def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
     """
-    Aggregates conventional forecast onto quadtree region
+    Aggregates conventional forecast onto quadtree region.
+
     This is generic function, which can map any forecast on to another grid.
     Wrapper function over "_forecat_mapping_generic"
     Forecast mapping onto Target Grid
@@ -1174,7 +1216,6 @@ def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
          both grids are Quadtree and Target grid is high-resolution at every
          level than the other grid.
     """
-    from csep.core.forecasts import GriddedForecast
 
     bounds_target = target_grid.bounds
     bounds = forecast_gridded.region.bounds
@@ -1189,6 +1230,7 @@ def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
 def plot_quadtree_forecast(qtree_forecast):
     """
     Currently, only a single-resolution plotting capability is available.
+
     So we aggregate multi-resolution forecast on a single-resolution grid
     and then plot it
 
@@ -1225,12 +1267,13 @@ def plot_quadtree_forecast(qtree_forecast):
 
 def plot_forecast_lowres(forecast, plot_args, k=4):
     """
-    Plot a reduced resolution plot. The forecast values are kept the same,
+    Plot a reduced resolution plot.
+
+    The forecast values are kept the same,
     but cells are enlarged
     :param forecast: GriddedForecast object
     :param plot_args: arguments to be passed to plot_spatial_dataset
     :param k: Resampling factor. Selects cells every k row and k columns.
-
     """
 
     print("\tPlotting Forecast")
@@ -1244,7 +1287,8 @@ def plot_forecast_lowres(forecast, plot_args, k=4):
 
 
 def quadtree_csv_loader(csv_fname):
-    """Load quadtree forecasted stored as csv file
+    """Load quadtree forecasted stored as csv file.
+
     The format expects forecast as a comma separated file, in which first
     column corresponds to quadtree grid cell (quadkey).
     The second and thrid columns indicate depth range.
@@ -1275,16 +1319,15 @@ def quadtree_csv_loader(csv_fname):
 
 
 def geographical_area_from_qk(quadk):
-    """
-    Wrapper around function geographical_area_from_bounds
-    """
+    """Wrapper around function geographical_area_from_bounds."""
     bounds = tile_bounds(quadk)
     return geographical_area_from_bounds(bounds[0], bounds[1], bounds[2], bounds[3])
 
 
 def tile_bounds(quad_cell_id):
     """
-    It takes in a single Quadkkey and returns lat,longs of two diagonal corners
+    It takes in a single Quadkkey and returns lat,longs of two diagonal corners.
+
      using mercantile
     Parameters
     ----------
@@ -1295,7 +1338,6 @@ def tile_bounds(quad_cell_id):
     -------
     bounds : Mercantile object
         Latitude and Longitude of bottom left AND top right corners.
-
     """
 
     bounds = mercantile.bounds(mercantile.quadkey_to_tile(quad_cell_id))
@@ -1303,24 +1345,21 @@ def tile_bounds(quad_cell_id):
 
 
 def create_polygon(fg):
-    """
-    Required for parallel processing
-    """
+    """Required for parallel processing."""
     return shapely.geometry.Polygon(
         [(fg[0], fg[1]), (fg[2], fg[1]), (fg[2], fg[3]), (fg[0], fg[3])]
     )
 
 
 def calc_cell_area(cell):
-    """
-    Required for parallel processing
-    """
+    """Required for parallel processing."""
     return geographical_area_from_bounds(cell[0], cell[1], cell[2], cell[3])
 
 
 def _map_overlapping_cells(fcst_grid_poly, fcst_cell_area, fcst_rate_poly, target_poly):  # ,
     """
-    This functions work for Cells that do not directly conside with target
+    This functions work for Cells that do not directly conside with target.
+
      polygon cells. This function uses 3 variables i.e. fcst_grid_poly,
      fcst_cell_area, fcst_rate_poly
 
@@ -1358,7 +1397,9 @@ def _map_overlapping_cells(fcst_grid_poly, fcst_cell_area, fcst_rate_poly, targe
 
 def _map_exact_inside_cells(fcst_grid, fcst_rate, boundary):
     """
-    Uses 2 Global variables. fcst_grid, fcst_rate
+    Uses 2 Global variables.
+
+    fcst_grid, fcst_rate
     Takes a cell_boundary and finds all those fcst_grid cells that fit exactly
     inside it and then sum-up the rates of all those cells fitting inside it
     to get forecast rate for boundary_cell
@@ -1382,7 +1423,8 @@ def _map_exact_inside_cells(fcst_grid, fcst_rate, boundary):
 
 def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
     """
-    This function can perofrmns both aggregation and de-aggregation/
+    This function can perofrmns both aggregation and de-aggregation/.
+
     It is a wrapper function that uses 4 functions in respective order
     i.e. _map_exact_cells, _map_overlapping_cells, calc_cell_area,
     create_polygon
@@ -1501,7 +1543,8 @@ USER $USERNAME
 
 
 def _global_region(dh=0.1, name="global", magnitudes=None):
-    """Creates a global region used for evaluating gridded models on the
+    """Creates a global region used for evaluating gridded models on the.
+
     global scale.
 
     Modified from csep.core.regions.global_region
@@ -1543,7 +1586,7 @@ def _check_zero_bins(exp, catalog, test_date):
             "o",
             markersize=10,
         )
-        pyplot.savefig(f"{model.path}/{model.name}.png", dpi=300)
+        pyplot.savefig(f"{model.registry}/{model.name}.png", dpi=300)
     for model in exp.models:
         forecast = model.create_forecast(exp.start_date, test_date)
         catalog.filter_spatial(forecast.region)
@@ -1569,4 +1612,4 @@ def _check_zero_bins(exp, catalog, test_date):
             "o",
             markersize=10,
         )
-        pyplot.savefig(f"{model.path}/{model.name}.png", dpi=300)
+        pyplot.savefig(f"{model.registry}/{model.name}.png", dpi=300)

@@ -7,10 +7,10 @@ import shutil
 import hashlib
 import logging
 from floatcsep.environments import (
-    CondaEnvironmentManager,
+    CondaManager,
     EnvironmentFactory,
-    VenvEnvironmentManager,
-    DockerEnvironmentManager,
+    VenvManager,
+    DockerManager,
 )
 
 
@@ -22,9 +22,7 @@ class TestCondaEnvironmentManager(unittest.TestCase):
             raise unittest.SkipTest("Conda is not available in the environment.")
 
     def setUp(self):
-        self.manager = CondaEnvironmentManager(
-            base_name="test_env", model_directory="/tmp/test_model"
-        )
+        self.manager = CondaManager(base_name="test_env", model_directory="/tmp/test_model")
         os.makedirs("/tmp/test_model", exist_ok=True)
         with open("/tmp/test_model/environment.yml", "w") as f:
             f.write("name: test_env\ndependencies:\n  - python=3.8\n  - numpy")
@@ -43,7 +41,7 @@ class TestCondaEnvironmentManager(unittest.TestCase):
     @patch("subprocess.run")
     @patch("shutil.which", return_value="conda")
     def test_generate_env_name(self, mock_which, mock_run):
-        manager = CondaEnvironmentManager("test_base", "/path/to/model")
+        manager = CondaManager("test_base", "/path/to/model")
         expected_name = "test_base_" + hashlib.md5("/path/to/model".encode()).hexdigest()[:8]
         print(expected_name)
         self.assertEqual(manager.generate_env_name(), expected_name)
@@ -53,13 +51,13 @@ class TestCondaEnvironmentManager(unittest.TestCase):
         hashed = hashlib.md5("/path/to/model".encode()).hexdigest()[:8]
         mock_run.return_value.stdout = f"test_base_{hashed}\n".encode()
 
-        manager = CondaEnvironmentManager("test_base", "/path/to/model")
+        manager = CondaManager("test_base", "/path/to/model")
         self.assertTrue(manager.env_exists())
 
     @patch("subprocess.run")
     @patch("os.path.exists", return_value=True)
     def test_create_environment(self, mock_exists, mock_run):
-        manager = CondaEnvironmentManager("test_base", "/path/to/model")
+        manager = CondaManager("test_base", "/path/to/model")
         manager.create_environment(force=False)
         package_manager = manager.detect_package_manager()
         expected_calls = [
@@ -97,15 +95,15 @@ class TestCondaEnvironmentManager(unittest.TestCase):
 
     @patch("subprocess.run")
     def test_create_environment_force(self, mock_run):
-        manager = CondaEnvironmentManager("test_base", "/path/to/model")
+        manager = CondaManager("test_base", "/path/to/model")
         manager.env_exists = MagicMock(return_value=True)
         manager.create_environment(force=True)
         self.assertEqual(mock_run.call_count, 2)  # One for remove, one for create
 
     @patch("subprocess.run")
-    @patch.object(CondaEnvironmentManager, "detect_package_manager", return_value="conda")
+    @patch.object(CondaManager, "detect_package_manager", return_value="conda")
     def test_install_dependencies(self, mock_detect_package_manager, mock_run):
-        manager = CondaEnvironmentManager("test_base", "/path/to/model")
+        manager = CondaManager("test_base", "/path/to/model")
         manager.install_dependencies()
         mock_run.assert_called_once_with(
             [
@@ -126,10 +124,11 @@ class TestCondaEnvironmentManager(unittest.TestCase):
     @patch(
         "builtins.open",
         new_callable=mock_open,
-        read_data="[metadata]\nname = test\n\n[options]\ninstall_requires =\n    numpy\npython_requires = >=3.9,<3.12\n",
+        read_data="[metadata]\nname = test\n\n[options]\ninstall_requires =\n    "
+        "numpy\npython_requires = >=3.9,<3.12\n",
     )
     def test_detect_python_version_setup_cfg(self, mock_open, mock_exists, mock_which):
-        manager = CondaEnvironmentManager("test_base", "../artifacts/models/td_model")
+        manager = CondaManager("test_base", "../artifacts/models/td_model")
         python_version = manager.detect_python_version()
 
         # Extract major and minor version parts
@@ -180,7 +179,7 @@ class TestEnvironmentFactory(unittest.TestCase):
         env_manager = EnvironmentFactory.get_env(
             build="conda", model_name="test_model", model_path="/path/to/model"
         )
-        self.assertIsInstance(env_manager, CondaEnvironmentManager)
+        self.assertIsInstance(env_manager, CondaManager)
         self.assertEqual(env_manager.base_name, "test_model")
         self.assertEqual(env_manager.model_directory, "/absolute/path/to/model")
 
@@ -190,7 +189,19 @@ class TestEnvironmentFactory(unittest.TestCase):
         env_manager = EnvironmentFactory.get_env(
             build="venv", model_name="test_model", model_path="/path/to/model"
         )
-        self.assertIsInstance(env_manager, VenvEnvironmentManager)
+        self.assertIsInstance(env_manager, VenvManager)
+        self.assertEqual(env_manager.base_name, "test_model")
+        self.assertEqual(env_manager.model_directory, "/absolute/path/to/model")
+
+    @patch("os.path.abspath", return_value="/absolute/path/to/model")
+    @patch.object(EnvironmentFactory, "check_environment_type", return_value="micromamba")
+    def test_get_env_micromamba(self, mock_check_env, mock_abspath):
+        env_manager = EnvironmentFactory.get_env(
+            build="micromamba", model_name="test_model", model_path="/path/to/model"
+        )
+        self.assertIsInstance(
+            env_manager, CondaManager
+        )  # Assuming Micromamba uses CondaManager
         self.assertEqual(env_manager.base_name, "test_model")
         self.assertEqual(env_manager.model_directory, "/absolute/path/to/model")
 
@@ -200,7 +211,7 @@ class TestEnvironmentFactory(unittest.TestCase):
         env_manager = EnvironmentFactory.get_env(
             build="docker", model_name="test_model", model_path="/path/to/model"
         )
-        self.assertIsInstance(env_manager, DockerEnvironmentManager)
+        self.assertIsInstance(env_manager, DockerManager)
         self.assertEqual(env_manager.base_name, "test_model")
         self.assertEqual(env_manager.model_directory, "/absolute/path/to/model")
 
@@ -210,7 +221,7 @@ class TestEnvironmentFactory(unittest.TestCase):
         env_manager = EnvironmentFactory.get_env(
             build=None, model_name="test_model", model_path="/path/to/model"
         )
-        self.assertIsInstance(env_manager, CondaEnvironmentManager)
+        self.assertIsInstance(env_manager, CondaManager)
         self.assertEqual(env_manager.base_name, "test_model")
         self.assertEqual(env_manager.model_directory, "/absolute/path/to/model")
 
@@ -220,7 +231,7 @@ class TestEnvironmentFactory(unittest.TestCase):
         env_manager = EnvironmentFactory.get_env(
             build=None, model_name="test_model", model_path="/path/to/model"
         )
-        self.assertIsInstance(env_manager, VenvEnvironmentManager)
+        self.assertIsInstance(env_manager, VenvManager)
         self.assertEqual(env_manager.base_name, "test_model")
         self.assertEqual(env_manager.model_directory, "/absolute/path/to/model")
 
@@ -256,9 +267,7 @@ class TestVenvEnvironmentManager(unittest.TestCase):
 
     def setUp(self):
         self.model_directory = "/tmp/test_model"
-        self.manager = VenvEnvironmentManager(
-            base_name="test_env", model_directory=self.model_directory
-        )
+        self.manager = VenvManager(base_name="test_env", model_directory=self.model_directory)
         os.makedirs(self.model_directory, exist_ok=True)
         with open(os.path.join(self.model_directory, "setup.py"), "w") as f:
             f.write("from setuptools import setup\nsetup(name='test_model', version='0.1')")

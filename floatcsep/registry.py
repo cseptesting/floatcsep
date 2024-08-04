@@ -1,36 +1,19 @@
-import dataclasses
+import logging
 import os
+from abc import ABC, abstractmethod
+from datetime import datetime
 from os.path import join, abspath, relpath, normpath, dirname, exists
-from dataclasses import dataclass, field
-from typing import Sequence
+from typing import Sequence, Union
+
 from floatcsep.utils import timewindow2str
 
+log = logging.getLogger("floatLogger")
 
-@dataclass
-class ModelTree:
-    workdir: str
-    path: str
-    database: str = None
-    args_file: str = None
-    input_cat: str = None
-    forecasts: dict = field(default_factory=dict)
-    inventory: dict = field(default_factory=dict)
 
-    def __call__(self, *args):
+class BaseFileRegistry(ABC):
 
-        val = self.__dict__
-        for i in args:
-            parsed_arg = self._parse_arg(i)
-            val = val[parsed_arg]
-
-        return self.abs(val)
-
-    @property
-    def fmt(self) -> str:
-        if self.database:
-            return os.path.splitext(self.database)[1][1:]
-        else:
-            return os.path.splitext(self.path)[1][1:]
+    def __init__(self, workdir: str):
+        self.workdir = workdir
 
     @staticmethod
     def _parse_arg(arg):
@@ -45,44 +28,129 @@ class ModelTree:
         else:
             raise Exception("Arg is not found")
 
-    def __eq__(self, other):
-        return self.path == other
-
+    @abstractmethod
     def as_dict(self):
-        return self.path
+        pass
 
-    def asdict(self):
-        return dataclasses.asdict(self)
+    @abstractmethod
+    def build_tree(self, *args, **kwargs) -> None:
+        pass
+
+    @abstractmethod
+    def get_path(self, *args):
+        pass
 
     def abs(self, *paths: Sequence[str]) -> str:
-        """Gets the absolute path of a file, when it was defined relative to
-        the experiment working dir."""
         _path = normpath(abspath(join(self.workdir, *paths)))
-        _dir = dirname(_path)
         return _path
 
-    def absdir(self, *paths: Sequence[str]) -> str:
-        """Gets the absolute path of a file, when it was defined relative to
-        the experiment working dir."""
-
+    def abs_dir(self, *paths: Sequence[str]) -> str:
         _path = normpath(abspath(join(self.workdir, *paths)))
         _dir = dirname(_path)
         return _dir
 
-    def fileexists(self, *args):
-        file_abspath = self.__call__(*args)
-        return exists(file_abspath)
+    def rel(self, *paths: Sequence[str]) -> str:
+        """Gets the relative path of a file, when it was defined relative to.
 
-    def build_tree(
-        self, timewindows=None, model_class="ti", prefix=None, args_file=None, input_cat=None
-    ) -> None:
+        the experiment working dir.
         """
 
-        Creates the run directory, and reads the file structure inside
+        _abspath = normpath(abspath(join(self.workdir, *paths)))
+        _relpath = relpath(_abspath, self.workdir)
+        return _relpath
+
+    def rel_dir(self, *paths: Sequence[str]) -> str:
+        """Gets the absolute path of a file, when it was defined relative to.
+
+        the experiment working dir.
+        """
+
+        _path = normpath(abspath(join(self.workdir, *paths)))
+        _dir = dirname(_path)
+
+        return relpath(_dir, self.workdir)
+
+    def file_exists(self, *args):
+        file_abspath = self.get_path(*args)
+        return exists(file_abspath)
+
+
+class ForecastRegistry(BaseFileRegistry):
+    def __init__(
+        self,
+        workdir: str,
+        path: str,
+        database: str = None,
+        args_file: str = None,
+        input_cat: str = None,
+    ):
+        super().__init__(workdir)
+
+        self.path = path
+        self.database = database
+        self.args_file = args_file
+        self.input_cat = input_cat
+        self.forecasts = {}
+        self.inventory = {}
+
+    def get_path(self, *args):
+        val = self.__dict__
+        for i in args:
+            parsed_arg = self._parse_arg(i)
+            val = val[parsed_arg]
+        return self.abs(val)
+
+    @property
+    def dir(self) -> str:
+        """
+        Returns:
+
+            The directory containing the model source.
+        """
+        if os.path.isdir(self.get_path("path")):
+            return self.get_path("path")
+        else:
+            return os.path.dirname(self.get_path("path"))
+
+    @property
+    def fmt(self) -> str:
+        if self.database:
+            return os.path.splitext(self.database)[1][1:]
+        else:
+            return os.path.splitext(self.path)[1][1:]
+
+    def as_dict(self):
+        return {
+            "workdir": self.workdir,
+            "path": self.path,
+            "database": self.database,
+            "args_file": self.args_file,
+            "input_cat": self.input_cat,
+            "forecasts": self.forecasts,
+            "inventory": self.inventory,
+        }
+
+    def forecast_exists(self, timewindow: Union[str, list]):
+
+        if isinstance(timewindow, str):
+            return self.file_exists("forecasts", timewindow)
+        else:
+            return [self.file_exists("forecasts", i) for i in timewindow]
+
+    def build_tree(
+        self,
+        timewindows: Sequence[Sequence[datetime]] = None,
+        model_class: str = "TimeIndependentModel",
+        prefix=None,
+        args_file=None,
+        input_cat=None,
+    ) -> None:
+        """
+        Creates the run directory, and reads the file structure inside.
 
         Args:
             timewindows (list(str)): List of time windows or strings.
-            model_class (str): Time-indendent (ti) or time-dependent (td)
+            model_class (str): Model's class name
             prefix (str): prefix of the model forecast filenames if TD
             args_file (str, bool): input arguments path of the model if TD
             input_cat (str, bool): input catalog path of the model if TD
@@ -93,17 +161,17 @@ class ModelTree:
              exist already
              target_paths: flag to each element of the gefe (catalog and
              evaluation results)
-
         """
-        if timewindows is None:
-            return
-        windows = timewindow2str(timewindows)
-        if model_class == "ti":
-            fname = self.database if self.database else self.path
-            fc_files = {win: fname for win in windows}
-            fc_exists = {win: exists(fc_files[win]) for win in windows}
 
-        elif model_class == "td":
+        windows = timewindow2str(timewindows)
+
+        if model_class == "TimeIndependentModel":
+            fname = self.database if self.database else self.path
+            self.forecasts = {win: fname for win in windows}
+            self.inventory = {win: exists(self.forecasts[win]) for win in windows}
+
+        elif model_class == "TimeDependentModel":
+
             args = args_file if args_file else join("input", "args.txt")
             self.args_file = join(self.path, args)
             input_cat = input_cat if input_cat else join("input", "catalog.csv")
@@ -117,25 +185,25 @@ class ModelTree:
                 os.makedirs(folder_, exist_ok=True)
 
             # set forecast names
-            fc_files = {
+            self.forecasts = {
                 win: join(dirtree["forecasts"], f"{prefix}_{win}.csv") for win in windows
             }
 
-            fc_exists = {
+            self.inventory = {
                 win: any(file for file in list(os.listdir(dirtree["forecasts"])))
                 for win in windows
             }
 
-        self.forecasts = fc_files
-        self.inventory = fc_exists
 
+class ExperimentRegistry(BaseFileRegistry):
+    def __init__(self, workdir: str, rundir: str = "results"):
+        super().__init__(workdir)
+        self.rundir = rundir
+        self.paths = {}
+        self.result_exists = {}
 
-@dataclass
-class PathTree:
-    workdir: str
-    rundir: str = "results"
-    paths: dict = field(default_factory=dict)
-    result_exists: dict = field(default_factory=dict)
+    def get_path(self, *args):
+        pass
 
     def __call__(self, *args):
         val = self.paths
@@ -144,69 +212,12 @@ class PathTree:
             val = val[parsed_arg]
         return self.abs(self.rundir, val)
 
-    @staticmethod
-    def _parse_arg(arg):
-        if isinstance(arg, (list, tuple)):
-            return timewindow2str(arg)
-        elif isinstance(arg, str):
-            return arg
-        elif hasattr(arg, "name"):
-            return arg.name
-        elif hasattr(arg, "__name__"):
-            return arg.__name__
-        else:
-            raise Exception("Arg is not found")
-
-    def __eq__(self, other):
-        return self.workdir == other
-
     def as_dict(self):
         return self.workdir
 
-    def asdict(self):
-        return dataclasses.asdict(self)
-
-    def abs(self, *paths: Sequence[str]) -> str:
-        """Gets the absolute path of a file, when it was defined relative to
-        the experiment working dir."""
-
-        _path = normpath(abspath(join(self.workdir, *paths)))
-        return _path
-
-    def rel(self, *paths: Sequence[str]) -> str:
-        """Gets the relative path of a file, when it was defined relative to
-        the experiment working dir."""
-
-        _abspath = normpath(abspath(join(self.workdir, *paths)))
-        _relpath = relpath(_abspath, self.workdir)
-        return _relpath
-
-    def absdir(self, *paths: Sequence[str]) -> str:
-        """Gets the absolute path of a file, when it was defined relative to
-        the experiment working dir."""
-
-        _path = normpath(abspath(join(self.workdir, *paths)))
-        _dir = dirname(_path)
-        return _dir
-
-    def reldir(self, *paths: Sequence[str]) -> str:
-        """Gets the absolute path of a file, when it was defined relative to
-        the experiment working dir."""
-
-        _path = normpath(abspath(join(self.workdir, *paths)))
-        _dir = dirname(_path)
-        _reldir = relpath(_dir, self.workdir)
-        return _reldir
-
-    def fileexists(self, *args):
-
-        file_abspath = self.__call__(*args)
-        return exists(file_abspath)
-
-    def build(self, timewindows=None, models=None, tests=None) -> None:
+    def build_tree(self, timewindows=None, models=None, tests=None) -> None:
         """
-
-        Creates the run directory, and reads the file structure inside
+        Creates the run directory, and reads the file structure inside.
 
         Args:
             timewindows: List of time windows, or representing string.
@@ -219,7 +230,6 @@ class PathTree:
              exist already
              target_paths: flag to each element of the gefe (catalog and
              evaluation results)
-
         """
         # grab names for creating directories
         windows = timewindow2str(timewindows)

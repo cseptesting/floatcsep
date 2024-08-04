@@ -111,10 +111,31 @@ Accessors
 .. autosummary::
    :toctree: generated
 
-    query_gcmt
     from_zenodo
     from_git
 
+
+Environments
+------------
+
+.. :currentmodule:: floatcsep.environments
+
+.. automodule:: floatcsep.environments
+
+.. autosummary::
+   :toctree: generated
+
+    CondaManager
+    CondaManager.create_environment
+    CondaManager.env_exists
+    CondaManager.install_dependencies
+    CondaManager.run_command
+
+    VenvManager
+    CondaManager.create_environment
+    CondaManager.env_exists
+    CondaManager.install_dependencies
+    CondaManager.run_command
 
 
 Extras

@@ -15,9 +15,9 @@ log = logging.getLogger("floatLogger")
 
 class EnvironmentManager(ABC):
     """
-    Abstract base class for managing different types of environments.
-    This class defines the interface for creating, checking existence,
-    running commands, and installing dependencies in various environment types.
+    Abstract base class for managing different types of environments. This class defines the
+    interface for creating, checking existence, running commands, and installing dependencies in
+    various environment types.
     """
 
     @abstractmethod
@@ -35,8 +35,8 @@ class EnvironmentManager(ABC):
     @abstractmethod
     def create_environment(self, force=False):
         """
-        Creates the environment. If 'force' is True, it will remove any existing
-        environment with the same name before creating a new one.
+        Creates the environment. If 'force' is True, it will remove any existing environment
+        with the same name before creating a new one.
 
         Args:
             force (bool): Whether to forcefully remove an existing environment.
@@ -66,15 +66,15 @@ class EnvironmentManager(ABC):
     @abstractmethod
     def install_dependencies(self):
         """
-        Installs the necessary dependencies for the environment based on the
-        specified configuration or requirements.
+        Installs the necessary dependencies for the environment based on the specified
+        configuration or requirements.
         """
         pass
 
     def generate_env_name(self) -> str:
         """
-        Generates a unique environment name by hashing the model directory
-        and appending it to the base name.
+        Generates a unique environment name by hashing the model directory and appending it
+        to the base name.
 
         Returns:
             str: A unique name for the environment.
@@ -83,23 +83,23 @@ class EnvironmentManager(ABC):
         return f"{self.base_name}_{dir_hash}"
 
 
-class CondaEnvironmentManager(EnvironmentManager):
+class CondaManager(EnvironmentManager):
     """
-    Manages a conda (or mamba) environment, providing methods to create, check,
-    and manipulate conda environments specifically.
+    Manages a conda (or mamba) environment, providing methods to create, check and manipulate
+    conda environments specifically.
     """
 
     def __init__(self, base_name: str, model_directory: str):
         """
-        Initializes the Conda environment manager with the specified base name
-        and model directory. It also generates the environment name and detects
-        the package manager (conda or mamba) to install dependencies..
+        Initializes the Conda environment manager with the specified base name and model
+        directory. It also generates the environment name and detects the package manager (conda
+        or mamba) to install dependencies.
 
         Args:
             base_name (str): The base name, i.e., model name, for the conda environment.
             model_directory (str): The directory containing the model files.
         """
-        self.base_name = base_name.replace(' ', '_')
+        self.base_name = base_name.replace(" ", "_")
         self.model_directory = model_directory
         self.env_name = self.generate_env_name()
         self.package_manager = self.detect_package_manager()
@@ -120,10 +120,9 @@ class CondaEnvironmentManager(EnvironmentManager):
 
     def create_environment(self, force=False):
         """
-        Creates a conda environment using either an environment.yml file or
-        the specified Python version in setup.py/setup.cfg or project/toml.
-        If 'force' is True, any existing environment with the same name will
-        be removed first.
+        Creates a conda environment using either an environment.yml file or the specified
+        Python version in setup.py/setup.cfg or project/toml. If 'force' is True, any existing
+        environment with the same name will be removed first.
 
         Args:
             force (bool): Whether to forcefully remove an existing environment.
@@ -158,9 +157,7 @@ class CondaEnvironmentManager(EnvironmentManager):
                 )
             else:
                 python_version = self.detect_python_version()
-                log.info(
-                    f"Creating sub-conda environment {self.env_name} with Python {python_version}"
-                )
+                log.info(f"Creating sub-conda env {self.env_name} with Python {python_version}")
                 subprocess.run(
                     [
                         self.package_manager,
@@ -177,8 +174,8 @@ class CondaEnvironmentManager(EnvironmentManager):
 
     def env_exists(self) -> bool:
         """
-        Checks if the conda environment exists by querying the list of
-        existing conda environments.
+        Checks if the conda environment exists by querying the list of existing conda
+        environments.
 
         Returns:
             bool: True if the conda environment exists, False otherwise.
@@ -188,9 +185,9 @@ class CondaEnvironmentManager(EnvironmentManager):
 
     def detect_python_version(self) -> str:
         """
-        Determines the required Python version from setup files in the model directory.
-        It checks 'setup.py', 'pyproject.toml', and 'setup.cfg' (in that order), for
-        version specifications.
+        Determines the required Python version from setup files in the model directory. It
+        checks 'setup.py', 'pyproject.toml', and 'setup.cfg' (in that order), for version
+        specifications.
 
         Returns:
             str: The detected or default Python version.
@@ -251,8 +248,8 @@ class CondaEnvironmentManager(EnvironmentManager):
 
     def install_dependencies(self):
         """
-        Installs dependencies in the conda environment using pip, based on the
-        model setup file
+        Installs dependencies in the conda environment using pip, based on the model setup
+        file.
         """
         log.info(f"Installing dependencies in conda environment: {self.env_name}")
         cmd = [
@@ -269,15 +266,17 @@ class CondaEnvironmentManager(EnvironmentManager):
 
     def run_command(self, command):
         """
-        Runs a specified command within the conda environment
+        Runs a specified command within the conda environment.
+
         Args:
             command (str): The command to be executed in the conda environment.
         """
         cmd = [
             "bash",
             "-c",
-            f"{self.package_manager} run -n {self.env_name} {command}",
+            f"{self.package_manager} run --live-stream -n {self.env_name} {command}",
         ]
+
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -285,35 +284,36 @@ class CondaEnvironmentManager(EnvironmentManager):
             universal_newlines=True,
         )
         for line in process.stdout:
-            log.info(f"[{self.base_name}]: {line[:-1]}")
+            stripped_line = line.strip()
+            log.info(f"[{self.base_name}]: " + stripped_line)
         process.wait()
 
 
-class VenvEnvironmentManager(EnvironmentManager):
+class VenvManager(EnvironmentManager):
     """
-    Manages a virtual environment created using Python's venv module.
-    Provides methods to create, check, and manipulate virtual environments.
+    Manages a virtual environment created using Python's venv module. Provides methods to
+    create, check, and manipulate virtual environments.
     """
 
     def __init__(self, base_name: str, model_directory: str):
         """
-        Initializes the virtual environment manager with the specified base name
-        and model directory.
+        Initializes the virtual environment manager with the specified base name and model
+        directory.
 
         Args:
             base_name (str): The base name (i.e., model name) for the virtual environment.
             model_directory (str): The directory containing the model files.
         """
 
-        self.base_name = base_name.replace(' ', '_')
+        self.base_name = base_name.replace(" ", "_")
         self.model_directory = model_directory
         self.env_name = self.generate_env_name()
         self.env_path = os.path.join(model_directory, self.env_name)
 
     def create_environment(self, force=False):
         """
-        Creates a virtual environment in the specified model directory. If 'force'
-        is True, any existing virtual environment will be removed before creation.
+        Creates a virtual environment in the specified model directory. If 'force' is True,
+        any existing virtual environment will be removed before creation.
 
         Args:
             force (bool): Whether to forcefully remove an existing virtual environment.
@@ -339,8 +339,8 @@ class VenvEnvironmentManager(EnvironmentManager):
 
     def install_dependencies(self):
         """
-        Installs dependencies in the virtual environment using pip, based on the
-        model directory's configuration.
+        Installs dependencies in the virtual environment using pip, based on the model
+        directory's configuration.
         """
         log.info(f"Installing dependencies in virtual environment: {self.env_name}")
         pip_executable = os.path.join(self.env_path, "bin", "pip")
@@ -375,14 +375,14 @@ class VenvEnvironmentManager(EnvironmentManager):
         )
         for line in process.stdout:
             stripped_line = line.strip()
-            log.info(f'[{self.base_name}]: ' + stripped_line)
+            log.info(f"[{self.base_name}]: " + stripped_line)
         process.wait()
 
 
-class DockerEnvironmentManager(EnvironmentManager):
+class DockerManager(EnvironmentManager):
     """
-    Manages a Docker environment, providing methods to create, check,
-    and manipulate Docker containers for the environment.
+    Manages a Docker environment, providing methods to create, check and manipulate Docker
+    containers for the environment.
     """
 
     def __init__(self, base_name: str, model_directory: str):
@@ -403,18 +403,17 @@ class DockerEnvironmentManager(EnvironmentManager):
 
 
 class EnvironmentFactory:
-    """
-    Factory class for creating instances of environment managers based on the specified type.
-    """
+    """Factory class for creating instances of environment managers based on the specified
+    type."""
 
     @staticmethod
     def get_env(
         build: str = None, model_name: str = "model", model_path: str = None
     ) -> EnvironmentManager:
         """
-        Returns an instance of an environment manager based on the specified build type.
-        It checks the current environment type and can return a conda, venv, or Docker
-        environment manager.
+        Returns an instance of an environment manager based on the specified build type. It
+        checks the current environment type and can return a conda, venv, or Docker environment
+        manager.
 
         Args:
             build (str): The desired type of environment ('conda', 'venv', or 'docker').
@@ -433,18 +432,20 @@ class EnvironmentFactory:
                 f"Selected build environment ({build}) for this model is different than that of"
                 f" the experiment run. Consider selecting the same environment."
             )
-        if build == "conda" or (not build and run_env == "conda"):
-            return CondaEnvironmentManager(
+        if build in ["conda", "micromamba"] or (
+            not build and run_env in ["conda", "micromamba"]
+        ):
+            return CondaManager(
                 base_name=f"{model_name}",
                 model_directory=os.path.abspath(model_path),
             )
         elif build == "venv" or (not build and run_env == "venv"):
-            return VenvEnvironmentManager(
+            return VenvManager(
                 base_name=f"{model_name}",
                 model_directory=os.path.abspath(model_path),
             )
         elif build == "docker":
-            return DockerEnvironmentManager(
+            return DockerManager(
                 base_name=f"{model_name}",
                 model_directory=os.path.abspath(model_path),
             )
@@ -457,16 +458,40 @@ class EnvironmentFactory:
     @staticmethod
     def check_environment_type():
         if "VIRTUAL_ENV" in os.environ:
+            log.info("Detected virtual environment.")
             return "venv"
         try:
-            subprocess.run(
+            result = subprocess.run(
                 ["conda", "info"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
-            return "conda"
+            if result.returncode == 0:
+                log.info("Detected conda environment.")
+                return "conda"
+            else:
+                log.warning(
+                    "Conda command failed with return code: {}".format(result.returncode)
+                )
         except FileNotFoundError:
-            pass
+            log.warning("Conda not found in PATH.")
+
+        try:
+            result = subprocess.run(
+                ["micromamba", "info"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            if result.returncode == 0:
+                log.info("Detected micromamba environment.")
+                return "micromamba"
+            else:
+                log.warning(
+                    "Micromamba command failed with return code: {}".format(result.returncode)
+                )
+        except FileNotFoundError:
+            log.warning("Micromamba not found in PATH.")
+
         return None
 
 

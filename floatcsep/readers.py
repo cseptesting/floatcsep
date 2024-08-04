@@ -1,13 +1,14 @@
-import os.path
-import h5py
-import pandas
 import argparse
-import numpy
-import xml.etree.ElementTree as eTree
-from csep.models import Polygon
-from csep.core.regions import QuadtreeGrid2D, CartesianGrid2D
-import time
 import logging
+import os.path
+import time
+import xml.etree.ElementTree as eTree
+
+import h5py
+import numpy
+import pandas
+from csep.core.regions import QuadtreeGrid2D, CartesianGrid2D
+from csep.models import Polygon
 
 log = logging.getLogger(__name__)
 

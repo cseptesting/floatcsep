@@ -5,7 +5,7 @@ import os
 import shutil
 import warnings
 from os.path import join, abspath, relpath, dirname, isfile, split, exists
-from typing import Union, List, Dict, Callable, Mapping, Sequence
+from typing import Union, List, Dict, Callable, Sequence
 
 import csep
 import numpy
@@ -18,8 +18,8 @@ from matplotlib import pyplot
 from floatcsep import report
 from floatcsep.evaluation import Evaluation
 from floatcsep.logger import add_fhandler
-from floatcsep.model import Model, ModelFactory, TimeDependentModel
-from floatcsep.registry import PathTree
+from floatcsep.model import Model, TimeDependentModel
+from floatcsep.registry import ExperimentRegistry
 from floatcsep.utils import (
     NoAliasLoader,
     parse_csep_func,
@@ -30,6 +30,7 @@ from floatcsep.utils import (
     timewindow2str,
     str2timewindow,
     magnitude_vs_time,
+    parse_nested_dicts,
 )
 
 numpy.seterr(all="ignore")
@@ -40,9 +41,8 @@ log = logging.getLogger("floatLogger")
 
 class Experiment:
     """
-
-    Main class that handles an Experiment's context. Contains all the
-    specifications, instructions and methods to carry out an experiment.
+    Main class that handles an Experiment's context. Contains all the specifications,
+    instructions and methods to carry out an experiment.
 
     Args:
         name (str): Experiment name
@@ -96,7 +96,6 @@ class Experiment:
         be instantiated using these dicts as keywords. (e.g. ``Experiment(
         **time_config, **region_config)``, ``Experiment(start_date=start_date,
         intervals=1, region='csep-italy', ...)``
-
     """
 
     """
@@ -145,7 +144,7 @@ class Experiment:
         os.makedirs(os.path.join(workdir, rundir), exist_ok=True)
 
         self.name = name if name else "floatingExp"
-        self.path = PathTree(workdir, rundir)
+        self.path = ExperimentRegistry(workdir, rundir)
         self.config_file = kwargs.get("config_file", None)
         self.original_config = kwargs.get("original_config", None)
         self.original_rundir = kwargs.get("original_rundir", None)
@@ -195,7 +194,7 @@ class Experiment:
 
     def __getattr__(self, item: str) -> object:
         """
-        Override built-in method to return attributes found within
+        Override built-in method to return attributes found within.
         :attr:`region_config` or :attr:`time_config`
         """
 
@@ -213,9 +212,7 @@ class Experiment:
                     ) from None
 
     def __dir__(self):
-        """
-        Adds time and region configs keys to instance scope.
-        """
+        """Adds time and region configs keys to instance scope."""
 
         _dir = (
             list(super().__dir__()) + list(self.time_config.keys()) + list(self.region_config)
@@ -224,23 +221,20 @@ class Experiment:
 
     def set_models(self, model_config: Union[Dict, str, List], order: List = None) -> List:
         """
-
-        Parse the models' configuration file/dict. Instantiates all the models
-        as :class:`floatcsep.model.Model` and store them into
-        :attr:`Experiment.models`.
+        Parse the models' configuration file/dict. Instantiates all the models as
+        :class:`floatcsep.model.Model` and store them into :attr:`Experiment.models`.
 
         Args:
             model_config (dict, list, str): configuration file or dictionary
              containing the model initialization attributes, as defined in
              :meth:`~floatcsep.model.Model`
             order (list): desired order of models
-
         """
 
         models = []
         if isinstance(model_config, str):
             modelcfg_path = self.path.abs(model_config)
-            _dir = self.path.absdir(model_config)
+            _dir = self.path.abs_dir(model_config)
             with open(modelcfg_path, "r") as file_:
                 config_dict = yaml.load(file_, NoAliasLoader)
         elif isinstance(model_config, (dict, list)):
@@ -262,7 +256,7 @@ class Experiment:
                     name_: {**element[name_], "model_path": path_, "workdir": self.path.workdir}
                 }
                 model_i[name_].pop("path")
-                models.append(ModelFactory.create_model(model_i))
+                models.append(Model.factory(model_i))
 
             else:
                 model_flavours = list(element.values())[0]["flavours"].items()
@@ -281,7 +275,7 @@ class Experiment:
                     }
                     model_[name_flav].pop("path")
                     model_[name_flav].pop("flavours")
-                    models.append(ModelFactory.create_model(model_))
+                    models.append(Model.factory(model_))
 
         # Checks if there is any repeated model.
         names_ = [i.name for i in models]
@@ -299,15 +293,14 @@ class Experiment:
         return models
 
     def get_model(self, name: str) -> Model:
-        """Returns a Model by its name string"""
+        """Returns a Model by its name string."""
         for model in self.models:
             if model.name == name:
                 return model
 
     def stage_models(self) -> None:
         """
-        Stages all the experiment's models. See
-        :meth:`floatcsep.model.Model.stage`
+        Stages all the experiment's models. See :meth:`floatcsep.model.Model.stage`
         """
         log.info("Staging models")
         for i in self.models:
@@ -323,7 +316,6 @@ class Experiment:
             test_config (dict, list, str): configuration file or dictionary
              containing the evaluation initialization attributes, as defined in
              :meth:`~floatcsep.evaluation.Evaluation`
-
         """
         tests = []
 
@@ -343,8 +335,8 @@ class Experiment:
     @property
     def catalog(self) -> CSEPCatalog:
         """
-        Returns a CSEP catalog loaded from the given query function or
-         a stored file if it exists.
+        Returns a CSEP catalog loaded from the given query function or a stored file if it
+        exists.
         """
         cat_path = self.path.abs(self._catpath)
 
@@ -406,14 +398,11 @@ class Experiment:
 
     def get_test_cat(self, tstring: str = None) -> CSEPCatalog:
         """
-
-        Filters the complete experiment catalog to a test sub-catalog bounded
-        by the test time-window. Writes it to filepath defined in
-        :attr:`Experiment.filetree`
+        Filters the complete experiment catalog to a test sub-catalog bounded by the test
+        time-window. Writes it to filepath defined in :attr:`Experiment.registry`
 
         Args:
             tstring (str): Time window string
-
         """
 
         if tstring:
@@ -437,16 +426,12 @@ class Experiment:
 
     def set_test_cat(self, tstring: str) -> None:
         """
-
-        Filters the complete experiment catalog to a test sub-catalog bounded
-        by the test time-window. Writes it to filepath defined in
-        :attr:`Experiment.filetree`
+        Filters the complete experiment catalog to a test sub-catalog bounded by the test
+        time-window. Writes it to filepath defined in :attr:`Experiment.registry`
 
         Args:
             tstring (str): Time window string
-
         """
-        ""
 
         testcat_name = self.path(tstring, "catalog")
         if not exists(testcat_name):
@@ -471,8 +456,8 @@ class Experiment:
 
     def set_input_cat(self, tstring: str, model: Model) -> None:
         """
+        Filters the complete experiment catalog to a input sub-catalog filtered.
 
-        Filters the complete experiment catalog to a input sub-catalog filtered
         to the beginning of thetest time-window. Writes it to filepath defined
         in :attr:`Model.tree.catalog`
 
@@ -480,11 +465,10 @@ class Experiment:
             tstring (str): Time window string
             model (:class:`~floatcsep.model.Model`): Model to give the input
              catalog
-
         """
         start, end = str2timewindow(tstring)
         sub_cat = self.catalog.filter([f"origin_time < {start.timestamp() * 1000}"])
-        sub_cat.write_ascii(filename=model.path("input_cat"))
+        sub_cat.write_ascii(filename=model.registry.get_path("input_cat"))
 
     def set_tasks(self):
         """
@@ -501,16 +485,14 @@ class Experiment:
         * A sequential test requires the forecasts exist for all windows
         * A batch test requires all forecast exist for a given window.
 
-
         Returns:
-
         """
 
         # Set the file path structure
-        self.path.build(self.timewindows, self.models, self.tests)
+        self.path.build_tree(self.timewindows, self.models, self.tests)
 
         log.info("Setting up experiment's tasks")
-        log.debug("Pre-run: results' paths\n" + yaml.dump(self.path.asdict()))
+        log.debug("Pre-run: results' paths\n" + yaml.dump(self.path.as_dict()))
         # Get the time windows strings
         tw_strings = timewindow2str(self.timewindows)
 
@@ -658,14 +640,13 @@ class Experiment:
 
     def run(self) -> None:
         """
-        Run the task tree
+        Run the task tree.
 
         todo:
          - Cleanup forecast (perhaps add a clean task in self.prepare_tasks,
             after all test had been run for a given forecast)
          - Memory monitor?
          - Queuer?
-
         """
         log.info(f"Running {self.task_graph.ntasks} tasks")
 
@@ -677,18 +658,14 @@ class Experiment:
 
     def read_results(self, test: Evaluation, window: str) -> List:
         """
-        Reads an Evaluation result for a given time window and returns a list
-        of the results for all tested models.
+        Reads an Evaluation result for a given time window and returns a list of the results
+        for all tested models.
         """
 
         return test.read_results(window, self.models, self.path)
 
     def plot_results(self) -> None:
-        """
-
-        Plots all evaluation results
-
-        """
+        """Plots all evaluation results."""
         log.info("Plotting evaluations")
         timewindows = timewindow2str(self.timewindows)
 
@@ -697,13 +674,11 @@ class Experiment:
 
     def plot_catalog(self, dpi: int = 300, show: bool = False) -> None:
         """
-
-        Plots the evaluation catalogs
+        Plots the evaluation catalogs.
 
         Args:
             dpi: Figure resolution with which to save
             show: show in runtime
-
         """
         plot_args = {
             "basemap": "ESRI_terrain",
@@ -715,7 +690,6 @@ class Experiment:
             "legend": True,
         }
         plot_args.update(self.postproc_config.get("plot_catalog", {}))
-
         catalog = self.get_test_cat()
         if catalog.get_number_of_events() != 0:
             ax = catalog.plot(plot_args=plot_args, show=show)
@@ -744,11 +718,7 @@ class Experiment:
                     )
 
     def plot_forecasts(self) -> None:
-        """
-
-        Plots and saves all the generated forecasts
-
-        """
+        """Plots and saves all the generated forecasts."""
 
         plot_fc_config = self.postproc_config.get("plot_forecasts")
         if plot_fc_config:
@@ -828,15 +798,11 @@ class Experiment:
                 pyplot.savefig(fig_path, dpi=300, facecolor=(0, 0, 0, 0))
 
     def generate_report(self) -> None:
-        """
+        """Creates a report summarizing the Experiment's results."""
 
-        Creates a report summarizing the Experiment's results
-
-        """
         log.info(f"Saving report into {self.path.rundir}")
-
-        self.path.build(self.timewindows, self.models, self.tests)
-        log.debug("Post-run: results' paths\n" + yaml.dump(self.path.asdict()))
+        self.path.build_tree(self.timewindows, self.models, self.tests)
+        log.debug("Post-run: results' paths\n" + yaml.dump(self.path.as_dict()))
 
         report.generate_report(self)
 
@@ -846,7 +812,7 @@ class Experiment:
         repr_config = self.path("config")
 
         # Dropping region to results folder if it is a file
-        region_path = self.region_config.get("path", None)
+        region_path = self.region_config.get("path", False)
         if region_path:
             if isfile(region_path) and region_path:
                 new_path = join(self.path.rundir, self.region_config["path"])
@@ -892,53 +858,16 @@ class Experiment:
             floatCSEP readable
         """
 
-        def _get_value(x):
-            # For each element type, transforms to desired string/output
-            if hasattr(x, "as_dict"):
-                # e.g. model, test, etc.
-                o = x.as_dict()
-            else:
-                try:
-                    try:
-                        o = getattr(x, "__name__")
-                    except AttributeError:
-                        o = getattr(x, "name")
-                except AttributeError:
-                    if isinstance(x, numpy.ndarray):
-                        o = x.tolist()
-                    else:
-                        o = x
-            return o
-
-        def iter_attr(val):
-            # recursive iter through nested dicts/lists
-            if isinstance(val, Mapping):
-                return {
-                    item: iter_attr(val_)
-                    for item, val_ in val.items()
-                    if ((item not in exclude) and val_) or extended
-                }
-            elif isinstance(val, Sequence) and not isinstance(val, str):
-                return [iter_attr(i) for i in val]
-            else:
-                return _get_value(val)
-
         listwalk = [(i, j) for i, j in self.__dict__.items() if not i.startswith("_") and j]
         listwalk.insert(6, ("catalog", self._catpath))
 
         dictwalk = {i: j for i, j in listwalk}
-        # if self.model_config is None:
-        #     dictwalk['models'] = iter_attr(self.models)
-        # if self.test_config is None:
-        #     dictwalk['tests'] = iter_attr(self.tests)
 
-        return iter_attr(dictwalk)
+        return parse_nested_dicts(dictwalk, excluded=exclude, extended=extended)
 
     def to_yml(self, filename: str, **kwargs) -> None:
         """
-
-        Serializes the :class:`~floatcsep.experiment.Experiment` instance into
-        a .yml file.
+        Serializes the :class:`~floatcsep.experiment.Experiment` instance into a .yml file.
 
         Note:
             This instance can then be reinstantiated using
@@ -949,7 +878,6 @@ class Experiment:
             **kwargs: Pass to :meth:`~floatcsep.experiment.Experiment.as_dict`
 
         Returns:
-
         """
 
         class NoAliasDumper(yaml.Dumper):
@@ -968,21 +896,20 @@ class Experiment:
             )
 
     @classmethod
-    def from_yml(cls, config_yml: str, reprdir=None, **kwargs):
+    def from_yml(cls, config_yml: str, repr_dir=None, **kwargs):
         """
+        Initializes an experiment from a .yml file. It must contain the.
 
-        Initializes an experiment from a .yml file. It must contain the
         attributes described in the :class:`~floatcsep.experiment.Experiment`,
         :func:`~floatcsep.utils.read_time_config` and
         :func:`~floatcsep.utils.read_region_config` descriptions
 
         Args:
             config_yml (str): The path to the .yml file
-            reprdir (str): folder where to reproduce results
+            repr_dir (str): folder where to reproduce results
 
         Returns:
             An :class:`~floatcsep.experiment.Experiment` class instance
-
         """
         log.info("Initializing experiment from .yml file")
         with open(config_yml, "r") as yml:
@@ -997,9 +924,9 @@ class Experiment:
             _dict["path"] = abspath(join(_dir_yml, _dict.get("path", "")))
 
             # replaces rundir case reproduce option is used
-            if reprdir:
+            if repr_dir:
                 _dict["original_rundir"] = _dict.get("rundir", "results")
-                _dict["rundir"] = relpath(join(_dir_yml, reprdir), _dict["path"])
+                _dict["rundir"] = relpath(join(_dir_yml, repr_dir), _dict["path"])
                 _dict["original_config"] = abspath(join(_dict["path"], _dict["config_file"]))
             else:
 

@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 from typing import Dict, Callable, Union, Sequence, List
@@ -9,15 +10,14 @@ from csep.models import EvaluationResult
 from matplotlib import pyplot
 
 from floatcsep.model import Model
-from floatcsep.registry import PathTree
+from floatcsep.registry import ExperimentRegistry
 from floatcsep.utils import parse_csep_func, timewindow2str
 
 
 class Evaluation:
     """
-
-    Class representing a Scoring Test, which wraps the evaluation function,
-    its arguments, parameters and hyper-parameters.
+    Class representing a Scoring Test, which wraps the evaluation function, its arguments,
+    parameters and hyperparameters.
 
     Args:
         name (str): Name of the Test
@@ -27,7 +27,6 @@ class Evaluation:
         plot_func (str, ~typing.Callable): Test's plotting function
         plot_args (list,dict): Positional arguments of the plotting function
         plot_kwargs (list,dict): Keyword arguments of the plotting function
-
     """
 
     _TYPES = {
@@ -80,8 +79,7 @@ class Evaluation:
     @property
     def type(self):
         """
-        Returns the type of the test, mapped from the class attribute
-        Evaluation._TYPES
+        Returns the type of the test, mapped from the class attribute Evaluation._TYPES.
         """
         return self._type
 
@@ -131,7 +129,6 @@ class Evaluation:
         region=None,
     ) -> tuple:
         """
-
         Prepares the positional argument for the Evaluation function.
 
         Args:
@@ -146,7 +143,6 @@ class Evaluation:
         Returns:
             A tuple of the positional arguments required by the evaluation
             function :meth:`Evaluation.func`.
-
         """
         # Subtasks
         # ========
@@ -179,9 +175,8 @@ class Evaluation:
         forecast: Union[GriddedForecast, Sequence[GriddedForecast]],
     ) -> Union[CSEPCatalog, List[CSEPCatalog]]:
         """
-
-        Reads the catalog(s) from the given path(s). References the catalog
-        region to the forecast region.
+        Reads the catalog(s) from the given path(s). References the catalog region to the
+        forecast region.
 
         Args:
             catalog_path (str, list(str)): Path to the existing catalog
@@ -189,7 +184,6 @@ class Evaluation:
              object, onto which the catalog will be confronted for testing.
 
         Returns:
-
         """
         if isinstance(catalog_path, str):
             eval_cat = CSEPCatalog.load_json(catalog_path)
@@ -213,13 +207,12 @@ class Evaluation:
         region=None,
     ) -> None:
         """
-
         Runs the test, structuring the arguments according to the
-         test-typology/function-signature
+        test-typology/function-signature
 
         Args:
-            timewindow (list[~datetime.datetime, ~datetime.datetime]): Pair of
-             datetime objects representing the testing time span
+            timewindow (list[~datetime.datetime, ~datetime.datetime]): A pair of datetime
+             objects representing the testing time span
             catalog (str):  Path to the filtered catalog
             model (Model, list[Model]): Model(s) to be evaluated
             ref_model: Model to be used as reference
@@ -227,7 +220,6 @@ class Evaluation:
             region: region to filter a catalog forecast.
 
         Returns:
-
         """
         test_args = self.prepare_args(
             timewindow, catpath=catalog, model=model, ref_model=ref_model, region=region
@@ -238,9 +230,7 @@ class Evaluation:
 
     @staticmethod
     def write_result(result: EvaluationResult, path: str) -> None:
-        """
-        Dumps a test result into a json file.
-        """
+        """Dumps a test result into a json file."""
 
         class NumpyEncoder(json.JSONEncoder):
             def default(self, obj):
@@ -255,10 +245,15 @@ class Evaluation:
         with open(path, "w") as _file:
             json.dump(result.to_dict(), _file, indent=4, cls=NumpyEncoder)
 
-    def read_results(self, window: str, models: List[Model], tree: PathTree) -> List:
+    def read_results(
+        self,
+        window: Union[str, Sequence[datetime.datetime]],
+        models: List[Model],
+        tree: ExperimentRegistry,
+    ) -> List:
         """
-        Reads an Evaluation result for a given time window and returns a list
-        of the results for all tested models.
+        Reads an Evaluation result for a given time window and returns a list of the results for
+        all tested models.
         """
         test_results = []
 
@@ -279,13 +274,12 @@ class Evaluation:
         self,
         timewindow: Union[str, List],
         models: List[Model],
-        tree: PathTree,
+        tree: ExperimentRegistry,
         dpi: int = 300,
         show: bool = False,
     ) -> None:
         """
-
-        Plots all evaluation results
+        Plots all evaluation results.
 
         Args:
             timewindow: string representing the desired timewindow to plot
@@ -293,7 +287,6 @@ class Evaluation:
             tree: a :class:`floatcsep:models.PathTree` containing path of the results
             dpi: Figure resolution with which to save
             show: show in runtime
-
         """
         if isinstance(timewindow, str):
             timewindow = [timewindow]
@@ -343,8 +336,8 @@ class Evaluation:
 
     def as_dict(self) -> dict:
         """
-        Represents an Evaluation instance as a dictionary, which can be
-        serialized and then parsed
+        Represents an Evaluation instance as a dictionary, which can be serialized and then
+        parsed
         """
         out = {}
         included = ["model", "ref_model", "func_kwargs"]
@@ -370,9 +363,7 @@ class Evaluation:
 
     @classmethod
     def from_dict(cls, record):
-        """
-        Parses a dictionary and re-instantiate an Evaluation object
-        """
+        """Parses a dictionary and re-instantiate an Evaluation object."""
         if len(record) != 1:
             raise IndexError("A single test has not been passed")
         name = next(iter(record))

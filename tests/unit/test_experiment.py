@@ -2,11 +2,9 @@ import os.path
 import tempfile
 import numpy
 from unittest import TestCase
-from unittest.mock import patch
 from datetime import datetime
 from floatcsep.experiment import Experiment
 from csep.core import poisson_evaluations
-from csep.core.catalogs import CSEPCatalog
 
 _dir = os.path.dirname(__file__)
 _model_cfg = os.path.normpath(os.path.join(_dir, "../artifacts", "models", "model_cfg.yml"))
@@ -31,8 +29,8 @@ class TestExperiment(TestCase):
 
     def assertEqualExperiment(self, exp_a, exp_b):
         self.assertEqual(exp_a.name, exp_b.name)
-        self.assertEqual(exp_a.path, os.getcwd())
-        self.assertEqual(exp_a.path, exp_b.path)
+        self.assertEqual(exp_a.path.workdir, os.getcwd())
+        self.assertEqual(exp_a.path.workdir, exp_b.path.workdir)
         self.assertEqual(exp_a.start_date, exp_b.start_date)
         self.assertEqual(exp_a.timewindows, exp_b.timewindows)
         self.assertEqual(exp_a.exp_class, exp_b.exp_class)
@@ -40,13 +38,6 @@ class TestExperiment(TestCase):
         numpy.testing.assert_equal(exp_a.magnitudes, exp_b.magnitudes)
         numpy.testing.assert_equal(exp_a.depths, exp_b.depths)
         self.assertEqual(exp_a.catalog, exp_b.catalog)
-
-    @staticmethod
-    def init_no_wrap(name, path, **kwargs):
-
-        model = Experiment.__new__(Experiment)
-        Experiment.__init__.__wrapped__(self=model, name=name, path=path, **kwargs)
-        return Experiment
 
     def test_init(self):
         exp_a = Experiment(**_time_config, **_region_config, catalog=_cat)
@@ -139,7 +130,7 @@ class TestExperiment(TestCase):
         exp.stage_models()
 
         dbpath = os.path.relpath(os.path.join(_dir, "../artifacts", "models", "model.hdf5"))
-        self.assertEqual(exp.models[0].path.database, dbpath)
+        self.assertEqual(exp.models[0].registry.database, dbpath)
 
     def test_set_tests(self):
         test_cfg = os.path.normpath(

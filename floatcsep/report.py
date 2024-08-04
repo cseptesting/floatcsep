@@ -1,7 +1,7 @@
 from floatcsep.utils import MarkdownReport, timewindow2str
 
 """
-Use the MarkdownReport class to create output for the experiment 
+Use the MarkdownReport class to create output for the experiment.
 
 1. string templates are stored for each evaluation
 2. string templates are stored for each forecast

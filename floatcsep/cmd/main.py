@@ -52,7 +52,7 @@ def reproduce(config, **kwargs):
 
     log.info(f"floatCSEP v{__version__} | Reproduce")
 
-    reproduced_exp = Experiment.from_yml(config, reprdir="reproduced", **kwargs)
+    reproduced_exp = Experiment.from_yml(config, repr_dir="reproduced", **kwargs)
     reproduced_exp.stage_models()
     reproduced_exp.set_tasks()
     reproduced_exp.run()

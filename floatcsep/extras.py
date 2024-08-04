@@ -1,17 +1,18 @@
+from typing import Sequence
+
 import numpy
 import scipy.stats
-from matplotlib import pyplot
-from csep.models import EvaluationResult
+from csep.core.catalogs import CSEPCatalog
+from csep.core.exceptions import CSEPCatalogException
+from csep.core.forecasts import GriddedForecast
 from csep.core.poisson_evaluations import (
     _simulate_catalog,
     paired_t_test,
     w_test,
     _poisson_likelihood_test,
 )
-from csep.core.exceptions import CSEPCatalogException
-from typing import Sequence
-from csep.core.forecasts import GriddedForecast
-from csep.core.catalogs import CSEPCatalog
+from csep.models import EvaluationResult
+from matplotlib import pyplot
 
 
 def binomial_spatial_test(
@@ -24,6 +25,7 @@ def binomial_spatial_test(
 ):
     """
     Performs the binary spatial test on the Forecast using the Observed Catalogs.
+
     Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
     transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
     gridded forecasts that supply their forecasts as rates.
@@ -204,8 +206,8 @@ def sequential_information_gain(
     random_numbers: Sequence = None,
 ):
     """
-
     Args:
+
         gridded_forecasts: list csep.core.forecasts.GriddedForecast
         benchmark_forecasts: list csep.core.forecasts.GriddedForecast
         observed_catalogs: list csep.core.catalogs.Catalog
@@ -274,8 +276,8 @@ def vector_poisson_t_w_test(
     catalog: CSEPCatalog,
 ):
     """
+    Computes Student's t-test for the information gain per earthquake over.
 
-    Computes Student's t-test for the information gain per earthquake over
     a list of forecasts and w-test for normality
 
     Uses all ref_forecasts to perform pair-wise t-tests against the
@@ -436,7 +438,9 @@ def negative_binomial_number_test(gridded_forecast, observed_catalog, variance):
 
 def binomial_joint_log_likelihood_ndarray(forecast, catalog):
     """
-    Computes Bernoulli log-likelihood scores, assuming that earthquakes follow a binomial distribution.
+    Computes Bernoulli log-likelihood scores, assuming that earthquakes follow a binomial.
+
+    distribution.
 
     Args:
         forecast:   Forecast of a Model (Gridded) (Numpy Array)
@@ -444,7 +448,7 @@ def binomial_joint_log_likelihood_ndarray(forecast, catalog):
                     It can be anything greater than zero
         catalog:    Observed (Gridded) seismicity (Numpy Array):
                     An Observation has to be Number of Events in Each Bin
-                    It has to be a either zero or positive integer only (No Floating Point)
+                    It has to be either zero or positive integer only (No Floating Point)
     """
     # First, we mask the forecast in cells where we could find log=0.0 singularities:
     forecast_masked = numpy.ma.masked_where(forecast.ravel() <= 0.0, forecast.ravel())
@@ -472,15 +476,18 @@ def _binomial_likelihood_test(
     normalize_likelihood=False,
 ):
     """
-    Computes binary conditional-likelihood test from CSEP using an efficient simulation based approach.
+        Computes binary conditional likelihood test from CSEP using a simulation based.
+
+    approach.
+
     Args:
+
         forecast_data (numpy.ndarray): nd array where [:, -1] are the magnitude bins.
         observed_data (numpy.ndarray): same format as observation.
         num_simulations: default number of simulations to use for likelihood based simulations
         seed: used for reproducibility of the prng
         random_numbers (numpy.ndarray): can supply an explicit list of random numbers, primarily used for software testing
-        use_observed_counts (bool): if true, will simulate catalogs using the observed events, if false will draw from poisson
-        distribution
+        use_observed_counts (bool): if true, will simulate catalogs using the observed events, if false will draw from poisson distribution
     """
 
     # Array-masking that avoids log singularities:
@@ -553,7 +560,9 @@ def binomial_conditional_likelihood_test(
     verbose=False,
 ):
     """
-    Performs the binary conditional likelihood test on Gridded Forecast using an Observed Catalog.
+    Performs the binary conditional likelihood test on Gridded Forecast using an Observed.
+
+    Catalog.
 
     Normalizes the forecast so the forecasted rate are consistent with the observations. This modification
     eliminates the strong impact differences in the number distribution have on the forecasted rates.
@@ -674,10 +683,7 @@ def _binary_t_test_ndarray(
 
 
 def log_likelihood_point_process(observation, forecast, cell_area):
-    """
-    Log-likelihood for point process
-
-    """
+    """Log-likelihood for point process."""
     forecast_density = forecast / cell_area.reshape(-1, 1)
     observation = observation.ravel()
     forecast_density = forecast_density.ravel()
@@ -703,10 +709,10 @@ def _standard_deviation(
 ):
     """
     Calculate Variance using forecast 1 and forecast 2.
+
     But It is calculated using the forecast values corresponding to the non-zero observations.
     The same process is repeated as repeated during calculation of Point Process LL.
     After we get forecast rates for non-zeros observations, then Pooled Variance is calculated.
-
 
     Parameters
     ----------
@@ -718,7 +724,6 @@ def _standard_deviation(
     Returns
     -------
         Variance
-
     """
 
     N_obs = numpy.sum(gridded_observation1)
@@ -767,6 +772,7 @@ def paired_ttest_point_process(
 ):
     """
     Function for T test based on Point process LL.
+
     Works for comparing forecasts for different grids
 
     Parameters
@@ -995,7 +1001,7 @@ def plot_negbinom_consistency_test(
 
 
 def _get_marker_style(obs_stat, p, one_sided_lower):
-    """Returns matplotlib marker style as fmt string"""
+    """Returns matplotlib marker style as fmt string."""
     if obs_stat < p[0] or obs_stat > p[1]:
         # red circle
         fmt = "ro"
