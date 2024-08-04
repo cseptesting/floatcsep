@@ -14,7 +14,7 @@ from csep.utils.time_utils import decimal_year
 from floatcsep.accessors import from_zenodo, from_git
 from floatcsep.environments import EnvironmentFactory
 from floatcsep.readers import ForecastParsers, HDF5Serializer
-from floatcsep.registry import ModelTree
+from floatcsep.registry import ForecastRegistry
 from floatcsep.utils import timewindow2str, str2timewindow
 
 log = logging.getLogger("floatLogger")
@@ -39,7 +39,6 @@ class Model(ABC):
     def __init__(
         self,
         name: str,
-        model_path: str,
         zenodo_id: int = None,
         giturl: str = None,
         repo_hash: str = None,
@@ -49,28 +48,17 @@ class Model(ABC):
     ):
 
         self.name = name
-        self.model_path = model_path
         self.zenodo_id = zenodo_id
         self.giturl = giturl
         self.repo_hash = repo_hash
         self.authors = authors
         self.doi = doi
 
-        self.path = None
+        self.registry = None
         self.forecasts = {}
 
+        self.force_stage = False
         self.__dict__.update(**kwargs)
-
-    @property
-    def dir(self) -> str:
-        """
-        Returns:
-            The directory containing the model source.
-        """
-        if os.path.isdir(self.path("path")):
-            return self.path("path")
-        else:
-            return os.path.dirname(self.path("path"))
 
     @abstractmethod
     def stage(self, timewindows=None) -> None:
@@ -88,7 +76,7 @@ class Model(ABC):
         pass
 
     def get_source(
-        self, zenodo_id: int = None, giturl: str = None, force: bool = False, **kwargs
+        self, zenodo_id: int = None, giturl: str = None, **kwargs
     ) -> None:
         """
         Search, download or clone the model source in the filesystem, zenodo.
@@ -105,18 +93,14 @@ class Model(ABC):
             **kwargs: see :func:`~floatcsep.utils.from_zenodo` and
              :func:`~floatcsep.utils.from_git`
         """
-        if os.path.exists(self.path("path")) and not force:
-            return
-
-        os.makedirs(self.dir, exist_ok=True)
 
         if zenodo_id:
             log.info(f"Retrieving model {self.name} from zenodo id: " f"{zenodo_id}")
             try:
                 from_zenodo(
                     zenodo_id,
-                    self.dir if self.path.fmt else self.path("path"),
-                    force=force,
+                    self.registry.dir if self.registry.fmt else self.registry("path"),
+                    force=True,
                 )
             except (KeyError, TypeError) as msg:
                 raise KeyError(f"Zenodo identifier is not valid: {msg}")
@@ -124,15 +108,17 @@ class Model(ABC):
         elif giturl:
             log.info(f"Retrieving model {self.name} from git url: " f"{giturl}")
             try:
-                from_git(giturl, self.dir if self.path.fmt else self.path("path"), **kwargs)
+                from_git(giturl, self.registry.dir if self.registry.fmt else self.registry("path"), **kwargs)
             except (git.NoSuchPathError, git.CommandError) as msg:
                 raise git.NoSuchPathError(f"git url was not found {msg}")
         else:
             raise FileNotFoundError("Model has no path or identified")
 
-        if not os.path.exists(self.dir) or not os.path.exists(self.path("path")):
+
+
+        if not os.path.exists(self.registry.dir) or not os.path.exists(self.registry("path")):
             raise FileNotFoundError(
-                f"Directory '{self.dir}' or file {self.path}' do not exist. "
+                f"Directory '{self.registry.dir}' or file {self.registry}' do not exist. "
                 f"Please check the specified 'path' matches the repo "
                 f"structure"
             )
@@ -179,6 +165,7 @@ class Model(ABC):
         ]
 
         dict_walk = {i: j for i, j in list_walk}
+        dict_walk['path'] = dict_walk.pop('registry')
 
         return {self.name: iter_attr(dict_walk)}
 
@@ -220,11 +207,33 @@ class TimeIndependentModel(Model):
     """
 
     def __init__(self, name: str, model_path: str, forecast_unit=1, store_db=False, **kwargs):
-        super().__init__(name, model_path, **kwargs)
+        super().__init__(name, **kwargs)
+
         self.forecast_unit = forecast_unit
         self.store_db = store_db
+        self.registry = ForecastRegistry(kwargs.get("workdir", os.getcwd()), model_path)
 
-        self.path = ModelTree(kwargs.get("workdir", os.getcwd()), model_path)
+    def stage(self, timewindows: Sequence[Sequence[datetime]] = None) -> None:
+        """
+        Acquire the forecast data if it is not in the file system.
+        Sets internally the paths (or database pointers) to the forecast data.
+
+        Args:
+            timewindows (list): time_windows that the forecast data represents.
+
+        """
+
+        if self.force_stage or not self.registry.fileexists('path'):
+            os.makedirs(self.registry.dir, exist_ok=True)
+            self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
+
+        if self.store_db:
+            self.init_db()
+
+        self.registry.build_tree(
+            timewindows=timewindows,
+            model_class=self.__class__.__name__
+        )
 
     def init_db(self, dbpath: str = "", force: bool = False) -> None:
         """
@@ -240,50 +249,27 @@ class TimeIndependentModel(Model):
              exists
         """
 
-        parser = getattr(ForecastParsers, self.path.fmt)
-        rates, region, mag = parser(self.path("path"))
+        parser = getattr(ForecastParsers, self.registry.fmt)
+        rates, region, mag = parser(self.registry("path"))
         db_func = HDF5Serializer.grid2hdf5
 
         if not dbpath:
-            dbpath = self.path.path.replace(self.path.fmt, "hdf5")
-            self.path.database = dbpath
+            dbpath = self.registry.path.replace(self.registry.fmt, "hdf5")
+            self.registry.database = dbpath
 
-        if not os.path.isfile(self.path.abs(dbpath)) or force:
+        if not os.path.isfile(self.registry.abs(dbpath)) or force:
             log.info(f"Serializing model {self.name} into HDF5 format")
             db_func(
                 rates,
                 region,
                 mag,
-                hdf5_filename=self.path.abs(dbpath),
+                hdf5_filename=self.registry.abs(dbpath),
                 unit=self.forecast_unit,
             )
 
-    def rm_db(self) -> None:
-        """Clean up the generated HDF5 File."""
-        pass
-
-    def stage(self, timewindows: Union[str, List[datetime]] = None) -> None:
-        """
-        Acquire the forecast data if it is not in the file system.
-        Sets internally the paths (or database pointers) to the forecast data.
-
-        Args:
-            timewindows (str, list): time_windows that the forecast data represents.
-
-        """
-        self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
-        if self.store_db:
-            self.init_db()
-
-        self.path.build_tree(
-            timewindows=timewindows,
-            model_class="ti",
-            prefix=self.__dict__.get("prefix", self.name),
-        )
-
     def get_forecast(
         self, tstring: Union[str, list] = None, region=None
-    ) -> Union[GriddedForecast, CatalogForecast, List[GriddedForecast], List[CatalogForecast]]:
+    ) -> Union[GriddedForecast, List[GriddedForecast]]:
         """
         Wrapper that just returns a forecast when requested.
         """
@@ -341,8 +327,8 @@ class TimeIndependentModel(Model):
         time_horizon = decimal_year(end_date) - decimal_year(start_date)
         tstring = timewindow2str([start_date, end_date])
 
-        f_path = self.path("forecasts", tstring)
-        f_parser = getattr(ForecastParsers, self.path.fmt)
+        f_path = self.registry("forecasts", tstring)
+        f_parser = getattr(ForecastParsers, self.registry.fmt)
 
         rates, region, mags = f_parser(f_path)
 
@@ -384,18 +370,18 @@ class TimeDependentModel(Model):
         **kwargs,
     ) -> None:
 
-        super().__init__(name, model_path, **kwargs)
+        super().__init__(name, **kwargs)
 
         self.func = func
         self.func_kwargs = func_kwargs or {}
 
-        self.path = ModelTree(kwargs.get("workdir", os.getcwd()), model_path)
+        self.registry = ForecastRegistry(kwargs.get("workdir", os.getcwd()), model_path)
         self.build = kwargs.get("build", None)
         self.run_prefix = ""
 
         if self.func:
             self.environment = EnvironmentFactory.get_env(
-                self.build, self.name, self.path.abs(self.model_path)
+                self.build, self.name, self.registry.abs(model_path)
             )
 
     def stage(self, timewindows=None) -> None:
@@ -407,14 +393,16 @@ class TimeDependentModel(Model):
             - Initialize database
             - Run model quality assurance (unit tests, runnable from floatcsep)
         """
-        self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
+        if self.force_stage or not self.registry.fileexists('path'):
+            os.makedirs(self.registry.dir, exist_ok=True)
+            self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
 
         if hasattr(self, "environment"):
             self.environment.create_environment()
 
-        self.path.build_tree(
+        self.registry.build_tree(
             timewindows=timewindows,
-            model_class="td",
+            model_class=self.__class__.__name__,
             prefix=self.__dict__.get("prefix", self.name),
             args_file=self.__dict__.get("args_file", None),
             input_cat=self.__dict__.get("input_cat", None),
@@ -427,7 +415,7 @@ class TimeDependentModel(Model):
 
         if isinstance(tstring, str):
             # If one time window string is passed
-            fc_path = self.path("forecasts", tstring)
+            fc_path = self.registry("forecasts", tstring)
             # A region must be given to the forecast
             return csep.load_catalog_forecast(
                 fc_path, region=region, apply_filters=True, filter_spatial=True
@@ -436,7 +424,7 @@ class TimeDependentModel(Model):
         else:
             forecasts = []
             for t in tstring:
-                fc_path = self.path("forecasts", t)
+                fc_path = self.registry("forecasts", t)
                 # A region must be given to the forecast
                 forecasts.append(
                     csep.load_catalog_forecast(
@@ -464,7 +452,7 @@ class TimeDependentModel(Model):
 
         # Model src is a func or binary
 
-        fc_path = self.path("forecasts", tstring)
+        fc_path = self.registry("forecasts", tstring)
         if kwargs.get("force") or not os.path.exists(fc_path):
             self.forecast_from_func(start_date, end_date, **self.func_kwargs, **kwargs)
         else:
@@ -482,7 +470,7 @@ class TimeDependentModel(Model):
 
     def prepare_args(self, start, end, **kwargs):
 
-        filepath = self.path("args_file")
+        filepath = self.registry("args_file")
         fmt = os.path.splitext(filepath)[1]
 
         if fmt == ".txt":
@@ -519,7 +507,7 @@ class TimeDependentModel(Model):
 
     def run_model(self):
 
-        self.environment.run_command(f'{self.func} {self.path("args_file")}')
+        self.environment.run_command(f'{self.func} {self.registry("args_file")}')
 
 
 class ModelFactory:

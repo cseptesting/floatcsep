@@ -139,7 +139,7 @@ class TestExperiment(TestCase):
         exp.stage_models()
 
         dbpath = os.path.relpath(os.path.join(_dir, "../artifacts", "models", "model.hdf5"))
-        self.assertEqual(exp.models[0].path.database, dbpath)
+        self.assertEqual(exp.models[0].registry.database, dbpath)
 
     def test_set_tests(self):
         test_cfg = os.path.normpath(

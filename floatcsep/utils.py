@@ -6,6 +6,7 @@ import numpy
 import re
 import multiprocessing
 import os
+import logging
 import mercantile
 import shapely.geometry
 import scipy.stats
@@ -31,6 +32,7 @@ from csep.utils.plots import plot_spatial_dataset
 from csep.models import Polygon
 from csep.core.regions import QuadtreeGrid2D, geographical_area_from_bounds
 from csep.utils.calc import cleaner_range
+from csep.core.forecasts import GriddedForecast
 
 # floatCSEP libraries
 
@@ -41,6 +43,8 @@ import floatcsep.readers
 _UNITS = ["years", "months", "weeks", "days"]
 _PD_FORMAT = ["YS", "MS", "W", "D"]
 
+
+log = logging.getLogger("floatLogger")
 
 def parse_csep_func(func):
     """
@@ -1174,7 +1178,6 @@ def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
          both grids are Quadtree and Target grid is high-resolution at every
          level than the other grid.
     """
-    from csep.core.forecasts import GriddedForecast
 
     bounds_target = target_grid.bounds
     bounds = forecast_gridded.region.bounds
@@ -1543,7 +1546,7 @@ def _check_zero_bins(exp, catalog, test_date):
             "o",
             markersize=10,
         )
-        pyplot.savefig(f"{model.path}/{model.name}.png", dpi=300)
+        pyplot.savefig(f"{model.registry}/{model.name}.png", dpi=300)
     for model in exp.models:
         forecast = model.create_forecast(exp.start_date, test_date)
         catalog.filter_spatial(forecast.region)
@@ -1569,4 +1572,4 @@ def _check_zero_bins(exp, catalog, test_date):
             "o",
             markersize=10,
         )
-        pyplot.savefig(f"{model.path}/{model.name}.png", dpi=300)
+        pyplot.savefig(f"{model.registry}/{model.name}.png", dpi=300)
