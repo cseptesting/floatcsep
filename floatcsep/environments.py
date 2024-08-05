@@ -276,8 +276,9 @@ class CondaManager(EnvironmentManager):
         cmd = [
             "bash",
             "-c",
-            f"{self.package_manager} run -n {self.env_name} {command}",
+            f"{self.package_manager} run --live-stream -n {self.env_name} {command}",
         ]
+
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -285,7 +286,8 @@ class CondaManager(EnvironmentManager):
             universal_newlines=True,
         )
         for line in process.stdout:
-            log.info(f"[{self.base_name}]: {line[:-1]}")
+            stripped_line = line.strip()
+            log.info(f'[{self.base_name}]: ' + stripped_line)
         process.wait()
 
 

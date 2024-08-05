@@ -75,9 +75,7 @@ class Model(ABC):
         """Creates a forecast based on the model's logic."""
         pass
 
-    def get_source(
-        self, zenodo_id: int = None, giturl: str = None, **kwargs
-    ) -> None:
+    def get_source(self, zenodo_id: int = None, giturl: str = None, **kwargs) -> None:
         """
         Search, download or clone the model source in the filesystem, zenodo.
 
@@ -108,13 +106,15 @@ class Model(ABC):
         elif giturl:
             log.info(f"Retrieving model {self.name} from git url: " f"{giturl}")
             try:
-                from_git(giturl, self.registry.dir if self.registry.fmt else self.registry("path"), **kwargs)
+                from_git(
+                    giturl,
+                    self.registry.dir if self.registry.fmt else self.registry("path"),
+                    **kwargs,
+                )
             except (git.NoSuchPathError, git.CommandError) as msg:
                 raise git.NoSuchPathError(f"git url was not found {msg}")
         else:
             raise FileNotFoundError("Model has no path or identified")
-
-
 
         if not os.path.exists(self.registry.dir) or not os.path.exists(self.registry("path")):
             raise FileNotFoundError(
@@ -165,7 +165,7 @@ class Model(ABC):
         ]
 
         dict_walk = {i: j for i, j in list_walk}
-        dict_walk['path'] = dict_walk.pop('registry')
+        dict_walk["path"] = dict_walk.pop("registry")
 
         return {self.name: iter_attr(dict_walk)}
 
@@ -223,17 +223,14 @@ class TimeIndependentModel(Model):
 
         """
 
-        if self.force_stage or not self.registry.fileexists('path'):
+        if self.force_stage or not self.registry.fileexists("path"):
             os.makedirs(self.registry.dir, exist_ok=True)
             self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
 
         if self.store_db:
             self.init_db()
 
-        self.registry.build_tree(
-            timewindows=timewindows,
-            model_class=self.__class__.__name__
-        )
+        self.registry.build_tree(timewindows=timewindows, model_class=self.__class__.__name__)
 
     def init_db(self, dbpath: str = "", force: bool = False) -> None:
         """
@@ -377,7 +374,6 @@ class TimeDependentModel(Model):
 
         self.registry = ForecastRegistry(kwargs.get("workdir", os.getcwd()), model_path)
         self.build = kwargs.get("build", None)
-        self.run_prefix = ""
 
         if self.func:
             self.environment = EnvironmentFactory.get_env(
@@ -393,7 +389,7 @@ class TimeDependentModel(Model):
             - Initialize database
             - Run model quality assurance (unit tests, runnable from floatcsep)
         """
-        if self.force_stage or not self.registry.fileexists('path'):
+        if self.force_stage or not self.registry.fileexists("path"):
             os.makedirs(self.registry.dir, exist_ok=True)
             self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
 
@@ -494,6 +490,7 @@ class TimeDependentModel(Model):
             replace_arg("end_date", end.isoformat(), filepath)
             for i, j in kwargs.items():
                 replace_arg(i, j, filepath)
+
         elif fmt == ".json":
             with open(filepath, "r") as file_:
                 args = json.load(file_)
