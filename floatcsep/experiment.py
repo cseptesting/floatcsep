@@ -484,7 +484,7 @@ class Experiment:
         """
         start, end = str2timewindow(tstring)
         sub_cat = self.catalog.filter([f"origin_time < {start.timestamp() * 1000}"])
-        sub_cat.write_ascii(filename=model.path("input_cat"))
+        sub_cat.write_ascii(filename=model.registry("input_cat"))
 
     def set_tasks(self):
         """

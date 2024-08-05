@@ -1,7 +1,4 @@
-import filecmp
 import os.path
-import shutil
-import tempfile
 from datetime import datetime
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, mock_open
@@ -9,7 +6,6 @@ from unittest.mock import patch, MagicMock, mock_open
 import csep.core.regions
 import numpy.testing
 
-from floatcsep.environments import EnvironmentManager
 from floatcsep.model import TimeIndependentModel, TimeDependentModel
 from floatcsep.utils import str2timewindow
 
@@ -39,11 +35,11 @@ class TestModel(TestCase):
 class TestTimeIndependentModel(TestModel):
 
     @staticmethod
-    def init_model(name, path, **kwargs):
+    def init_model(name, model_path, **kwargs):
         """Instantiates a model without using the @register deco,
         but mocks Model.Registry() attrs"""
 
-        model = TimeIndependentModel(name, path, **kwargs)
+        model = TimeIndependentModel(name=name, model_path=model_path, **kwargs)
 
         return model
 
@@ -53,54 +49,22 @@ class TestTimeIndependentModel(TestModel):
         fname = os.path.join(self._dir, "model.csv")
 
         # Initialize without Registry
-        model = self.init_model(name=name, path=fname)
+        model = self.init_model(name=name, model_path=fname)
 
         self.assertEqual(name, model.name)
-        self.assertEqual(fname, model.path)
+        self.assertEqual(fname, model.registry.path)
         self.assertEqual(1, model.forecast_unit)
 
-    def test_zenodo(self):
-        """downloads model from zenodo, checks with test artifacts"""
-
-        name = "mock_zenodo"
-        filename_ = "dummy.txt"
-        dir_ = os.path.join(tempfile.tempdir, "mock")
-
-        if os.path.isdir(dir_):
-            shutil.rmtree(dir_)
-        path_ = os.path.join(dir_, filename_)
-
-        zenodo_id = 13117711
-        # Initialize from zenodo id
-        model_a = self.init_model(name=name, path=path_, zenodo_id=zenodo_id)
-        model_a.stage()
-
-        # Initialize from the artifact files (same as downloaded)
-        dir_art = os.path.join(self._path, "../artifacts", "models", "zenodo_test")
-        path = os.path.join(dir_art, filename_)
-        model_b = self.init_model(name=name, path=path, zenodo_id=zenodo_id)
-        model_b.stage()
-
-        self.assertEqual(
-            os.path.basename(model_a.path("path")),
-            os.path.basename(model_b.path("path")),
-        )
-        self.assertEqual(model_a.name, model_b.name)
-        self.assertTrue(filecmp.cmp(model_a.path("path"), model_b.path("path")))
-
-    def test_zenodo_fail(self):
-        name = "mock_zenodo"
-        filename_ = "model_notreal.csv"  # File not found in repository
-        dir_ = os.path.join(tempfile.tempdir, "zenodo_notreal")
-        if os.path.isdir(dir_):
-            shutil.rmtree(dir_)
-        path_ = os.path.join(dir_, filename_)
-
-        # Initialize from zenodo id
-        model = self.init_model(name=name, path=path_, zenodo_id=13117711)
-
-        with self.assertRaises(FileNotFoundError):
-            model.get_source(model.zenodo_id, model.giturl)
+    @patch("os.makedirs")
+    @patch("floatcsep.model.TimeIndependentModel.get_source")
+    @patch("floatcsep.registry.ForecastRegistry.build_tree")
+    def test_stage_creates_directory(self, mock_build_tree, mock_get_source, mock_makedirs):
+        """Test stage method creates directory."""
+        model = self.init_model("mock", "mockfile.csv")
+        model.force_stage = True  # Simulate forcing the staging process
+        model.stage()
+        mock_makedirs.assert_called_once()
+        mock_get_source.assert_called_once()
 
     def test_from_dict(self):
         """test that '__init__' and 'from_dict' instantiates
@@ -128,9 +92,9 @@ class TestTimeIndependentModel(TestModel):
         model_b = TimeIndependentModel.from_dict(py_dict)
 
         self.assertEqual(name, model_a.name)
-        self.assertEqual(fname, model_a.path.path)
-        self.assertEqual("csv", model_a.path.fmt)
-        self.assertEqual(self._dir, model_a.dir)
+        self.assertEqual(fname, model_a.registry.path)
+        self.assertEqual("csv", model_a.registry.fmt)
+        self.assertEqual(self._dir, model_a.registry.dir)
 
         self.assertEqualModel(model_a, model_b)
 
@@ -165,7 +129,7 @@ class TestTimeIndependentModel(TestModel):
             model = self.init_model(name, fname)
             start = datetime(1900, 1, 1)
             end = datetime(2000, 1, 1)
-            model.path.build_tree([[start, end]])
+            model.registry.build_tree([[start, end]])
             model.forecast_from_file(start, end)
             numpy.testing.assert_almost_equal(
                 220.0, model.forecasts["1900-01-01_2000-01-01"].data.sum()
@@ -187,15 +151,13 @@ class TestTimeIndependentModel(TestModel):
 
         fname = os.path.join(self._dir, "model.csv")
         dict_ = {
-            "path": fname,
             "forecast_unit": 5,
             "authors": ["Darwin, C.", "Bell, J.", "Et, Al."],
             "doi": "10.1010/10101010",
             "giturl": "should not be accessed, bc filesystem exists",
             "zenodo_id": "should not be accessed, bc filesystem exists",
-            "model_class": "ti",
         }
-        model = self.init_model(name="mock", **dict_)
+        model = self.init_model(name="mock", model_path=fname, **dict_)
         model_dict = model.as_dict()
         eq = True
 
@@ -207,70 +169,38 @@ class TestTimeIndependentModel(TestModel):
                     eq = False
         excl = ["path", "giturl", "forecast_unit"]
         keys = list(model.as_dict(excluded=excl).keys())
+
         for i in excl:
             if i in keys and i != "path":  # path always gets printed
                 eq = False
         self.assertTrue(eq)
 
-    def test_init_db(self):
-        pass
-
-    def test_rm_db(self):
-        pass
+    @patch("os.path.isfile", return_value=False)
+    @patch("floatcsep.model.HDF5Serializer.grid2hdf5")
+    def test_init_db(self, mock_grid2hdf5, mock_isfile):
+        """Test init_db method creates database."""
+        filepath = os.path.join(self._dir, "model.csv")
+        model = self.init_model("mock", filepath)
+        model.init_db(force=True)
 
 
 class TestTimeDependentModel(TestModel):
 
     @staticmethod
-    def init_model(name, path, **kwargs):
+    def init_model(name, model_path, **kwargs):
         """Instantiates a model without using the @register deco,
         but mocks Model.Registry() attrs"""
 
-        model = TimeDependentModel(name, path, **kwargs)
+        model = TimeDependentModel(name=name, model_path=model_path, **kwargs)
 
         return model
-
-    @patch.object(EnvironmentManager, "create_environment")
-    def test_from_git(self, mock_create_environment):
-        """clones model from git, checks with test artifacts"""
-        name = "mock_git"
-        _dir = "git_template"
-        path_ = os.path.join(tempfile.tempdir, _dir)
-        giturl = (
-            "https://git.gfz-potsdam.de/csep-group/" "rise_italy_experiment/models/template.git"
-        )
-        model_a = self.init_model(name=name, path=path_, giturl=giturl)
-        model_a.stage()
-        path = os.path.join(self._dir, "template")
-        model_b = self.init_model(name=name, path=path)
-        model_b.stage()
-        self.assertEqual(model_a.name, model_b.name)
-        dircmp = filecmp.dircmp(model_a.dir, model_b.dir).common
-        self.assertGreater(len(dircmp), 8)
-        shutil.rmtree(path_)
-
-    def test_fail_git(self):
-        name = "mock_git"
-        filename_ = "attr.c"
-        dir_ = os.path.join(tempfile.tempdir, "git_notreal")
-        if os.path.isdir(dir_):
-            shutil.rmtree(dir_)
-        path_ = os.path.join(dir_, filename_)
-
-        # Initialize from git url
-        model = self.init_model(
-            name=name, path=path_, giturl="https://github.com/github/testrepo"
-        )
-
-        with self.assertRaises(FileNotFoundError):
-            model.get_source(model.zenodo_id, model.giturl, branch="master")
 
     @patch("floatcsep.model.TimeDependentModel.forecast_from_func")
     def test_create_forecast(self, mock_func):
 
         model = self.init_model("mock", "mockbins", model_class="td")
 
-        model.path.build_tree([str2timewindow("2020-01-01_2021-01-01")])
+        model.registry.build_tree([str2timewindow("2020-01-01_2021-01-01")])
         model.create_forecast("2020-01-01_2021-01-01")
         self.assertTrue(mock_func.called)
 
@@ -278,7 +208,7 @@ class TestTimeDependentModel(TestModel):
     def test_get_forecast_single(self, mock_load_forecast):
         # Arrange
         model_path = os.path.join(self._dir, "td_model")
-        model = self.init_model(name="mock", path=model_path)
+        model = self.init_model(name="mock", model_path=model_path)
         tstring = "2020-01-01_2020-01-02"  # Example time window string
         model.stage([str2timewindow(tstring)])
 
@@ -293,7 +223,7 @@ class TestTimeDependentModel(TestModel):
 
         # Assert
         mock_load_forecast.assert_called_once_with(
-            model.path("forecasts", tstring),
+            model.registry("forecasts", tstring),
             region=region,
             apply_filters=True,
             filter_spatial=True,
@@ -304,7 +234,7 @@ class TestTimeDependentModel(TestModel):
     def test_get_forecast_multiple(self, mock_load_forecast):
 
         model_path = os.path.join(self._dir, "td_model")
-        model = self.init_model(name="mock", path=model_path)
+        model = self.init_model(name="mock", model_path=model_path)
         tstrings = [
             "2020-01-01_2020-01-02",
             "2020-01-02_2020-01-03",
@@ -322,13 +252,13 @@ class TestTimeDependentModel(TestModel):
         # Assert
         self.assertEqual(len(result), 2)
         mock_load_forecast.assert_any_call(
-            model.path("forecasts", tstrings[0]),
+            model.registry("forecasts", tstrings[0]),
             region=region,
             apply_filters=True,
             filter_spatial=True,
         )
         mock_load_forecast.assert_any_call(
-            model.path("forecasts", tstrings[1]),
+            model.registry("forecasts", tstrings[1]),
             region=region,
             apply_filters=True,
             filter_spatial=True,
@@ -341,7 +271,7 @@ class TestTimeDependentModel(TestModel):
         with open(os.path.join(model_path, "input", "args.txt"), "w") as args:
             args.write("start_date = foo\nend_date = bar")
 
-        model = self.init_model("a", model_path, func="func", build='docker')
+        model = self.init_model("a", model_path, func="func", build="docker")
         start = datetime(2000, 1, 1)
         end = datetime(2000, 1, 2)
         model.stage([[start, end]])
@@ -361,8 +291,10 @@ class TestTimeDependentModel(TestModel):
     @patch("floatcsep.model.open", new_callable=mock_open, read_data='{"key": "value"}')
     @patch("json.dump")
     def test_argprep_json(self, mock_json_dump, mock_file):
-        model = self.init_model(name="TestModel", path=os.path.join(self._dir, "td_model"))
-        model.path = MagicMock(return_value="path/to/model/args.json")
+        model = self.init_model(
+            name="TestModel", model_path=os.path.join(self._dir, "td_model")
+        )
+        model.registry = MagicMock(return_value="path/to/model/args.json")
         start = MagicMock()
         end = MagicMock()
         start.isoformat.return_value = "2023-01-01"

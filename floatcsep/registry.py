@@ -1,13 +1,14 @@
 import dataclasses
 import os
+from datetime import datetime
+from typing import Sequence
 from os.path import join, abspath, relpath, normpath, dirname, exists
 from dataclasses import dataclass, field
-from typing import Sequence
 from floatcsep.utils import timewindow2str
 
 
 @dataclass
-class ModelTree:
+class ForecastRegistry:
     workdir: str
     path: str
     database: str = None
@@ -24,6 +25,17 @@ class ModelTree:
             val = val[parsed_arg]
 
         return self.abs(val)
+
+    @property
+    def dir(self) -> str:
+        """
+        Returns:
+            The directory containing the model source.
+        """
+        if os.path.isdir(self("path")):
+            return self("path")
+        else:
+            return os.path.dirname(self("path"))
 
     @property
     def fmt(self) -> str:
@@ -44,9 +56,6 @@ class ModelTree:
             return arg.__name__
         else:
             raise Exception("Arg is not found")
-
-    def __eq__(self, other):
-        return self.path == other
 
     def as_dict(self):
         return self.path
@@ -74,7 +83,8 @@ class ModelTree:
         return exists(file_abspath)
 
     def build_tree(
-        self, timewindows=None, model_class="ti", prefix=None, args_file=None, input_cat=None
+        self, timewindows: Sequence[Sequence[datetime]] = None, model_class: str = "TimeIndependentModel",
+            prefix=None, args_file=None, input_cat=None
     ) -> None:
         """
 
@@ -82,7 +92,7 @@ class ModelTree:
 
         Args:
             timewindows (list(str)): List of time windows or strings.
-            model_class (str): Time-indendent (ti) or time-dependent (td)
+            model_class (str): Model's class name
             prefix (str): prefix of the model forecast filenames if TD
             args_file (str, bool): input arguments path of the model if TD
             input_cat (str, bool): input catalog path of the model if TD
@@ -95,15 +105,16 @@ class ModelTree:
              evaluation results)
 
         """
-        if timewindows is None:
-            return
-        windows = timewindow2str(timewindows)
-        if model_class == "ti":
-            fname = self.database if self.database else self.path
-            fc_files = {win: fname for win in windows}
-            fc_exists = {win: exists(fc_files[win]) for win in windows}
 
-        elif model_class == "td":
+        windows = timewindow2str(timewindows)
+
+        if model_class == "TimeIndependentModel":
+            fname = self.database if self.database else self.path
+            self.forecasts = {win: fname for win in windows}
+            self.inventory = {win: exists(self.forecasts[win]) for win in windows}
+
+        elif model_class == "TimeDependentModel":
+
             args = args_file if args_file else join("input", "args.txt")
             self.args_file = join(self.path, args)
             input_cat = input_cat if input_cat else join("input", "catalog.csv")
@@ -117,17 +128,16 @@ class ModelTree:
                 os.makedirs(folder_, exist_ok=True)
 
             # set forecast names
-            fc_files = {
+            self.forecasts = {
                 win: join(dirtree["forecasts"], f"{prefix}_{win}.csv") for win in windows
             }
 
-            fc_exists = {
+            self.inventory = {
                 win: any(file for file in list(os.listdir(dirtree["forecasts"])))
                 for win in windows
             }
 
-        self.forecasts = fc_files
-        self.inventory = fc_exists
+
 
 
 @dataclass

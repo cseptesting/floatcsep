@@ -83,7 +83,7 @@ class EnvironmentManager(ABC):
         return f"{self.base_name}_{dir_hash}"
 
 
-class CondaEnvironmentManager(EnvironmentManager):
+class CondaManager(EnvironmentManager):
     """
     Manages a conda (or mamba) environment, providing methods to create, check,
     and manipulate conda environments specifically.
@@ -276,8 +276,9 @@ class CondaEnvironmentManager(EnvironmentManager):
         cmd = [
             "bash",
             "-c",
-            f"{self.package_manager} run -n {self.env_name} {command}",
+            f"{self.package_manager} run --live-stream -n {self.env_name} {command}",
         ]
+
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -285,11 +286,12 @@ class CondaEnvironmentManager(EnvironmentManager):
             universal_newlines=True,
         )
         for line in process.stdout:
-            log.info(f"[{self.base_name}]: {line[:-1]}")
+            stripped_line = line.strip()
+            log.info(f'[{self.base_name}]: ' + stripped_line)
         process.wait()
 
 
-class VenvEnvironmentManager(EnvironmentManager):
+class VenvManager(EnvironmentManager):
     """
     Manages a virtual environment created using Python's venv module.
     Provides methods to create, check, and manipulate virtual environments.
@@ -379,7 +381,7 @@ class VenvEnvironmentManager(EnvironmentManager):
         process.wait()
 
 
-class DockerEnvironmentManager(EnvironmentManager):
+class DockerManager(EnvironmentManager):
     """
     Manages a Docker environment, providing methods to create, check,
     and manipulate Docker containers for the environment.
@@ -434,17 +436,17 @@ class EnvironmentFactory:
                 f" the experiment run. Consider selecting the same environment."
             )
         if build == "conda" or (not build and run_env == "conda"):
-            return CondaEnvironmentManager(
+            return CondaManager(
                 base_name=f"{model_name}",
                 model_directory=os.path.abspath(model_path),
             )
         elif build == "venv" or (not build and run_env == "venv"):
-            return VenvEnvironmentManager(
+            return VenvManager(
                 base_name=f"{model_name}",
                 model_directory=os.path.abspath(model_path),
             )
         elif build == "docker":
-            return DockerEnvironmentManager(
+            return DockerManager(
                 base_name=f"{model_name}",
                 model_directory=os.path.abspath(model_path),
             )
