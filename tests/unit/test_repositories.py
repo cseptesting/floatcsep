@@ -1,10 +1,17 @@
 import datetime
 import unittest
-from unittest.mock import MagicMock, patch, PropertyMock
-from floatcsep.registry import ForecastRegistry
-from floatcsep.repository import CatalogForecastRepository, GriddedForecastRepository
-from floatcsep.readers import ForecastParsers
+from unittest.mock import MagicMock, patch, PropertyMock, mock_open
+
 from csep.core.forecasts import GriddedForecast
+
+from floatcsep.readers import ForecastParsers
+from floatcsep.registry import ForecastRegistry
+from floatcsep.repository import (
+    CatalogForecastRepository,
+    GriddedForecastRepository,
+    ResultsRepository,
+    CatalogRepository,
+)
 
 
 class TestCatalogForecastRepository(unittest.TestCase):
@@ -149,6 +156,61 @@ class TestGriddedForecastRepository(unittest.TestCase):
         self.assertEqual(self.repo1, self.repo2)
         self.assertNotEqual(self.repo1, self.repo3)
         self.assertNotEqual(self.repo1, self.repo3)
+
+
+class TestResultsRepository(unittest.TestCase):
+
+    @patch("floatcsep.repository.ExperimentRegistry")
+    def setUp(self, MockRegistry):
+        self.mock_registry = MockRegistry()
+        self.results_repo = ResultsRepository(self.mock_registry)
+
+    def test_initialization(self):
+        self.assertEqual(self.results_repo.registry, self.mock_registry)
+
+    @patch("floatcsep.repository.EvaluationResult.from_dict")
+    @patch("builtins.open", new_callable=unittest.mock.mock_open, read_data='{"key": "value"}')
+    def test_load_result(self, mock_open, mock_from_dict):
+        mock_from_dict.return_value = "mocked_result"
+        result = self.results_repo._load_result("test", "window", "model")
+        self.assertEqual(result, "mocked_result")
+
+    @patch.object(ResultsRepository, "_load_result", return_value="mocked_result")
+    def test_load_results(self, mock_load_result):
+        results = self.results_repo.load_results("test", "window", ["model1", "model2"])
+        self.assertEqual(results, ["mocked_result", "mocked_result"])
+
+    @patch("json.dump")
+    @patch("builtins.open", new_callable=unittest.mock.mock_open)
+    def test_write_result(self, mock_open, mock_json_dump):
+        mock_result = MagicMock()
+        self.results_repo.write_result(mock_result, "test", "model", "window")
+        mock_open.assert_called_once()
+        mock_json_dump.assert_called_once()
+
+
+class TestCatalogRepository(unittest.TestCase):
+
+    @patch("floatcsep.repository.ExperimentRegistry")
+    def setUp(self, MockRegistry):
+        self.mock_registry = MockRegistry()
+        self.catalog_repo = CatalogRepository(self.mock_registry)
+
+    def test_initialization(self):
+        self.assertEqual(self.catalog_repo.registry, self.mock_registry)
+
+    @patch("floatcsep.repository.isfile", return_value=True)
+    def test_set_catalog(self, mock_isfile):
+        # Mock the registry's rel method to return the same path for simplicity
+        self.mock_registry.rel.return_value = "catalog_path"
+
+        self.catalog_repo.set_catalog("catalog_path", {}, {})
+
+        # Check if _catpath is set correctly
+        self.assertEqual(self.catalog_repo._catpath, "catalog_path")
+
+        # Check if _catalog is set correctly
+        self.assertEqual(self.catalog_repo._catalog, "catalog_path")
 
 
 if __name__ == "__main__":

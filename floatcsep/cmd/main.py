@@ -58,7 +58,7 @@ def reproduce(config, **kwargs):
     reproduced_exp.run()
 
     original_config = reproduced_exp.original_config
-    original_exp = Experiment.from_yml(original_config, rundir=reproduced_exp.original_rundir)
+    original_exp = Experiment.from_yml(original_config, rundir=reproduced_exp.original_run_dir)
     original_exp.stage_models()
     original_exp.set_tasks()
 

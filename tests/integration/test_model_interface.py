@@ -313,13 +313,11 @@ class TestModelFromZenodo(TestCase):
         model_b.stage()
 
         self.assertEqual(
-            os.path.basename(model_a.registry.get_path("path")),
-            os.path.basename(model_b.registry.get_path("path")),
+            os.path.basename(model_a.registry.get("path")),
+            os.path.basename(model_b.registry.get("path")),
         )
         self.assertEqual(model_a.name, model_b.name)
-        self.assertTrue(
-            filecmp.cmp(model_a.registry.get_path("path"), model_b.registry.get_path("path"))
-        )
+        self.assertTrue(filecmp.cmp(model_a.registry.get("path"), model_b.registry.get("path")))
 
     def test_zenodo_fail(self):
         name = "mock_zenodo"

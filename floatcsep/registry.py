@@ -37,7 +37,7 @@ class BaseFileRegistry(ABC):
         pass
 
     @abstractmethod
-    def get_path(self, *args):
+    def get(self, *args):
         pass
 
     def abs(self, *paths: Sequence[str]) -> str:
@@ -71,7 +71,7 @@ class BaseFileRegistry(ABC):
         return relpath(_dir, self.workdir)
 
     def file_exists(self, *args):
-        file_abspath = self.get_path(*args)
+        file_abspath = self.get(*args)
         return exists(file_abspath)
 
 
@@ -93,7 +93,7 @@ class ForecastRegistry(BaseFileRegistry):
         self.forecasts = {}
         self.inventory = {}
 
-    def get_path(self, *args):
+    def get(self, *args):
         val = self.__dict__
         for i in args:
             parsed_arg = self._parse_arg(i)
@@ -107,10 +107,10 @@ class ForecastRegistry(BaseFileRegistry):
 
             The directory containing the model source.
         """
-        if os.path.isdir(self.get_path("path")):
-            return self.get_path("path")
+        if os.path.isdir(self.get("path")):
+            return self.get("path")
         else:
-            return os.path.dirname(self.get_path("path"))
+            return os.path.dirname(self.get("path"))
 
     @property
     def fmt(self) -> str:
@@ -202,8 +202,12 @@ class ExperimentRegistry(BaseFileRegistry):
         self.paths = {}
         self.result_exists = {}
 
-    def get_path(self, *args):
-        pass
+    def get(self, *args):
+        val = self.paths
+        for i in args:
+            parsed_arg = self._parse_arg(i)
+            val = val[parsed_arg]
+        return self.abs(self.rundir, val)
 
     def __call__(self, *args):
         val = self.paths

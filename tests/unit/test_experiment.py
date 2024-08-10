@@ -29,8 +29,8 @@ class TestExperiment(TestCase):
 
     def assertEqualExperiment(self, exp_a, exp_b):
         self.assertEqual(exp_a.name, exp_b.name)
-        self.assertEqual(exp_a.path.workdir, os.getcwd())
-        self.assertEqual(exp_a.path.workdir, exp_b.path.workdir)
+        self.assertEqual(exp_a.registry.workdir, os.getcwd())
+        self.assertEqual(exp_a.registry.workdir, exp_b.registry.workdir)
         self.assertEqual(exp_a.start_date, exp_b.start_date)
         self.assertEqual(exp_a.timewindows, exp_b.timewindows)
         self.assertEqual(exp_a.exp_class, exp_b.exp_class)
@@ -65,7 +65,7 @@ class TestExperiment(TestCase):
         dict_ = {
             "name": "test",
             "path": os.getcwd(),
-            "rundir": "results",
+            "run_dir": "results",
             "time_config": {
                 "exp_class": "ti",
                 "start_date": datetime(2020, 1, 1),

@@ -20,6 +20,7 @@ from floatcsep.evaluation import Evaluation
 from floatcsep.logger import add_fhandler
 from floatcsep.model import Model, TimeDependentModel
 from floatcsep.registry import ExperimentRegistry
+from floatcsep.repository import ResultsRepository, CatalogRepository
 from floatcsep.utils import (
     NoAliasLoader,
     parse_csep_func,
@@ -144,11 +145,14 @@ class Experiment:
         os.makedirs(os.path.join(workdir, rundir), exist_ok=True)
 
         self.name = name if name else "floatingExp"
-        self.path = ExperimentRegistry(workdir, rundir)
+        self.registry = ExperimentRegistry(workdir, rundir)
+        self.results_repo = ResultsRepository(self.registry)
+        self.catalog_repo = CatalogRepository(self.registry)
+
         self.config_file = kwargs.get("config_file", None)
         self.original_config = kwargs.get("original_config", None)
-        self.original_rundir = kwargs.get("original_rundir", None)
-        self.rundir = rundir
+        self.original_run_dir = kwargs.get("original_rundir", None)
+        self.run_dir = rundir
         self.seed = kwargs.get("seed", None)
         self.time_config = read_time_cfg(time_config, **kwargs)
         self.region_config = read_region_cfg(region_config, **kwargs)
@@ -158,9 +162,9 @@ class Experiment:
         logger = kwargs.get("logging", True)
         if logger:
             filename = "experiment.log" if logger is True else logger
-            self.path.logger = os.path.join(workdir, rundir, filename)
-            log.info(f"Logging at {self.path.logger}")
-            add_fhandler(self.path.logger)
+            self.registry.logger = os.path.join(workdir, rundir, filename)
+            log.info(f"Logging at {self.registry.logger}")
+            add_fhandler(self.registry.logger)
 
         log.debug(f"-------- BEGIN OF RUN --------")
         log.info(f"Setting up experiment {self.name}:")
@@ -180,7 +184,8 @@ class Experiment:
         self.postproc_config = postproc_config if postproc_config else {}
         self.default_test_kwargs = default_test_kwargs
 
-        self.catalog = catalog
+        self.catalog_repo.set_catalog(catalog, self.time_config, self.region_config)
+
         self.models = self.set_models(
             models or kwargs.get("model_config"), kwargs.get("order", None)
         )
@@ -233,13 +238,13 @@ class Experiment:
 
         models = []
         if isinstance(model_config, str):
-            modelcfg_path = self.path.abs(model_config)
-            _dir = self.path.abs_dir(model_config)
+            modelcfg_path = self.registry.abs(model_config)
+            _dir = self.registry.abs_dir(model_config)
             with open(modelcfg_path, "r") as file_:
                 config_dict = yaml.load(file_, NoAliasLoader)
         elif isinstance(model_config, (dict, list)):
             config_dict = model_config
-            _dir = self.path.workdir
+            _dir = self.registry.workdir
         elif model_config is None:
             return models
         else:
@@ -251,9 +256,13 @@ class Experiment:
 
             if not any("flavours" in i for i in element.values()):
                 name_ = next(iter(element))
-                path_ = self.path.rel(_dir, element[name_]["path"])
+                path_ = self.registry.rel(_dir, element[name_]["path"])
                 model_i = {
-                    name_: {**element[name_], "model_path": path_, "workdir": self.path.workdir}
+                    name_: {
+                        **element[name_],
+                        "model_path": path_,
+                        "workdir": self.registry.workdir,
+                    }
                 }
                 model_i[name_].pop("path")
                 models.append(Model.factory(model_i))
@@ -263,14 +272,14 @@ class Experiment:
                 for flav, flav_path in model_flavours:
                     name_super = next(iter(element))
                     path_super = element[name_super].get("path", "")
-                    path_sub = self.path.rel(_dir, path_super, flav_path)
+                    path_sub = self.registry.rel(_dir, path_super, flav_path)
                     # updates name of submodel
                     name_flav = f"{name_super}@{flav}"
                     model_ = {
                         name_flav: {
                             **element[name_super],
                             "model_path": path_sub,
-                            "workdir": self.path.workdir,
+                            "workdir": self.registry.workdir,
                         }
                     }
                     model_[name_flav].pop("path")
@@ -320,109 +329,27 @@ class Experiment:
         tests = []
 
         if isinstance(test_config, str):
-            with open(self.path.abs(test_config), "r") as config:
+
+            with open(self.registry.abs(test_config), "r") as config:
                 config_dict = yaml.load(config, NoAliasLoader)
+
             for eval_dict in config_dict:
-                tests.append(Evaluation.from_dict(eval_dict))
+                eval_i = Evaluation.from_dict(eval_dict)
+                eval_i.results_repo = self.results_repo
+                eval_i.catalog_repo = self.catalog_repo
+                tests.append(eval_i)
+
         elif isinstance(test_config, (dict, list)):
+
             for eval_dict in test_config:
-                tests.append(Evaluation.from_dict(eval_dict))
+                eval_i = Evaluation.from_dict(eval_dict)
+                eval_i.results_repo = self.results_repo
+                eval_i.catalog_repo = self.catalog_repo
+                tests.append(eval_i)
 
         log.info(f"\tEvaluations: {[i.name for i in tests]}")
 
         return tests
-
-    @property
-    def catalog(self) -> CSEPCatalog:
-        """
-        Returns a CSEP catalog loaded from the given query function or a stored file if it
-        exists.
-        """
-        cat_path = self.path.abs(self._catpath)
-
-        if callable(self._catalog):
-            if isfile(self._catpath):
-                return CSEPCatalog.load_json(self._catpath)
-            bounds = {
-                "start_time": min([item for sublist in self.timewindows for item in sublist]),
-                "end_time": max([item for sublist in self.timewindows for item in sublist]),
-                "min_magnitude": self.magnitudes.min(),
-                "max_depth": self.depths.max(),
-            }
-            if self.region:
-                bounds.update(
-                    {
-                        i: j
-                        for i, j in zip(
-                            ["min_longitude", "max_longitude", "min_latitude", "max_latitude"],
-                            self.region.get_bbox(),
-                        )
-                    }
-                )
-
-            catalog = self._catalog(catalog_id="catalog", **bounds)
-
-            if self.region:
-                catalog.filter_spatial(region=self.region, in_place=True)
-                catalog.region = None
-            catalog.write_json(self._catpath)
-
-            return catalog
-
-        elif isfile(cat_path):
-            try:
-                return CSEPCatalog.load_json(cat_path)
-            except json.JSONDecodeError:
-                return csep.load_catalog(cat_path)
-
-    @catalog.setter
-    def catalog(self, cat: Union[Callable, CSEPCatalog, str]) -> None:
-
-        if cat is None:
-            self._catalog = None
-            self._catpath = None
-
-        elif isfile(self.path.abs(cat)):
-            log.info(f"\tCatalog: '{cat}'")
-            self._catalog = self.path.rel(cat)
-            self._catpath = self.path.rel(cat)
-
-        else:
-            # catalog can be a function
-            self._catalog = parse_csep_func(cat)
-            self._catpath = self.path.abs("catalog.json")
-            if isfile(self._catpath):
-                log.info(f"\tCatalog: stored " f"'{self._catpath}' " f"from '{cat}'")
-            else:
-                log.info(f"\tCatalog: '{cat}'")
-
-    def get_test_cat(self, tstring: str = None) -> CSEPCatalog:
-        """
-        Filters the complete experiment catalog to a test sub-catalog bounded by the test
-        time-window. Writes it to filepath defined in :attr:`Experiment.registry`
-
-        Args:
-            tstring (str): Time window string
-        """
-
-        if tstring:
-            start, end = str2timewindow(tstring)
-        else:
-            start = self.start_date
-            end = self.end_date
-        sub_cat = self.catalog.filter(
-            [
-                f"origin_time < {end.timestamp() * 1000}",
-                f"origin_time >= {start.timestamp() * 1000}",
-                f"magnitude >= {self.mag_min}",
-                f"magnitude < {self.mag_max}",
-            ],
-            in_place=False,
-        )
-        if self.region:
-            sub_cat.filter_spatial(region=self.region, in_place=True)
-
-        return sub_cat
 
     def set_test_cat(self, tstring: str) -> None:
         """
@@ -433,32 +360,13 @@ class Experiment:
             tstring (str): Time window string
         """
 
-        testcat_name = self.path(tstring, "catalog")
-        if not exists(testcat_name):
-            log.debug(
-                f"Filtering catalog to testing sub-catalog and saving to " f"{testcat_name}"
-            )
-            start, end = str2timewindow(tstring)
-            sub_cat = self.catalog.filter(
-                [
-                    f"origin_time < {end.timestamp() * 1000}",
-                    f"origin_time >= {start.timestamp() * 1000}",
-                    f"magnitude >= {self.mag_min}",
-                    f"magnitude < {self.mag_max}",
-                ],
-                in_place=False,
-            )
-            if self.region:
-                sub_cat.filter_spatial(region=self.region, in_place=True)
-            sub_cat.write_json(filename=testcat_name)
-        else:
-            log.debug(f"Using stored test sub-catalog from {testcat_name}")
+        self.catalog_repo.set_test_cat(tstring)
 
     def set_input_cat(self, tstring: str, model: Model) -> None:
         """
         Filters the complete experiment catalog to a input sub-catalog filtered.
 
-        to the beginning of thetest time-window. Writes it to filepath defined
+        to the beginning of the test time-window. Writes it to filepath defined
         in :attr:`Model.tree.catalog`
 
         Args:
@@ -466,9 +374,8 @@ class Experiment:
             model (:class:`~floatcsep.model.Model`): Model to give the input
              catalog
         """
-        start, end = str2timewindow(tstring)
-        sub_cat = self.catalog.filter([f"origin_time < {start.timestamp() * 1000}"])
-        sub_cat.write_ascii(filename=model.registry.get_path("input_cat"))
+
+        self.catalog_repo.set_input_cat(tstring, model)
 
     def set_tasks(self):
         """
@@ -489,10 +396,10 @@ class Experiment:
         """
 
         # Set the file path structure
-        self.path.build_tree(self.timewindows, self.models, self.tests)
+        self.registry.build_tree(self.timewindows, self.models, self.tests)
 
         log.info("Setting up experiment's tasks")
-        log.debug("Pre-run: results' paths\n" + yaml.dump(self.path.as_dict()))
+        log.debug("Pre-run: results' paths\n" + yaml.dump(self.registry.as_dict()))
         # Get the time windows strings
         tw_strings = timewindow2str(self.timewindows)
 
@@ -540,10 +447,9 @@ class Experiment:
                             instance=test_k,
                             method="compute",
                             timewindow=time_i,
-                            catalog=self.path(time_i, "catalog"),
+                            catalog=self.registry.get(time_i, "catalog"),
                             model=model_j,
                             region=self.region,
-                            path=self.path(time_i, "evaluations", test_k, model_j),
                         )
                         task_graph.add(task_ijk)
                         # the forecast needs to have been created
@@ -558,11 +464,10 @@ class Experiment:
                             instance=test_k,
                             method="compute",
                             timewindow=time_i,
-                            catalog=self.path(time_i, "catalog"),
+                            catalog=self.registry.get(time_i, "catalog"),
                             model=model_j,
                             ref_model=self.get_model(test_k.ref_model),
                             region=self.region,
-                            path=self.path(time_i, "evaluations", test_k, model_j),
                         )
                         task_graph.add(task_ik)
                         task_graph.add_dependency(
@@ -581,10 +486,9 @@ class Experiment:
                         instance=test_k,
                         method="compute",
                         timewindow=tw_strings,
-                        catalog=[self.path(i, "catalog") for i in tw_strings],
+                        catalog=[self.registry.get(i, "catalog") for i in tw_strings],
                         model=model_j,
                         region=self.region,
-                        path=self.path(tw_strings[-1], "evaluations", test_k, model_j),
                     )
                     task_graph.add(task_k)
                     for tw_i in tw_strings:
@@ -599,11 +503,10 @@ class Experiment:
                         instance=test_k,
                         method="compute",
                         timewindow=tw_strs,
-                        catalog=[self.path(i, "catalog") for i in tw_strs],
+                        catalog=[self.registry.get(i, "catalog") for i in tw_strs],
                         model=model_j,
                         ref_model=self.get_model(test_k.ref_model),
                         region=self.region,
-                        path=self.path(tw_strs[-1], "evaluations", test_k, model_j),
                     )
                     task_graph.add(task_k)
                     for tw_i in tw_strings:
@@ -624,11 +527,10 @@ class Experiment:
                         instance=test_k,
                         method="compute",
                         timewindow=time_str,
-                        catalog=self.path(time_str, "catalog"),
+                        catalog=self.registry.get(time_str, "catalog"),
                         ref_model=self.models,
                         model=model_j,
                         region=self.region,
-                        path=self.path(time_str, "evaluations", test_k, model_j),
                     )
                     task_graph.add(task_k)
                     for m_j in self.models:
@@ -662,7 +564,7 @@ class Experiment:
         for all tested models.
         """
 
-        return test.read_results(window, self.models, self.path)
+        return test.read_results(window, self.models)
 
     def plot_results(self) -> None:
         """Plots all evaluation results."""
@@ -670,7 +572,7 @@ class Experiment:
         timewindows = timewindow2str(self.timewindows)
 
         for test in self.tests:
-            test.plot_results(timewindows, self.models, self.path)
+            test.plot_results(timewindows, self.models, self.registry)
 
     def plot_catalog(self, dpi: int = 300, show: bool = False) -> None:
         """
@@ -690,31 +592,33 @@ class Experiment:
             "legend": True,
         }
         plot_args.update(self.postproc_config.get("plot_catalog", {}))
-        catalog = self.get_test_cat()
+        catalog = self.catalog_repo.get_test_cat()
         if catalog.get_number_of_events() != 0:
             ax = catalog.plot(plot_args=plot_args, show=show)
             ax.get_figure().tight_layout()
-            ax.get_figure().savefig(self.path("catalog_figure"), dpi=dpi)
+            ax.get_figure().savefig(self.registry.get("catalog_figure"), dpi=dpi)
 
             ax2 = magnitude_vs_time(catalog)
             ax2.get_figure().tight_layout()
-            ax2.get_figure().savefig(self.path("magnitude_time"), dpi=dpi)
+            ax2.get_figure().savefig(self.registry.get("magnitude_time"), dpi=dpi)
 
         if self.postproc_config.get("all_time_windows"):
             timewindow = self.timewindows
 
             for tw in timewindow:
-                catpath = self.path(tw, "catalog")
+                catpath = self.registry.get(tw, "catalog")
                 catalog = CSEPCatalog.load_json(catpath)
                 if catalog.get_number_of_events() != 0:
                     ax = catalog.plot(plot_args=plot_args, show=show)
                     ax.get_figure().tight_layout()
-                    ax.get_figure().savefig(self.path(tw, "figures", "catalog"), dpi=dpi)
+                    ax.get_figure().savefig(
+                        self.registry.get(tw, "figures", "catalog"), dpi=dpi
+                    )
 
                     ax2 = magnitude_vs_time(catalog)
                     ax2.get_figure().tight_layout()
                     ax2.get_figure().savefig(
-                        self.path(tw, "figures", "magnitude_time"), dpi=dpi
+                        self.registry.get(tw, "figures", "magnitude_time"), dpi=dpi
                     )
 
     def plot_forecasts(self) -> None:
@@ -758,7 +662,7 @@ class Experiment:
             winstr = timewindow2str(window)
 
             for model in self.models:
-                fig_path = self.path(winstr, "forecasts", model.name)
+                fig_path = self.registry.get(winstr, "forecasts", model.name)
                 start = decimal_year(window[0])
                 end = decimal_year(window[1])
                 time = f"{round(end - start, 3)} years"
@@ -800,36 +704,38 @@ class Experiment:
     def generate_report(self) -> None:
         """Creates a report summarizing the Experiment's results."""
 
-        log.info(f"Saving report into {self.path.rundir}")
-        self.path.build_tree(self.timewindows, self.models, self.tests)
-        log.debug("Post-run: results' paths\n" + yaml.dump(self.path.as_dict()))
+        log.info(f"Saving report into {self.registry.rundir}")
+        self.registry.build_tree(self.timewindows, self.models, self.tests)
+        log.debug("Post-run: results' paths\n" + yaml.dump(self.registry.as_dict()))
 
         report.generate_report(self)
 
     def make_repr(self):
 
         log.info("Creating reproducibility config file")
-        repr_config = self.path("config")
+        repr_config = self.registry.get("config")
 
         # Dropping region to results folder if it is a file
         region_path = self.region_config.get("path", False)
         if region_path:
             if isfile(region_path) and region_path:
-                new_path = join(self.path.rundir, self.region_config["path"])
+                new_path = join(self.registry.rundir, self.region_config["path"])
                 shutil.copy2(region_path, new_path)
                 self.region_config.pop("path")
-                self.region_config["region"] = self.path.rel(new_path)
+                self.region_config["region"] = self.registry.rel(new_path)
 
         # Dropping catalog to results folder
-        target_cat = join(self.path.workdir, self.path.rundir, split(self._catpath)[-1])
+        target_cat = join(
+            self.registry.workdir, self.registry.rundir, split(self.catalog_repo._catpath)[-1]
+        )
         if not exists(target_cat):
-            shutil.copy2(self.path.abs(self._catpath), target_cat)
-        self._catpath = self.path.rel(target_cat)
+            shutil.copy2(self.registry.abs(self.catalog_repo._catpath), target_cat)
+        self._catpath = self.registry.rel(target_cat)
 
         relative_path = os.path.relpath(
-            self.path.workdir, os.path.join(self.path.workdir, self.path.rundir)
+            self.registry.workdir, os.path.join(self.registry.workdir, self.registry.rundir)
         )
-        self.path.workdir = relative_path
+        self.registry.workdir = relative_path
         self.to_yml(repr_config, extended=True)
 
     def as_dict(
@@ -843,6 +749,8 @@ class Experiment:
             "tasks",
             "models",
             "tests",
+            "results_repo",
+            "catalog_repo",
         ),
         extended: bool = False,
     ) -> dict:
@@ -859,9 +767,10 @@ class Experiment:
         """
 
         listwalk = [(i, j) for i, j in self.__dict__.items() if not i.startswith("_") and j]
-        listwalk.insert(6, ("catalog", self._catpath))
+        listwalk.insert(6, ("catalog", self.catalog_repo._catpath))
 
         dictwalk = {i: j for i, j in listwalk}
+        dictwalk["path"] = dictwalk.pop("registry").workdir
 
         return parse_nested_dicts(dictwalk, excluded=exclude, extended=extended)
 

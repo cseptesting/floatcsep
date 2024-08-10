@@ -39,11 +39,14 @@ def generate_report(experiment, timewindow=-1):
     report.add_heading("Authoritative Data", level=2)
 
     # Generate catalog plot
-    if experiment.catalog is not None:
+    if experiment.catalog_repo.catalog is not None:
         experiment.plot_catalog()
         report.add_figure(
             f"Input catalog",
-            [experiment.path("catalog_figure"), experiment.path("magnitude_time")],
+            [
+                experiment.registry.get("catalog_figure"),
+                experiment.registry.get("magnitude_time"),
+            ],
             level=3,
             ncols=1,
             caption="Evaluation catalog from "
@@ -67,14 +70,16 @@ def generate_report(experiment, timewindow=-1):
 
     # Include results from Experiment
     for test in experiment.tests:
-        fig_path = experiment.path(timestr, "figures", test)
+        fig_path = experiment.registry.get(timestr, "figures", test)
         width = test.plot_args[0].get("figsize", [4])[0] * 96
         report.add_figure(
             f"{test.name}", fig_path, level=3, caption=test.markdown, add_ext=True, width=width
         )
         for model in experiment.models:
             try:
-                fig_path = experiment.path(timestr, "figures", f"{test.name}_{model.name}")
+                fig_path = experiment.registry.get(
+                    timestr, "figures", f"{test.name}_{model.name}"
+                )
                 width = test.plot_args[0].get("figsize", [4])[0] * 96
                 report.add_figure(
                     f"{test.name}: {model.name}",
@@ -87,4 +92,4 @@ def generate_report(experiment, timewindow=-1):
             except KeyError:
                 pass
     report.table_of_contents()
-    report.save(experiment.path.abs(experiment.path.rundir))
+    report.save(experiment.registry.abs(experiment.registry.rundir))
