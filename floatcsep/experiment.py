@@ -20,7 +20,7 @@ from floatcsep.evaluation import Evaluation
 from floatcsep.logger import add_fhandler
 from floatcsep.model import Model, TimeDependentModel
 from floatcsep.registry import ExperimentRegistry
-from floatcsep.repository import ResultsRepository
+from floatcsep.repository import ResultsRepository, CatalogRepository
 from floatcsep.utils import (
     NoAliasLoader,
     parse_csep_func,
@@ -146,7 +146,8 @@ class Experiment:
 
         self.name = name if name else "floatingExp"
         self.registry = ExperimentRegistry(workdir, rundir)
-        self.repository = ResultsRepository(self.registry)
+        self.results_repo = ResultsRepository(self.registry)
+        self.catalog_repo = CatalogRepository(self.registry)
 
         self.config_file = kwargs.get("config_file", None)
         self.original_config = kwargs.get("original_config", None)
@@ -183,7 +184,8 @@ class Experiment:
         self.postproc_config = postproc_config if postproc_config else {}
         self.default_test_kwargs = default_test_kwargs
 
-        self.catalog = catalog
+        self.catalog_repo.set_catalog(catalog, self.time_config, self.region_config)
+
         self.models = self.set_models(
             models or kwargs.get("model_config"), kwargs.get("order", None)
         )
@@ -327,113 +329,27 @@ class Experiment:
         tests = []
 
         if isinstance(test_config, str):
+
             with open(self.registry.abs(test_config), "r") as config:
                 config_dict = yaml.load(config, NoAliasLoader)
+
             for eval_dict in config_dict:
                 eval_i = Evaluation.from_dict(eval_dict)
-                eval_i.repository = self.repository
+                eval_i.results_repo = self.results_repo
+                eval_i.catalog_repo = self.catalog_repo
                 tests.append(eval_i)
+
         elif isinstance(test_config, (dict, list)):
+
             for eval_dict in test_config:
                 eval_i = Evaluation.from_dict(eval_dict)
-                eval_i.repository = self.repository
+                eval_i.results_repo = self.results_repo
+                eval_i.catalog_repo = self.catalog_repo
                 tests.append(eval_i)
 
         log.info(f"\tEvaluations: {[i.name for i in tests]}")
 
         return tests
-
-    @property
-    def catalog(self) -> CSEPCatalog:
-        """
-        Returns a CSEP catalog loaded from the given query function or a stored file if it
-        exists.
-        """
-        cat_path = self.registry.abs(self._catpath)
-
-        if callable(self._catalog):
-            if isfile(self._catpath):
-                return CSEPCatalog.load_json(self._catpath)
-            bounds = {
-                "start_time": min([item for sublist in self.timewindows for item in sublist]),
-                "end_time": max([item for sublist in self.timewindows for item in sublist]),
-                "min_magnitude": self.magnitudes.min(),
-                "max_depth": self.depths.max(),
-            }
-            if self.region:
-                bounds.update(
-                    {
-                        i: j
-                        for i, j in zip(
-                            ["min_longitude", "max_longitude", "min_latitude", "max_latitude"],
-                            self.region.get_bbox(),
-                        )
-                    }
-                )
-
-            catalog = self._catalog(catalog_id="catalog", **bounds)
-
-            if self.region:
-                catalog.filter_spatial(region=self.region, in_place=True)
-                catalog.region = None
-            catalog.write_json(self._catpath)
-
-            return catalog
-
-        elif isfile(cat_path):
-            try:
-                return CSEPCatalog.load_json(cat_path)
-            except json.JSONDecodeError:
-                return csep.load_catalog(cat_path)
-
-    @catalog.setter
-    def catalog(self, cat: Union[Callable, CSEPCatalog, str]) -> None:
-
-        if cat is None:
-            self._catalog = None
-            self._catpath = None
-
-        elif isfile(self.registry.abs(cat)):
-            log.info(f"\tCatalog: '{cat}'")
-            self._catalog = self.registry.rel(cat)
-            self._catpath = self.registry.rel(cat)
-
-        else:
-            # catalog can be a function
-            self._catalog = parse_csep_func(cat)
-            self._catpath = self.registry.abs("catalog.json")
-            if isfile(self._catpath):
-                log.info(f"\tCatalog: stored " f"'{self._catpath}' " f"from '{cat}'")
-            else:
-                log.info(f"\tCatalog: '{cat}'")
-
-    def get_test_cat(self, tstring: str = None) -> CSEPCatalog:
-        """
-        Filters the complete experiment catalog to a test sub-catalog bounded by the test
-        time-window. Writes it to filepath defined in :attr:`Experiment.registry`
-
-        Args:
-            tstring (str): Time window string
-        """
-
-        if tstring:
-            start, end = str2timewindow(tstring)
-        else:
-            start = self.start_date
-            end = self.end_date
-        sub_cat = self.catalog.filter(
-            [
-                f"origin_time < {end.timestamp() * 1000}",
-                f"origin_time >= {start.timestamp() * 1000}",
-                f"magnitude >= {self.mag_min}",
-                f"magnitude < {self.mag_max}",
-            ],
-            in_place=False,
-        )
-        if self.region:
-            sub_cat.filter_spatial(region=self.region, in_place=True)
-
-        return sub_cat
 
     def set_test_cat(self, tstring: str) -> None:
         """
@@ -444,32 +360,13 @@ class Experiment:
             tstring (str): Time window string
         """
 
-        testcat_name = self.registry.get(tstring, "catalog")
-        if not exists(testcat_name):
-            log.debug(
-                f"Filtering catalog to testing sub-catalog and saving to " f"{testcat_name}"
-            )
-            start, end = str2timewindow(tstring)
-            sub_cat = self.catalog.filter(
-                [
-                    f"origin_time < {end.timestamp() * 1000}",
-                    f"origin_time >= {start.timestamp() * 1000}",
-                    f"magnitude >= {self.mag_min}",
-                    f"magnitude < {self.mag_max}",
-                ],
-                in_place=False,
-            )
-            if self.region:
-                sub_cat.filter_spatial(region=self.region, in_place=True)
-            sub_cat.write_json(filename=testcat_name)
-        else:
-            log.debug(f"Using stored test sub-catalog from {testcat_name}")
+        self.catalog_repo.set_test_cat(tstring)
 
     def set_input_cat(self, tstring: str, model: Model) -> None:
         """
         Filters the complete experiment catalog to a input sub-catalog filtered.
 
-        to the beginning of thetest time-window. Writes it to filepath defined
+        to the beginning of the test time-window. Writes it to filepath defined
         in :attr:`Model.tree.catalog`
 
         Args:
@@ -477,9 +374,8 @@ class Experiment:
             model (:class:`~floatcsep.model.Model`): Model to give the input
              catalog
         """
-        start, end = str2timewindow(tstring)
-        sub_cat = self.catalog.filter([f"origin_time < {start.timestamp() * 1000}"])
-        sub_cat.write_ascii(filename=model.registry.get("input_cat"))
+
+        self.catalog_repo.set_input_cat(tstring, model)
 
     def set_tasks(self):
         """
@@ -696,7 +592,7 @@ class Experiment:
             "legend": True,
         }
         plot_args.update(self.postproc_config.get("plot_catalog", {}))
-        catalog = self.get_test_cat()
+        catalog = self.catalog_repo.get_test_cat()
         if catalog.get_number_of_events() != 0:
             ax = catalog.plot(plot_args=plot_args, show=show)
             ax.get_figure().tight_layout()
@@ -829,9 +725,11 @@ class Experiment:
                 self.region_config["region"] = self.registry.rel(new_path)
 
         # Dropping catalog to results folder
-        target_cat = join(self.registry.workdir, self.registry.rundir, split(self._catpath)[-1])
+        target_cat = join(
+            self.registry.workdir, self.registry.rundir, split(self.catalog_repo._catpath)[-1]
+        )
         if not exists(target_cat):
-            shutil.copy2(self.registry.abs(self._catpath), target_cat)
+            shutil.copy2(self.registry.abs(self.catalog_repo._catpath), target_cat)
         self._catpath = self.registry.rel(target_cat)
 
         relative_path = os.path.relpath(
@@ -851,7 +749,8 @@ class Experiment:
             "tasks",
             "models",
             "tests",
-            "repository",
+            "results_repo",
+            "catalog_repo",
         ),
         extended: bool = False,
     ) -> dict:
@@ -868,7 +767,7 @@ class Experiment:
         """
 
         listwalk = [(i, j) for i, j in self.__dict__.items() if not i.startswith("_") and j]
-        listwalk.insert(6, ("catalog", self._catpath))
+        listwalk.insert(6, ("catalog", self.catalog_repo._catpath))
 
         dictwalk = {i: j for i, j in listwalk}
         dictwalk["path"] = dictwalk.pop("registry").workdir

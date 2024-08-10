@@ -2,17 +2,19 @@ import datetime
 import json
 import logging
 from abc import ABC, abstractmethod
-from typing import Sequence, Union, List, TYPE_CHECKING
+from os.path import isfile, exists
+from typing import Sequence, Union, List, TYPE_CHECKING, Callable
 
 import csep
 import numpy
-from csep.models import EvaluationResult
+from csep.core.catalogs import CSEPCatalog
 from csep.core.forecasts import GriddedForecast
+from csep.models import EvaluationResult
 from csep.utils.time_utils import decimal_year
 
 from floatcsep.readers import ForecastParsers
 from floatcsep.registry import ForecastRegistry, ExperimentRegistry
-from floatcsep.utils import str2timewindow
+from floatcsep.utils import str2timewindow, parse_csep_func
 from floatcsep.utils import timewindow2str
 
 log = logging.getLogger("floatLogger")
@@ -235,3 +237,188 @@ class CatalogRepository:
 
     def __init__(self, registry: ExperimentRegistry):
         self.registry = registry
+        self.time_config = {}
+        self.region_config = {}
+
+    def __dir__(self):
+        """Adds time and region configs keys to instance scope."""
+
+        _dir = (
+            list(super().__dir__()) + list(self.time_config.keys()) + list(self.region_config)
+        )
+        return sorted(_dir)
+
+    def __getattr__(self, item: str) -> object:
+        """
+        Override built-in method to return attributes found within.
+        :attr:`region_config` or :attr:`time_config`
+        """
+
+        try:
+            return self.__dict__[item]
+        except KeyError:
+            try:
+                return self.time_config[item]
+            except KeyError:
+                try:
+                    return self.region_config[item]
+                except KeyError:
+                    raise AttributeError(
+                        f"Experiment '{self.name}'" f" has no attribute '{item}'"
+                    ) from None
+
+    def as_dict(self):
+        return
+
+    def set_catalog(
+        self, catalog: Union[str, Callable, CSEPCatalog], time_config: dict, region_config: dict
+    ):
+        """
+        Sets the catalog to be used for the experiment.
+
+        Args:
+            catalog: Experiment's main catalog.
+            region_config: Experiment instantiation
+            time_config:
+        """
+        self.catalog = catalog
+        self.time_config = time_config
+        self.region_config = region_config
+
+    @property
+    def catalog(self) -> CSEPCatalog:
+        """
+        Returns a CSEP catalog loaded from the given query function or a stored file if it
+        exists.
+        """
+        cat_path = self.registry.abs(self._catpath)
+
+        if callable(self._catalog):
+            if isfile(self._catpath):
+                return CSEPCatalog.load_json(self._catpath)
+            bounds = {
+                "start_time": min([item for sublist in self.timewindows for item in sublist]),
+                "end_time": max([item for sublist in self.timewindows for item in sublist]),
+                "min_magnitude": self.magnitudes.min(),
+                "max_depth": self.depths.max(),
+            }
+            if self.region:
+                bounds.update(
+                    {
+                        i: j
+                        for i, j in zip(
+                            ["min_longitude", "max_longitude", "min_latitude", "max_latitude"],
+                            self.region.get_bbox(),
+                        )
+                    }
+                )
+
+            catalog = self._catalog(catalog_id="catalog", **bounds)
+
+            if self.region:
+                catalog.filter_spatial(region=self.region, in_place=True)
+                catalog.region = None
+            catalog.write_json(self._catpath)
+
+            return catalog
+
+        elif isfile(cat_path):
+            try:
+                return CSEPCatalog.load_json(cat_path)
+            except json.JSONDecodeError:
+                return csep.load_catalog(cat_path)
+
+    @catalog.setter
+    def catalog(self, cat: Union[Callable, CSEPCatalog, str]) -> None:
+
+        if cat is None:
+            self._catalog = None
+            self._catpath = None
+
+        elif isfile(self.registry.abs(cat)):
+            log.info(f"\tCatalog: '{cat}'")
+            self._catalog = self.registry.rel(cat)
+            self._catpath = self.registry.rel(cat)
+
+        else:
+            # catalog can be a function
+            self._catalog = parse_csep_func(cat)
+            self._catpath = self.registry.abs("catalog.json")
+            if isfile(self._catpath):
+                log.info(f"\tCatalog: stored " f"'{self._catpath}' " f"from '{cat}'")
+            else:
+                log.info(f"\tCatalog: '{cat}'")
+
+    def get_test_cat(self, tstring: str = None) -> CSEPCatalog:
+        """
+        Filters the complete experiment catalog to a test sub-catalog bounded by the test
+        time-window. Writes it to filepath defined in :attr:`Experiment.registry`
+
+        Args:
+            tstring (str): Time window string
+        """
+
+        if tstring:
+            start, end = str2timewindow(tstring)
+        else:
+            start = self.start_date
+            end = self.end_date
+        sub_cat = self.catalog.filter(
+            [
+                f"origin_time < {end.timestamp() * 1000}",
+                f"origin_time >= {start.timestamp() * 1000}",
+                f"magnitude >= {self.mag_min}",
+                f"magnitude < {self.mag_max}",
+            ],
+            in_place=False,
+        )
+        if self.region:
+            sub_cat.filter_spatial(region=self.region, in_place=True)
+
+        return sub_cat
+
+    def set_test_cat(self, tstring: str) -> None:
+        """
+        Filters the complete experiment catalog to a test sub-catalog bounded by the test
+        time-window. Writes it to filepath defined in :attr:`Experiment.registry`
+
+        Args:
+            tstring (str): Time window string
+        """
+
+        testcat_name = self.registry.get(tstring, "catalog")
+        if not exists(testcat_name):
+            log.debug(
+                f"Filtering catalog to testing sub-catalog and saving to " f"{testcat_name}"
+            )
+            start, end = str2timewindow(tstring)
+            sub_cat = self.catalog.filter(
+                [
+                    f"origin_time < {end.timestamp() * 1000}",
+                    f"origin_time >= {start.timestamp() * 1000}",
+                    f"magnitude >= {self.mag_min}",
+                    f"magnitude < {self.mag_max}",
+                ],
+                in_place=False,
+            )
+            if self.region:
+                sub_cat.filter_spatial(region=self.region, in_place=True)
+            sub_cat.write_json(filename=testcat_name)
+        else:
+            log.debug(f"Using stored test sub-catalog from {testcat_name}")
+
+    def set_input_cat(self, tstring: str, model: "Model") -> None:
+        """
+        Filters the complete experiment catalog to input sub-catalog filtered.
+
+        to the beginning of thetest time-window. Writes it to filepath defined
+        in :attr:`Model.tree.catalog`
+
+        Args:
+            tstring (str): Time window string
+            model (:class:`~floatcsep.model.Model`): Model to give the input
+             catalog
+        """
+        start, end = str2timewindow(tstring)
+        sub_cat = self.catalog.filter([f"origin_time < {start.timestamp() * 1000}"])
+        sub_cat.write_ascii(filename=model.registry.get("input_cat"))

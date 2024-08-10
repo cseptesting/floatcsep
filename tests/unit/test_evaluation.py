@@ -1,8 +1,5 @@
 import unittest
-from typing import Sequence, List
 from floatcsep.evaluation import Evaluation
-from csep.core.forecasts import GriddedForecast
-from csep.core.catalogs import CSEPCatalog
 
 
 class TestEvaluation(unittest.TestCase):
@@ -16,14 +13,6 @@ class TestEvaluation(unittest.TestCase):
 
     @staticmethod
     def init_noreg(name, func, **kwargs):
-        """Instantiates a model without using the @register deco,
-        but mocks Model.Registry() attrs"""
-        # deprecated
-        # evaluation = Evaluation.__new__(Evaluation)
-        # Evaluation.__init__.__wrapped__(self=evaluation,
-        #                                 name=name,
-        #                                 func=func,
-        #                                 **kwargs)
         evaluation = Evaluation(name=name, func=func, **kwargs)
         return evaluation
 
@@ -41,7 +30,8 @@ class TestEvaluation(unittest.TestCase):
             "plot_kwargs": None,
             "markdown": "",
             "_type": None,
-            "repository": None,
+            "results_repo": None,
+            "catalog_repo": None,
         }
         self.assertEqual(dict_, eval_.__dict__)
 
@@ -50,37 +40,6 @@ class TestEvaluation(unittest.TestCase):
 
     def test_sequential_args(self):
         pass
-
-    def test_prepare_catalog(self):
-        from unittest.mock import MagicMock, Mock, patch
-
-        def read_cat(_):
-            cat = Mock()
-            cat.name = "csep"
-            return cat
-
-        with patch("csep.core.catalogs.CSEPCatalog.load_json", read_cat):
-            region = "CSEPRegion"
-            forecast = MagicMock(name="forecast", region=region)
-
-            catt = Evaluation.get_catalog("path_to_cat", forecast)
-            self.assertEqual("csep", catt.name)
-            self.assertEqual(region, catt.region)
-
-            region2 = "definitelyNotCSEPregion"
-            forecast2 = Mock(name="forecast", region=region2)
-            cats = Evaluation.get_catalog(["path1", "path2"], [forecast, forecast2])
-
-            self.assertIsInstance(cats, list)
-            self.assertEqual(cats[0].name, "csep")
-            self.assertEqual(cats[0].region, "CSEPRegion")
-            self.assertEqual(cats[1].region, "definitelyNotCSEPregion")
-
-            with self.assertRaises(AttributeError):
-                Evaluation.get_catalog("path1", [forecast, forecast2])
-            with self.assertRaises(IndexError):
-                Evaluation.get_catalog(["path1", "path2"], forecast)
-        assert True
 
     def test_write_result(self):
         pass

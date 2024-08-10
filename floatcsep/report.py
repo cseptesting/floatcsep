@@ -39,7 +39,7 @@ def generate_report(experiment, timewindow=-1):
     report.add_heading("Authoritative Data", level=2)
 
     # Generate catalog plot
-    if experiment.catalog is not None:
+    if experiment.catalog_repo.catalog is not None:
         experiment.plot_catalog()
         report.add_figure(
             f"Input catalog",
