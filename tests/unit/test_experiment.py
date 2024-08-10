@@ -66,6 +66,9 @@ class TestExperiment(TestCase):
             "name": "test",
             "path": os.getcwd(),
             "run_dir": "results",
+            "config_file": None,
+            "models": [],
+            "tests": [],
             "time_config": {
                 "exp_class": "ti",
                 "start_date": datetime(2020, 1, 1),
@@ -109,7 +112,7 @@ class TestExperiment(TestCase):
         self.assertEqualExperiment(exp_a, exp_b)
 
         file_ = tempfile.mkstemp()[1]
-        exp_a.to_yml(file_, extended=True)
+        exp_a.to_yml(file_)
         exp_c = Experiment.from_yml(file_)
         self.assertEqualExperiment(exp_a, exp_c)
 

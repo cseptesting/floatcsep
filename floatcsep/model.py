@@ -3,10 +3,9 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Callable, Union, Mapping, Sequence
+from typing import List, Callable, Union, Sequence
 
 import git
-import numpy
 from csep.core.forecasts import GriddedForecast, CatalogForecast
 
 from floatcsep.accessors import from_zenodo, from_git
@@ -133,10 +132,10 @@ class Model(ABC):
             (i, j) for i, j in sorted(self.__dict__.items()) if not i.startswith("_") and j
         ]
 
-        dict_walk = {i: j for i, j in list_walk}
+        dict_walk = {i: j for i, j in list_walk if i not in excluded}
         dict_walk["path"] = dict_walk.pop("registry").path
 
-        return {self.name: parse_nested_dicts(dict_walk, excluded=excluded)}
+        return {self.name: parse_nested_dicts(dict_walk)}
 
     @classmethod
     def from_dict(cls, record: dict, **kwargs):
