@@ -176,7 +176,6 @@ class ResultsRepository:
 
     def __init__(self, registry: ExperimentRegistry):
         self.registry = registry
-        self.a = 1
 
     def _load_result(
         self,
@@ -236,6 +235,8 @@ class ResultsRepository:
 class CatalogRepository:
 
     def __init__(self, registry: ExperimentRegistry):
+        self.cat_path = None
+        self._catalog = None
         self.registry = registry
         self.time_config = {}
         self.region_config = {}
@@ -270,7 +271,7 @@ class CatalogRepository:
     def as_dict(self):
         return
 
-    def set_catalog(
+    def set_main_catalog(
         self, catalog: Union[str, Callable, CSEPCatalog], time_config: dict, region_config: dict
     ):
         """
@@ -291,11 +292,11 @@ class CatalogRepository:
         Returns a CSEP catalog loaded from the given query function or a stored file if it
         exists.
         """
-        cat_path = self.registry.abs(self._catpath)
+        cat_path = self.registry.abs(self.cat_path)
 
         if callable(self._catalog):
-            if isfile(self._catpath):
-                return CSEPCatalog.load_json(self._catpath)
+            if isfile(self.cat_path):
+                return CSEPCatalog.load_json(self.cat_path)
             bounds = {
                 "start_time": min([item for sublist in self.timewindows for item in sublist]),
                 "end_time": max([item for sublist in self.timewindows for item in sublist]),
@@ -318,7 +319,7 @@ class CatalogRepository:
             if self.region:
                 catalog.filter_spatial(region=self.region, in_place=True)
                 catalog.region = None
-            catalog.write_json(self._catpath)
+            catalog.write_json(self.cat_path)
 
             return catalog
 
@@ -333,19 +334,19 @@ class CatalogRepository:
 
         if cat is None:
             self._catalog = None
-            self._catpath = None
+            self.cat_path = None
 
         elif isfile(self.registry.abs(cat)):
             log.info(f"\tCatalog: '{cat}'")
             self._catalog = self.registry.rel(cat)
-            self._catpath = self.registry.rel(cat)
+            self.cat_path = self.registry.rel(cat)
 
         else:
             # catalog can be a function
             self._catalog = parse_csep_func(cat)
-            self._catpath = self.registry.abs("catalog.json")
-            if isfile(self._catpath):
-                log.info(f"\tCatalog: stored " f"'{self._catpath}' " f"from '{cat}'")
+            self.cat_path = self.registry.abs("catalog.json")
+            if isfile(self.cat_path):
+                log.info(f"\tCatalog: stored " f"'{self.cat_path}' " f"from '{cat}'")
             else:
                 log.info(f"\tCatalog: '{cat}'")
 
@@ -363,7 +364,7 @@ class CatalogRepository:
         else:
             start = self.start_date
             end = self.end_date
-        print(self.catalog)
+
         sub_cat = self.catalog.filter(
             [
                 f"origin_time < {end.timestamp() * 1000}",

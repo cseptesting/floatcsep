@@ -1,13 +1,11 @@
 import datetime
-import json
 import logging
 import os
 import shutil
 import warnings
 from os.path import join, abspath, relpath, dirname, isfile, split, exists
-from typing import Union, List, Dict, Callable, Sequence
+from typing import Union, List, Dict, Sequence
 
-import csep
 import numpy
 import yaml
 from cartopy import crs as ccrs
@@ -23,13 +21,11 @@ from floatcsep.registry import ExperimentRegistry
 from floatcsep.repository import ResultsRepository, CatalogRepository
 from floatcsep.utils import (
     NoAliasLoader,
-    parse_csep_func,
     read_time_cfg,
     read_region_cfg,
     Task,
     TaskGraph,
     timewindow2str,
-    str2timewindow,
     magnitude_vs_time,
     parse_nested_dicts,
 )
@@ -184,7 +180,7 @@ class Experiment:
         self.postproc_config = postproc_config if postproc_config else {}
         self.default_test_kwargs = default_test_kwargs
 
-        self.catalog_repo.set_catalog(catalog, self.time_config, self.region_config)
+        self.catalog_repo.set_main_catalog(catalog, self.time_config, self.region_config)
 
         self.models = self.set_models(
             models or kwargs.get("model_config"), kwargs.get("order", None)
@@ -717,7 +713,7 @@ class Experiment:
 
         # Dropping region to results folder if it is a file
         region_path = self.region_config.get("path", False)
-        if region_path:
+        if isinstance(region_path, str):
             if isfile(region_path) and region_path:
                 new_path = join(self.registry.rundir, self.region_config["path"])
                 shutil.copy2(region_path, new_path)
@@ -726,10 +722,10 @@ class Experiment:
 
         # Dropping catalog to results folder
         target_cat = join(
-            self.registry.workdir, self.registry.rundir, split(self.catalog_repo._catpath)[-1]
+            self.registry.workdir, self.registry.rundir, split(self.catalog_repo.cat_path)[-1]
         )
         if not exists(target_cat):
-            shutil.copy2(self.registry.abs(self.catalog_repo._catpath), target_cat)
+            shutil.copy2(self.registry.abs(self.catalog_repo.cat_path), target_cat)
         self._catpath = self.registry.rel(target_cat)
 
         relative_path = os.path.relpath(
@@ -738,41 +734,41 @@ class Experiment:
         self.registry.workdir = relative_path
         self.to_yml(repr_config, extended=True)
 
-    def as_dict(
-        self,
-        exclude: Sequence = (
-            "magnitudes",
-            "depths",
-            "timewindows",
-            "filetree",
-            "task_graph",
-            "tasks",
-            "models",
-            "tests",
-            "results_repo",
-            "catalog_repo",
-        ),
-        extended: bool = False,
-    ) -> dict:
+    def as_dict(self, extra: Sequence = (), extended=False) -> dict:
         """
         Converts an Experiment instance into a dictionary.
 
         Args:
-            exclude (tuple, list): Attributes, or attribute keys, to ignore
-            extended (bool): Verbose representation of pycsep objects
+            extra: additional instance attribute to include in the dictionary.
+            extended: Include explicit parameters
 
         Returns:
             A dictionary with serialized instance's attributes, which are
             floatCSEP readable
         """
 
-        listwalk = [(i, j) for i, j in self.__dict__.items() if not i.startswith("_") and j]
-        listwalk.insert(6, ("catalog", self.catalog_repo._catpath))
+        dict_walk = {
+            "name": self.name,
+            "config_file": self.config_file,
+            "path": self.registry.workdir,
+            "run_dir": self.registry.rundir,
+            "time_config": {
+                i: j
+                for i, j in self.time_config.items()
+                if (i not in ("timewindows",) or extended)
+            },
+            "region_config": {
+                i: j
+                for i, j in self.region_config.items()
+                if (i not in ("magnitudes", "depths") or extended)
+            },
+            "catalog": self.catalog_repo.cat_path,
+            "models": [i.as_dict() for i in self.models],
+            "tests": [i.as_dict() for i in self.tests],
+        }
+        dict_walk.update(extra)
 
-        dictwalk = {i: j for i, j in listwalk}
-        dictwalk["path"] = dictwalk.pop("registry").workdir
-
-        return parse_nested_dicts(dictwalk, excluded=exclude, extended=extended)
+        return parse_nested_dicts(dict_walk)
 
     def to_yml(self, filename: str, **kwargs) -> None:
         """

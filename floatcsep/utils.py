@@ -407,11 +407,9 @@ def timewindows_td(
     # return timewindows
 
 
-def parse_nested_dicts(
-    nested_dict: dict, excluded: Sequence = (), extended: bool = False
-) -> dict:
+def parse_nested_dicts(nested_dict: dict) -> dict:
     """
-    Parses nested dictionaries to flatten them
+    Parses nested dictionaries to return appropriate parsing on each element
     """
 
     def _get_value(x):
@@ -435,11 +433,7 @@ def parse_nested_dicts(
     def iter_attr(val):
         # recursive iter through nested dicts/lists
         if isinstance(val, Mapping):
-            return {
-                item: iter_attr(val_)
-                for item, val_ in val.items()
-                if ((item not in excluded) and val_) or extended
-            }
+            return {item: iter_attr(val_) for item, val_ in val.items()}
         elif isinstance(val, Sequence) and not isinstance(val, str):
             return [iter_attr(i) for i in val]
         else:

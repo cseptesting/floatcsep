@@ -204,10 +204,10 @@ class TestCatalogRepository(unittest.TestCase):
         # Mock the registry's rel method to return the same path for simplicity
         self.mock_registry.rel.return_value = "catalog_path"
 
-        self.catalog_repo.set_catalog("catalog_path", {}, {})
+        self.catalog_repo.set_main_catalog("catalog_path", {}, {})
 
         # Check if _catpath is set correctly
-        self.assertEqual(self.catalog_repo._catpath, "catalog_path")
+        self.assertEqual(self.catalog_repo.cat_path, "catalog_path")
 
         # Check if _catalog is set correctly
         self.assertEqual(self.catalog_repo._catalog, "catalog_path")
