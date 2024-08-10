@@ -95,7 +95,7 @@ class Model(ABC):
             try:
                 from_zenodo(
                     zenodo_id,
-                    self.registry.dir if self.registry.fmt else self.registry.get_path("path"),
+                    self.registry.dir if self.registry.fmt else self.registry.get("path"),
                     force=True,
                 )
             except (KeyError, TypeError) as msg:
@@ -106,7 +106,7 @@ class Model(ABC):
             try:
                 from_git(
                     giturl,
-                    self.registry.dir if self.registry.fmt else self.registry.get_path("path"),
+                    self.registry.dir if self.registry.fmt else self.registry.get("path"),
                     **kwargs,
                 )
             except (git.NoSuchPathError, git.CommandError) as msg:
@@ -115,7 +115,7 @@ class Model(ABC):
             raise FileNotFoundError("Model has no path or identified")
 
         if not os.path.exists(self.registry.dir) or not os.path.exists(
-            self.registry.get_path("path")
+            self.registry.get("path")
         ):
             raise FileNotFoundError(
                 f"Directory '{self.registry.dir}' or file {self.registry}' do not exist. "
@@ -241,7 +241,7 @@ class TimeIndependentModel(Model):
         """
 
         parser = getattr(ForecastParsers, self.registry.fmt)
-        rates, region, mag = parser(self.registry.get_path("path"))
+        rates, region, mag = parser(self.registry.get("path"))
         db_func = HDF5Serializer.grid2hdf5
 
         if not dbpath:
@@ -373,11 +373,11 @@ class TimeDependentModel(Model):
             f"Running {self.name} using {self.environment.__class__.__name__}:"
             f" {timewindow2str([start_date, end_date])}"
         )
-        self.environment.run_command(f'{self.func} {self.registry.get_path("args_file")}')
+        self.environment.run_command(f'{self.func} {self.registry.get("args_file")}')
 
     def prepare_args(self, start, end, **kwargs):
 
-        filepath = self.registry.get_path("args_file")
+        filepath = self.registry.get("args_file")
         fmt = os.path.splitext(filepath)[1]
 
         if fmt == ".txt":

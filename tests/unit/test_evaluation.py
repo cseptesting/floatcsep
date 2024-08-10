@@ -41,6 +41,7 @@ class TestEvaluation(unittest.TestCase):
             "plot_kwargs": None,
             "markdown": "",
             "_type": None,
+            "repository": None,
         }
         self.assertEqual(dict_, eval_.__dict__)
 

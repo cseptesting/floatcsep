@@ -16,7 +16,7 @@ class TestForecastRegistry(unittest.TestCase):
 
     def test_call(self):
         self.registry_file._parse_arg = MagicMock(return_value="path")
-        result = self.registry_file.get_path("path")
+        result = self.registry_file.get("path")
         self.assertEqual(result, "/test/workdir/model.txt")
 
     @patch("os.path.isdir")
@@ -62,7 +62,7 @@ class TestForecastRegistry(unittest.TestCase):
     @patch("floatcsep.registry.exists")
     def test_fileexists(self, mock_exists):
         mock_exists.return_value = True
-        self.registry_file.get_path = MagicMock(return_value="/test/path/file.txt")
+        self.registry_file.get = MagicMock(return_value="/test/path/file.txt")
         self.assertTrue(self.registry_file.file_exists("file.txt"))
 
     @patch("os.makedirs")

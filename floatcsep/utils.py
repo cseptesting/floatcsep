@@ -931,8 +931,8 @@ class ExperimentComparison:
                 for tw in win_orig:
                     results[test.name][tw] = dict.fromkeys(models_orig)
                     for model in models_orig:
-                        orig_path = self.original.path(tw, "evaluations", test, model)
-                        repr_path = self.reproduced.path(tw, "evaluations", test, model)
+                        orig_path = self.original.registry.get(tw, "evaluations", test, model)
+                        repr_path = self.reproduced.registry.get(tw, "evaluations", test, model)
 
                         results[test.name][tw][model] = {
                             "hash": (self.get_hash(orig_path) == self.get_hash(repr_path)),
@@ -941,8 +941,12 @@ class ExperimentComparison:
             else:
                 results[test.name] = dict.fromkeys(models_orig)
                 for model in models_orig:
-                    orig_path = self.original.path(win_orig[-1], "evaluations", test, model)
-                    repr_path = self.reproduced.path(win_orig[-1], "evaluations", test, model)
+                    orig_path = self.original.registry.get(
+                        win_orig[-1], "evaluations", test, model
+                    )
+                    repr_path = self.reproduced.registry.get(
+                        win_orig[-1], "evaluations", test, model
+                    )
                     results[test.name][model] = {
                         "hash": (self.get_hash(orig_path) == self.get_hash(repr_path)),
                         "byte2byte": filecmp.cmp(orig_path, repr_path),
@@ -961,7 +965,7 @@ class ExperimentComparison:
         data = self.file_comp
         outname = os.path.join("reproducibility_report.md")
         save_path = os.path.dirname(
-            os.path.join(self.reproduced.path.workdir, self.reproduced.path.rundir)
+            os.path.join(self.reproduced.registry.workdir, self.reproduced.registry.rundir)
         )
         report = MarkdownReport(outname=outname)
         report.add_title(f"Reproducibility Report - {self.original.name}", "")

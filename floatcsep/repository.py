@@ -1,17 +1,25 @@
+import datetime
+import json
 import logging
 from abc import ABC, abstractmethod
-from typing import Sequence, Union
+from typing import Sequence, Union, List, TYPE_CHECKING
 
 import csep
+import numpy
+from csep.models import EvaluationResult
 from csep.core.forecasts import GriddedForecast
 from csep.utils.time_utils import decimal_year
 
 from floatcsep.readers import ForecastParsers
-from floatcsep.registry import ForecastRegistry
+from floatcsep.registry import ForecastRegistry, ExperimentRegistry
 from floatcsep.utils import str2timewindow
 from floatcsep.utils import timewindow2str
 
 log = logging.getLogger("floatLogger")
+
+if TYPE_CHECKING:
+    from floatcsep.evaluation import Evaluation
+    from floatcsep.model import Model
 
 
 class ForecastRepository(ABC):
@@ -86,7 +94,7 @@ class CatalogForecastRepository(ForecastRepository):
             return [self._load_single_forecast(t, region) for t in tstring]
 
     def _load_single_forecast(self, t: str, region=None):
-        fc_path = self.registry.get_path("forecasts", t)
+        fc_path = self.registry.get("forecasts", t)
         return csep.load_catalog_forecast(
             fc_path, region=region, apply_filters=True, filter_spatial=True
         )
@@ -132,7 +140,7 @@ class GriddedForecastRepository(ForecastRepository):
         time_horizon = decimal_year(end_date) - decimal_year(start_date)
         tstring_ = timewindow2str([start_date, end_date])
 
-        f_path = self.registry.get_path("forecasts", tstring_)
+        f_path = self.registry.get("forecasts", tstring_)
         f_parser = getattr(ForecastParsers, self.registry.fmt)
 
         rates, region, mags = f_parser(f_path)
@@ -160,3 +168,70 @@ class GriddedForecastRepository(ForecastRepository):
 
     def remove(self, tstring: Union[str, Sequence[str]]):
         pass
+
+
+class ResultsRepository:
+
+    def __init__(self, registry: ExperimentRegistry):
+        self.registry = registry
+        self.a = 1
+
+    def _load_result(
+        self,
+        test: "Evaluation",
+        window: Union[str, Sequence[datetime.datetime]],
+        model: "Model",
+    ) -> EvaluationResult:
+
+        if not isinstance(window, str):
+            wstr_ = timewindow2str(window)
+        else:
+            wstr_ = window
+
+        eval_path = self.registry.get(wstr_, "evaluations", test, model)
+
+        with open(eval_path, "r") as file_:
+            model_eval = EvaluationResult.from_dict(json.load(file_))
+
+        return model_eval
+
+    def load_results(
+        self,
+        test,
+        window: Union[str, Sequence[datetime.datetime]],
+        models: List,
+    ) -> List:
+        """
+        Reads an Evaluation result for a given time window and returns a list of the results for
+        all tested models.
+        """
+        test_results = []
+
+        for model in models:
+            model_eval = self._load_result(test, window, model)
+            test_results.append(model_eval)
+
+        return test_results
+
+    def write_result(self, result: EvaluationResult, test, model, window) -> None:
+
+        path = self.registry.get(window, "evaluations", test, model)
+
+        class NumpyEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, numpy.integer):
+                    return int(obj)
+                if isinstance(obj, numpy.floating):
+                    return float(obj)
+                if isinstance(obj, numpy.ndarray):
+                    return obj.tolist()
+                return json.JSONEncoder.default(self, obj)
+
+        with open(path, "w") as _file:
+            json.dump(result.to_dict(), _file, indent=4, cls=NumpyEncoder)
+
+
+class CatalogRepository:
+
+    def __init__(self, registry: ExperimentRegistry):
+        self.registry = registry

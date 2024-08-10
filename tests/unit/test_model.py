@@ -185,7 +185,7 @@ class TestTimeDependentModel(TestModel):
         # Set attributes on the mock objects
         self.mock_registry_instance.workdir = "/path/to/workdir"
         self.mock_registry_instance.path = "/path/to/model"
-        self.mock_registry_instance.get_path.return_value = (
+        self.mock_registry_instance.get.return_value = (
             "/path/to/args_file.txt"  # Mocking the return of the registry call
         )
 
@@ -253,7 +253,7 @@ class TestTimeDependentModel(TestModel):
         self.model.create_forecast(tstring, force=True)
 
         self.mock_environment_instance.run_command.assert_called_once_with(
-            f'{self.func} {self.model.registry.get_path("args_file")}'
+            f'{self.func} {self.model.registry.get("args_file")}'
         )
 
     @patch("builtins.open", new_callable=mock_open)
@@ -278,9 +278,8 @@ class TestTimeDependentModel(TestModel):
         ]
 
         # Call the method
-        args_file_path = self.model.registry.get_path("args_file")
+        args_file_path = self.model.registry.get("args_file")
         self.model.prepare_args(start_date, end_date, custom_arg="value")
-
         mock_open_file.assert_any_call(args_file_path, "r")
         mock_open_file.assert_any_call(args_file_path, "w")
         handle = mock_open_file()
@@ -293,7 +292,7 @@ class TestTimeDependentModel(TestModel):
         )
 
         json_file_path = "/path/to/args_file.json"
-        self.model.registry.get_path.return_value = json_file_path
+        self.model.registry.get.return_value = json_file_path
         self.model.prepare_args(start_date, end_date, custom_arg="value")
 
         mock_open_file.assert_any_call(json_file_path, "r")

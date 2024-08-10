@@ -76,6 +76,8 @@ class Evaluation:
         self.markdown = markdown
         self.type = Evaluation._TYPES.get(self.func.__name__)
 
+        self.repository = None
+
     @property
     def type(self):
         """
@@ -202,7 +204,6 @@ class Evaluation:
         timewindow: Union[str, list],
         catalog: str,
         model: Model,
-        path: str,
         ref_model: Union[Model, Sequence[Model]] = None,
         region=None,
     ) -> None:
@@ -216,7 +217,6 @@ class Evaluation:
             catalog (str):  Path to the filtered catalog
             model (Model, list[Model]): Model(s) to be evaluated
             ref_model: Model to be used as reference
-            path: Path to store the Evaluation result
             region: region to filter a catalog forecast.
 
         Returns:
@@ -226,47 +226,21 @@ class Evaluation:
         )
 
         evaluation_result = self.func(*test_args, **self.func_kwargs)
-        self.write_result(evaluation_result, path)
 
-    @staticmethod
-    def write_result(result: EvaluationResult, path: str) -> None:
-        """Dumps a test result into a json file."""
-
-        class NumpyEncoder(json.JSONEncoder):
-            def default(self, obj):
-                if isinstance(obj, numpy.integer):
-                    return int(obj)
-                if isinstance(obj, numpy.floating):
-                    return float(obj)
-                if isinstance(obj, numpy.ndarray):
-                    return obj.tolist()
-                return json.JSONEncoder.default(self, obj)
-
-        with open(path, "w") as _file:
-            json.dump(result.to_dict(), _file, indent=4, cls=NumpyEncoder)
+        if self.type in ["sequential", "sequential_comparative"]:
+            self.repository.write_result(evaluation_result, self, model, timewindow[-1])
+        else:
+            self.repository.write_result(evaluation_result, self, model, timewindow)
 
     def read_results(
-        self,
-        window: Union[str, Sequence[datetime.datetime]],
-        models: List[Model],
-        tree: ExperimentRegistry,
+        self, window: Union[str, Sequence[datetime.datetime]], models: List[Model]
     ) -> List:
         """
         Reads an Evaluation result for a given time window and returns a list of the results for
         all tested models.
         """
-        test_results = []
 
-        if not isinstance(window, str):
-            wstr_ = timewindow2str(window)
-        else:
-            wstr_ = window
-
-        for i in models:
-            eval_path = tree(wstr_, "evaluations", self, i.name)
-            with open(eval_path, "r") as file_:
-                model_eval = EvaluationResult.from_dict(json.load(file_))
-            test_results.append(model_eval)
+        test_results = self.repository.load_results(self, window, models)
 
         return test_results
 
@@ -274,7 +248,7 @@ class Evaluation:
         self,
         timewindow: Union[str, List],
         models: List[Model],
-        tree: ExperimentRegistry,
+        registry: ExperimentRegistry,
         dpi: int = 300,
         show: bool = False,
     ) -> None:
@@ -284,7 +258,7 @@ class Evaluation:
         Args:
             timewindow: string representing the desired timewindow to plot
             models: a list of :class:`floatcsep:models.Model`
-            tree: a :class:`floatcsep:models.PathTree` containing path of the results
+            registry: a :class:`floatcsep:models.PathTree` containing path of the results
             dpi: Figure resolution with which to save
             show: show in runtime
         """
@@ -296,8 +270,8 @@ class Evaluation:
 
                 try:
                     for time_str in timewindow:
-                        fig_path = tree(time_str, "figures", self.name)
-                        results = self.read_results(time_str, models, tree)
+                        fig_path = registry.get(time_str, "figures", self.name)
+                        results = self.read_results(time_str, models)
                         ax = func(results, plot_args=fargs, **fkwargs)
                         if "code" in fargs:
                             exec(fargs["code"])
@@ -308,14 +282,14 @@ class Evaluation:
                 except AttributeError as msg:
                     if self.type in ["consistency", "comparative"]:
                         for time_str in timewindow:
-                            results = self.read_results(time_str, models, tree)
+                            results = self.read_results(time_str, models)
                             for result, model in zip(results, models):
                                 fig_name = f"{self.name}_{model.name}"
 
-                                tree.paths[time_str]["figures"][fig_name] = os.path.join(
+                                registry.paths[time_str]["figures"][fig_name] = os.path.join(
                                     time_str, "figures", fig_name
                                 )
-                                fig_path = tree(time_str, "figures", fig_name)
+                                fig_path = registry.get(time_str, "figures", fig_name)
                                 ax = func(result, plot_args=fargs, **fkwargs, show=False)
                                 if "code" in fargs:
                                     exec(fargs["code"])
@@ -324,8 +298,8 @@ class Evaluation:
                                     pyplot.show()
 
             elif self.type in ["sequential", "sequential_comparative", "batch"]:
-                fig_path = tree(timewindow[-1], "figures", self.name)
-                results = self.read_results(timewindow[-1], models, tree)
+                fig_path = registry.get(timewindow[-1], "figures", self.name)
+                results = self.read_results(timewindow[-1], models)
                 ax = func(results, plot_args=fargs, **fkwargs)
 
                 if "code" in fargs:
