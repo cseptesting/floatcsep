@@ -363,6 +363,7 @@ class CatalogRepository:
         else:
             start = self.start_date
             end = self.end_date
+        print(self.catalog)
         sub_cat = self.catalog.filter(
             [
                 f"origin_time < {end.timestamp() * 1000}",
