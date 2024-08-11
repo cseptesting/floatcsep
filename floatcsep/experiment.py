@@ -709,7 +709,7 @@ class Experiment:
     def make_repr(self):
 
         log.info("Creating reproducibility config file")
-        repr_config = self.registry.repr_config
+        repr_config = self.registry.get("repr_config")
 
         # Dropping region to results folder if it is a file
         region_path = self.region_config.get("path", False)

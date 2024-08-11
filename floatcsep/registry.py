@@ -397,7 +397,7 @@ class ExperimentRegistry(BaseFileRegistry):
                     if not missing_models:
                         log.debug(f"  Time Window: {timewindow} - All models evaluated.")
                     else:
-                        log.warning(
+                        log.debug(
                             f"  Time Window: {timewindow} - Missing results for models: {', '.join(missing_models)}"
                         )
 
