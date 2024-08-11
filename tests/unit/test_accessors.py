@@ -1,7 +1,5 @@
 import os.path
-import vcr
-from datetime import datetime
-from floatcsep.accessors import from_zenodo, from_git, _check_hash
+from floatcsep.accessors import from_zenodo, from_git, check_hash
 import unittest
 from unittest import mock
 
@@ -27,7 +25,7 @@ class TestZenodoGetter(unittest.TestCase):
         assert os.path.isfile(self._tar)
         with open(self._txt, "r") as dummy:
             assert dummy.readline() == "test"
-        _check_hash(self._tar, "md5:17f80d606ff085751998ac4050cc614c")
+        check_hash(self._tar, "md5:17f80d606ff085751998ac4050cc614c")
 
     @classmethod
     def tearDownClass(cls) -> None:

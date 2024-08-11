@@ -41,7 +41,6 @@ class TestModelRegistryIntegration(TestCase):
         self.time_independent_model.stage(timewindows=timewindows)
         print("a", self.time_independent_model.registry.as_dict())
         self.assertIn("2023-01-01_2023-01-02", self.time_independent_model.registry.forecasts)
-        self.assertIn("2023-01-01_2023-01-02", self.time_independent_model.registry.inventory)
 
     def test_time_independent_model_get_forecast(self):
         tstring = "2023-01-01_2023-01-02"
@@ -73,8 +72,6 @@ class TestModelRegistryIntegration(TestCase):
 
         self.assertIn(tstrings[0], self.time_dependent_model.registry.forecasts)
         self.assertIn(tstrings[1], self.time_dependent_model.registry.forecasts)
-        self.assertTrue(self.time_dependent_model.registry.inventory[tstrings[0]])
-        self.assertTrue(self.time_dependent_model.registry.inventory[tstrings[1]])
 
     @patch("floatcsep.environments.VenvManager.create_environment")
     @patch("floatcsep.environments.CondaManager.create_environment")

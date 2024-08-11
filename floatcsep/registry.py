@@ -202,19 +202,16 @@ class ForecastRegistry(BaseFileRegistry):
         exists_group = []
         not_exist_group = []
 
-        log.debug("===================")
-
         for timewindow, filepath in self.forecasts.items():
             if self.forecast_exists(timewindow):
                 exists_group.append(timewindow)
             else:
                 not_exist_group.append(timewindow)
 
-        log.debug(f"  Existing forecasts: {len(exists_group)}")
-        log.debug(f"  Missing forecasts: {len(not_exist_group)}")
+        log.debug(f"    Existing forecasts: {len(exists_group)}")
+        log.debug(f"    Missing forecasts: {len(not_exist_group)}")
         for timewindow in not_exist_group:
-            log.debug(f"    Time Window: {timewindow}")
-        log.debug("===================")
+            log.debug(f"      Time Window: {timewindow}")
 
 
 class ExperimentRegistry(BaseFileRegistry):
@@ -250,15 +247,16 @@ class ExperimentRegistry(BaseFileRegistry):
         """
         return self.forecast_registries.get(model_name)
 
-    def log_all_forecast_trees(self, timewindows: list) -> None:
+    def log_forecast_trees(self, timewindows: list) -> None:
         """
         Logs the forecasts for all models managed by this ExperimentRegistry.
         """
-
-        log.debug(f"Total Time Windows: {len(timewindows)}")
+        log.debug("===================")
+        log.debug(f" Total Time Windows: {len(timewindows)}")
         for model_name, registry in self.forecast_registries.items():
-            log.debug(f"Model: {model_name}")
+            log.debug(f"  Model: {model_name}")
             registry.log_tree()
+        log.debug("===================")
 
     def get(self, *args: Sequence[any]) -> str:
         val = self.__dict__
@@ -317,20 +315,12 @@ class ExperimentRegistry(BaseFileRegistry):
              target_paths: flag to each element of the experiment (catalog and
              evaluation results)
         """
-        # grab names for creating directories
         windows = timewindow2str(timewindows)
 
         models = [i.name for i in models]
         tests = [i.name for i in tests]
 
-        # todo create datetime parser for filenames
-        # todo find better way to name paths
-
-        # Determine required directory structure for run
-        # results > time_window > cats / evals / figures
-
         run_folder = self.run_dir
-
         subfolders = ["catalog", "evaluations", "figures"]
         dirtree = {
             win: {folder: self.abs(run_folder, win, folder) for folder in subfolders}
@@ -372,3 +362,46 @@ class ExperimentRegistry(BaseFileRegistry):
         self.results = results
         self.test_catalogs = test_catalogs
         self.figures = figures
+
+    def log_results_tree(self):
+        """
+        Logs a summary of the results dictionary, sorted by test.
+        For each test and time window, it logs whether all models have results,
+        or if some results are missing, and specifies which models are missing.
+        """
+        log.debug("===================")
+
+        total_results = results_exist_count = results_not_exist_count = 0
+
+        # Get all unique test names and sort them
+        all_tests = sorted(
+            {test_name for tests in self.results.values() for test_name in tests}
+        )
+
+        for test_name in all_tests:
+            log.debug(f"Test: {test_name}")
+            for timewindow, tests in self.results.items():
+                if test_name in tests:
+                    models = tests[test_name]
+                    missing_models = []
+
+                    for model_name, result_path in models.items():
+                        total_results += 1
+                        result_full_path = self.get_result(timewindow, test_name, model_name)
+                        if os.path.exists(result_full_path):
+                            results_exist_count += 1
+                        else:
+                            results_not_exist_count += 1
+                            missing_models.append(model_name)
+
+                    if not missing_models:
+                        log.debug(f"  Time Window: {timewindow} - All models evaluated.")
+                    else:
+                        log.warning(
+                            f"  Time Window: {timewindow} - Missing results for models: {', '.join(missing_models)}"
+                        )
+
+        log.debug(f"Total Results: {total_results}")
+        log.debug(f"Results that Exist: {results_exist_count}")
+        log.debug(f"Results that Do Not Exist: {results_not_exist_count}")
+        log.debug("===================")

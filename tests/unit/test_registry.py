@@ -45,7 +45,6 @@ class TestForecastRegistry(unittest.TestCase):
                 "database": None,
                 "forecasts": {},
                 "input_cat": None,
-                "inventory": {},
                 "path": "/test/workdir/model.txt",
                 "workdir": "/test/workdir",
             },

@@ -392,8 +392,10 @@ class Experiment:
         # Set the file path structure
         self.registry.build_tree(self.timewindows, self.models, self.tests)
 
-        log.debug("Pre-run forecast registry")
-        self.registry.log_all_forecast_trees(self.timewindows)
+        log.debug("Pre-run forecast summary")
+        self.registry.log_forecast_trees(self.timewindows)
+        log.debug("Pre-run result summary")
+        self.registry.log_results_tree()
 
         log.info("Setting up experiment's tasks")
 
@@ -550,7 +552,9 @@ class Experiment:
         self.task_graph.run()
         log.info(f"Calculation completed")
         log.debug("Post-run forecast registry")
-        self.registry.log_all_forecast_trees(self.timewindows)
+        self.registry.log_forecast_trees(self.timewindows)
+        log.debug("Post-run result summary")
+        self.registry.log_results_tree()
 
     def read_results(self, test: Evaluation, window: str) -> List:
         """
@@ -722,7 +726,6 @@ class Experiment:
         )
         if not exists(target_cat):
             shutil.copy2(self.registry.abs(self.catalog_repo.cat_path), target_cat)
-        self._catpath = self.registry.rel(target_cat)
 
         relative_path = os.path.relpath(
             self.registry.workdir, os.path.join(self.registry.workdir, self.registry.run_dir)
