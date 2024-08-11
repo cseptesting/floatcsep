@@ -1,4 +1,5 @@
 import logging.config
+import warnings
 
 LOG_NAME = "experiment.log"
 LOGGING_CONFIG = {
@@ -34,6 +35,18 @@ def add_fhandler(filename):
     logging.getLogger("floatLogger").addHandler(fhandler)
 
 
-logging.config.dictConfig(LOGGING_CONFIG)
-logging.getLogger("numexpr").setLevel(logging.WARNING)
-logging.getLogger("matplotlib").setLevel(logging.CRITICAL)
+def setup_logger():
+    logging.config.dictConfig(LOGGING_CONFIG)
+    logging.getLogger("numexpr").setLevel(logging.WARNING)
+    logging.getLogger("matplotlib").setLevel(logging.CRITICAL)
+    # numpy.seterr(all="ignore")
+    warnings.filterwarnings("ignore")
+
+
+def set_console_log_level(log_level):
+    """Set the console log level based on the user's CLI input."""
+    logger = logging.getLogger("floatLogger")
+    # Update the log level for the console handler
+    for handler in logger.handlers:
+        if isinstance(handler, logging.StreamHandler):
+            handler.setLevel(log_level)

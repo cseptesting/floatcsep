@@ -126,10 +126,10 @@ class GriddedForecastRepository(ForecastRepository):
     ) -> GriddedForecast:
         """Helper method to get or load a single forecast."""
         if tstring in self.forecasts:
-            log.debug(f"Loading {name} forecast for {tstring} from memory")
+            log.debug(f"Using {name} forecast for {tstring} from memory")
             return self.forecasts[tstring]
         else:
-            log.debug(f"Loading {name} forecast for {tstring} on the fly")
+            log.debug(f"Loading {name} forecast for {tstring}")
             forecast = self._load_single_forecast(tstring, forecast_unit, name)
             if not self.lazy_load:
                 self.forecasts[tstring] = forecast
@@ -161,9 +161,8 @@ class GriddedForecastRepository(ForecastRepository):
             forecast_ = forecast_.scale(scale)
 
         log.debug(
-            f"Model {name_}:\n"
             f"\tForecast expected count: {forecast_.event_count:.2f}"
-            f" with scaling parameter: {time_horizon:.1f}"
+            f" with scaling parameter: {scale:.1f}"
         )
 
         return forecast_
@@ -391,7 +390,7 @@ class CatalogRepository:
         testcat_name = self.registry.get(tstring, "catalog")
         if not exists(testcat_name):
             log.debug(
-                f"Filtering catalog to testing sub-catalog and saving to " f"{testcat_name}"
+                f"Filtering testing catalog and saving to {self.registry.rel(testcat_name)}"
             )
             start, end = str2timewindow(tstring)
             sub_cat = self.catalog.filter(
@@ -407,7 +406,7 @@ class CatalogRepository:
                 sub_cat.filter_spatial(region=self.region, in_place=True)
             sub_cat.write_json(filename=testcat_name)
         else:
-            log.debug(f"Using stored test sub-catalog from {testcat_name}")
+            log.debug(f"Using test catalog from {self.registry.rel(testcat_name)}")
 
     def set_input_cat(self, tstring: str, model: "Model") -> None:
         """

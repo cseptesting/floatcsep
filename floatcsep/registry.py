@@ -3,9 +3,12 @@ import os
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os.path import join, abspath, relpath, normpath, dirname, exists
-from typing import Sequence, Union
+from typing import Sequence, Union, TYPE_CHECKING
 
 from floatcsep.utils import timewindow2str
+
+if TYPE_CHECKING:
+    from floatcsep.model import Model
 
 log = logging.getLogger("floatLogger")
 
@@ -73,6 +76,9 @@ class BaseFileRegistry(ABC):
     def file_exists(self, *args):
         file_abspath = self.get(*args)
         return exists(file_abspath)
+
+    def print_tree(self, *args):
+        pass
 
 
 class ForecastRegistry(BaseFileRegistry):
@@ -194,13 +200,69 @@ class ForecastRegistry(BaseFileRegistry):
                 for win in windows
             }
 
+    def log_tree(self):
+        """
+        Logs a grouped summary of the forecasts dictionary.
+        Groups time windows by whether the forecast exists or not.
+        """
+        exists_group = []
+        not_exist_group = []
+
+        log.debug("===================")
+
+        for timewindow, filepath in self.forecasts.items():
+            if self.forecast_exists(timewindow):
+                exists_group.append(timewindow)
+            else:
+                not_exist_group.append(timewindow)
+
+        log.debug(f"  Existing forecasts: {len(exists_group)}")
+        log.debug(f"  Missing forecasts: {len(not_exist_group)}")
+        for timewindow in not_exist_group:
+            log.debug(f"    Time Window: {timewindow}")
+        log.debug("===================")
+
 
 class ExperimentRegistry(BaseFileRegistry):
     def __init__(self, workdir: str, rundir: str = "results"):
         super().__init__(workdir)
         self.rundir = rundir
         self.paths = {}
+        self.forecast_registries = {}
         self.result_exists = {}
+        self.timewindows = []
+
+    def add_forecast_registry(self, model: "Model"):
+        """
+        Adds a model's ForecastRegistry to the ExperimentRegistry.
+
+        Args:
+            model (str): A Model object
+
+        """
+        self.forecast_registries[model.name] = model.registry
+
+    def get_forecast_registry(self, model_name: str):
+        """
+        Retrieves a model's ForecastRegistry from the ExperimentRegistry.
+
+        Args:
+            model_name (str): The name of the model.
+
+        Returns:
+            ForecastRegistry: The ForecastRegistry associated with the model.
+        """
+        return self.forecast_registries.get(model_name)
+
+    def log_all_forecast_trees(self):
+        """
+        Logs the forecasts for all models managed by this ExperimentRegistry.
+        """
+
+        log.debug(f"Total Time Windows: {len(self.timewindows)}")
+        for model_name, registry in self.forecast_registries.items():
+            log.debug(f"Model: {model_name}")
+            registry.log_tree()
 
     def get(self, *args):
         val = self.paths
@@ -237,6 +299,8 @@ class ExperimentRegistry(BaseFileRegistry):
         """
         # grab names for creating directories
         windows = timewindow2str(timewindows)
+        self.timewindows = windows
+
         models = [i.name for i in models]
         tests = [i.name for i in tests]
 

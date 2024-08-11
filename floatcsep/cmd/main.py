@@ -1,9 +1,12 @@
+import argparse
+import logging
+
 from floatcsep import __version__
 from floatcsep.experiment import Experiment
+from floatcsep.logger import setup_logger, set_console_log_level
 from floatcsep.utils import ExperimentComparison
-import logging
-import argparse
 
+setup_logger()
 log = logging.getLogger("floatLogger")
 
 
@@ -84,7 +87,18 @@ def floatcsep():
     parser.add_argument(
         "-t", "--timestamp", action="store_true", default=False, help="Timestamp results"
     )
+
+    parser.add_argument(
+        "-d",
+        "--debug",
+        action="store_true",
+        help="Set the logging level to DEBUG for console output.",
+    )
     args = parser.parse_args()
+
+    if hasattr(args, "debug") and args.debug:
+        set_console_log_level("DEBUG")
+
     try:
         func = globals()[args.func]
         args.__delattr__("func")

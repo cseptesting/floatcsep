@@ -2,7 +2,6 @@ import datetime
 import logging
 import os
 import shutil
-import warnings
 from os.path import join, abspath, relpath, dirname, isfile, split, exists
 from typing import Union, List, Dict, Sequence
 
@@ -30,8 +29,6 @@ from floatcsep.utils import (
     parse_nested_dicts,
 )
 
-numpy.seterr(all="ignore")
-warnings.filterwarnings("ignore")
 
 log = logging.getLogger("floatLogger")
 
@@ -310,6 +307,7 @@ class Experiment:
         log.info("Staging models")
         for i in self.models:
             i.stage(self.timewindows)
+            self.registry.add_forecast_registry(i)
 
     def set_tests(self, test_config: Union[str, Dict, List]) -> list:
         """
@@ -394,8 +392,11 @@ class Experiment:
         # Set the file path structure
         self.registry.build_tree(self.timewindows, self.models, self.tests)
 
+        log.debug("Pre-run forecast registry")
+        self.registry.log_all_forecast_trees()
+
         log.info("Setting up experiment's tasks")
-        log.debug("Pre-run: results' paths\n" + yaml.dump(self.registry.as_dict()))
+
         # Get the time windows strings
         tw_strings = timewindow2str(self.timewindows)
 
@@ -553,6 +554,8 @@ class Experiment:
 
         self.task_graph.run()
         log.info(f"Calculation completed")
+        log.debug("Post-run forecast registry")
+        self.registry.log_all_forecast_trees()
 
     def read_results(self, test: Evaluation, window: str) -> List:
         """
@@ -701,8 +704,6 @@ class Experiment:
         """Creates a report summarizing the Experiment's results."""
 
         log.info(f"Saving report into {self.registry.rundir}")
-        self.registry.build_tree(self.timewindows, self.models, self.tests)
-        log.debug("Post-run: results' paths\n" + yaml.dump(self.registry.as_dict()))
 
         report.generate_report(self)
 
