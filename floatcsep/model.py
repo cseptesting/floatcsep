@@ -113,7 +113,9 @@ class Model(ABC):
         else:
             raise FileNotFoundError("Model has no path or identified")
 
-        if not os.path.exists(self.registry.dir) or not os.path.exists(self.registry.path):
+        if not os.path.exists(self.registry.dir) or not os.path.exists(
+            self.registry.get("path")
+        ):
             raise FileNotFoundError(
                 f"Directory '{self.registry.dir}' or file {self.registry}' do not exist. "
                 f"Please check the specified 'path' matches the repo "
