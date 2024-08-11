@@ -96,7 +96,7 @@ class CatalogForecastRepository(ForecastRepository):
             return [self._load_single_forecast(t, region) for t in tstring]
 
     def _load_single_forecast(self, t: str, region=None):
-        fc_path = self.registry.get("forecasts", t)
+        fc_path = self.registry.get_forecast(t)
         return csep.load_catalog_forecast(
             fc_path, region=region, apply_filters=True, filter_spatial=True
         )
@@ -142,7 +142,7 @@ class GriddedForecastRepository(ForecastRepository):
         time_horizon = decimal_year(end_date) - decimal_year(start_date)
         tstring_ = timewindow2str([start_date, end_date])
 
-        f_path = self.registry.get("forecasts", tstring_)
+        f_path = self.registry.get_forecast(tstring_)
         f_parser = getattr(ForecastParsers, self.registry.fmt)
 
         rates, region, mags = f_parser(f_path)
@@ -188,7 +188,7 @@ class ResultsRepository:
         else:
             wstr_ = window
 
-        eval_path = self.registry.get(wstr_, "evaluations", test, model)
+        eval_path = self.registry.get_result(wstr_, test, model)
 
         with open(eval_path, "r") as file_:
             model_eval = EvaluationResult.from_dict(json.load(file_))
@@ -215,7 +215,7 @@ class ResultsRepository:
 
     def write_result(self, result: EvaluationResult, test, model, window) -> None:
 
-        path = self.registry.get(window, "evaluations", test, model)
+        path = self.registry.get_result(window, test, model)
 
         class NumpyEncoder(json.JSONEncoder):
             def default(self, obj):
@@ -387,7 +387,7 @@ class CatalogRepository:
             tstring (str): Time window string
         """
 
-        testcat_name = self.registry.get(tstring, "catalog")
+        testcat_name = self.registry.get_test_catalog(tstring)
         if not exists(testcat_name):
             log.debug(
                 f"Filtering testing catalog and saving to {self.registry.rel(testcat_name)}"

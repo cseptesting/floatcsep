@@ -3,23 +3,24 @@ import os
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os.path import join, abspath, relpath, normpath, dirname, exists
-from typing import Sequence, Union, TYPE_CHECKING
+from typing import Sequence, Union, TYPE_CHECKING, Any
 
 from floatcsep.utils import timewindow2str
 
 if TYPE_CHECKING:
     from floatcsep.model import Model
+    from floatcsep.evaluation import Evaluation
 
 log = logging.getLogger("floatLogger")
 
 
 class BaseFileRegistry(ABC):
 
-    def __init__(self, workdir: str):
+    def __init__(self, workdir: str) -> None:
         self.workdir = workdir
 
     @staticmethod
-    def _parse_arg(arg):
+    def _parse_arg(arg) -> Union[str, list[str]]:
         if isinstance(arg, (list, tuple)):
             return timewindow2str(arg)
         elif isinstance(arg, str):
@@ -32,7 +33,7 @@ class BaseFileRegistry(ABC):
             raise Exception("Arg is not found")
 
     @abstractmethod
-    def as_dict(self):
+    def as_dict(self) -> dict:
         pass
 
     @abstractmethod
@@ -40,7 +41,7 @@ class BaseFileRegistry(ABC):
         pass
 
     @abstractmethod
-    def get(self, *args):
+    def get(self, *args: Sequence[str]) -> Any:
         pass
 
     def abs(self, *paths: Sequence[str]) -> str:
@@ -73,12 +74,9 @@ class BaseFileRegistry(ABC):
 
         return relpath(_dir, self.workdir)
 
-    def file_exists(self, *args):
+    def file_exists(self, *args: Sequence[str]):
         file_abspath = self.get(*args)
         return exists(file_abspath)
-
-    def print_tree(self, *args):
-        pass
 
 
 class ForecastRegistry(BaseFileRegistry):
@@ -89,7 +87,7 @@ class ForecastRegistry(BaseFileRegistry):
         database: str = None,
         args_file: str = None,
         input_cat: str = None,
-    ):
+    ) -> None:
         super().__init__(workdir)
 
         self.path = path
@@ -97,14 +95,17 @@ class ForecastRegistry(BaseFileRegistry):
         self.args_file = args_file
         self.input_cat = input_cat
         self.forecasts = {}
-        self.inventory = {}
 
-    def get(self, *args):
+    def get(self, *args: Sequence[str]):
         val = self.__dict__
         for i in args:
             parsed_arg = self._parse_arg(i)
             val = val[parsed_arg]
         return self.abs(val)
+
+    def get_forecast(self, *args: Sequence[str]) -> str:
+
+        return self.get("forecasts", *args)
 
     @property
     def dir(self) -> str:
@@ -125,7 +126,7 @@ class ForecastRegistry(BaseFileRegistry):
         else:
             return os.path.splitext(self.path)[1][1:]
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
         return {
             "workdir": self.workdir,
             "path": self.path,
@@ -133,10 +134,9 @@ class ForecastRegistry(BaseFileRegistry):
             "args_file": self.args_file,
             "input_cat": self.input_cat,
             "forecasts": self.forecasts,
-            "inventory": self.inventory,
         }
 
-    def forecast_exists(self, timewindow: Union[str, list]):
+    def forecast_exists(self, timewindow: Union[str, list]) -> Union[bool, Sequence[bool]]:
 
         if isinstance(timewindow, str):
             return self.file_exists("forecasts", timewindow)
@@ -147,9 +147,9 @@ class ForecastRegistry(BaseFileRegistry):
         self,
         timewindows: Sequence[Sequence[datetime]] = None,
         model_class: str = "TimeIndependentModel",
-        prefix=None,
-        args_file=None,
-        input_cat=None,
+        prefix: str = None,
+        args_file: str = None,
+        input_cat: str = None,
     ) -> None:
         """
         Creates the run directory, and reads the file structure inside.
@@ -174,7 +174,6 @@ class ForecastRegistry(BaseFileRegistry):
         if model_class == "TimeIndependentModel":
             fname = self.database if self.database else self.path
             self.forecasts = {win: fname for win in windows}
-            self.inventory = {win: exists(self.forecasts[win]) for win in windows}
 
         elif model_class == "TimeDependentModel":
 
@@ -195,14 +194,9 @@ class ForecastRegistry(BaseFileRegistry):
                 win: join(dirtree["forecasts"], f"{prefix}_{win}.csv") for win in windows
             }
 
-            self.inventory = {
-                win: any(file for file in list(os.listdir(dirtree["forecasts"])))
-                for win in windows
-            }
-
-    def log_tree(self):
+    def log_tree(self) -> None:
         """
-        Logs a grouped summary of the forecasts dictionary.
+        Logs a grouped summary of the forecasts' dictionary.
         Groups time windows by whether the forecast exists or not.
         """
         exists_group = []
@@ -224,15 +218,17 @@ class ForecastRegistry(BaseFileRegistry):
 
 
 class ExperimentRegistry(BaseFileRegistry):
-    def __init__(self, workdir: str, rundir: str = "results"):
+    def __init__(self, workdir: str, run_dir: str = "results") -> None:
         super().__init__(workdir)
-        self.rundir = rundir
-        self.paths = {}
-        self.forecast_registries = {}
-        self.result_exists = {}
-        self.timewindows = []
+        self.run_dir = run_dir
+        self.results = {}
+        self.test_catalogs = {}
+        self.figures = {}
 
-    def add_forecast_registry(self, model: "Model"):
+        self.repr_config = "repr_config.yml"
+        self.forecast_registries = {}
+
+    def add_forecast_registry(self, model: "Model") -> None:
         """
         Adds a model's ForecastRegistry to the ExperimentRegistry.
 
@@ -242,7 +238,7 @@ class ExperimentRegistry(BaseFileRegistry):
         """
         self.forecast_registries[model.name] = model.registry
 
-    def get_forecast_registry(self, model_name: str):
+    def get_forecast_registry(self, model_name: str) -> None:
         """
         Retrieves a model's ForecastRegistry from the ExperimentRegistry.
 
@@ -254,34 +250,58 @@ class ExperimentRegistry(BaseFileRegistry):
         """
         return self.forecast_registries.get(model_name)
 
-    def log_all_forecast_trees(self):
+    def log_all_forecast_trees(self, timewindows: list) -> None:
         """
         Logs the forecasts for all models managed by this ExperimentRegistry.
         """
 
-        log.debug(f"Total Time Windows: {len(self.timewindows)}")
+        log.debug(f"Total Time Windows: {len(timewindows)}")
         for model_name, registry in self.forecast_registries.items():
             log.debug(f"Model: {model_name}")
             registry.log_tree()
 
-    def get(self, *args):
-        val = self.paths
+    def get(self, *args: Sequence[any]) -> str:
+        val = self.__dict__
         for i in args:
             parsed_arg = self._parse_arg(i)
             val = val[parsed_arg]
-        return self.abs(self.rundir, val)
+        return self.abs(self.run_dir, val)
 
-    def __call__(self, *args):
-        val = self.paths
+    def get_result(self, *args: Sequence[any]) -> str:
+        val = self.results
         for i in args:
             parsed_arg = self._parse_arg(i)
             val = val[parsed_arg]
-        return self.abs(self.rundir, val)
+        return self.abs(self.run_dir, val)
 
-    def as_dict(self):
+    def get_test_catalog(self, *args: Sequence[any]) -> str:
+        val = self.test_catalogs
+        for i in args:
+            parsed_arg = self._parse_arg(i)
+            val = val[parsed_arg]
+        return self.abs(self.run_dir, val)
+
+    def get_figure(self, *args: Sequence[any]) -> str:
+        val = self.figures
+        for i in args:
+            parsed_arg = self._parse_arg(i)
+            val = val[parsed_arg]
+        return self.abs(self.run_dir, val)
+
+    def result_exist(self, timewindow_str: str, test_name: str, model_name: str) -> bool:
+
+        return self.file_exists("results", timewindow_str, test_name, model_name)
+
+    def as_dict(self) -> str:
+        # todo: rework
         return self.workdir
 
-    def build_tree(self, timewindows=None, models=None, tests=None) -> None:
+    def build_tree(
+        self,
+        timewindows: Sequence[Sequence[datetime]],
+        models: Sequence["Model"],
+        tests: Sequence["Evaluation"],
+    ) -> None:
         """
         Creates the run directory, and reads the file structure inside.
 
@@ -294,12 +314,11 @@ class ExperimentRegistry(BaseFileRegistry):
             run_folder: Path to the run.
              exists: flag if forecasts, catalogs and test_results if they
              exist already
-             target_paths: flag to each element of the gefe (catalog and
+             target_paths: flag to each element of the experiment (catalog and
              evaluation results)
         """
         # grab names for creating directories
         windows = timewindow2str(timewindows)
-        self.timewindows = windows
 
         models = [i.name for i in models]
         tests = [i.name for i in tests]
@@ -310,9 +329,9 @@ class ExperimentRegistry(BaseFileRegistry):
         # Determine required directory structure for run
         # results > time_window > cats / evals / figures
 
-        run_folder = self.rundir
+        run_folder = self.run_dir
 
-        subfolders = ["catalog", "evaluations", "figures", "forecasts"]
+        subfolders = ["catalog", "evaluations", "figures"]
         dirtree = {
             win: {folder: self.abs(run_folder, win, folder) for folder in subfolders}
             for win in windows
@@ -323,54 +342,33 @@ class ExperimentRegistry(BaseFileRegistry):
             for _, folder_ in tw_folder.items():
                 os.makedirs(folder_, exist_ok=True)
 
-        # Check existing files
-        files = {
-            win: {name: list(os.listdir(path)) for name, path in windir.items()}
-            for win, windir in dirtree.items()
-        }
-
-        file_exists = {
+        results = {
             win: {
-                "forecasts": False,
-                "catalog": any(file for file in files[win]["catalog"]),
-                "evaluations": {
-                    test: {
-                        model: any(
-                            f"{test}_{model}.json" in file for file in files[win]["evaluations"]
-                        )
-                        for model in models
-                    }
-                    for test in tests
-                },
+                test: {
+                    model: join(win, "evaluations", f"{test}_{model}.json") for model in models
+                }
+                for test in tests
             }
             for win in windows
         }
+        test_catalogs = {win: join(win, "catalog", "test_catalog.json") for win in windows}
 
-        target_paths = {
-            "config": "repr_config.yml",
-            "catalog_figure": "catalog",
-            "magnitude_time": "events",
+        figures = {
+            "main_catalog_map": "catalog",
+            "main_catalog_time": "events",
             **{
                 win: {
-                    "catalog": join(win, "catalog", "test_catalog.json"),
-                    "evaluations": {
-                        test: {
-                            model: join(win, "evaluations", f"{test}_{model}.json")
-                            for model in models
-                        }
-                        for test in tests
-                    },
-                    "figures": {
-                        **{test: join(win, "figures", f"{test}") for test in tests},
-                        "catalog": join(win, "figures", "catalog"),
-                        "magnitude_time": join(win, "figures", "magnitude_time"),
-                    },
+                    **{test: join(win, "figures", f"{test}") for test in tests},
+                    "catalog": join(win, "figures", "catalog_map"),
+                    "magnitude_time": join(win, "figures", "catalog_time"),
                     "forecasts": {
-                        model: join(win, "forecasts", f"{model}") for model in models
+                        model: join(win, "figures", f"forecast_{model}") for model in models
                     },
                 }
                 for win in windows
             },
         }
-        self.paths = target_paths
-        self.result_exists = file_exists
+
+        self.results = results
+        self.test_catalogs = test_catalogs
+        self.figures = figures

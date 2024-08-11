@@ -202,7 +202,6 @@ class Evaluation:
     def compute(
         self,
         timewindow: Union[str, list],
-        catalog: str,
         model: Model,
         ref_model: Union[Model, Sequence[Model]] = None,
         region=None,
@@ -267,10 +266,10 @@ class Evaluation:
 
         for func, fargs, fkwargs in zip(self.plot_func, self.plot_args, self.plot_kwargs):
             if self.type in ["consistency", "comparative"]:
-
+                # Regular consistency/comparative test plots (e.g., many models)
                 try:
                     for time_str in timewindow:
-                        fig_path = registry.get(time_str, "figures", self.name)
+                        fig_path = registry.get_figure(time_str, self.name)
                         results = self.read_results(time_str, models)
                         ax = func(results, plot_args=fargs, **fkwargs)
                         if "code" in fargs:
@@ -278,7 +277,8 @@ class Evaluation:
                         pyplot.savefig(fig_path, dpi=dpi)
                         if show:
                             pyplot.show()
-
+                # Single model test plots (e.g., test distribution)
+                # todo: handle this more elegantly
                 except AttributeError as msg:
                     if self.type in ["consistency", "comparative"]:
                         for time_str in timewindow:
@@ -286,10 +286,10 @@ class Evaluation:
                             for result, model in zip(results, models):
                                 fig_name = f"{self.name}_{model.name}"
 
-                                registry.paths[time_str]["figures"][fig_name] = os.path.join(
+                                registry.figures[time_str][fig_name] = os.path.join(
                                     time_str, "figures", fig_name
                                 )
-                                fig_path = registry.get(time_str, "figures", fig_name)
+                                fig_path = registry.get_figure(time_str, fig_name)
                                 ax = func(result, plot_args=fargs, **fkwargs, show=False)
                                 if "code" in fargs:
                                     exec(fargs["code"])
@@ -298,7 +298,7 @@ class Evaluation:
                                     pyplot.show()
 
             elif self.type in ["sequential", "sequential_comparative", "batch"]:
-                fig_path = registry.get(timewindow[-1], "figures", self.name)
+                fig_path = registry.get_figure(timewindow[-1], self.name)
                 results = self.read_results(timewindow[-1], models)
                 ax = func(results, plot_args=fargs, **fkwargs)
 

@@ -44,8 +44,8 @@ def generate_report(experiment, timewindow=-1):
         report.add_figure(
             f"Input catalog",
             [
-                experiment.registry.get("catalog_figure"),
-                experiment.registry.get("magnitude_time"),
+                experiment.registry.get_figure("main_catalog_map"),
+                experiment.registry.get_figure("main_catalog_time"),
             ],
             level=3,
             ncols=1,
@@ -70,16 +70,14 @@ def generate_report(experiment, timewindow=-1):
 
     # Include results from Experiment
     for test in experiment.tests:
-        fig_path = experiment.registry.get(timestr, "figures", test)
+        fig_path = experiment.registry.get_figure(timestr, test)
         width = test.plot_args[0].get("figsize", [4])[0] * 96
         report.add_figure(
             f"{test.name}", fig_path, level=3, caption=test.markdown, add_ext=True, width=width
         )
         for model in experiment.models:
             try:
-                fig_path = experiment.registry.get(
-                    timestr, "figures", f"{test.name}_{model.name}"
-                )
+                fig_path = experiment.registry.get_figure(timestr, f"{test.name}_{model.name}")
                 width = test.plot_args[0].get("figsize", [4])[0] * 96
                 report.add_figure(
                     f"{test.name}: {model.name}",
@@ -92,4 +90,4 @@ def generate_report(experiment, timewindow=-1):
             except KeyError:
                 pass
     report.table_of_contents()
-    report.save(experiment.registry.abs(experiment.registry.rundir))
+    report.save(experiment.registry.abs(experiment.registry.run_dir))
