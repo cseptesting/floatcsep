@@ -2,7 +2,6 @@ import datetime
 import logging
 import os
 import shutil
-import warnings
 from os.path import join, abspath, relpath, dirname, isfile, split, exists
 from typing import Union, List, Dict, Sequence
 
@@ -30,8 +29,6 @@ from floatcsep.utils import (
     parse_nested_dicts,
 )
 
-numpy.seterr(all="ignore")
-warnings.filterwarnings("ignore")
 
 log = logging.getLogger("floatLogger")
 
@@ -310,6 +307,7 @@ class Experiment:
         log.info("Staging models")
         for i in self.models:
             i.stage(self.timewindows)
+            self.registry.add_forecast_registry(i)
 
     def set_tests(self, test_config: Union[str, Dict, List]) -> list:
         """
@@ -394,8 +392,13 @@ class Experiment:
         # Set the file path structure
         self.registry.build_tree(self.timewindows, self.models, self.tests)
 
+        log.debug("Pre-run forecast summary")
+        self.registry.log_forecast_trees(self.timewindows)
+        log.debug("Pre-run result summary")
+        self.registry.log_results_tree()
+
         log.info("Setting up experiment's tasks")
-        log.debug("Pre-run: results' paths\n" + yaml.dump(self.registry.as_dict()))
+
         # Get the time windows strings
         tw_strings = timewindow2str(self.timewindows)
 
@@ -443,7 +446,6 @@ class Experiment:
                             instance=test_k,
                             method="compute",
                             timewindow=time_i,
-                            catalog=self.registry.get(time_i, "catalog"),
                             model=model_j,
                             region=self.region,
                         )
@@ -460,7 +462,6 @@ class Experiment:
                             instance=test_k,
                             method="compute",
                             timewindow=time_i,
-                            catalog=self.registry.get(time_i, "catalog"),
                             model=model_j,
                             ref_model=self.get_model(test_k.ref_model),
                             region=self.region,
@@ -482,7 +483,6 @@ class Experiment:
                         instance=test_k,
                         method="compute",
                         timewindow=tw_strings,
-                        catalog=[self.registry.get(i, "catalog") for i in tw_strings],
                         model=model_j,
                         region=self.region,
                     )
@@ -499,7 +499,6 @@ class Experiment:
                         instance=test_k,
                         method="compute",
                         timewindow=tw_strs,
-                        catalog=[self.registry.get(i, "catalog") for i in tw_strs],
                         model=model_j,
                         ref_model=self.get_model(test_k.ref_model),
                         region=self.region,
@@ -523,7 +522,6 @@ class Experiment:
                         instance=test_k,
                         method="compute",
                         timewindow=time_str,
-                        catalog=self.registry.get(time_str, "catalog"),
                         ref_model=self.models,
                         model=model_j,
                         region=self.region,
@@ -553,6 +551,10 @@ class Experiment:
 
         self.task_graph.run()
         log.info(f"Calculation completed")
+        log.debug("Post-run forecast registry")
+        self.registry.log_forecast_trees(self.timewindows)
+        log.debug("Post-run result summary")
+        self.registry.log_results_tree()
 
     def read_results(self, test: Evaluation, window: str) -> List:
         """
@@ -592,29 +594,29 @@ class Experiment:
         if catalog.get_number_of_events() != 0:
             ax = catalog.plot(plot_args=plot_args, show=show)
             ax.get_figure().tight_layout()
-            ax.get_figure().savefig(self.registry.get("catalog_figure"), dpi=dpi)
+            ax.get_figure().savefig(self.registry.get_figure("main_catalog_map"), dpi=dpi)
 
             ax2 = magnitude_vs_time(catalog)
             ax2.get_figure().tight_layout()
-            ax2.get_figure().savefig(self.registry.get("magnitude_time"), dpi=dpi)
+            ax2.get_figure().savefig(self.registry.get_figure("main_catalog_time"), dpi=dpi)
 
         if self.postproc_config.get("all_time_windows"):
             timewindow = self.timewindows
 
             for tw in timewindow:
-                catpath = self.registry.get(tw, "catalog")
+                catpath = self.registry.get_test_catalog(tw)
                 catalog = CSEPCatalog.load_json(catpath)
                 if catalog.get_number_of_events() != 0:
                     ax = catalog.plot(plot_args=plot_args, show=show)
                     ax.get_figure().tight_layout()
                     ax.get_figure().savefig(
-                        self.registry.get(tw, "figures", "catalog"), dpi=dpi
+                        self.registry.get_figure(tw, "catalog_map"), dpi=dpi
                     )
 
                     ax2 = magnitude_vs_time(catalog)
                     ax2.get_figure().tight_layout()
                     ax2.get_figure().savefig(
-                        self.registry.get(tw, "figures", "magnitude_time"), dpi=dpi
+                        self.registry.get_figure(tw, "catalog_time"), dpi=dpi
                     )
 
     def plot_forecasts(self) -> None:
@@ -658,7 +660,7 @@ class Experiment:
             winstr = timewindow2str(window)
 
             for model in self.models:
-                fig_path = self.registry.get(winstr, "forecasts", model.name)
+                fig_path = self.registry.get_figure(winstr, "forecasts", model.name)
                 start = decimal_year(window[0])
                 end = decimal_year(window[1])
                 time = f"{round(end - start, 3)} years"
@@ -700,36 +702,33 @@ class Experiment:
     def generate_report(self) -> None:
         """Creates a report summarizing the Experiment's results."""
 
-        log.info(f"Saving report into {self.registry.rundir}")
-        self.registry.build_tree(self.timewindows, self.models, self.tests)
-        log.debug("Post-run: results' paths\n" + yaml.dump(self.registry.as_dict()))
+        log.info(f"Saving report into {self.registry.run_dir}")
 
         report.generate_report(self)
 
     def make_repr(self):
 
         log.info("Creating reproducibility config file")
-        repr_config = self.registry.get("config")
+        repr_config = self.registry.get("repr_config")
 
         # Dropping region to results folder if it is a file
         region_path = self.region_config.get("path", False)
         if isinstance(region_path, str):
             if isfile(region_path) and region_path:
-                new_path = join(self.registry.rundir, self.region_config["path"])
+                new_path = join(self.registry.run_dir, self.region_config["path"])
                 shutil.copy2(region_path, new_path)
                 self.region_config.pop("path")
                 self.region_config["region"] = self.registry.rel(new_path)
 
         # Dropping catalog to results folder
         target_cat = join(
-            self.registry.workdir, self.registry.rundir, split(self.catalog_repo.cat_path)[-1]
+            self.registry.workdir, self.registry.run_dir, split(self.catalog_repo.cat_path)[-1]
         )
         if not exists(target_cat):
             shutil.copy2(self.registry.abs(self.catalog_repo.cat_path), target_cat)
-        self._catpath = self.registry.rel(target_cat)
 
         relative_path = os.path.relpath(
-            self.registry.workdir, os.path.join(self.registry.workdir, self.registry.rundir)
+            self.registry.workdir, os.path.join(self.registry.workdir, self.registry.run_dir)
         )
         self.registry.workdir = relative_path
         self.to_yml(repr_config, extended=True)
@@ -751,7 +750,7 @@ class Experiment:
             "name": self.name,
             "config_file": self.config_file,
             "path": self.registry.workdir,
-            "run_dir": self.registry.rundir,
+            "run_dir": self.registry.run_dir,
             "time_config": {
                 i: j
                 for i, j in self.time_config.items()

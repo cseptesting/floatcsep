@@ -96,7 +96,7 @@ class CatalogForecastRepository(ForecastRepository):
             return [self._load_single_forecast(t, region) for t in tstring]
 
     def _load_single_forecast(self, t: str, region=None):
-        fc_path = self.registry.get("forecasts", t)
+        fc_path = self.registry.get_forecast(t)
         return csep.load_catalog_forecast(
             fc_path, region=region, apply_filters=True, filter_spatial=True
         )
@@ -126,10 +126,10 @@ class GriddedForecastRepository(ForecastRepository):
     ) -> GriddedForecast:
         """Helper method to get or load a single forecast."""
         if tstring in self.forecasts:
-            log.debug(f"Loading {name} forecast for {tstring} from memory")
+            log.debug(f"Using {name} forecast for {tstring} from memory")
             return self.forecasts[tstring]
         else:
-            log.debug(f"Loading {name} forecast for {tstring} on the fly")
+            log.debug(f"Loading {name} forecast for {tstring}")
             forecast = self._load_single_forecast(tstring, forecast_unit, name)
             if not self.lazy_load:
                 self.forecasts[tstring] = forecast
@@ -142,7 +142,7 @@ class GriddedForecastRepository(ForecastRepository):
         time_horizon = decimal_year(end_date) - decimal_year(start_date)
         tstring_ = timewindow2str([start_date, end_date])
 
-        f_path = self.registry.get("forecasts", tstring_)
+        f_path = self.registry.get_forecast(tstring_)
         f_parser = getattr(ForecastParsers, self.registry.fmt)
 
         rates, region, mags = f_parser(f_path)
@@ -161,9 +161,8 @@ class GriddedForecastRepository(ForecastRepository):
             forecast_ = forecast_.scale(scale)
 
         log.debug(
-            f"Model {name_}:\n"
             f"\tForecast expected count: {forecast_.event_count:.2f}"
-            f" with scaling parameter: {time_horizon:.1f}"
+            f" with scaling parameter: {scale:.1f}"
         )
 
         return forecast_
@@ -189,7 +188,7 @@ class ResultsRepository:
         else:
             wstr_ = window
 
-        eval_path = self.registry.get(wstr_, "evaluations", test, model)
+        eval_path = self.registry.get_result(wstr_, test, model)
 
         with open(eval_path, "r") as file_:
             model_eval = EvaluationResult.from_dict(json.load(file_))
@@ -216,7 +215,7 @@ class ResultsRepository:
 
     def write_result(self, result: EvaluationResult, test, model, window) -> None:
 
-        path = self.registry.get(window, "evaluations", test, model)
+        path = self.registry.get_result(window, test, model)
 
         class NumpyEncoder(json.JSONEncoder):
             def default(self, obj):
@@ -388,10 +387,10 @@ class CatalogRepository:
             tstring (str): Time window string
         """
 
-        testcat_name = self.registry.get(tstring, "catalog")
+        testcat_name = self.registry.get_test_catalog(tstring)
         if not exists(testcat_name):
             log.debug(
-                f"Filtering catalog to testing sub-catalog and saving to " f"{testcat_name}"
+                f"Filtering testing catalog and saving to {self.registry.rel(testcat_name)}"
             )
             start, end = str2timewindow(tstring)
             sub_cat = self.catalog.filter(
@@ -407,7 +406,7 @@ class CatalogRepository:
                 sub_cat.filter_spatial(region=self.region, in_place=True)
             sub_cat.write_json(filename=testcat_name)
         else:
-            log.debug(f"Using stored test sub-catalog from {testcat_name}")
+            log.debug(f"Using test catalog from {self.registry.rel(testcat_name)}")
 
     def set_input_cat(self, tstring: str, model: "Model") -> None:
         """

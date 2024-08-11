@@ -94,7 +94,7 @@ class Model(ABC):
             try:
                 from_zenodo(
                     zenodo_id,
-                    self.registry.dir if self.registry.fmt else self.registry.get("path"),
+                    self.registry.dir if self.registry.fmt else self.registry.path,
                     force=True,
                 )
             except (KeyError, TypeError) as msg:
@@ -105,7 +105,7 @@ class Model(ABC):
             try:
                 from_git(
                     giturl,
-                    self.registry.dir if self.registry.fmt else self.registry.get("path"),
+                    self.registry.dir if self.registry.fmt else self.registry.path,
                     **kwargs,
                 )
             except (git.NoSuchPathError, git.CommandError) as msg:
@@ -372,7 +372,7 @@ class TimeDependentModel(Model):
             f"Running {self.name} using {self.environment.__class__.__name__}:"
             f" {timewindow2str([start_date, end_date])}"
         )
-        self.environment.run_command(f'{self.func} {self.registry.get("args_file")}')
+        self.environment.run_command(f"{self.func} {self.registry.get('args_file')}")
 
     def prepare_args(self, start, end, **kwargs):
 

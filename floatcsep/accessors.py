@@ -36,20 +36,20 @@ def from_zenodo(record_id, folder, force=False):
     for (fname, checksum), url in zip(filenames, download_urls):
         full_path = os.path.join(folder, fname)
         if os.path.exists(full_path):
-            value, digest = _check_hash(full_path, checksum)
+            value, digest = check_hash(full_path, checksum)
             if value != digest:
                 print(f"Checksum is different: re-downloading {fname}" f" from Zenodo...")
-                _download_file(url, full_path)
+                download_file(url, full_path)
             elif force:
                 print(f"Re-downloading {fname} from Zenodo...")
-                _download_file(url, full_path)
+                download_file(url, full_path)
             else:
                 print(f"Found file {fname}. Checksum OK.")
 
         else:
             print(f"Downloading {fname} from Zenodo...")
-            _download_file(url, full_path)
-        value, digest = _check_hash(full_path, checksum)
+            download_file(url, full_path)
+        value, digest = check_hash(full_path, checksum)
         if value != digest:
             print("Error: Checksum does not match")
             sys.exit(-1)
@@ -84,7 +84,7 @@ def from_git(url, path, branch=None, depth=1, **kwargs):
     return repo
 
 
-def _download_file(url: str, filename: str) -> None:
+def download_file(url: str, filename: str) -> None:
     """
     Downloads files (from zenodo).
 
@@ -127,7 +127,7 @@ def _download_file(url: str, filename: str) -> None:
         sys.stdout.write("\n")
 
 
-def _check_hash(filename, checksum):
+def check_hash(filename, checksum):
     """Checks if existing file hash matches checksum from url."""
     algorithm, value = checksum.split(":")
     if not os.path.exists(filename):
