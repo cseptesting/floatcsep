@@ -136,7 +136,7 @@ def plot_catalogs(experiment: "Experiment") -> None:
 
 def plot_custom(experiment: "Experiment"):
 
-    plot_config = parse_plot_config(experiment.postprocess.get("plot_custom", None))
+    plot_config = parse_plot_config(experiment.postprocess.get("plot_custom", False))
     if plot_config is None:
         return
     script_path, func_name = plot_config
@@ -152,7 +152,7 @@ def plot_custom(experiment: "Experiment"):
         log.error(f"Script {script_path} is not in the configuration file directory.")
         log.info(
             "\t Skipping plotting. Script can be reallocated and re-run the plotting only"
-            " by typing 'floatcsep run {config}'"
+            " by typing 'floatcsep plot {config}'"
         )
         return
 
@@ -168,7 +168,7 @@ def plot_custom(experiment: "Experiment"):
         log.error(f"Function {func_name} not found in {script_path}")
         log.info(
             "\t Skipping plotting. Plot script can be modified and re-run the plotting only"
-            " by typing 'floatcsep run {config}'"
+            " by typing 'floatcsep plot {config}'"
         )
         return
 
@@ -178,7 +178,7 @@ def plot_custom(experiment: "Experiment"):
         log.error(f"Error executing {func_name} from {script_path}: {e}")
         log.info(
             "\t Skipping plotting. Plot script can be modified and re-run the plotting only"
-            " by typing 'floatcsep run {config}'"
+            " by typing 'floatcsep plot {config}'"
         )
     return
 
@@ -207,7 +207,7 @@ def parse_plot_config(plot_config: Union[dict, str, bool]):
             )
             log.info(
                 "\t Skipping plotting. The script can be modified and re-run the plotting only "
-                "by typing 'floatcsep run {config}'"
+                "by typing 'floatcsep plot {config}'"
             )
             return
 

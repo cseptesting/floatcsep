@@ -96,9 +96,10 @@ class TestCondaEnvironmentManager(unittest.TestCase):
     @patch("subprocess.run")
     def test_create_environment_force(self, mock_run):
         manager = CondaManager("test_base", "/path/to/model")
-        manager.env_exists = MagicMock(return_value=True)
+        manager.env_exists = MagicMock()
+        manager.env_exists.side_effect = [True, False]
         manager.create_environment(force=True)
-        self.assertEqual(mock_run.call_count, 2)  # One for remove, one for create
+        self.assertEqual(mock_run.call_count, 3)  # One for remove, one for create
 
     @patch("subprocess.run")
     @patch.object(CondaManager, "detect_package_manager", return_value="conda")

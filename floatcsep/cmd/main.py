@@ -2,10 +2,10 @@ import argparse
 import logging
 
 from floatcsep import __version__
-from floatcsep.experiment import Experiment
+from floatcsep.experiment import Experiment, ExperimentComparison
 from floatcsep.logger import setup_logger, set_console_log_level
-from floatcsep.utils import ExperimentComparison
 from floatcsep.postprocess import plot_results, plot_forecasts, plot_catalogs, plot_custom
+from floatcsep.report import generate_report, reproducibility_report
 
 setup_logger()
 log = logging.getLogger("floatLogger")
@@ -34,7 +34,7 @@ def run(config, **kwargs):
     plot_results(experiment=exp)
     plot_custom(experiment=exp)
 
-    exp.generate_report()
+    generate_report(experiment=exp)
     exp.make_repr()
 
     log.info("Finalized")
@@ -54,7 +54,7 @@ def plot(config, **kwargs):
     plot_results(experiment=exp)
     plot_custom(experiment=exp)
 
-    exp.generate_report()
+    generate_report(experiment=exp)
 
     log.debug("")
 
@@ -76,6 +76,7 @@ def reproduce(config, **kwargs):
     comp = ExperimentComparison(original_exp, reproduced_exp)
     comp.compare_results()
 
+    reproducibility_report(exp_comparison=comp)
     log.info("Finalized")
     log.debug("")
 

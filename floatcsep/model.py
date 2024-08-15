@@ -309,7 +309,7 @@ class TimeDependentModel(Model):
             self.registry, model_class=self.__class__.__name__, **kwargs
         )
         self.build = kwargs.get("build", None)
-
+        self.force_build = kwargs.get("force_build", False)
         if self.func:
             self.environment = EnvironmentFactory.get_env(
                 self.build, self.name, self.registry.abs(model_path)
@@ -329,7 +329,7 @@ class TimeDependentModel(Model):
             self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
 
         if hasattr(self, "environment"):
-            self.environment.create_environment()
+            self.environment.create_environment(force=self.force_build)
 
         self.registry.build_tree(
             timewindows=timewindows,
