@@ -40,7 +40,6 @@ def generate_report(experiment, timewindow=-1):
 
     # Generate catalog plot
     if experiment.catalog_repo.catalog is not None:
-        experiment.plot_catalog()
         report.add_figure(
             f"Input catalog",
             [

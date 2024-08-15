@@ -86,7 +86,7 @@ Models
 Post-Process
 ~~~~~~~~~~~~
 
-    Additional options for post-processing can set using the ``postproc_config`` option.
+    Additional options for post-processing can set using the ``postprocess`` option.
 
     .. literalinclude:: ../../examples/case_e/config.yml
        :language: yaml

@@ -5,6 +5,7 @@ from floatcsep import __version__
 from floatcsep.experiment import Experiment
 from floatcsep.logger import setup_logger, set_console_log_level
 from floatcsep.utils import ExperimentComparison
+from floatcsep.postprocess import plot_results, plot_forecasts, plot_catalogs, plot_custom
 
 setup_logger()
 log = logging.getLogger("floatLogger")
@@ -13,7 +14,7 @@ log = logging.getLogger("floatLogger")
 def stage(config, **_):
 
     log.info(f"floatCSEP v{__version__} | Stage")
-    exp = Experiment.from_yml(config)
+    exp = Experiment.from_yml(config_yml=config)
     exp.stage_models()
 
     log.info("Finalized")
@@ -23,12 +24,16 @@ def stage(config, **_):
 def run(config, **kwargs):
 
     log.info(f"floatCSEP v{__version__} | Run")
-    exp = Experiment.from_yml(config, **kwargs)
+    exp = Experiment.from_yml(config_yml=config, **kwargs)
     exp.stage_models()
     exp.set_tasks()
     exp.run()
-    exp.plot_results()
-    exp.plot_forecasts()
+
+    plot_catalogs(experiment=exp)
+    plot_forecasts(experiment=exp)
+    plot_results(experiment=exp)
+    plot_custom(experiment=exp)
+
     exp.generate_report()
     exp.make_repr()
 
@@ -40,14 +45,17 @@ def plot(config, **kwargs):
 
     log.info(f"floatCSEP v{__version__} | Plot")
 
-    exp = Experiment.from_yml(config, **kwargs)
+    exp = Experiment.from_yml(config_yml=config, **kwargs)
     exp.stage_models()
     exp.set_tasks()
-    exp.plot_results()
-    exp.plot_forecasts()
+
+    plot_catalogs(experiment=exp)
+    plot_forecasts(experiment=exp)
+    plot_results(experiment=exp)
+    plot_custom(experiment=exp)
+
     exp.generate_report()
 
-    log.info("Finalized\n")
     log.debug("")
 
 
