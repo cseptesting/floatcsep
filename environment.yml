@@ -1,25 +1,26 @@
 name: floatcsep
 channels:
-    - conda-forge
-    - defaults
+  - conda-forge
+  - defaults
 dependencies:
-    - python <= 3.11
-    - numpy
-    - pycsep
-    - dateparser
-    - docker-py
-    - flake8
-    - gitpython
-    - h5py
-    - matplotlib
-    - pip
-    - pyshp
-    - pyyaml
-    - requests
-    - seaborn
-    - sphinx
-    - sphinx-autoapi
-    - sphinx-gallery
-    - sphinx-rtd-theme
-    - pytables
-    - xmltodict
+  - python <= 3.11
+  - numpy
+  - pycsep
+  - dateparser
+  - docker-py
+  - flake8
+  - gitpython
+  - h5py
+  - matplotlib
+  - pip
+  - pyshp
+  - pyyaml
+  - requests
+  - scipy
+  - seaborn
+  - sphinx
+  - sphinx-autoapi
+  - sphinx-gallery
+  - sphinx-rtd-theme
+  - pytables
+  - xmltodict

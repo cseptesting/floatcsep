@@ -18,3 +18,7 @@ force_rerun: True
 catalog: catalog.csv
 model_config: models.yml
 test_config: tests.yml
+
+postprocess:
+  plot_catalog: False
+  report: custom_report.py:main

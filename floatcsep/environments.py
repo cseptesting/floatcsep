@@ -169,8 +169,7 @@ class CondaManager(EnvironmentManager):
                     ]
                 )
             log.info(f"\tSub-conda environment created: {self.env_name}")
-
-        self.install_dependencies()
+            self.install_dependencies()
 
     def env_exists(self) -> bool:
         """

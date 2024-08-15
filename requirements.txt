@@ -11,6 +11,7 @@ pycsep
 pyshp
 pyyaml
 requests
+scipy
 seaborn
 tables
 xmltodict

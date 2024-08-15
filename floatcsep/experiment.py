@@ -1,4 +1,6 @@
 import datetime
+import filecmp
+import hashlib
 import logging
 import os
 import shutil
@@ -7,8 +9,9 @@ from typing import Union, List, Dict, Sequence
 
 import numpy
 import yaml
+import scipy
 
-from floatcsep import report
+
 from floatcsep.evaluation import Evaluation
 from floatcsep.logger import add_fhandler
 from floatcsep.model import Model, TimeDependentModel
@@ -559,13 +562,6 @@ class Experiment:
 
         return test.read_results(window, self.models)
 
-    def generate_report(self) -> None:
-        """Creates a report summarizing the Experiment's results."""
-
-        log.info(f"Saving report into {self.registry.run_dir}")
-
-        report.generate_report(self)
-
     def make_repr(self):
 
         log.info("Creating reproducibility config file")
@@ -700,3 +696,144 @@ class Experiment:
                 kwargs.pop("logging")
 
         return cls(**_dict, **kwargs)
+
+
+class ExperimentComparison:
+
+    def __init__(self, original, reproduced, **kwargs):
+        """"""
+        self.original = original
+        self.reproduced = reproduced
+
+        self.num_results = {}
+        self.file_comp = {}
+
+    @staticmethod
+    def obs_diff(obs_orig, obs_repr):
+
+        return numpy.abs(
+            numpy.divide((numpy.array(obs_orig) - numpy.array(obs_repr)), numpy.array(obs_orig))
+        )
+
+    @staticmethod
+    def test_stat(test_orig, test_repr):
+
+        if isinstance(test_orig[0], str):
+            if not isinstance(test_orig[1], str):
+                stats = numpy.array(
+                    [0, numpy.divide((test_repr[1] - test_orig[1]), test_orig[1]), 0, 0]
+                )
+            else:
+                stats = None
+        else:
+            stats_orig = numpy.array(
+                [numpy.mean(test_orig), numpy.std(test_orig), scipy.stats.skew(test_orig)]
+            )
+            stats_repr = numpy.array(
+                [numpy.mean(test_repr), numpy.std(test_repr), scipy.stats.skew(test_repr)]
+            )
+
+            ks = scipy.stats.ks_2samp(test_orig, test_repr)
+            stats = [*numpy.divide(numpy.abs(stats_repr - stats_orig), stats_orig), ks.pvalue]
+        return stats
+
+    def get_results(self):
+
+        win_orig = timewindow2str(self.original.timewindows)
+        win_repr = timewindow2str(self.reproduced.timewindows)
+
+        tests_orig = self.original.tests
+        tests_repr = self.reproduced.tests
+
+        models_orig = [i.name for i in self.original.models]
+        models_repr = [i.name for i in self.reproduced.models]
+
+        results = dict.fromkeys([i.name for i in tests_orig])
+
+        for test in tests_orig:
+            if test.type in ["consistency", "comparative"]:
+                results[test.name] = dict.fromkeys(win_orig)
+                for tw in win_orig:
+                    results_orig = self.original.read_results(test, tw)
+                    results_repr = self.reproduced.read_results(test, tw)
+                    results[test.name][tw] = {
+                        models_orig[i]: {
+                            "observed_statistic": self.obs_diff(
+                                results_orig[i].observed_statistic,
+                                results_repr[i].observed_statistic,
+                            ),
+                            "test_statistic": self.test_stat(
+                                results_orig[i].test_distribution,
+                                results_repr[i].test_distribution,
+                            ),
+                        }
+                        for i in range(len(models_orig))
+                    }
+
+            else:
+                results_orig = self.original.read_results(test, win_orig[-1])
+                results_repr = self.reproduced.read_results(test, win_orig[-1])
+                results[test.name] = {
+                    models_orig[i]: {
+                        "observed_statistic": self.obs_diff(
+                            results_orig[i].observed_statistic,
+                            results_repr[i].observed_statistic,
+                        ),
+                        "test_statistic": self.test_stat(
+                            results_orig[i].test_distribution, results_repr[i].test_distribution
+                        ),
+                    }
+                    for i in range(len(models_orig))
+                }
+
+        return results
+
+    @staticmethod
+    def get_hash(filename):
+
+        with open(filename, "rb") as f:
+            bytes_file = f.read()
+            readable_hash = hashlib.sha256(bytes_file).hexdigest()
+        return readable_hash
+
+    def get_filecomp(self):
+
+        win_orig = timewindow2str(self.original.timewindows)
+        win_repr = timewindow2str(self.reproduced.timewindows)
+
+        tests_orig = self.original.tests
+        tests_repr = self.reproduced.tests
+
+        models_orig = [i.name for i in self.original.models]
+        models_repr = [i.name for i in self.reproduced.models]
+
+        results = dict.fromkeys([i.name for i in tests_orig])
+
+        for test in tests_orig:
+            if test.type in ["consistency", "comparative"]:
+                results[test.name] = dict.fromkeys(win_orig)
+                for tw in win_orig:
+                    results[test.name][tw] = dict.fromkeys(models_orig)
+                    for model in models_orig:
+                        orig_path = self.original.registry.get_result(tw, test, model)
+                        repr_path = self.reproduced.registry.get_result(tw, test, model)
+
+                        results[test.name][tw][model] = {
+                            "hash": (self.get_hash(orig_path) == self.get_hash(repr_path)),
+                            "byte2byte": filecmp.cmp(orig_path, repr_path),
+                        }
+            else:
+                results[test.name] = dict.fromkeys(models_orig)
+                for model in models_orig:
+                    orig_path = self.original.registry.get_result(win_orig[-1], test, model)
+                    repr_path = self.reproduced.registry.get_result(win_orig[-1], test, model)
+                    results[test.name][model] = {
+                        "hash": (self.get_hash(orig_path) == self.get_hash(repr_path)),
+                        "byte2byte": filecmp.cmp(orig_path, repr_path),
+                    }
+        return results
+
+    def compare_results(self):
+
+        self.num_results = self.get_results()
+        self.file_comp = self.get_filecomp()

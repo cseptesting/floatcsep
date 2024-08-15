@@ -34,10 +34,10 @@ class DataTest(unittest.TestCase):
         pass
 
 
-@patch.object(Experiment, "generate_report")
 @patch("floatcsep.cmd.main.plot_forecasts")
 @patch("floatcsep.cmd.main.plot_catalogs")
 @patch("floatcsep.cmd.main.plot_custom")
+@patch("floatcsep.cmd.main.generate_report")
 class RunExamples(DataTest):
 
     def test_case_a(self, *args):
@@ -79,6 +79,7 @@ class RunExamples(DataTest):
 @patch("floatcsep.cmd.main.plot_forecasts")
 @patch("floatcsep.cmd.main.plot_catalogs")
 @patch("floatcsep.cmd.main.plot_custom")
+@patch("floatcsep.cmd.main.generate_report")
 class ReproduceExamples(DataTest):
 
     def test_case_c(self, *args):

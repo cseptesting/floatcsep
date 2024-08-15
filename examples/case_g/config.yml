@@ -20,4 +20,4 @@ model_config: models.yml
 test_config: tests.yml
 
 postprocess:
-  plot_custom: plot_script.py:main
+  plot_custom: custom_plot_script.py:main
