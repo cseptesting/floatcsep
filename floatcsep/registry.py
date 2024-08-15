@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 log = logging.getLogger("floatLogger")
 
 
-class BaseFileRegistry(ABC):
+class FileRegistry(ABC):
 
     def __init__(self, workdir: str) -> None:
         self.workdir = workdir
@@ -79,7 +79,7 @@ class BaseFileRegistry(ABC):
         return exists(file_abspath)
 
 
-class ForecastRegistry(BaseFileRegistry):
+class ForecastRegistry(FileRegistry):
     def __init__(
         self,
         workdir: str,
@@ -214,7 +214,7 @@ class ForecastRegistry(BaseFileRegistry):
             log.debug(f"      Time Window: {timewindow}")
 
 
-class ExperimentRegistry(BaseFileRegistry):
+class ExperimentRegistry(FileRegistry):
     def __init__(self, workdir: str, run_dir: str = "results") -> None:
         super().__init__(workdir)
         self.run_dir = run_dir
@@ -349,8 +349,8 @@ class ExperimentRegistry(BaseFileRegistry):
             **{
                 win: {
                     **{test: join(win, "figures", f"{test}") for test in tests},
-                    "catalog": join(win, "figures", "catalog_map"),
-                    "magnitude_time": join(win, "figures", "catalog_time"),
+                    "catalog_map": join(win, "figures", "catalog_map"),
+                    "catalog_time": join(win, "figures", "catalog_time"),
                     "forecasts": {
                         model: join(win, "figures", f"forecast_{model}") for model in models
                     },

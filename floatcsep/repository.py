@@ -199,19 +199,21 @@ class ResultsRepository:
         self,
         test,
         window: Union[str, Sequence[datetime.datetime]],
-        models: List,
-    ) -> List:
+        models: Union[list["Model"], "Model"],
+    ) -> Union[List, EvaluationResult]:
         """
         Reads an Evaluation result for a given time window and returns a list of the results for
         all tested models.
         """
-        test_results = []
 
-        for model in models:
-            model_eval = self._load_result(test, window, model)
-            test_results.append(model_eval)
-
-        return test_results
+        if isinstance(models, list):
+            test_results = []
+            for model in models:
+                model_eval = self._load_result(test, window, model)
+                test_results.append(model_eval)
+            return test_results
+        else:
+            return self._load_result(test, window, models)
 
     def write_result(self, result: EvaluationResult, test, model, window) -> None:
 

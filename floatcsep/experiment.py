@@ -7,10 +7,6 @@ from typing import Union, List, Dict, Sequence
 
 import numpy
 import yaml
-from cartopy import crs as ccrs
-from csep.core.catalogs import CSEPCatalog
-from csep.utils.time_utils import decimal_year
-from matplotlib import pyplot
 
 from floatcsep import report
 from floatcsep.evaluation import Evaluation
@@ -25,7 +21,6 @@ from floatcsep.utils import (
     Task,
     TaskGraph,
     timewindow2str,
-    magnitude_vs_time,
     parse_nested_dicts,
 )
 
@@ -81,7 +76,7 @@ class Experiment:
         test_config (str): Path to the evaluations' configuration file
         default_test_kwargs (dict): Default values for the testing
          (seed, number of simulations, etc.)
-        postproc_config (dict): Contains the instruction for postprocessing
+        postprocess (dict): Contains the instruction for postprocessing
          (e.g. plot forecasts, catalogs)
         **kwargs: see Note
 
@@ -116,7 +111,7 @@ class Experiment:
         catalog: str = None,
         models: str = None,
         tests: str = None,
-        postproc_config: str = None,
+        postprocess: str = None,
         default_test_kwargs: dict = None,
         rundir: str = "results",
         report_hook: dict = None,
@@ -174,7 +169,7 @@ class Experiment:
         self.models = []
         self.tests = []
 
-        self.postproc_config = postproc_config if postproc_config else {}
+        self.postprocess = postprocess if postprocess else {}
         self.default_test_kwargs = default_test_kwargs
 
         self.catalog_repo.set_main_catalog(catalog, self.time_config, self.region_config)
@@ -563,141 +558,6 @@ class Experiment:
         """
 
         return test.read_results(window, self.models)
-
-    def plot_results(self) -> None:
-        """Plots all evaluation results."""
-        log.info("Plotting evaluations")
-        timewindows = timewindow2str(self.timewindows)
-
-        for test in self.tests:
-            test.plot_results(timewindows, self.models, self.registry)
-
-    def plot_catalog(self, dpi: int = 300, show: bool = False) -> None:
-        """
-        Plots the evaluation catalogs.
-
-        Args:
-            dpi: Figure resolution with which to save
-            show: show in runtime
-        """
-        plot_args = {
-            "basemap": "ESRI_terrain",
-            "figsize": (12, 8),
-            "markersize": 8,
-            "markercolor": "black",
-            "grid_fontsize": 16,
-            "title": "",
-            "legend": True,
-        }
-        plot_args.update(self.postproc_config.get("plot_catalog", {}))
-        catalog = self.catalog_repo.get_test_cat()
-        if catalog.get_number_of_events() != 0:
-            ax = catalog.plot(plot_args=plot_args, show=show)
-            ax.get_figure().tight_layout()
-            ax.get_figure().savefig(self.registry.get_figure("main_catalog_map"), dpi=dpi)
-
-            ax2 = magnitude_vs_time(catalog)
-            ax2.get_figure().tight_layout()
-            ax2.get_figure().savefig(self.registry.get_figure("main_catalog_time"), dpi=dpi)
-
-        if self.postproc_config.get("all_time_windows"):
-            timewindow = self.timewindows
-
-            for tw in timewindow:
-                catpath = self.registry.get_test_catalog(tw)
-                catalog = CSEPCatalog.load_json(catpath)
-                if catalog.get_number_of_events() != 0:
-                    ax = catalog.plot(plot_args=plot_args, show=show)
-                    ax.get_figure().tight_layout()
-                    ax.get_figure().savefig(
-                        self.registry.get_figure(tw, "catalog_map"), dpi=dpi
-                    )
-
-                    ax2 = magnitude_vs_time(catalog)
-                    ax2.get_figure().tight_layout()
-                    ax2.get_figure().savefig(
-                        self.registry.get_figure(tw, "catalog_time"), dpi=dpi
-                    )
-
-    def plot_forecasts(self) -> None:
-        """Plots and saves all the generated forecasts."""
-
-        plot_fc_config = self.postproc_config.get("plot_forecasts")
-        if plot_fc_config:
-            log.info("Plotting forecasts")
-            if plot_fc_config is True:
-                plot_fc_config = {}
-            try:
-                proj_ = plot_fc_config.get("projection")
-                if isinstance(proj_, dict):
-                    proj_name = list(proj_.keys())[0]
-                    proj_args = list(proj_.values())[0]
-                else:
-                    proj_name = proj_
-                    proj_args = {}
-                plot_fc_config["projection"] = getattr(ccrs, proj_name)(**proj_args)
-            except (IndexError, KeyError, TypeError, AttributeError):
-                plot_fc_config["projection"] = ccrs.PlateCarree(central_longitude=0.0)
-
-            cat = plot_fc_config.get("catalog")
-            cat_args = {}
-            if cat:
-                cat_args = {
-                    "markersize": 7,
-                    "markercolor": "black",
-                    "title": "asd",
-                    "grid": False,
-                    "legend": False,
-                    "basemap": None,
-                    "region_border": False,
-                }
-                if self.region:
-                    self.catalog.filter_spatial(self.region, in_place=True)
-                if isinstance(cat, dict):
-                    cat_args.update(cat)
-
-            window = self.timewindows[-1]
-            winstr = timewindow2str(window)
-
-            for model in self.models:
-                fig_path = self.registry.get_figure(winstr, "forecasts", model.name)
-                start = decimal_year(window[0])
-                end = decimal_year(window[1])
-                time = f"{round(end - start, 3)} years"
-                plot_args = {
-                    "region_border": False,
-                    "cmap": "magma",
-                    "clabel": r"$\log_{10} N\left(M_w \in [{%.2f},"
-                    r"\,{%.2f}]\right)$ per "
-                    r"$0.1^\circ\times 0.1^\circ $ per %s"
-                    % (min(self.magnitudes), max(self.magnitudes), time),
-                }
-                if not self.region or self.region.name == "global":
-                    set_global = True
-                else:
-                    set_global = False
-                plot_args.update(plot_fc_config)
-                ax = model.get_forecast(winstr, self.region).plot(
-                    set_global=set_global, plot_args=plot_args
-                )
-
-                if self.region:
-                    bbox = self.region.get_bbox()
-                    dh = self.region.dh
-                    extent = [
-                        bbox[0] - 3 * dh,
-                        bbox[1] + 3 * dh,
-                        bbox[2] - 3 * dh,
-                        bbox[3] + 3 * dh,
-                    ]
-                else:
-                    extent = None
-                if cat:
-                    self.catalog.plot(
-                        ax=ax, set_global=set_global, extent=extent, plot_args=cat_args
-                    )
-
-                pyplot.savefig(fig_path, dpi=300, facecolor=(0, 0, 0, 0))
 
     def generate_report(self) -> None:
         """Creates a report summarizing the Experiment's results."""

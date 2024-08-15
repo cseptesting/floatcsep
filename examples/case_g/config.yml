@@ -18,3 +18,6 @@ force_rerun: True
 catalog: catalog.csv
 model_config: models.yml
 test_config: tests.yml
+
+postprocess:
+  plot_custom: plot_script.py:main

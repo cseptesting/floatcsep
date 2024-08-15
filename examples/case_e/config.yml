@@ -18,7 +18,7 @@ catalog: query_bsi
 models: models.yml
 test_config: tests.yml
 
-postproc_config:
+postprocess:
   plot_forecasts:
     region_border: True
     basemap: stock_img
