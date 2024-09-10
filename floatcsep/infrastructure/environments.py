@@ -497,6 +497,6 @@ class EnvironmentFactory:
 if __name__ == "__main__":
 
     env = EnvironmentFactory.get_env(
-        "conda", model_path="../examples/case_h/models/pymock_poisson"
+        "conda", model_path="../../examples/case_h/models/pymock_poisson"
     )
     env.create_environment(force=True)

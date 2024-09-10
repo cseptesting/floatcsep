@@ -8,12 +8,12 @@ from typing import List, Callable, Union, Sequence
 import git
 from csep.core.forecasts import GriddedForecast, CatalogForecast
 
-from floatcsep.accessors import from_zenodo, from_git
-from floatcsep.environments import EnvironmentFactory
-from floatcsep.readers import ForecastParsers, HDF5Serializer
-from floatcsep.registry import ForecastRegistry
-from floatcsep.repository import ForecastRepository
-from floatcsep.utils import timewindow2str, str2timewindow, parse_nested_dicts
+from floatcsep.utils.accessors import from_zenodo, from_git
+from floatcsep.infrastructure.environments import EnvironmentFactory
+from floatcsep.utils.readers import ForecastParsers, HDF5Serializer
+from floatcsep.infrastructure.registries import ForecastRegistry
+from floatcsep.infrastructure.repositories import ForecastRepository
+from floatcsep.utils.helpers import timewindow2str, str2timewindow, parse_nested_dicts
 
 log = logging.getLogger("floatLogger")
 

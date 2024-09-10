@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import numpy
 
 from floatcsep.experiment import ExperimentComparison
-from floatcsep.utils import timewindow2str, str2timewindow
+from floatcsep.utils.helpers import timewindow2str, str2timewindow
 
 if TYPE_CHECKING:
     from floatcsep.experiment import Experiment

@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock, call, mock_open
 import shutil
 import hashlib
 import logging
-from floatcsep.environments import (
+from floatcsep.infrastructure.environments import (
     CondaManager,
     EnvironmentFactory,
     VenvManager,

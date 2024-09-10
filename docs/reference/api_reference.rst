@@ -10,9 +10,9 @@ Commands
 The commands and entry-points with which to call `floatcsep` from the terminal
 are:
 
-.. :currentmodule:: floatcsep.cmd.main
+.. :currentmodule:: floatcsep.commands.main
 
-.. automodule:: floatcsep.cmd.main
+.. automodule:: floatcsep.commands.main
 
 .. autosummary::
    :toctree: generated
@@ -104,23 +104,68 @@ A test is defined using the :class:`Evaluation` class.
 Accessors
 ---------
 
-.. :currentmodule:: floatcsep.accessors
+.. :currentmodule:: floatcsep.utils.accessors
 
-.. automodule:: floatcsep.accessors
+.. automodule:: floatcsep.utils.accessors
 
 .. autosummary::
    :toctree: generated
 
     from_zenodo
     from_git
+    download_file
+    check_hash
+
+
+Helper Functions
+----------------
+
+.. :currentmodule:: floatcsep.utils.helpers
+
+.. automodule:: floatcsep.utils.helpers
+
+.. autosummary::
+   :toctree: generated
+
+    parse_csep_func
+    parse_timedelta_string
+    read_time_config
+    read_region_config
+    timewindows_ti
+    timewindows_td
+    timewindow2str
+    plot_sequential_likelihood
+    magnitude_vs_time
+    sequential_likelihood
+    sequential_information_gain
+    vector_poisson_t_w_test
+
+
+Readers
+-------
+
+.. :currentmodule:: floatcsep.utils.readers
+
+.. automodule:: floatcsep.utils.readers
+
+.. autosummary::
+   :toctree: generated
+
+    ForecastParsers.dat
+    ForecastParsers.xml
+    ForecastParsers.quadtree
+    ForecastParsers.csv
+    ForecastParsers.hdf5
+    HDF5Serializer.grid2hdf5
+    serialize
 
 
 Environments
 ------------
 
-.. :currentmodule:: floatcsep.environments
+.. :currentmodule:: floatcsep.infrastructure.environments
 
-.. automodule:: floatcsep.environments
+.. automodule:: floatcsep.infrastructure.environments
 
 .. autosummary::
    :toctree: generated
@@ -138,49 +183,99 @@ Environments
     CondaManager.run_command
 
 
-Utilities
----------
+Registries
+----------
 
-.. :currentmodule:: floatcsep.utils
+.. :currentmodule:: floatcsep.infrastructure.registries
 
-.. automodule:: floatcsep.utils
+.. automodule:: floatcsep.infrastructure.registries
 
 .. autosummary::
    :toctree: generated
 
-    parse_csep_func
-    parse_timedelta_string
-    read_time_config
-    read_region_config
-    timewindows_ti
-    timewindows_td
+    FileRegistry
+    FileRegistry.abs
+    FileRegistry.absdir
+    FileRegistry.rel
+    FileRegistry.rel_dir
+    FileRegistry.file_exists
+
+    ForecastRegistry
+    ForecastRegistry.get
+    ForecastRegistry.get_forecast
+    ForecastRegistry.dir
+    ForecastRegistry.fmt
+    ForecastRegistry.as_dict
+    ForecastRegistry.forecast_exist
+    ForecastRegistry.build_tree
+    ForecastRegistry.log_tree
+
+    ExperimentRegistry
+    ExperimentRegistry.add_forecast_registry
+    ExperimentRegistry.get_forecast_registry
+    ExperimentRegistry.log_forecast_trees
+    ExperimentRegistry.get
+    ExperimentRegistry.get_result
+    ExperimentRegistry.get_test_catalog
+    ExperimentRegistry.get_figure
+    ExperimentRegistry.result_exist
+    ExperimentRegistry.as_dict
+    ExperimentRegistry.build_tree
+    ExperimentRegistry.log_results_tree
+
+
+Repositories
+------------
+
+.. :currentmodule:: floatcsep.infrastructure.repositories
+
+.. automodule:: floatcsep.infrastructure.repositories
+
+.. autosummary::
+   :toctree: generated
+
+   ForecastRepository
+   ForecastRepository.factory
+
+   CatalogForecastRepository
+   CatalogForecastRepository.load_forecast
+   CatalogForecastRepository._load_single_forecast
+
+   GriddedForecastRepository.load_forecast
+   GriddedForecastRepository._get_or_load_forecast
+   GriddedForecastRepository._load_single_forecast
+
+   ResultsRepository
+   ResultsRepository._load_result
+   ResultsRepository.load_results
+   ResultsRepository.write_result
+
+   CatalogRepository
+   CatalogRepository.set_main_catalog
+   CatalogRepository.catalog
+   CatalogRepository.get_test_cat
+   CatalogRepository.set_test_cat
+   CatalogRepository.set_input_cat
+
+
+Engine
+------
+
+.. :currentmodule:: floatcsep.infrastructure.engine
+
+.. automodule:: floatcsep.infrastructure.engine
+
+.. autosummary::
+   :toctree: generated
+
     Task
+    Task.sign_match
     Task.run
     Task.check_exist
-    timewindow2str
-    plot_sequential_likelihood
-    magnitude_vs_time
-    sequential_likelihood
-    sequential_information_gain
-    vector_poisson_t_w_test
 
-
-Readers
--------
-
-.. :currentmodule:: floatcsep.readers
-
-.. automodule:: floatcsep.readers
-
-.. autosummary::
-   :toctree: generated
-
-    ForecastParsers.dat
-    ForecastParsers.xml
-    ForecastParsers.quadtree
-    ForecastParsers.csv
-    ForecastParsers.hdf5
-    HDF5Serializer.grid2hdf5
-    serialize
-
-
+    TaskGraph
+    TaskGraph.ntasks
+    TaskGraph.add
+    TaskGraph.add_dependency
+    TaskGraph.run
+    TaskGraph.check_exist

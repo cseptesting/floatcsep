@@ -6,7 +6,7 @@ import numpy
 import csep.utils.datasets
 import pytest
 
-from floatcsep import readers
+from floatcsep.utils import readers
 
 
 class TestForecastParsers(unittest.TestCase):
@@ -18,7 +18,7 @@ class TestForecastParsers(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        fname = os.path.join(cls._dir, 'model.hdf5')
+        fname = os.path.join(cls._dir, "model.hdf5")
         if os.path.isfile(fname):
             os.remove(fname)
 

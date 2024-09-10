@@ -1,5 +1,5 @@
 import os.path
-from floatcsep.accessors import from_zenodo, from_git, check_hash
+from floatcsep.utils.accessors import from_zenodo, from_git, check_hash
 import unittest
 from unittest import mock
 
@@ -35,7 +35,7 @@ class TestZenodoGetter(unittest.TestCase):
 
 
 class TestGitter(unittest.TestCase):
-    @mock.patch("floatcsep.accessors.git.Repo")
+    @mock.patch("floatcsep.utils.accessors.git.Repo")
     @mock.patch("git.Git")
     def runTest(self, mock_git, mock_repo):
         p = mock.PropertyMock(return_value=False)

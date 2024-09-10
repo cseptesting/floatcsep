@@ -8,8 +8,8 @@ import csep.utils.plots
 import csep.core.regions
 
 import floatcsep
-import floatcsep.accessors
-from floatcsep.utils import (
+import floatcsep.utils.accessors
+from floatcsep.utils.helpers import (
     parse_timedelta_string,
     timewindows_ti,
     read_time_cfg,
@@ -37,7 +37,8 @@ class CsepFunctionTest(unittest.TestCase):
             parse_csep_func("italy_csep_region"), csep.core.regions.italy_csep_region.__class__
         )
         self.assertIsInstance(
-            parse_csep_func("from_zenodo"), floatcsep.accessors.from_zenodo.__class__
+            parse_csep_func("from_zenodo"),
+            floatcsep.utils.accessors.from_zenodo.__class__,
         )
         self.assertRaises(AttributeError, parse_csep_func, "panic_button")
 

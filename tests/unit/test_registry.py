@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
 from unittest.mock import patch, MagicMock
-from floatcsep.registry import ForecastRegistry
+from floatcsep.infrastructure.registries import ForecastRegistry
 
 
 class TestForecastRegistry(unittest.TestCase):
@@ -58,7 +58,7 @@ class TestForecastRegistry(unittest.TestCase):
         result = self.registry_file.abs_dir("model.txt")
         self.assertTrue(result.endswith("/test/workdir"))
 
-    @patch("floatcsep.registry.exists")
+    @patch("floatcsep.infrastructure.registries.exists")
     def test_fileexists(self, mock_exists):
         mock_exists.return_value = True
         self.registry_file.get = MagicMock(return_value="/test/path/file.txt")

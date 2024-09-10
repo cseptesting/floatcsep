@@ -3,9 +3,14 @@ import logging
 
 from floatcsep import __version__
 from floatcsep.experiment import Experiment, ExperimentComparison
-from floatcsep.logger import setup_logger, set_console_log_level
-from floatcsep.postprocess import plot_results, plot_forecasts, plot_catalogs, plot_custom
-from floatcsep.report import generate_report, reproducibility_report
+from floatcsep.infrastructure.logger import setup_logger, set_console_log_level
+from floatcsep.postprocess.plot_handler import (
+    plot_results,
+    plot_forecasts,
+    plot_catalogs,
+    plot_custom,
+)
+from floatcsep.postprocess.reporting import generate_report, reproducibility_report
 
 setup_logger()
 log = logging.getLogger("floatLogger")

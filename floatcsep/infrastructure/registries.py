@@ -5,7 +5,7 @@ from datetime import datetime
 from os.path import join, abspath, relpath, normpath, dirname, exists
 from typing import Sequence, Union, TYPE_CHECKING, Any
 
-from floatcsep.utils import timewindow2str
+from floatcsep.utils.helpers import timewindow2str
 
 if TYPE_CHECKING:
     from floatcsep.model import Model

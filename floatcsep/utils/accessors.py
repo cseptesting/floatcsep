@@ -1,8 +1,3 @@
-from datetime import datetime
-from urllib import request
-from urllib.parse import urlencode
-from csep.utils.time_utils import datetime_to_utc_epoch, utc_now_datetime
-from csep.core.catalogs import CSEPCatalog
 import git
 import requests
 import hashlib
