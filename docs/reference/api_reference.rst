@@ -138,33 +138,6 @@ Environments
     CondaManager.run_command
 
 
-Extras
-------
-
-Additional `pyCSEP` functionalities
-
-
-.. :currentmodule:: floatcsep.extras
-
-.. automodule:: floatcsep.extras
-
-.. autosummary::
-   :toctree: generated
-
-    sequential_likelihood
-    sequential_information_gain
-    vector_poisson_t_w_test
-    brier_score
-    negative_binomial_number_test
-    binomial_joint_log_likelihood_ndarray
-    binomial_spatial_test
-    binomial_conditional_likelihood_test
-    binary_paired_t_test
-    log_likelihood_point_process
-    paired_ttest_point_process
-
-
-
 Utilities
 ---------
 
@@ -187,7 +160,9 @@ Utilities
     timewindow2str
     plot_sequential_likelihood
     magnitude_vs_time
-
+    sequential_likelihood
+    sequential_information_gain
+    vector_poisson_t_w_test
 
 
 Readers
