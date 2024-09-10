@@ -2,8 +2,8 @@ import os.path
 from unittest import TestCase
 
 from floatcsep.model import TimeIndependentModel
-from floatcsep.registry import ForecastRegistry
-from floatcsep.repository import GriddedForecastRepository
+from floatcsep.infrastructure.registries import ForecastRegistry
+from floatcsep.infrastructure.repositories import GriddedForecastRepository
 from unittest.mock import patch, MagicMock, mock_open
 from floatcsep.model import TimeDependentModel
 from datetime import datetime
@@ -59,7 +59,7 @@ class TestTimeIndependentModel(TestModel):
 
     @patch("os.makedirs")
     @patch("floatcsep.model.TimeIndependentModel.get_source")
-    @patch("floatcsep.registry.ForecastRegistry.build_tree")
+    @patch("floatcsep.infrastructure.registries.ForecastRegistry.build_tree")
     def test_stage_creates_directory(self, mock_build_tree, mock_get_source, mock_makedirs):
         """Test stage method creates directory."""
         model = self.init_model("mock", "mockfile.csv")
@@ -220,7 +220,8 @@ class TestTimeDependentModel(TestModel):
         self.assertEqual(self.model.repository, self.mock_repository_instance)
         self.assertEqual(self.model.environment, self.mock_environment_instance)
 
-    def test_stage(self):
+    @patch("os.makedirs")
+    def test_stage(self, mk):
         self.model.force_stage = True  # Force staging to occur
 
         self.model.stage(timewindows=["2020-01-01_2020-12-31"])

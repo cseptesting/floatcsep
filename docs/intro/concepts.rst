@@ -12,7 +12,7 @@ The CSEP experiments consist in the prospective evaluation of probabilistic eart
 A Floating Testing Experiment encapsulates each experiment into its own runnable environment, taking advantage of version control (i.e. ``git``), open-data repositories (e.g. `Zenodo <https://zenodo.org>`_) and Infrastructure as Code (e.g. `Docker <https://docker.com>`_) technologies, making it reproducible, re-usable and shareable during the time scale of the
 evaluations.
 
-``feCSEP`` goals
+``floatCSEP`` goals
 ----------------
 
 This is an application to deploy reproducible and prospective experiments of earthquake forecasting, namely a Floating Eperiment, that can operate independent of a particular testing server. With this application, researchers, institutions and users can

@@ -1,5 +1,7 @@
 import os.path
 import tempfile
+from unittest.mock import patch
+
 import numpy
 from unittest import TestCase
 from datetime import datetime
@@ -26,6 +28,13 @@ class TestExperiment(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         pass
+
+    def setUp(self):
+        self.makedirs_patch = patch("os.makedirs", autospec=True)
+        self.mock_makedirs = self.makedirs_patch.start()
+
+    def tearDown(self):
+        self.makedirs_patch.stop()
 
     def assertEqualExperiment(self, exp_a, exp_b):
         self.assertEqual(exp_a.name, exp_b.name)

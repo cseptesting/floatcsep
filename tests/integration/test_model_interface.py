@@ -10,9 +10,9 @@ import numpy.testing
 import csep.core.regions
 from csep.core.forecasts import GriddedForecast
 
-from floatcsep.environments import EnvironmentManager
+from floatcsep.infrastructure.environments import EnvironmentManager
 from floatcsep.model import TimeIndependentModel, TimeDependentModel
-from floatcsep.utils import timewindow2str
+from floatcsep.utils.helpers import timewindow2str
 
 
 class TestModelRegistryIntegration(TestCase):
@@ -58,8 +58,8 @@ class TestModelRegistryIntegration(TestCase):
         self.assertIsInstance(forecast, GriddedForecast)
         self.assertAlmostEqual(forecast.data[0, 0], 0.002739726027357392)  # 1 / 365 days
 
-    @patch("floatcsep.environments.VenvManager.create_environment")
-    @patch("floatcsep.environments.CondaManager.create_environment")
+    @patch("floatcsep.infrastructure.environments.VenvManager.create_environment")
+    @patch("floatcsep.infrastructure.environments.CondaManager.create_environment")
     def test_time_dependent_model_stage(self, mock_venv, mock_conda):
         mock_venv.return_value = None
         mock_conda.return_value = None
@@ -73,8 +73,8 @@ class TestModelRegistryIntegration(TestCase):
         self.assertIn(tstrings[0], self.time_dependent_model.registry.forecasts)
         self.assertIn(tstrings[1], self.time_dependent_model.registry.forecasts)
 
-    @patch("floatcsep.environments.VenvManager.create_environment")
-    @patch("floatcsep.environments.CondaManager.create_environment")
+    @patch("floatcsep.infrastructure.environments.VenvManager.create_environment")
+    @patch("floatcsep.infrastructure.environments.CondaManager.create_environment")
     def test_time_dependent_model_get_forecast(self, mock_venv, mock_conda):
         mock_venv.return_value = None
         mock_conda.return_value = None
@@ -228,7 +228,7 @@ class TestModelFromGit(TestCase):
         return model
 
     @patch.object(EnvironmentManager, "create_environment")
-    @patch("floatcsep.registry.ForecastRegistry.build_tree")
+    @patch("floatcsep.infrastructure.registries.ForecastRegistry.build_tree")
     def test_from_git(self, mock_build_tree, mock_create_environment):
         """clones model from git, checks with test artifacts"""
         mock_build_tree.return_value = None
@@ -285,7 +285,7 @@ class TestModelFromZenodo(TestCase):
         model = TimeIndependentModel(name=name, model_path=model_path, **kwargs)
         return model
 
-    @patch("floatcsep.registry.ForecastRegistry.build_tree")
+    @patch("floatcsep.infrastructure.registries.ForecastRegistry.build_tree")
     def test_zenodo(self, mock_buildtree):
         """downloads model from zenodo, checks with test artifacts"""
         mock_buildtree.return_value = None

@@ -12,10 +12,10 @@ from csep.core.forecasts import GriddedForecast
 from csep.models import EvaluationResult
 from csep.utils.time_utils import decimal_year
 
-from floatcsep.readers import ForecastParsers
-from floatcsep.registry import ForecastRegistry, ExperimentRegistry
-from floatcsep.utils import str2timewindow, parse_csep_func
-from floatcsep.utils import timewindow2str
+from floatcsep.utils.readers import ForecastParsers
+from floatcsep.infrastructure.registries import ForecastRegistry, ExperimentRegistry
+from floatcsep.utils.helpers import str2timewindow, parse_csep_func
+from floatcsep.utils.helpers import timewindow2str
 
 log = logging.getLogger("floatLogger")
 

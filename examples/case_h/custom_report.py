@@ -1,5 +1,5 @@
-from floatcsep.report import MarkdownReport
-from floatcsep.utils import timewindow2str
+from floatcsep.postprocess.reporting import MarkdownReport
+from floatcsep.utils.helpers import timewindow2str
 
 
 def main(experiment):

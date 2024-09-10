@@ -7,8 +7,8 @@ from csep.core.forecasts import GriddedForecast
 from matplotlib import pyplot
 
 from floatcsep.model import Model
-from floatcsep.registry import ExperimentRegistry
-from floatcsep.utils import parse_csep_func
+from floatcsep.infrastructure.registries import ExperimentRegistry
+from floatcsep.utils.helpers import parse_csep_func
 
 
 class Evaluation:

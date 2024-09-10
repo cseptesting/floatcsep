@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, patch, PropertyMock, mock_open
 
 from csep.core.forecasts import GriddedForecast
 
-from floatcsep.readers import ForecastParsers
-from floatcsep.registry import ForecastRegistry
-from floatcsep.repository import (
+from floatcsep.utils.readers import ForecastParsers
+from floatcsep.infrastructure.registries import ForecastRegistry
+from floatcsep.infrastructure.repositories import (
     CatalogForecastRepository,
     GriddedForecastRepository,
     ResultsRepository,
@@ -138,7 +138,7 @@ class TestGriddedForecastRepository(unittest.TestCase):
             self.assertEqual(forecast, "forecatto")
             self.assertNotIn("2023-01-02_2023-01-03", repo.forecasts)
 
-    @patch("floatcsep.registry.ForecastRegistry")
+    @patch("floatcsep.infrastructure.registries.ForecastRegistry")
     def test_equal(self, MockForecastRegistry):
 
         self.registry = MockForecastRegistry()
@@ -160,7 +160,7 @@ class TestGriddedForecastRepository(unittest.TestCase):
 
 class TestResultsRepository(unittest.TestCase):
 
-    @patch("floatcsep.repository.ExperimentRegistry")
+    @patch("floatcsep.infrastructure.repositories.ExperimentRegistry")
     def setUp(self, MockRegistry):
         self.mock_registry = MockRegistry()
         self.results_repo = ResultsRepository(self.mock_registry)
@@ -168,7 +168,7 @@ class TestResultsRepository(unittest.TestCase):
     def test_initialization(self):
         self.assertEqual(self.results_repo.registry, self.mock_registry)
 
-    @patch("floatcsep.repository.EvaluationResult.from_dict")
+    @patch("floatcsep.infrastructure.repositories.EvaluationResult.from_dict")
     @patch("builtins.open", new_callable=unittest.mock.mock_open, read_data='{"key": "value"}')
     def test_load_result(self, mock_open, mock_from_dict):
         mock_from_dict.return_value = "mocked_result"
@@ -191,7 +191,7 @@ class TestResultsRepository(unittest.TestCase):
 
 class TestCatalogRepository(unittest.TestCase):
 
-    @patch("floatcsep.repository.ExperimentRegistry")
+    @patch("floatcsep.infrastructure.repositories.ExperimentRegistry")
     def setUp(self, MockRegistry):
         self.mock_registry = MockRegistry()
         self.catalog_repo = CatalogRepository(self.mock_registry)
@@ -199,7 +199,7 @@ class TestCatalogRepository(unittest.TestCase):
     def test_initialization(self):
         self.assertEqual(self.catalog_repo.registry, self.mock_registry)
 
-    @patch("floatcsep.repository.isfile", return_value=True)
+    @patch("floatcsep.infrastructure.repositories.isfile", return_value=True)
     def test_set_catalog(self, mock_isfile):
         # Mock the registry's rel method to return the same path for simplicity
         self.mock_registry.rel.return_value = "catalog_path"

@@ -1,5 +1,4 @@
-from floatcsep.cmd import main
-from floatcsep.experiment import Experiment
+from floatcsep.commands import main
 
 import unittest
 from unittest.mock import patch
@@ -34,10 +33,10 @@ class DataTest(unittest.TestCase):
         pass
 
 
-@patch("floatcsep.cmd.main.plot_forecasts")
-@patch("floatcsep.cmd.main.plot_catalogs")
-@patch("floatcsep.cmd.main.plot_custom")
-@patch("floatcsep.cmd.main.generate_report")
+@patch("floatcsep.commands.main.plot_forecasts")
+@patch("floatcsep.commands.main.plot_catalogs")
+@patch("floatcsep.commands.main.plot_custom")
+@patch("floatcsep.commands.main.generate_report")
 class RunExamples(DataTest):
 
     def test_case_a(self, *args):
@@ -76,10 +75,10 @@ class RunExamples(DataTest):
         self.assertEqual(1, 1)
 
 
-@patch("floatcsep.cmd.main.plot_forecasts")
-@patch("floatcsep.cmd.main.plot_catalogs")
-@patch("floatcsep.cmd.main.plot_custom")
-@patch("floatcsep.cmd.main.generate_report")
+@patch("floatcsep.commands.main.plot_forecasts")
+@patch("floatcsep.commands.main.plot_catalogs")
+@patch("floatcsep.commands.main.plot_custom")
+@patch("floatcsep.commands.main.generate_report")
 class ReproduceExamples(DataTest):
 
     def test_case_c(self, *args):

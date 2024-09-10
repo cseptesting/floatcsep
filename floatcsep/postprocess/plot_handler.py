@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Union
 from cartopy import crs as ccrs
 from matplotlib import pyplot
 
-from floatcsep.utils import (
+from floatcsep.utils.helpers import (
     timewindow2str,
     magnitude_vs_time,
 )

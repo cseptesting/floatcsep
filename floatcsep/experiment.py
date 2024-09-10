@@ -13,20 +13,18 @@ import scipy
 
 
 from floatcsep.evaluation import Evaluation
-from floatcsep.logger import add_fhandler
+from floatcsep.infrastructure.logger import add_fhandler
 from floatcsep.model import Model, TimeDependentModel
-from floatcsep.registry import ExperimentRegistry
-from floatcsep.repository import ResultsRepository, CatalogRepository
-from floatcsep.utils import (
+from floatcsep.infrastructure.registries import ExperimentRegistry
+from floatcsep.infrastructure.repositories import ResultsRepository, CatalogRepository
+from floatcsep.utils.helpers import (
     NoAliasLoader,
     read_time_cfg,
     read_region_cfg,
-    Task,
-    TaskGraph,
     timewindow2str,
     parse_nested_dicts,
 )
-
+from floatcsep.infrastructure.engine import Task, TaskGraph
 
 log = logging.getLogger("floatLogger")
 
@@ -150,7 +148,7 @@ class Experiment:
         self.model_config = models if isinstance(models, str) else None
         self.test_config = tests if isinstance(tests, str) else None
 
-        logger = kwargs.get("logging", True)
+        logger = kwargs.get("logging", False)
         if logger:
             filename = "experiment.log" if logger is True else logger
             self.registry.logger = os.path.join(workdir, rundir, filename)
