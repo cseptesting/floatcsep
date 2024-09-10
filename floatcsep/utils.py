@@ -1,41 +1,42 @@
 # python libraries
 import copy
 import functools
-import itertools
 import logging
-import multiprocessing
 import os
 import re
 from collections import OrderedDict
 from datetime import datetime, date
-from functools import partial
-from typing import Sequence, Union, Mapping
+from typing import Union, Mapping, Sequence
 
-import csep.core
-import csep.utils
-import mercantile
+# third-party libraries
 import numpy
 import pandas
 import scipy.stats
 import seaborn
-import shapely.geometry
-
-# pyCSEP libraries
 import yaml
-from csep.core.forecasts import GriddedForecast
-from csep.core.regions import CartesianGrid2D, compute_vertices
-from csep.core.regions import QuadtreeGrid2D, geographical_area_from_bounds
-from csep.models import Polygon
-from csep.utils.calc import cleaner_range
-from csep.utils.plots import plot_spatial_dataset
 from matplotlib import pyplot
 from matplotlib.lines import Line2D
 
-import floatcsep.accessors
-import floatcsep.extras
-import floatcsep.readers
+# pyCSEP libraries
+import csep.core
+import csep.utils
+from csep.core.regions import CartesianGrid2D
+from csep.utils.calc import cleaner_range
+from csep.utils.plots import plot_spatial_dataset
+from csep.core.catalogs import CSEPCatalog
+from csep.core.exceptions import CSEPCatalogException
+from csep.core.forecasts import GriddedForecast
+from csep.core.poisson_evaluations import (
+    paired_t_test,
+    w_test,
+    _poisson_likelihood_test,
+)
+from csep.models import EvaluationResult
 
 # floatCSEP libraries
+import floatcsep.accessors
+import floatcsep.readers
+
 
 _UNITS = ["years", "months", "weeks", "days"]
 _PD_FORMAT = ["YS", "MS", "W", "D"]
@@ -78,7 +79,6 @@ def parse_csep_func(func):
             csep.core.regions,
             floatcsep.utils,
             floatcsep.accessors,
-            floatcsep.extras,
             floatcsep.readers.HDF5Serializer,
             floatcsep.readers.ForecastParsers,
         ]
@@ -595,6 +595,181 @@ class NoAliasLoader(yaml.Loader):
 #######################
 
 
+def sequential_likelihood(
+    gridded_forecasts: Sequence[GriddedForecast],
+    observed_catalogs: Sequence[CSEPCatalog],
+    seed: int = None,
+    random_numbers=None,
+):
+    """
+    Performs the likelihood test on Gridded Forecast using an Observed Catalog.
+
+    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
+    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
+    gridded forecasts that supply their forecasts as rates.
+
+    Args:
+        gridded_forecasts: list csep.core.forecasts.GriddedForecast
+        observed_catalogs: list csep.core.catalogs.Catalog
+        timewindows: list str.
+        seed (int): used fore reproducibility, and testing
+        random_numbers (numpy.ndarray): random numbers used to override the random number generation.
+                               injection point for testing.
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+
+    # grid catalog onto spatial grid
+    # grid catalog onto spatial grid
+
+    likelihoods = []
+
+    for gridded_forecast, observed_catalog in zip(gridded_forecasts, observed_catalogs):
+        try:
+            _ = observed_catalog.region.magnitudes
+        except CSEPCatalogException:
+            observed_catalog.region = gridded_forecast.region
+
+        gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
+
+        # simply call likelihood test on catalog and forecast
+        qs, obs_ll, simulated_ll = _poisson_likelihood_test(
+            gridded_forecast.data,
+            gridded_catalog_data,
+            num_simulations=1,
+            seed=seed,
+            random_numbers=random_numbers,
+            use_observed_counts=False,
+            normalize_likelihood=False,
+        )
+        likelihoods.append(obs_ll)
+        # populate result data structure
+
+    result = EvaluationResult()
+    result.test_distribution = numpy.arange(len(gridded_forecasts))
+    result.name = "Sequential Likelihood"
+    result.observed_statistic = likelihoods
+    result.quantile = 1
+    result.sim_name = gridded_forecast.name
+    result.obs_name = observed_catalog.name
+    result.status = "normal"
+    result.min_mw = numpy.min(gridded_forecast.magnitudes)
+
+    return result
+
+
+def sequential_information_gain(
+    gridded_forecasts: Sequence[GriddedForecast],
+    benchmark_forecasts: Sequence[GriddedForecast],
+    observed_catalogs: Sequence[CSEPCatalog],
+    seed: int = None,
+    random_numbers: numpy.ndarray = None,
+):
+    """
+    Args:
+
+        gridded_forecasts: list csep.core.forecasts.GriddedForecast
+        benchmark_forecasts: list csep.core.forecasts.GriddedForecast
+        observed_catalogs: list csep.core.catalogs.Catalog
+        timewindows: list str.
+        seed (int): used fore reproducibility, and testing
+        random_numbers (numpy.ndarray): random numbers used to override the random number generation.
+                               injection point for testing.
+
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+
+    information_gains = []
+
+    for gridded_forecast, reference_forecast, observed_catalog in zip(
+        gridded_forecasts, benchmark_forecasts, observed_catalogs
+    ):
+        try:
+            _ = observed_catalog.region.magnitudes
+        except CSEPCatalogException:
+            observed_catalog.region = gridded_forecast.region
+
+        gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
+
+        # simply call likelihood test on catalog and forecast
+        qs, obs_ll, simulated_ll = _poisson_likelihood_test(
+            gridded_forecast.data,
+            gridded_catalog_data,
+            num_simulations=1,
+            seed=seed,
+            random_numbers=random_numbers,
+            use_observed_counts=False,
+            normalize_likelihood=False,
+        )
+        qs, ref_ll, simulated_ll = _poisson_likelihood_test(
+            reference_forecast.data,
+            gridded_catalog_data,
+            num_simulations=1,
+            seed=seed,
+            random_numbers=random_numbers,
+            use_observed_counts=False,
+            normalize_likelihood=False,
+        )
+
+        information_gains.append(obs_ll - ref_ll)
+
+    result = EvaluationResult()
+    result.test_distribution = numpy.arange(len(gridded_forecasts))
+    result.name = "Sequential Likelihood"
+    result.observed_statistic = information_gains
+    result.quantile = 1
+    result.sim_name = gridded_forecast.name
+    result.obs_name = observed_catalog.name
+    result.status = "normal"
+    result.min_mw = numpy.min(gridded_forecast.magnitudes)
+    return result
+
+
+def vector_poisson_t_w_test(
+    forecast: GriddedForecast,
+    benchmark_forecasts: Sequence[GriddedForecast],
+    catalog: CSEPCatalog,
+):
+    """
+    Computes Student's t-test for the information gain per earthquake over.
+
+    a list of forecasts and w-test for normality
+
+    Uses all ref_forecasts to perform pair-wise t-tests against the
+    forecast provided to the function.
+
+    Args:
+        forecast (csep.GriddedForecast): forecast to evaluate
+        benchmark_forecasts (list of csep.GriddedForecast): list of forecasts to evaluate
+        catalog (csep.AbstractBaseCatalog): evaluation catalog filtered consistent with forecast
+        **kwargs: additional default arguments
+
+    Returns:
+        results (list of csep.EvaluationResult): iterable of evaluation results
+    """
+    results_t = []
+    results_w = []
+
+    for bmf_j in benchmark_forecasts:
+        results_t.append(paired_t_test(forecast, bmf_j, catalog))
+        results_w.append(w_test(forecast, bmf_j, catalog))
+    result = EvaluationResult()
+    result.name = "Paired T-Test"
+    result.test_distribution = "normal"
+    result.observed_statistic = [t.observed_statistic for t in results_t]
+    result.quantile = (
+        [numpy.abs(t.quantile[0]) - t.quantile[1] for t in results_t],
+        [w.quantile for w in results_w],
+    )
+    result.sim_name = forecast.name
+    result.obs_name = catalog.name
+    result.status = "normal"
+    result.min_mw = numpy.min(forecast.magnitudes)
+
+    return result
+
+
 def plot_sequential_likelihood(evaluation_results, plot_args=None):
     if plot_args is None:
         plot_args = {}
@@ -742,422 +917,3 @@ def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True, plot_ar
         handletextpad=0,
     )
     pyplot.tight_layout()
-
-
-#########################
-# Below needs refactoring
-#########################
-
-
-def forecast_mapping(forecast_gridded, target_grid, ncpu=None):
-    """
-    Aggregates conventional forecast onto quadtree region.
-
-    This is generic function, which can map any forecast on to another grid.
-    Wrapper function over "_forecat_mapping_generic"
-    Forecast mapping onto Target Grid
-
-    forecast_gridded: csep.core.forecast with other grid.
-    target_grid: csep.core.region.CastesianGrid2D or QuadtreeGrid2D
-    only_de-aggregate: Flag (True or False)
-        Note: set the flag "only_deagregate = True" Only if one is sure that
-         both grids are Quadtree and Target grid is high-resolution at every
-         level than the other grid.
-    """
-
-    bounds_target = target_grid.bounds
-    bounds = forecast_gridded.region.bounds
-    data = forecast_gridded.data
-    data_mapped_bounds = _forecast_mapping_generic(bounds_target, bounds, data, ncpu=ncpu)
-    target_forecast = GriddedForecast(
-        data=data_mapped_bounds, region=target_grid, magnitudes=forecast_gridded.magnitudes
-    )
-    return target_forecast
-
-
-def plot_quadtree_forecast(qtree_forecast):
-    """
-    Currently, only a single-resolution plotting capability is available.
-
-    So we aggregate multi-resolution forecast on a single-resolution grid
-    and then plot it
-
-    Args: csep.core.models.GriddedForecast
-
-    Returns: class:`matplotlib.pyplot.ax` object
-    """
-
-    quadkeys = qtree_forecast.region.quadkeys
-    qk_sizes = []
-    for qk in quadkeys:
-        qk_sizes.append(len(qk))
-
-    if qk_sizes.count(qk_sizes[0]) == len(qk_sizes):
-        # single-resolution grid
-        ax = qtree_forecast.plot()
-    else:
-        print("Multi-resolution grid detected.")
-        print(
-            "Currently, we do not offer utility to plot a forecast with "
-            "multi-resolution grid"
-        )
-        print(
-            "Therefore, forecast is being aggregated on a single-resolution "
-            "grid (L8) for plotting"
-        )
-
-        single_res_grid_l8 = QuadtreeGrid2D.from_single_resolution(8)
-        forecast_l8 = forecast_mapping(qtree_forecast, single_res_grid_l8)
-        ax = forecast_l8.plot()
-
-    return ax
-
-
-def plot_forecast_lowres(forecast, plot_args, k=4):
-    """
-    Plot a reduced resolution plot.
-
-    The forecast values are kept the same,
-    but cells are enlarged
-    :param forecast: GriddedForecast object
-    :param plot_args: arguments to be passed to plot_spatial_dataset
-    :param k: Resampling factor. Selects cells every k row and k columns.
-    """
-
-    print("\tPlotting Forecast")
-    plot_args["title"] = forecast.name
-    region = forecast.region
-    coords = region.origins()
-    dataset = numpy.log10(forecast.spatial_counts(cartesian=True))[::k, ::k]
-    region.xs = numpy.unique(region.get_cartesian(coords[:, 0])[0, ::k])
-    region.ys = numpy.unique(region.get_cartesian(coords[:, 1])[::k, 0])
-    plot_spatial_dataset(dataset, region, set_global=True, plot_args=plot_args)
-
-
-def quadtree_csv_loader(csv_fname):
-    """Load quadtree forecasted stored as csv file.
-
-    The format expects forecast as a comma separated file, in which first
-    column corresponds to quadtree grid cell (quadkey).
-    The second and thrid columns indicate depth range.
-    The corresponding enteries in the respective row are forecast rates
-    corresponding to the magnitude bins.
-    The first line of forecast is a header, and its format is listed here:
-        'Quadkey', depth_min, depth_max, Mag_0, Mag_1, Mag_2, Mag_3 , ....
-         Quadkey is a string. Rest of the values are floats.
-    For the purposes of defining region objects quadkey is used.
-    We assume that the starting value of magnitude bins are provided in the
-     header.
-    Args:
-        csv_fname: file name of csep forecast in csv format
-    Returns:
-        rates, region, mws (np.ndarray, QuadtreeRegion2D, np.ndarray):
-         rates, region, and magnitude bins needed to define QuadTree models
-    """
-
-    data = numpy.genfromtxt(csv_fname, dtype="str", delimiter=",")
-    quadkeys = data[1:, 0]
-    mws = data[0, 3:].astype(float)
-    rates = data[1:, 3:]
-    rates = rates.astype(float)
-    region = QuadtreeGrid2D.from_quadkeys(quadkeys, magnitudes=mws)
-    region.get_cell_area()
-
-    return rates, region, mws
-
-
-def geographical_area_from_qk(quadk):
-    """Wrapper around function geographical_area_from_bounds."""
-    bounds = tile_bounds(quadk)
-    return geographical_area_from_bounds(bounds[0], bounds[1], bounds[2], bounds[3])
-
-
-def tile_bounds(quad_cell_id):
-    """
-    It takes in a single Quadkkey and returns lat,longs of two diagonal corners.
-
-     using mercantile
-    Parameters
-    ----------
-    quad_cell_id : Stirng
-        Quad key of a cell.
-
-    Returns
-    -------
-    bounds : Mercantile object
-        Latitude and Longitude of bottom left AND top right corners.
-    """
-
-    bounds = mercantile.bounds(mercantile.quadkey_to_tile(quad_cell_id))
-    return [bounds.west, bounds.south, bounds.east, bounds.north]
-
-
-def create_polygon(fg):
-    """Required for parallel processing."""
-    return shapely.geometry.Polygon(
-        [(fg[0], fg[1]), (fg[2], fg[1]), (fg[2], fg[3]), (fg[0], fg[3])]
-    )
-
-
-def calc_cell_area(cell):
-    """Required for parallel processing."""
-    return geographical_area_from_bounds(cell[0], cell[1], cell[2], cell[3])
-
-
-def _map_overlapping_cells(fcst_grid_poly, fcst_cell_area, fcst_rate_poly, target_poly):  # ,
-    """
-    This functions work for Cells that do not directly conside with target.
-
-     polygon cells. This function uses 3 variables i.e. fcst_grid_poly,
-     fcst_cell_area, fcst_rate_poly
-
-    This function takes 1 target polygon, upon which models are to be mapped.
-    Finds all the cells of forecast grid that match with this polygon and then
-     maps the forecast rate of those cells according to area.
-
-    fcst_grid_polygon (variable in memory): The grid that needs to be mapped on
-     target_poly
-    fcst_rate_poly (variable in memory): The forecast that needs to be mapped
-     on target grid polygon
-    fcst_cell_area (variable in memory): The cell area of forecast grid
-
-    Args:
-        target_poly: One polygon upon which forecast grid is to be mapped.
-    returns:
-        The forecast rate received by target_poly
-    """
-    map_rate = numpy.array([0])
-    for j in range(len(fcst_grid_poly)):
-        # Iterates over ALL the cells of Forecast grid and find the cells
-        # that overlap with target cell (poly).
-        if target_poly.intersects(fcst_grid_poly[j]):  # overlaps
-
-            intersect = target_poly.intersection(fcst_grid_poly[j])
-            shared_area = geographical_area_from_bounds(
-                intersect.bounds[0],
-                intersect.bounds[1],
-                intersect.bounds[2],
-                intersect.bounds[3],
-            )
-            map_rate = map_rate + (fcst_rate_poly[j] * (shared_area / fcst_cell_area[j]))
-    return map_rate
-
-
-def _map_exact_inside_cells(fcst_grid, fcst_rate, boundary):
-    """
-    Uses 2 Global variables.
-
-    fcst_grid, fcst_rate
-    Takes a cell_boundary and finds all those fcst_grid cells that fit exactly
-    inside it and then sum-up the rates of all those cells fitting inside it
-    to get forecast rate for boundary_cell
-
-    Args:
-        boundary: 1 cell with [lon1, lat1, lon2, lat2]
-    returns:
-        1 - sum of forecast_rates for cell that fall totally inside of
-         boundary cell
-        2 - Array of the corresponding cells that fall inside
-    """
-    c = numpy.logical_and(
-        numpy.logical_and(fcst_grid[:, 0] >= boundary[0], fcst_grid[:, 1] >= boundary[1]),
-        numpy.logical_and(fcst_grid[:, 2] <= boundary[2], fcst_grid[:, 3] <= boundary[3]),
-    )
-
-    exact_cells = numpy.where(c == True)
-
-    return numpy.sum(fcst_rate[c], axis=0), exact_cells
-
-
-def _forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
-    """
-    This function can perofrmns both aggregation and de-aggregation/.
-
-    It is a wrapper function that uses 4 functions in respective order
-    i.e. _map_exact_cells, _map_overlapping_cells, calc_cell_area,
-    create_polygon
-
-    Maps the forecast rates of one grid to another grid using parallel
-    processing
-    Works in two steps:
-        1 - Maps all those cells that fall entirely on target cells
-        2 - The cells that overlap with multiple cells, map them according to
-         cell area
-    Inumpyuts:
-        target_grid: Target grid bounds, upon which forecast is to be mapped.
-                        [n x 4] array, Bottom left and Top Right corners
-                        [lon1, lat1, lon2, lat2]
-        fcst_grid: Available grid that is available with forecast
-                            Same as bounds_targets
-        fcst_rate: Forecast rates to be mapped.
-                    [n x mbins]
-
-    Returns:
-        target_rates:
-                Forecast rates mapped on the target grid
-                [nx1]
-    """
-
-    if ncpu == None:
-        ncpu = multiprocessing.cpu_count()
-        pool = multiprocessing.Pool(ncpu)
-    else:
-        pool = multiprocessing.Pool(ncpu)  # mp.cpu_count()
-    print("Number of CPUs :", ncpu)
-
-    func_exact = partial(_map_exact_inside_cells, fcst_grid, fcst_rate)
-    exact_rate = pool.map(func_exact, [poly for poly in target_grid])
-    pool.close()
-
-    exact_cells = []
-    exact_rate_tgt = []
-    for i in range(len(exact_rate)):
-        exact_cells.append(exact_rate[i][1][0])
-        exact_rate_tgt.append(exact_rate[i][0])
-
-    exact_cells = numpy.concatenate(exact_cells)
-    # Exclude all those cells from Grid that have already fallen entirely
-    # inside any cell of Target Grid
-    fcst_rate_poly = numpy.delete(fcst_rate, exact_cells, axis=0)
-    lft_fcst_grid = numpy.delete(fcst_grid, exact_cells, axis=0)
-
-    # play now only with those cells are overlapping with multiple target cells
-    # Get the polygon of Remaining Forecast grid Cells
-    pool = multiprocessing.Pool(ncpu)
-    fcst_grid_poly = pool.map(create_polygon, [i for i in lft_fcst_grid])
-    pool.close()
-
-    # Get the Cell Area of forecast grid
-    pool = multiprocessing.Pool(ncpu)
-    fcst_cell_area = pool.map(calc_cell_area, [i for i in lft_fcst_grid])
-    pool.close()
-
-    # print('Calculate target polygons')
-    pool = multiprocessing.Pool(ncpu)
-    target_grid_poly = pool.map(create_polygon, [i for i in target_grid])
-    pool.close()
-
-    # print('--2nd Step: Start Polygon mapping--')
-    pool = multiprocessing.Pool(ncpu)
-    func_overlapping = partial(
-        _map_overlapping_cells, fcst_grid_poly, fcst_cell_area, fcst_rate_poly
-    )
-    # Uses above three Global Parameters
-    rate_tgt = pool.map(func_overlapping, [poly for poly in target_grid_poly])
-    pool.close()
-
-    zero_pad_len = numpy.shape(fcst_rate)[1]
-    for i in range(len(rate_tgt)):
-        if len(rate_tgt[i]) < zero_pad_len:
-            rate_tgt[i] = numpy.zeros(zero_pad_len)
-
-    map_rate = numpy.add(rate_tgt, exact_rate_tgt)
-
-    return map_rate
-
-
-def _set_dockerfile(name):
-    string = f"""
-## Install Docker image from trusted source
-FROM python:3.8.13
-
-## Setup user args
-ARG USERNAME={name}
-ARG USER_UID=1100
-ARG USER_GID=$USER_UID
-
-RUN mkdir -p /usr/src/{name} && chown $USER_UID:$USER_GID /usr/src/{name} 
-RUN groupadd --non-unique -g $USER_GID $USERNAME && useradd -u $USER_UID -g $USER_GID -s /bin/sh -m $USERNAME
-
-## Set up work directory in the Docker container
-WORKDIR /usr/src/{name}/
-
-## Copy the files from the local machine (the repository) to the Docker container
-COPY --chown=$USER_UID:$USER_GID . /usr/src/{name}/
-
-## Calls setup.py, install python dependencies and install this model as a python module
-ENV VIRTUAL_ENV=/venv/
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-# RUN pip install --no-cache-dir --upgrade pip
-# RUN pip install -r requirements.txt
-RUN pip install numpy pandas h5py
-
-USER $USERNAME
-
-    """
-    return string
-
-
-def _global_region(dh=0.1, name="global", magnitudes=None):
-    """Creates a global region used for evaluating gridded models on the.
-
-    global scale.
-
-    Modified from csep.core.regions.global_region
-
-    The gridded region corresponds to the
-
-    Args:
-        dh:
-
-    Returns:
-        csep.utils.CartesianGrid2D:
-    """
-    # generate latitudes
-
-    lons = numpy.arange(-180.0, 180, dh)
-    lats = numpy.arange(-90, 90, dh)
-    coords = itertools.product(lons, lats)
-    region = CartesianGrid2D(
-        [Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh, name=name
-    )
-    if magnitudes is not None:
-        region.magnitudes = magnitudes
-    return region
-
-
-def _check_zero_bins(exp, catalog, test_date):
-    for model in exp.models:
-        forecast = model.create_forecast(exp.start_date, test_date)
-        catalog.filter_spatial(forecast.region)
-        bins = catalog.get_spatial_idx()
-        zero_forecast = numpy.argwhere(forecast.spatial_counts()[bins] == 0)
-        if zero_forecast:
-            print(zero_forecast)
-        ax = catalog.plot(plot_args={"basemap": "stock_img"})
-        ax = forecast.plot(ax=ax, plot_args={"alpha": 0.8})
-        ax.plot(
-            catalog.get_longitudes()[zero_forecast.ravel()],
-            catalog.get_latitudes()[zero_forecast.ravel()],
-            "o",
-            markersize=10,
-        )
-        pyplot.savefig(f"{model.registry}/{model.name}.png", dpi=300)
-    for model in exp.models:
-        forecast = model.create_forecast(exp.start_date, test_date)
-        catalog.filter_spatial(forecast.region)
-        sbins = catalog.get_spatial_idx()
-        mbins = catalog.get_mag_idx()
-        zero_forecast = numpy.argwhere(forecast.data[sbins, mbins] == 0)
-        print("event", "cell", sbins[zero_forecast], "datum", catalog.data[zero_forecast])
-        if zero_forecast:
-            print(zero_forecast)
-            print(
-                "cellfc",
-                forecast.get_longitudes()[sbins[zero_forecast]],
-                forecast.get_latitudes()[sbins[zero_forecast]],
-            )
-            print("scounts", forecast.spatial_counts()[sbins[zero_forecast]])
-            print("data", forecast.data[sbins[zero_forecast]])
-            print(forecast.data[zero_forecast[0]])
-        ax = catalog.plot(plot_args={"basemap": "stock_img"})
-        ax = forecast.plot(ax=ax, plot_args={"alpha": 0.8})
-        ax.plot(
-            catalog.get_longitudes()[zero_forecast.ravel()],
-            catalog.get_latitudes()[zero_forecast.ravel()],
-            "o",
-            markersize=10,
-        )
-        pyplot.savefig(f"{model.registry}/{model.name}.png", dpi=300)

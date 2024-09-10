@@ -9,7 +9,6 @@ import csep.core.regions
 
 import floatcsep
 import floatcsep.accessors
-import floatcsep.extras
 from floatcsep.utils import (
     parse_timedelta_string,
     timewindows_ti,
@@ -38,14 +37,7 @@ class CsepFunctionTest(unittest.TestCase):
             parse_csep_func("italy_csep_region"), csep.core.regions.italy_csep_region.__class__
         )
         self.assertIsInstance(
-            parse_csep_func("plot_forecast_lowres"),
-            floatcsep.utils.plot_forecast_lowres.__class__,
-        )
-        self.assertIsInstance(
             parse_csep_func("from_zenodo"), floatcsep.accessors.from_zenodo.__class__
-        )
-        self.assertIsInstance(
-            parse_csep_func("from_zenodo"), floatcsep.extras.vector_poisson_t_w_test.__class__
         )
         self.assertRaises(AttributeError, parse_csep_func, "panic_button")
 

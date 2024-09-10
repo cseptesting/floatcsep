@@ -14,3 +14,6 @@ region_config:
 catalog: query_gcmt
 models: models.yml
 test_config: tests.yml
+
+postprocess:
+  plot_forecasts: True
