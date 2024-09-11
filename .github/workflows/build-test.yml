@@ -43,4 +43,4 @@ jobs:
     - name: Upload coverage
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10'
       run: |
-        bash <(curl -s https://codecov.io/bash) || echo 'Codecov failed to upload'
+        bash <(curl -s https://codecov.io/bash) -t ${{ secrets.CODECOV_TOKEN }} 
