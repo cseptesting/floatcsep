@@ -8,7 +8,6 @@ dependencies:
   - pycsep
   - dateparser
   - docker-py
-  - flake8
   - gitpython
   - h5py
   - matplotlib
@@ -18,9 +17,5 @@ dependencies:
   - requests
   - scipy
   - seaborn
-  - sphinx
-  - sphinx-autoapi
-  - sphinx-gallery
-  - sphinx-rtd-theme
   - pytables
   - xmltodict

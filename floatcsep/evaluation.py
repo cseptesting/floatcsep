@@ -1,6 +1,6 @@
 import datetime
 import os
-from typing import Dict, Callable, Union, Sequence, List
+from typing import Dict, Callable, Union, Sequence, List, Optional, Any
 
 from csep.core.catalogs import CSEPCatalog
 from csep.core.forecasts import GriddedForecast
@@ -17,13 +17,14 @@ class Evaluation:
     parameters and hyperparameters.
 
     Args:
-        name (str): Name of the Test
-        func (str, ~typing.Callable): Test function/callable
-        func_kwargs (dict): Keyword arguments of the test function
-        ref_model (str): String of the reference model, if any
-        plot_func (str, ~typing.Callable): Test's plotting function
-        plot_args (list,dict): Positional arguments of the plotting function
-        plot_kwargs (list,dict): Keyword arguments of the plotting function
+        name (str): Name of the Test.
+        func (str, ~typing.Callable): Test function/callable.
+        func_kwargs (dict): Keyword arguments of the test function.
+        ref_model (str): String of the reference model, if any.
+        plot_func (str, ~typing.Callable): Test's plotting function.
+        plot_args (list,dict): Positional arguments of the plotting function.
+        plot_kwargs (list,dict): Keyword arguments of the plotting function.
+        markdown (str): The caption to be placed beneath the result figure.
     """
 
     _TYPES = {
@@ -93,8 +94,26 @@ class Evaluation:
 
         self._type = type_list
 
-    def parse_plots(self, plot_func, plot_args, plot_kwargs):
+    def parse_plots(
+        self,
+        plot_func: Any,
+        plot_args: Any,
+        plot_kwargs: Any,
+    ) -> None:
+        """
+        It parses the plot function(s) and its(their) arguments from the test configuration
+        file. The plot function can belong to :mod:`csep.utils.plots` or a custom function.
+        Each plotting function is parsed by using the function
+        :func:`~floatcsep.utils.helpers.parse_csep_function`, and assigned to its respective
+        `args` and `kwargs`
 
+        Args:
+            plot_func: The name of the plotting function
+            plot_args: The arguments of the plotting function
+            plot_kwargs: The keyword arguments of the plotting function
+
+
+        """
         if isinstance(plot_func, str):
 
             self.plot_func = [parse_csep_func(plot_func)]
@@ -133,7 +152,6 @@ class Evaluation:
         Args:
             timewindow (str, list): Time window string (or list of str)
              formatted from :meth:`floatcsep.utils.timewindow2str`
-            catpath (str,list): Path(s) pointing to the filtered catalog(s)
             model (:class:`floatcsep:model.Model`): Model to be evaluated
             ref_model (:class:`floatcsep:model.Model`, list): Reference model (or
              models) reference for the evaluation.

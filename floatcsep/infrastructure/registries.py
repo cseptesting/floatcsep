@@ -80,6 +80,12 @@ class FileRegistry(ABC):
 
 
 class ForecastRegistry(FileRegistry):
+    """
+    The class has the responsibility of managing the keys (based on timewindow strings) and path
+    structure of the forecast pertaining to a model (i.e., forecasts from different
+    time-windows), keeping track of the forecast existence and path in the filesystem.
+    """
+
     def __init__(
         self,
         workdir: str,
@@ -88,6 +94,15 @@ class ForecastRegistry(FileRegistry):
         args_file: str = None,
         input_cat: str = None,
     ) -> None:
+        """
+
+        Args:
+            workdir (str): The current working directory of the experiment.
+            path (str): The path of the model working directory (or model filepath).
+            database (str): The path of the database, in case forecasts are stored therein.
+            args_file (str): The path of the arguments file (only for TimeDependentModel).
+            input_cat (str): : The path of the arguments file (only for TimeDependentModel).
+        """
         super().__init__(workdir)
 
         self.path = path
@@ -96,7 +111,16 @@ class ForecastRegistry(FileRegistry):
         self.input_cat = input_cat
         self.forecasts = {}
 
-    def get(self, *args: Sequence[str]):
+    def get(self, *args: Sequence[str]) -> str:
+        """
+        Args:
+            *args: A sequence of keys (usually time-window strings)
+
+        Returns:
+            The registry element (forecast, catalogs, etc.) from a sequence of key value
+            (usually time-window strings)
+        """
+
         val = self.__dict__
         for i in args:
             parsed_arg = self._parse_arg(i)
@@ -104,14 +128,22 @@ class ForecastRegistry(FileRegistry):
         return self.abs(val)
 
     def get_forecast(self, *args: Sequence[str]) -> str:
+        """
+        Gets the filepath of a forecast for a given sequence of keys (usually a timewindow
+        string).
 
+        Args:
+            *args: A sequence of keys (usually time-window strings)
+
+        Returns:
+           The forecast registry from a sequence of key values
+        """
         return self.get("forecasts", *args)
 
     @property
     def dir(self) -> str:
         """
         Returns:
-
             The directory containing the model source.
         """
         if os.path.isdir(self.get("path")):
@@ -121,12 +153,22 @@ class ForecastRegistry(FileRegistry):
 
     @property
     def fmt(self) -> str:
+        """
+
+        Returns:
+            The extension or format of the forecast
+        """
         if self.database:
             return os.path.splitext(self.database)[1][1:]
         else:
             return os.path.splitext(self.path)[1][1:]
 
     def as_dict(self) -> dict:
+        """
+
+        Returns:
+            Simple dictionary serialization of the instance with the core attributes
+        """
         return {
             "workdir": self.workdir,
             "path": self.path,
@@ -137,7 +179,15 @@ class ForecastRegistry(FileRegistry):
         }
 
     def forecast_exists(self, timewindow: Union[str, list]) -> Union[bool, Sequence[bool]]:
+        """
+        Checks if forecasts exist for a sequence of timewindows
 
+        Args:
+            timewindow (str, list): A single or sequence of strings representing a time window
+
+        Returns:
+            A list of bool representing the existence of such forecasts.
+        """
         if isinstance(timewindow, str):
             return self.file_exists("forecasts", timewindow)
         else:
@@ -161,12 +211,6 @@ class ForecastRegistry(FileRegistry):
             args_file (str, bool): input arguments path of the model if TD
             input_cat (str, bool): input catalog path of the model if TD
 
-        Returns:
-            run_folder: Path to the run.
-             exists: flag if forecasts, catalogs and test_results if they
-             exist already
-             target_paths: flag to each element of the gefe (catalog and
-             evaluation results)
         """
 
         windows = timewindow2str(timewindows)
@@ -215,7 +259,20 @@ class ForecastRegistry(FileRegistry):
 
 
 class ExperimentRegistry(FileRegistry):
+    """
+    The class has the responsibility of managing the keys (based on models, timewindow and
+    evaluation name strings) to the structure of the experiment inputs (catalogs, models etc)
+    and results from the competing evaluations. It keeps track of the forecast registries, as
+    well as the existence of results and their path in the filesystem.
+    """
+
     def __init__(self, workdir: str, run_dir: str = "results") -> None:
+        """
+
+        Args:
+            workdir: The working directory for the experiment run-time.
+            run_dir: The directory in which the results will be stored.
+        """
         super().__init__(workdir)
         self.run_dir = run_dir
         self.results = {}
@@ -258,7 +315,15 @@ class ExperimentRegistry(FileRegistry):
             registry.log_tree()
         log.debug("===================")
 
-    def get(self, *args: Sequence[any]) -> str:
+    def get(self, *args: Any) -> str:
+        """
+        Args:
+            *args: A sequence of keys (usually models, tests and/or time-window strings)
+
+        Returns:
+            The filepath from a sequence of key values (usually models first, then time-window
+            strings)
+        """
         val = self.__dict__
         for i in args:
             parsed_arg = self._parse_arg(i)
@@ -266,6 +331,15 @@ class ExperimentRegistry(FileRegistry):
         return self.abs(self.run_dir, val)
 
     def get_result(self, *args: Sequence[any]) -> str:
+        """
+        Gets the file path of an evaluation result.
+
+        Args:
+            args: A sequence of keys (usually models, tests and/or time-window strings)
+
+        Returns:
+            The filepath of a serialized result
+        """
         val = self.results
         for i in args:
             parsed_arg = self._parse_arg(i)
@@ -273,6 +347,15 @@ class ExperimentRegistry(FileRegistry):
         return self.abs(self.run_dir, val)
 
     def get_test_catalog(self, *args: Sequence[any]) -> str:
+        """
+        Gets the file path of a testing catalog.
+
+        Args:
+            *args: A sequence of keys (time-window strings)
+
+        Returns:
+            The filepath of the testing catalog for a given time-window
+        """
         val = self.test_catalogs
         for i in args:
             parsed_arg = self._parse_arg(i)
@@ -280,6 +363,15 @@ class ExperimentRegistry(FileRegistry):
         return self.abs(self.run_dir, val)
 
     def get_figure(self, *args: Sequence[any]) -> str:
+        """
+        Gets the file path of a result figure.
+
+        Args:
+            *args: A sequence of keys (usually tests and/or time-window strings)
+
+        Returns:
+            The filepath of the figure for a given result
+        """
         val = self.figures
         for i in args:
             parsed_arg = self._parse_arg(i)
@@ -287,7 +379,15 @@ class ExperimentRegistry(FileRegistry):
         return self.abs(self.run_dir, val)
 
     def result_exist(self, timewindow_str: str, test_name: str, model_name: str) -> bool:
+        """
+        Checks if a given test results exist
 
+        Args:
+            timewindow_str (str): String representing the time window
+            test_name (str): Name of the evaluation
+            model_name (str): Name of the model
+
+        """
         return self.file_exists("results", timewindow_str, test_name, model_name)
 
     def as_dict(self) -> str:
@@ -301,19 +401,13 @@ class ExperimentRegistry(FileRegistry):
         tests: Sequence["Evaluation"],
     ) -> None:
         """
-        Creates the run directory, and reads the file structure inside.
+        Creates the run directory and reads the file structure inside.
 
         Args:
             timewindows: List of time windows, or representing string.
             models: List of models or model names
             tests: List of tests or test names
 
-        Returns:
-            run_folder: Path to the run.
-             exists: flag if forecasts, catalogs and test_results if they
-             exist already
-             target_paths: flag to each element of the experiment (catalog and
-             evaluation results)
         """
         windows = timewindow2str(timewindows)
 

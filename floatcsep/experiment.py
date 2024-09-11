@@ -354,10 +354,8 @@ class Experiment:
 
     def set_input_cat(self, tstring: str, model: Model) -> None:
         """
-        Filters the complete experiment catalog to a input sub-catalog filtered.
-
-        to the beginning of the test time-window. Writes it to filepath defined
-        in :attr:`Model.tree.catalog`
+        Filters the complete experiment catalog to an input sub-catalog filtered to the
+        beginning of the test time-window.
 
         Args:
             tstring (str): Time window string
@@ -367,7 +365,7 @@ class Experiment:
 
         self.catalog_repo.set_input_cat(tstring, model)
 
-    def set_tasks(self):
+    def set_tasks(self) -> None:
         """
         Lazy definition of the experiment core tasks by wrapping instances,
         methods and arguments. Creates a graph with task nodes, while assigning
@@ -382,7 +380,6 @@ class Experiment:
         * A sequential test requires the forecasts exist for all windows
         * A batch test requires all forecast exist for a given window.
 
-        Returns:
         """
 
         # Set the file path structure
@@ -429,9 +426,11 @@ class Experiment:
                 # A catalog needs to have been filtered
                 if isinstance(model_j, TimeDependentModel):
                     task_graph.add_dependency(
-                        task_ij, dinst=self, dmeth="set_input_cat", dkw=(time_i, model_j)
+                        task_ij, dep_inst=self, dep_meth="set_input_cat", dkw=(time_i, model_j)
                     )
-                task_graph.add_dependency(task_ij, dinst=self, dmeth="set_test_cat", dkw=time_i)
+                task_graph.add_dependency(
+                    task_ij, dep_inst=self, dep_meth="set_test_cat", dkw=time_i
+                )
 
         # Set up the Consistency Tests
         for test_k in self.tests:
@@ -448,7 +447,7 @@ class Experiment:
                         task_graph.add(task_ijk)
                         # the forecast needs to have been created
                         task_graph.add_dependency(
-                            task_ijk, dinst=model_j, dmeth="create_forecast", dkw=time_i
+                            task_ijk, dep_inst=model_j, dep_meth="create_forecast", dkw=time_i
                         )
             # Set up the Comparative Tests
             elif test_k.type == "comparative":
@@ -464,12 +463,12 @@ class Experiment:
                         )
                         task_graph.add(task_ik)
                         task_graph.add_dependency(
-                            task_ik, dinst=model_j, dmeth="create_forecast", dkw=time_i
+                            task_ik, dep_inst=model_j, dep_meth="create_forecast", dkw=time_i
                         )
                         task_graph.add_dependency(
                             task_ik,
-                            dinst=self.get_model(test_k.ref_model),
-                            dmeth="create_forecast",
+                            dep_inst=self.get_model(test_k.ref_model),
+                            dep_meth="create_forecast",
                             dkw=time_i,
                         )
             # Set up the Sequential Scores
@@ -485,7 +484,7 @@ class Experiment:
                     task_graph.add(task_k)
                     for tw_i in tw_strings:
                         task_graph.add_dependency(
-                            task_k, dinst=model_j, dmeth="create_forecast", dkw=tw_i
+                            task_k, dep_inst=model_j, dep_meth="create_forecast", dkw=tw_i
                         )
             # Set up the Sequential_Comparative Scores
             elif test_k.type == "sequential_comparative":
@@ -502,12 +501,12 @@ class Experiment:
                     task_graph.add(task_k)
                     for tw_i in tw_strings:
                         task_graph.add_dependency(
-                            task_k, dinst=model_j, dmeth="create_forecast", dkw=tw_i
+                            task_k, dep_inst=model_j, dep_meth="create_forecast", dkw=tw_i
                         )
                         task_graph.add_dependency(
                             task_k,
-                            dinst=self.get_model(test_k.ref_model),
-                            dmeth="create_forecast",
+                            dep_inst=self.get_model(test_k.ref_model),
+                            dep_meth="create_forecast",
                             dkw=tw_i,
                         )
             # Set up the Batch comparative Scores
@@ -525,7 +524,7 @@ class Experiment:
                     task_graph.add(task_k)
                     for m_j in self.models:
                         task_graph.add_dependency(
-                            task_k, dinst=m_j, dmeth="create_forecast", dkw=time_str
+                            task_k, dep_inst=m_j, dep_meth="create_forecast", dkw=time_str
                         )
 
         self.task_graph = task_graph
@@ -560,8 +559,12 @@ class Experiment:
 
         return test.read_results(window, self.models)
 
-    def make_repr(self):
+    def make_repr(self) -> None:
+        """
+        Creates a reproducibility configuration file, re-directing the forecasts/catalog paths,
+        in order to reproduce the existing results and compare them with previous runs.
 
+        """
         log.info("Creating reproducibility config file")
         repr_config = self.registry.get("repr_config")
 

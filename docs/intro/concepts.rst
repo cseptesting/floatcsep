@@ -13,7 +13,7 @@ A Floating Testing Experiment encapsulates each experiment into its own runnable
 evaluations.
 
 ``floatCSEP`` goals
-----------------
+-------------------
 
 This is an application to deploy reproducible and prospective experiments of earthquake forecasting, namely a Floating Eperiment, that can operate independent of a particular testing server. With this application, researchers, institutions and users can
 

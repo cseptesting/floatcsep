@@ -1,115 +1,111 @@
-API Reference
-=============
-
-This contains a reference document to the floatCSEP API.
+API Documentation
+=================
 
 
-Commands
---------
+.. Here are the listed and linked the rst pages of the API docs. Hidden means it wont show on
+.. this api reference landing page.
 
-The commands and entry-points with which to call `floatcsep` from the terminal
-are:
+.. toctree::
+   :maxdepth: 1
+   :hidden:
 
-.. :currentmodule:: floatcsep.commands.main
+   commands
+   experiment
+   model
+   evaluation
+   postprocess
+   utilities
+   infrastructure
 
-.. automodule:: floatcsep.commands.main
+
+.. Here we create fake autosummaries, which are excluded in the conf.py, so they are not shown
+.. in the documentation, but still we are displaying the neat summary tables for each classs
+
+**Commands**
+
+.. currentmodule:: floatcsep.commands.main
+
+The main entrypoint functions from the Command Line Interface are:
 
 .. autosummary::
-   :toctree: generated
+   :nosignatures:
 
+    floatcsep
     run
+    stage
     plot
     reproduce
 
 
-Experiment
-----------
+**Experiment**
 
-.. :currentmodule:: floatcsep.experiment
+.. currentmodule:: floatcsep.experiment
 
-.. automodule:: floatcsep.experiment
-
-
-The experiment is defined using the :class:`Experiment` class.
+The :class:`~floatcsep.experiment.Experiment` class is the main handler of floatCSEP, which
+orchestrates the :class:`~floatcsep.model.Model` and :class:`~floatcsep.evaluation.Evaluation`
+instances onto an experimental workflow. The class and its main methods are:
 
 .. autosummary::
-   :toctree: generated
+   :nosignatures:
 
     Experiment
     Experiment.set_models
-    Experiment.get_model
-    Experiment.stage_models
     Experiment.set_tests
-    Experiment.catalog
+    Experiment.stage_models
+    Experiment.set_input_cat
     Experiment.set_test_cat
     Experiment.set_tasks
     Experiment.run
     Experiment.read_results
-    Experiment.plot_results
-    Experiment.plot_catalog
-    Experiment.plot_forecasts
-    Experiment.generate_report
-    Experiment.to_dict
-    Experiment.to_yml
-    Experiment.from_yml
+    Experiment.make_repr
 
+**Model**
 
-Models
-------
+.. currentmodule:: floatcsep.model
 
-.. :currentmodule:: floatcsep.model
-
-.. automodule:: floatcsep.model
-
-A model is defined using the :class:`Model` class.
+The :class:`~floatcsep.model.Model` class is the handler of forecasts creation, storage and
+reading. The abstract and concrete classes, and their main methods are:
 
 .. autosummary::
-   :toctree: generated
+   :nosignatures:
 
-    Model
-    Model.get_source
-    Model.stage
-    Model.init_db
-    Model.rm_db
-    Model.get_forecast
-    Model.create_forecast
-    Model.forecast_from_func
-    Model.forecast_from_file
-    Model.to_dict
-    Model.from_dict
+   Model
+   Model.get_source
+   Model.factory
+
+   TimeIndependentModel
+   TimeIndependentModel.init_db
+   TimeIndependentModel.get_forecast
+
+   TimeDependentModel.stage
+   TimeDependentModel.prepare_args
+   TimeDependentModel.create_forecast
+   TimeDependentModel.get_forecast
 
 
-Evaluations
------------
+**Evaluations**
 
-.. :currentmodule:: floatcsep.evaluation
+.. currentmodule:: floatcsep.evaluation
 
-.. automodule:: floatcsep.evaluation
-
-A test is defined using the :class:`Evaluation` class.
+The :class:`~floatcsep.evaluation.Evaluation` class is a wrapper for `pycsep` functions,
+encapsulating the multiple function, arguments, forecast and catalogs of the entire experiment.
+The class and main methods are:
 
 .. autosummary::
-   :toctree: generated
+   :nosignatures:
 
     Evaluation
-    Evaluation.type
-    Evaluation.get_catalog
     Evaluation.prepare_args
     Evaluation.compute
-    Evaluation.write_result
-    Evaluation.to_dict
-    Evaluation.from_dict
 
+**Accessors**
 
-Accessors
----------
+These are functions that access a model source from a web repository.
 
-.. :currentmodule:: floatcsep.utils.accessors
-
-.. automodule:: floatcsep.utils.accessors
+.. currentmodule:: floatcsep.utils.accessors
 
 .. autosummary::
-   :toctree: generated
+   :nosignatures:
 
     from_zenodo
     from_git
@@ -117,23 +113,30 @@ Accessors
     check_hash
 
 
-Helper Functions
-----------------
+**Helper Functions**
 
-.. :currentmodule:: floatcsep.utils.helpers
+These are the helper functions of ``floatCSEP``
 
-.. automodule:: floatcsep.utils.helpers
+.. currentmodule:: floatcsep.utils.helpers
 
 .. autosummary::
-   :toctree: generated
+   :nosignatures:
 
     parse_csep_func
+    timewindow2str
+    str2timewindow
     parse_timedelta_string
-    read_time_config
-    read_region_config
+    read_time_cfg
+    read_region_cfg
     timewindows_ti
     timewindows_td
-    timewindow2str
+
+
+Some additional plotting functions to pyCSEP are:
+
+.. autosummary::
+   :nosignatures:
+
     plot_sequential_likelihood
     magnitude_vs_time
     sequential_likelihood
@@ -141,15 +144,14 @@ Helper Functions
     vector_poisson_t_w_test
 
 
-Readers
--------
+**Readers**
 
-.. :currentmodule:: floatcsep.utils.readers
+A small wrapper for ``pyCSEP`` readers
 
-.. automodule:: floatcsep.utils.readers
+.. currentmodule:: floatcsep.utils.readers
 
 .. autosummary::
-   :toctree: generated
+   :nosignatures:
 
     ForecastParsers.dat
     ForecastParsers.xml
@@ -160,15 +162,14 @@ Readers
     serialize
 
 
-Environments
-------------
+**Environments**
 
-.. :currentmodule:: floatcsep.infrastructure.environments
+The computational environment managers for ``floatcsep``.
 
-.. automodule:: floatcsep.infrastructure.environments
+.. currentmodule:: floatcsep.infrastructure.environments
 
 .. autosummary::
-   :toctree: generated
+   :nosignatures:
 
     CondaManager
     CondaManager.create_environment
@@ -183,72 +184,42 @@ Environments
     CondaManager.run_command
 
 
-Registries
-----------
+**Registries**
 
-.. :currentmodule:: floatcsep.infrastructure.registries
+The registries hold references to the access points (e.g., filepaths) of the experiment
+components (e.g., forecasts, catalogs, results, etc.), and allows to be aware of their status.
 
-.. automodule:: floatcsep.infrastructure.registries
+.. currentmodule:: floatcsep.infrastructure.registries
 
 .. autosummary::
-   :toctree: generated
-
-    FileRegistry
-    FileRegistry.abs
-    FileRegistry.absdir
-    FileRegistry.rel
-    FileRegistry.rel_dir
-    FileRegistry.file_exists
+   :nosignatures:
 
     ForecastRegistry
-    ForecastRegistry.get
     ForecastRegistry.get_forecast
-    ForecastRegistry.dir
     ForecastRegistry.fmt
-    ForecastRegistry.as_dict
-    ForecastRegistry.forecast_exist
+    ForecastRegistry.forecast_exists
     ForecastRegistry.build_tree
-    ForecastRegistry.log_tree
 
     ExperimentRegistry
     ExperimentRegistry.add_forecast_registry
     ExperimentRegistry.get_forecast_registry
-    ExperimentRegistry.log_forecast_trees
-    ExperimentRegistry.get
     ExperimentRegistry.get_result
     ExperimentRegistry.get_test_catalog
     ExperimentRegistry.get_figure
     ExperimentRegistry.result_exist
-    ExperimentRegistry.as_dict
     ExperimentRegistry.build_tree
-    ExperimentRegistry.log_results_tree
 
 
-Repositories
-------------
+**Repositories**
 
-.. :currentmodule:: floatcsep.infrastructure.repositories
+The repositories here are designed to store and access the experiment artifacts (results,
+catalogs, forecasts), abstracting the experiment logic from the pyCSEP io functionality.
 
-.. automodule:: floatcsep.infrastructure.repositories
+
+.. currentmodule:: floatcsep.infrastructure.repositories
 
 .. autosummary::
-   :toctree: generated
-
-   ForecastRepository
-   ForecastRepository.factory
-
-   CatalogForecastRepository
-   CatalogForecastRepository.load_forecast
-   CatalogForecastRepository._load_single_forecast
-
-   GriddedForecastRepository.load_forecast
-   GriddedForecastRepository._get_or_load_forecast
-   GriddedForecastRepository._load_single_forecast
-
-   ResultsRepository
-   ResultsRepository._load_result
-   ResultsRepository.load_results
-   ResultsRepository.write_result
+   :nosignatures:
 
    CatalogRepository
    CatalogRepository.set_main_catalog
@@ -257,25 +228,33 @@ Repositories
    CatalogRepository.set_test_cat
    CatalogRepository.set_input_cat
 
+   GriddedForecastRepository
+   GriddedForecastRepository.load_forecast
 
-Engine
-------
+   CatalogForecastRepository
+   CatalogForecastRepository.load_forecast
 
-.. :currentmodule:: floatcsep.infrastructure.engine
+   ResultsRepository
+   ResultsRepository.load_results
+   ResultsRepository.write_result
 
-.. automodule:: floatcsep.infrastructure.engine
+
+
+**Engine**
+
+The engine routines are designed for the execution of an experiment.
+
+.. currentmodule:: floatcsep.infrastructure.engine
 
 .. autosummary::
-   :toctree: generated
+   :nosignatures:
 
     Task
-    Task.sign_match
     Task.run
-    Task.check_exist
+    Task.sign_match
 
     TaskGraph
     TaskGraph.ntasks
     TaskGraph.add
     TaskGraph.add_dependency
     TaskGraph.run
-    TaskGraph.check_exist

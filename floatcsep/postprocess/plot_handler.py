@@ -19,7 +19,14 @@ log = logging.getLogger("floatLogger")
 
 
 def plot_results(experiment: "Experiment") -> None:
-    """Plots all evaluation results."""
+    """
+    Plots all evaluation results, according to the plotting function given in the tests
+    configuration file.
+
+    Args:
+        experiment: The experiment instance, whose results were already calculated.
+
+    """
     log.info("Plotting evaluation results")
     timewindows = timewindow2str(experiment.timewindows)
 
@@ -28,7 +35,33 @@ def plot_results(experiment: "Experiment") -> None:
 
 
 def plot_forecasts(experiment: "Experiment") -> None:
-    """Plots and saves all the generated forecasts."""
+    """
+    Plots and saves all the generated forecasts.
+
+    It can be set specified in the experiment ``config.yml`` as:
+    ::
+
+        postprocess:
+            plot_forecasts: True
+
+
+
+    or by specifying arguments as:
+    ::
+
+        postprocess:
+            plot_forecasts:
+                projection: Mercator
+                basemap: google-satellite
+                cmap: magma
+
+    The default is ``plot_forecasts: True``
+
+    Args:
+        experiment: The experiment instance, whose models were already run and their forecast
+            are located in the filesystem/database
+
+    """
 
     # Parsing plot configuration file
     plot_forecast_config: dict = parse_plot_config(
@@ -43,7 +76,7 @@ def plot_forecasts(experiment: "Experiment") -> None:
     log.info("Plotting forecasts")
 
     # Get the time windows to be plotted. Defaults to only the last time window.
-    time_windows: list[list[datetime]] = (
+    time_windows = (
         timewindow2str(experiment.timewindows)
         if plot_forecast_config.get("all_time_windows")
         else [timewindow2str(experiment.timewindows[-1])]
@@ -78,7 +111,33 @@ def plot_forecasts(experiment: "Experiment") -> None:
 
 
 def plot_catalogs(experiment: "Experiment") -> None:
+    """
+    Plots and saves the testing catalogs.
 
+    It can be set specified in the experiment ``config.yml`` as:
+    ::
+
+        postprocess:
+            plot_catalog: True
+
+
+
+    or by specifying arguments as:
+    ::
+
+        postprocess:
+            plot_catalog:
+                projection: Mercator
+                basemap: google-satellite
+                markersize: 2
+
+    The default is ``plot_catalog: True``
+
+
+    Args:
+        experiment: The experiment instance, whose catalogs were already accessed and filtered.
+
+    """
     # Parsing plot configuration file
     plot_catalog_config: dict = parse_plot_config(
         experiment.postprocess.get("plot_catalog", {})
@@ -135,7 +194,19 @@ def plot_catalogs(experiment: "Experiment") -> None:
 
 
 def plot_custom(experiment: "Experiment"):
+    """
+    Hook for user-based plotting functions. It corresponds to a function within a python file,
+    specified in the experiment ``config.yml`` as:
+    ::
 
+        postprocess:
+            plot_custom: {module}.py:{function}
+
+    Args:
+        experiment: The experiment instance, whose models were already run and their forecast
+         are located in the filesystem/database
+
+    """
     plot_config = parse_plot_config(experiment.postprocess.get("plot_custom", False))
     if plot_config is None:
         return
@@ -184,7 +255,22 @@ def plot_custom(experiment: "Experiment"):
 
 
 def parse_plot_config(plot_config: Union[dict, str, bool]):
+    """
+    Parses the configuration of a given plot directive, usually gotten from the experiment
+    ``config.yml`` as:
+    ::
 
+        postprocess:
+            {plot_config}
+
+    Args:
+        plot_config: The plotting directive, which can be a dictionary, a boolean, or a string.
+            If it is a dictionary, then it is directly returned. If it is a boolean, then
+            the default plotting configuration is used. If it is a string, then it is
+            expected to be of the form ``{script_path}.py:{func_name}``.
+
+
+    """
     if plot_config is True:
         return {}
 
@@ -217,11 +303,15 @@ def parse_plot_config(plot_config: Union[dict, str, bool]):
 
 
 def parse_projection(proj_config: Union[dict, str, bool]):
-    """Retrieve projection configuration.
+    """
+    Retrieve projection configuration.
     e.g., as defined in the config file:
+    ::
+
         projection:
             Mercator:
                 central_longitude: 0.0
+
     """
     if proj_config is None:
         return ccrs.PlateCarree(central_longitude=0.0)

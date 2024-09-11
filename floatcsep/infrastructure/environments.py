@@ -7,6 +7,7 @@ import subprocess
 import sys
 import venv
 from abc import ABC, abstractmethod
+from typing import Union
 
 from packaging.specifiers import SpecifierSet
 
@@ -39,7 +40,8 @@ class EnvironmentManager(ABC):
         with the same name before creating a new one.
 
         Args:
-            force (bool): Whether to forcefully remove an existing environment.
+            force (bool): Whether to forcefully remove an existing environment and create it
+             again
         """
         pass
 
@@ -245,7 +247,7 @@ class CondaManager(EnvironmentManager):
 
         return current_python_version
 
-    def install_dependencies(self):
+    def install_dependencies(self) -> None:
         """
         Installs dependencies in the conda environment using pip, based on the model setup
         file.
@@ -263,7 +265,7 @@ class CondaManager(EnvironmentManager):
         ]
         subprocess.run(cmd, check=True)
 
-    def run_command(self, command):
+    def run_command(self, command) -> None:
         """
         Runs a specified command within the conda environment.
 
@@ -294,7 +296,7 @@ class VenvManager(EnvironmentManager):
     create, check, and manipulate virtual environments.
     """
 
-    def __init__(self, base_name: str, model_directory: str):
+    def __init__(self, base_name: str, model_directory: str) -> None:
         """
         Initializes the virtual environment manager with the specified base name and model
         directory.
@@ -336,7 +338,7 @@ class VenvManager(EnvironmentManager):
         """
         return os.path.isdir(self.env_path)
 
-    def install_dependencies(self):
+    def install_dependencies(self) -> None:
         """
         Installs dependencies in the virtual environment using pip, based on the model
         directory's configuration.
@@ -346,7 +348,7 @@ class VenvManager(EnvironmentManager):
         cmd = f"{pip_executable} install -e {os.path.abspath(self.model_directory)}"
         self.run_command(cmd)
 
-    def run_command(self, command):
+    def run_command(self, command) -> None:
         """
         Executes a specified command in the virtual environment and logs the output.
 
@@ -384,20 +386,20 @@ class DockerManager(EnvironmentManager):
     containers for the environment.
     """
 
-    def __init__(self, base_name: str, model_directory: str):
+    def __init__(self, base_name: str, model_directory: str) -> None:
         self.base_name = base_name
         self.model_directory = model_directory
 
-    def create_environment(self, force=False):
+    def create_environment(self, force=False) -> None:
         pass
 
-    def env_exists(self):
+    def env_exists(self) -> None:
         pass
 
-    def run_command(self, command):
+    def run_command(self, command) -> None:
         pass
 
-    def install_dependencies(self):
+    def install_dependencies(self) -> None:
         pass
 
 
@@ -455,7 +457,7 @@ class EnvironmentFactory:
             )
 
     @staticmethod
-    def check_environment_type():
+    def check_environment_type() -> Union[str, None]:
         if "VIRTUAL_ENV" in os.environ:
             log.info("Detected virtual environment.")
             return "venv"
@@ -493,10 +495,3 @@ class EnvironmentFactory:
 
         return None
 
-
-if __name__ == "__main__":
-
-    env = EnvironmentFactory.get_env(
-        "conda", model_path="../../examples/case_h/models/pymock_poisson"
-    )
-    env.create_environment(force=True)

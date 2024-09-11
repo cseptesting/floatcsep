@@ -1,11 +1,9 @@
 numpy
 dateparser
 docker
-flake8
 gitpython
 h5py
 matplotlib
-packaging
 pandas
 pycsep
 pyshp

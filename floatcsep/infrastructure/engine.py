@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from typing import Union, Any
 
 
 class Task:
@@ -12,17 +13,15 @@ class Task:
     For instance, can wrap a floatcsep.model.Model, its method 'create_forecast' and the
     argument 'time_window', which can be executed later with Task.call() when, for example,
     task dependencies (parent nodes) have been completed.
+
+    Args:
+            instance (object): The instance whose method will be executed later.
+            method (str): The method of the instance that will be called.
+            **kwargs: Arguments to pass to the method when it is invoked.
+
     """
 
-    def __init__(self, instance, method, **kwargs):
-        """
-
-        Args:
-                instance: The object instance whose method will be executed later.
-                method (str): The method of the instance that will be called.
-                **kwargs: Arguments to pass to the method when it is invoked.
-
-        """
+    def __init__(self, instance: object, method: str, **kwargs):
 
         self.obj = instance
         self.method = method
@@ -30,7 +29,7 @@ class Task:
 
         self.store = None  # Bool for nested tasks.
 
-    def sign_match(self, obj=None, met=None, kw_arg=None):
+    def sign_match(self, obj: Union[object, str] = None, meth: str = None, kw_arg: Any = None):
         """
         Checks whether the task matches a given function signature.
 
@@ -40,7 +39,7 @@ class Task:
 
         Args:
             obj: The object instance or its name (str) to match against.
-            met: The method name to match against.
+            meth: The method name to match against.
             kw_arg: A specific keyword argument value to match against in the task's arguments.
 
         Returns:
@@ -48,7 +47,7 @@ class Task:
         """
 
         if self.obj == obj or obj == getattr(self.obj, "name", None):
-            if met == self.method:
+            if meth == self.method:
                 if kw_arg in self.kwargs.values():
                     return True
         return False
@@ -101,26 +100,20 @@ class Task:
         """
         return self.run()
 
-    def check_exist(self):
-        pass
-
 
 class TaskGraph:
     """
-    Context manager of floatcsep workload distribution.  A TaskGraph is responsible for adding
-    tasks, managing dependencies between tasks, and executing  tasks in the correct order.
-    Tasks in the graph can depend on one another, and the graph ensures that each task is run
-    after all of its dependencies have been satisfied. Contains a 'tasks' dictionary whose
-    dict_keys are the Task to be executed with dict_values as the Task's dependencies.
+    Context manager of floatcsep workload distribution.
 
-    Attributes:
-        tasks (OrderedDict): A dictionary where the keys are Task objects and the values are
-            lists of dependent Task objects.
-        _ntasks (int): The current number of tasks in the graph.
-        name (str): A name identifier for the task graph.
+    A TaskGraph is responsible for adding tasks, managing dependencies between tasks, and
+    executing  tasks in the correct order. Tasks in the graph can depend on one another, and
+    the graph ensures that each task is run after all of its dependencies have been satisfied.
+    Contains a `Task` dictionary whose dict_keys are the Task to be executed with dict_values
+    as the Task's dependencies.
+
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes the TaskGraph with an empty task dictionary and task count.
         """
@@ -129,7 +122,7 @@ class TaskGraph:
         self.name = "floatcsep.infrastructure.engine.TaskGraph"
 
     @property
-    def ntasks(self):
+    def ntasks(self) -> int:
         """
         Returns the number of tasks currently in the graph.
 
@@ -142,7 +135,7 @@ class TaskGraph:
     def ntasks(self, n):
         self._ntasks = n
 
-    def add(self, task):
+    def add(self, task: Task):
         """
         Adds a new task to the task graph.
 
@@ -154,9 +147,10 @@ class TaskGraph:
         self.tasks[task] = []
         self.ntasks += 1
 
-    def add_dependency(self, task, dinst=None, dmeth=None, dkw=None):
+    def add_dependency(self, task, dep_inst: Union[object, str] = None, dep_meth: str = None,
+                       dkw: Any = None):
         """
-        Adds a dependency to a task already in the graph.
+        Adds a dependency to a task already within the graph.
 
         Searches for other tasks within the graph whose signature matches the provided
         object instance, method name, or keyword argument. Any matches are added as
@@ -164,8 +158,8 @@ class TaskGraph:
 
         Args:
             task (Task): The task to which dependencies will be added.
-            dinst: The object instance or name of the dependency.
-            dmeth: The method name of the dependency.
+            dep_inst: The object instance or name of the dependency.
+            dep_meth: The method name of the dependency.
             dkw: A specific keyword argument value of the dependency.
 
         Returns:
@@ -173,7 +167,7 @@ class TaskGraph:
         """
         deps = []
         for i, other_tasks in enumerate(self.tasks.keys()):
-            if other_tasks.sign_match(dinst, dmeth, dkw):
+            if other_tasks.sign_match(dep_inst, dep_meth, dkw):
                 deps.append(other_tasks)
 
         self.tasks[task].extend(deps)
@@ -199,6 +193,3 @@ class TaskGraph:
             None
         """
         return self.run()
-
-    def check_exist(self):
-        pass
