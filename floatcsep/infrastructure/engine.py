@@ -2,38 +2,49 @@ from collections import OrderedDict
 
 
 class Task:
+    """
+    Represents a unit of work to be executed later as part of a task graph.
+
+    A Task wraps an object instance, a method, and its arguments to allow for deferred
+    execution. This is useful in workflows where tasks need to be executed in a specific order,
+    often dictated by dependencies on other tasks.
+
+    For instance, can wrap a floatcsep.model.Model, its method 'create_forecast' and the
+    argument 'time_window', which can be executed later with Task.call() when, for example,
+    task dependencies (parent nodes) have been completed.
+    """
 
     def __init__(self, instance, method, **kwargs):
         """
-        Base node of the workload distribution. Wraps lazily objects, methods and their
-        arguments for them to be executed later. For instance, can wrap a floatcsep.Model, its
-        method 'create_forecast' and the argument 'time_window', which can be executed later
-        with Task.call() when, for example, task dependencies (parent nodes) have been completed.
 
         Args:
-            instance: can be floatcsep.Experiment, floatcsep.Model, floatcsep.Evaluation
-            method: the instance's method to be lazily created
-            **kwargs: keyword arguments passed to method.
+                instance: The object instance whose method will be executed later.
+                method (str): The method of the instance that will be called.
+                **kwargs: Arguments to pass to the method when it is invoked.
+
         """
 
         self.obj = instance
         self.method = method
         self.kwargs = kwargs
 
-        self.store = None  # Bool for nested tasks. DEPRECATED
+        self.store = None  # Bool for nested tasks.
 
     def sign_match(self, obj=None, met=None, kw_arg=None):
         """
-        Checks if the Task matches a given signature for simplicity.
+        Checks whether the task matches a given function signature.
 
-        Purpose is to check from the outside if the Task is from a given object
-        (Model, Experiment, etc.), matching either name or object or description
+        This method is used to verify if a task belongs to a given object, method, or if it
+        uses a specific keyword argument. Useful for identifying tasks in a graph based on
+        partial matches of their attributes.
+
         Args:
-            obj: Instance or instance's name str. Instance is preferred
-            met: Name of the method
-            kw_arg: Only the value (not key) of the kwargs dictionary
+            obj: The object instance or its name (str) to match against.
+            met: The method name to match against.
+            kw_arg: A specific keyword argument value to match against in the task's arguments.
 
         Returns:
+            bool: True if the task matches the provided signature, False otherwise.
         """
 
         if self.obj == obj or obj == getattr(self.obj, "name", None):
@@ -43,6 +54,13 @@ class Task:
         return False
 
     def __str__(self):
+        """
+        Returns a string representation of the task, including the instance name, method, and
+        arguments. Useful for debugging purposes.
+
+        Returns:
+            str: A formatted string describing the task.
+        """
         task_str = f"{self.__class__}\n\t" f"Instance: {self.obj.__class__.__name__}\n"
         a = getattr(self.obj, "name", None)
         if a:
@@ -54,6 +72,16 @@ class Task:
         return task_str[:-2]
 
     def run(self):
+        """
+        Executes the task by calling the method on the object instance with the stored
+        arguments. If the instance has a `store` attribute, it will use that instead of the
+        instance itself. Once executed, the result is stored in the `store` attribute if any
+        output is produced.
+
+        Returns:
+            The output of the method execution, or None if the method does not return anything.
+        """
+
         if hasattr(self.obj, "store"):
             self.obj = self.obj.store
         output = getattr(self.obj, self.method)(**self.kwargs)
@@ -65,6 +93,12 @@ class Task:
         return output
 
     def __call__(self, *args, **kwargs):
+        """
+        A callable alias for the `run` method. Allows the task to be invoked directly.
+
+        Returns:
+            The result of the `run` method.
+        """
         return self.run()
 
     def check_exist(self):
@@ -73,21 +107,35 @@ class Task:
 
 class TaskGraph:
     """
-    Context manager of floatcsep workload distribution.
+    Context manager of floatcsep workload distribution.  A TaskGraph is responsible for adding
+    tasks, managing dependencies between tasks, and executing  tasks in the correct order.
+    Tasks in the graph can depend on one another, and the graph ensures that each task is run
+    after all of its dependencies have been satisfied. Contains a 'tasks' dictionary whose
+    dict_keys are the Task to be executed with dict_values as the Task's dependencies.
 
-    Assign tasks to a node and defines their dependencies (parent nodes).
-    Contains a 'tasks' dictionary whose dict_keys are the Task to be
-    executed with dict_values as the Task's dependencies.
+    Attributes:
+        tasks (OrderedDict): A dictionary where the keys are Task objects and the values are
+            lists of dependent Task objects.
+        _ntasks (int): The current number of tasks in the graph.
+        name (str): A name identifier for the task graph.
     """
 
     def __init__(self):
-
+        """
+        Initializes the TaskGraph with an empty task dictionary and task count.
+        """
         self.tasks = OrderedDict()
         self._ntasks = 0
-        self.name = "floatcsep.utils.TaskGraph"
+        self.name = "floatcsep.infrastructure.engine.TaskGraph"
 
     @property
     def ntasks(self):
+        """
+        Returns the number of tasks currently in the graph.
+
+        Returns:
+            int: The total number of tasks in the graph.
+        """
         return self._ntasks
 
     @ntasks.setter
@@ -96,31 +144,32 @@ class TaskGraph:
 
     def add(self, task):
         """
-        Simply adds a defined task to the graph.
+        Adds a new task to the task graph.
+
+        The task is added to the dictionary of tasks with no dependencies by default.
 
         Args:
-            task: floatcsep.utils.Task
-
-        Returns:
+            task (Task): The task to be added to the graph.
         """
         self.tasks[task] = []
         self.ntasks += 1
 
     def add_dependency(self, task, dinst=None, dmeth=None, dkw=None):
         """
-        Adds a dependency to a task already inserted to the TaskGraph.
+        Adds a dependency to a task already in the graph.
 
-        Searchs
-        within the pre-added tasks a signature match by their name/instance,
-        method and keyword_args.
+        Searches for other tasks within the graph whose signature matches the provided
+        object instance, method name, or keyword argument. Any matches are added as
+        dependencies to the provided task.
 
         Args:
-            task: Task to which a dependency will be asigned
-            dinst: object/name of the dependency
-            dmeth: method of the dependency
-            dkw: keyword argument of the dependency
+            task (Task): The task to which dependencies will be added.
+            dinst: The object instance or name of the dependency.
+            dmeth: The method name of the dependency.
+            dkw: A specific keyword argument value of the dependency.
 
         Returns:
+            None
         """
         deps = []
         for i, other_tasks in enumerate(self.tasks.keys()):
@@ -131,15 +180,24 @@ class TaskGraph:
 
     def run(self):
         """
-        Iterates through all the graph tasks and runs them.
+        Executes all tasks in the task graph in the correct order based on dependencies.
+
+        Iterates over each task in the graph and runs it after its dependencies have been
+        resolved.
 
         Returns:
+            None
         """
         for task, deps in self.tasks.items():
             task.run()
 
     def __call__(self, *args, **kwargs):
+        """
+        A callable alias for the `run` method. Allows the task graph to be invoked directly.
 
+        Returns:
+            None
+        """
         return self.run()
 
     def check_exist(self):
