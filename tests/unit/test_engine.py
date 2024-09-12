@@ -23,8 +23,10 @@ class TestTask(unittest.TestCase):
         self.assertEqual(self.task.kwargs["value"], 10)
 
     def test_sign_match(self):
-        self.assertTrue(self.task.sign_match(obj=self.obj, met="dummy_method", kw_arg=10))
-        self.assertFalse(self.task.sign_match(obj="NonMatching", met="dummy_method", kw_arg=10))
+        self.assertTrue(self.task.sign_match(obj=self.obj, meth="dummy_method", kw_arg=10))
+        self.assertFalse(
+            self.task.sign_match(obj="NonMatching", meth="dummy_method", kw_arg=10)
+        )
 
     def test___str__(self):
         task_str = str(self.task)
@@ -41,17 +43,14 @@ class TestTask(unittest.TestCase):
         result = self.task()
         self.assertEqual(result, 20)
 
-    def test_check_exist(self):
-        self.assertIsNone(self.task.check_exist())
-
 
 class TestTaskGraph(unittest.TestCase):
 
     def setUp(self):
         self.graph = TaskGraph()
         self.obj = DummyClass("TestObj")
-        self.task_a = Task(instance=self.obj, method='dummy_method', value=10)
-        self.task_b = Task(instance=self.obj, method='dummy_method', value=20)
+        self.task_a = Task(instance=self.obj, method="dummy_method", value=10)
+        self.task_b = Task(instance=self.obj, method="dummy_method", value=20)
 
     def test_init(self):
         self.assertEqual(self.graph.ntasks, 0)
@@ -65,7 +64,9 @@ class TestTaskGraph(unittest.TestCase):
     def test_add_dependency(self):
         self.graph.add(self.task_a)
         self.graph.add(self.task_b)
-        self.graph.add_dependency(self.task_b, dinst=self.obj, dmeth='dummy_method', dkw=10)
+        self.graph.add_dependency(
+            self.task_b, dep_inst=self.obj, dep_meth="dummy_method", dkw=10
+        )
         self.assertIn(self.task_a, self.graph.tasks[self.task_b])
 
     def test_run(self):
@@ -78,9 +79,6 @@ class TestTaskGraph(unittest.TestCase):
         self.graph()
         self.assertEqual(self.task_a.store, 20)
 
-    def test_check_exist(self):
-        self.assertIsNone(self.graph.check_exist())
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

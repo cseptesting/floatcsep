@@ -7,21 +7,16 @@ import re
 from datetime import datetime, date
 from typing import Union, Mapping, Sequence
 
+# pyCSEP libraries
+import csep.core
+import csep.utils
+
 # third-party libraries
 import numpy
 import pandas
 import scipy.stats
 import seaborn
 import yaml
-from matplotlib import pyplot
-from matplotlib.lines import Line2D
-
-# pyCSEP libraries
-import csep.core
-import csep.utils
-from csep.core.regions import CartesianGrid2D
-from csep.utils.calc import cleaner_range
-from csep.utils.plots import plot_spatial_dataset
 from csep.core.catalogs import CSEPCatalog
 from csep.core.exceptions import CSEPCatalogException
 from csep.core.forecasts import GriddedForecast
@@ -30,12 +25,16 @@ from csep.core.poisson_evaluations import (
     w_test,
     _poisson_likelihood_test,
 )
+from csep.core.regions import CartesianGrid2D
 from csep.models import EvaluationResult
+from csep.utils.calc import cleaner_range
+from csep.utils.plots import plot_spatial_dataset
+from matplotlib import pyplot
+from matplotlib.lines import Line2D
 
 # floatCSEP libraries
 import floatcsep.utils.accessors
 import floatcsep.utils.readers
-
 
 _UNITS = ["years", "months", "weeks", "days"]
 _PD_FORMAT = ["YS", "MS", "W", "D"]
@@ -46,9 +45,7 @@ log = logging.getLogger("floatLogger")
 
 def parse_csep_func(func):
     """
-    Searchs in pyCSEP and floatCSEP a function or method whose name matches the.
-
-    provided string.
+    Search in pyCSEP and floatCSEP a function or method whose name matches the provided string.
 
     Args:
         func (str, obj) : representing the name of the pycsep/floatcsep function
@@ -236,15 +233,18 @@ def read_region_cfg(region_config, **kwargs):
     return region_config
 
 
-def timewindow2str(datetimes: Union[Sequence[datetime], Sequence[Sequence[datetime]]]):
+def timewindow2str(
+    datetimes: Union[Sequence[datetime], Sequence[Sequence[datetime]]]
+) -> Union[str, list[str]]:
     """
-    Converts a time window (list/tuple of datetimes) to a string that.
+    Converts a time window (list/tuple of datetimes) to a string that represents it.  Can be a
+    single timewindow or a list of time windows.
 
-    represents it.  Can be a single timewindow or a list of time windows.
     Args:
-        datetimes:
+        datetimes: A sequence (of sequences) of datetimes, representing a list of timewindows
 
     Returns:
+        A sequence of strings for each time window
     """
     if isinstance(datetimes[0], datetime):
         return "_".join([j.date().isoformat() for j in datetimes])
@@ -253,15 +253,18 @@ def timewindow2str(datetimes: Union[Sequence[datetime], Sequence[Sequence[dateti
         return ["_".join([j.date().isoformat() for j in i]) for i in datetimes]
 
 
-def str2timewindow(tw_string: Union[str, Sequence[str]]):
+def str2timewindow(
+    tw_string: Union[str, Sequence[str]]
+) -> Union[Sequence[datetime], Sequence[Sequence[datetime]]]:
     """
-    Converts a string representation of a time window into a list of datetimes.
+    Converts a string representation of a time window into a list of datetimes representing the
+    time window edges.
 
-    representing the time window edges.
     Args:
-        tw_string:
+        tw_string: A string representing the time window ('{datetime}_{datetime}')
 
     Returns:
+        A list (of list) containing the pair of datetimes objects
     """
     if isinstance(tw_string, str):
         start_date, end_date = [datetime.fromisoformat(i) for i in tw_string.split("_")]
@@ -520,6 +523,8 @@ def sequential_information_gain(
     random_numbers: numpy.ndarray = None,
 ):
     """
+    Evaluates the Information Gain for multiple time-windows.
+
     Args:
 
         gridded_forecasts: list csep.core.forecasts.GriddedForecast
@@ -625,6 +630,17 @@ def vector_poisson_t_w_test(
 
 
 def plot_sequential_likelihood(evaluation_results, plot_args=None):
+    """
+    Plot of likelihood against time.
+
+    Args:
+        evaluation_results (list): An evaluation result containing the likelihoods
+        plot_args (dict): A configuration dictionary for the plotting.
+
+    Returns:
+        Ax object
+
+    """
     if plot_args is None:
         plot_args = {}
     title = plot_args.get("title", None)
@@ -691,6 +707,16 @@ def plot_sequential_likelihood(evaluation_results, plot_args=None):
 
 
 def magnitude_vs_time(catalog):
+    """
+    Simple magnitude vs. time plot (TBI in pyCSEP)
+
+    Args:
+        catalog: Catalog to be plotted
+
+    Returns:
+        Ax object
+
+    """
     mag = catalog.data["magnitude"]
     time = [datetime.fromtimestamp(i / 1000.0) for i in catalog.data["origin_time"]]
     fig, ax = pyplot.subplots(figsize=(12, 4))
@@ -702,7 +728,7 @@ def magnitude_vs_time(catalog):
 
 
 def plot_matrix_comparative_test(evaluation_results, p=0.05, order=True, plot_args={}):
-    """Produces matrix plot for comparative tests for all models.
+    """Produces matrix plot for comparative tests for all models (TBI in pyCSEP)
 
     Args:
         evaluation_results (list of result objects): paired t-test results

@@ -189,16 +189,21 @@ class Model(ABC):
 
 class TimeIndependentModel(Model):
     """
-    A Model that does not change in time, commonly represented by static data.
+    A Model whose forecast is invariant in time. A TimeIndependentModel is commonly represented
+    by a single forecast as static data.
 
-    Args
-        name (str): The name of the model.
-        model_path (str): The path to the model data.
-        forecast_unit (float): The unit of time for the forecast.
-        store_db (bool): flag to indicate whether to store the model in a database.
     """
 
     def __init__(self, name: str, model_path: str, forecast_unit=1, store_db=False, **kwargs):
+        """
+
+        Args:
+            name (str): The name of the model.
+            model_path (str): The path to the model data.
+            forecast_unit (float): The unit of time for the forecast.
+            store_db (bool): flag to indicate whether to store the model in a database.
+
+        """
         super().__init__(name, **kwargs)
 
         self.forecast_unit = forecast_unit
@@ -271,15 +276,9 @@ class TimeIndependentModel(Model):
         Creates a forecast from the model source and a given time window.
 
         Note:
-            The argument `tstring` is formatted according to how the Experiment
-            handles timewindows, specified in the functions
-            :func:'floatcsep.utils.timewindow2str` and
-            :func:'floatcsep.utils.str2timewindow`
+            Dummy function for this class, although eventually could also be a source
+            code (e.g., a Smoothed-Seismicity-Model built from the input-catalog).
 
-        Args:
-            tstring: String representing the start and end of the forecast,
-                formatted as 'YY1-MM1-DD1_YY2-MM2-DD2'.
-            **kwargs:
         """
         return
 
@@ -287,7 +286,7 @@ class TimeIndependentModel(Model):
 class TimeDependentModel(Model):
     """
     Model that creates varying forecasts depending on a time window. Requires either a
-    collection of Forecasts or a function that returns a Forecast.
+    collection of Forecasts or a function/source code that returns a Forecast.
     """
 
     def __init__(
@@ -298,7 +297,21 @@ class TimeDependentModel(Model):
         func_kwargs: dict = None,
         **kwargs,
     ) -> None:
+        """
 
+        Args:
+            name: The name of the model
+            model_path: The path to either the source code, or the folder containing static
+                forecasts.
+            func: A function/command that runs the model.
+            func_kwargs: The keyword arguments to run the model. They are usually (over)written
+                into the file `{model_path}/input/{args_file}`
+            **kwargs: Additional keyword parameters, such as a ``prefix`` (str) for the
+                resulting forecast file paths, ``args_file`` (str) as the path for the model
+                arguments file or ``input_cat`` that indicates where the input catalog will be
+                placed for the model.
+
+        """
         super().__init__(name, **kwargs)
 
         self.func = func
@@ -317,12 +330,13 @@ class TimeDependentModel(Model):
 
     def stage(self, timewindows=None) -> None:
         """
-        Pre-steps to make the model runnable before integrating.
+        Core method to interface a model with the experiment.
 
-            - Get from filesystem, Zenodo or Git
-            - Pre-check model fileformat
-            - Initialize database
-            - Run model quality assurance (unit tests, runnable from floatcsep)
+        1) Get the model from filesystem, Zenodo or Git. Prepares the directory
+        2) If source code, creates the computational environment (conda, venv or Docker)
+        3) Prepares the registry tree: filepaths/keys corresponding to existing forecasts
+           and those to be generated, as well as input catalog and arguments file.
+
         """
         if self.force_stage or not self.registry.file_exists("path"):
             os.makedirs(self.registry.dir, exist_ok=True)
@@ -342,7 +356,22 @@ class TimeDependentModel(Model):
     def get_forecast(
         self, tstring: Union[str, list] = None, region=None
     ) -> Union[GriddedForecast, CatalogForecast, List[GriddedForecast], List[CatalogForecast]]:
-        """Wrapper that just returns a forecast, hiding the access method  under the hood."""
+        """
+        Wrapper that returns a forecast, by accessing the model's forecast repository.
+
+        Note:
+            The argument ``tstring`` is formatted according to how the Experiment
+            handles timewindows, specified in the functions
+            :func:`~floatcsep.utils.helpers.timewindow2str` and
+            :func:`~floatcsep.utils.helpers.str2timewindow`
+
+        Args:
+            tstring: String representing the start and end of the forecast,
+                formatted as 'YY1-MM1-DD1_YY2-MM2-DD2'.
+            region: String representing the region for which to return a forecast.
+                If None, will return a forecast for all regions.
+
+        """
         return self.repository.load_forecast(tstring, region=region)
 
     def create_forecast(self, tstring: str, **kwargs) -> None:
@@ -350,10 +379,10 @@ class TimeDependentModel(Model):
         Creates a forecast from the model source and a given time window.
 
         Note:
-            The argument `tstring` is formatted according to how the Experiment
+            The argument ``tstring`` is formatted according to how the Experiment
             handles timewindows, specified in the functions
-            :func:'floatcsep.utils.timewindow2str` and
-            :func:'floatcsep.utils.str2timewindow`
+            :func:`~floatcsep.utils.helpers.timewindow2str` and
+            :func:`~floatcsep.utils.helpers.str2timewindow`
 
         Args:
             tstring: String representing the start and end of the forecast,
@@ -374,8 +403,19 @@ class TimeDependentModel(Model):
         )
         self.environment.run_command(f"{self.func} {self.registry.get('args_file')}")
 
-    def prepare_args(self, start, end, **kwargs):
+    def prepare_args(self, start: datetime, end: datetime, **kwargs) -> None:
+        """
+        When the model is a source code, the args file is a plain text file with the required
+        input arguments. At minimum, it consists of the start and end of the forecast
+        timewindow, but it can also contain other arguments (e.g., minimum magnitude, number of
+        simulations, cutoff learning magnitude, etc.)
 
+        Args:
+            start: start date of the forecast timewindow
+            end: end date of the forecast timewindow
+            **kwargs: represents additional model arguments (name/value pair)
+
+        """
         filepath = self.registry.get("args_file")
         fmt = os.path.splitext(filepath)[1]
 

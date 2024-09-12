@@ -8,7 +8,7 @@ from typing import Sequence, Union, List, TYPE_CHECKING, Callable
 import csep
 import numpy
 from csep.core.catalogs import CSEPCatalog
-from csep.core.forecasts import GriddedForecast
+from csep.core.forecasts import GriddedForecast, CatalogForecast
 from csep.models import EvaluationResult
 from csep.utils.time_utils import decimal_year
 
@@ -82,14 +82,38 @@ class ForecastRepository(ABC):
 
 
 class CatalogForecastRepository(ForecastRepository):
+    """
+    The class is responsible to access (or store in memory) the catalog-based forecasts of a
+    model. The flag `lazy_load` can be set to False so the catalogs are stored in memory and
+    reduce the time required to parse files.
+
+    """
 
     def __init__(self, registry: ForecastRegistry, **kwargs):
+        """
+
+        Args:
+            registry (ForecastRegistry): The registry containing the keys/path to the forecasts
+             given their time-windows.
+            **kwargs:
+        """
         self.registry = registry
         self.lazy_load = kwargs.get("lazy_load", True)
         self.forecasts = {}
 
-    def load_forecast(self, tstring: Union[str, list], region=None):
+    def load_forecast(
+        self, tstring: Union[str, list], region=None
+    ) -> Union[CatalogForecast, list[CatalogForecast]]:
+        """
+        Returns a forecast object or a sequence of them for a set of time window strings.
 
+        Args:
+            tstring (str, list): String representing the time-window
+            region (optional): A region, in case the forecast requires to be filtered lazily.
+
+        Returns:
+            The CSEP CatalogForecast object or a list of them.
+        """
         if isinstance(tstring, str):
             return self._load_single_forecast(tstring, region)
         else:
@@ -106,8 +130,20 @@ class CatalogForecastRepository(ForecastRepository):
 
 
 class GriddedForecastRepository(ForecastRepository):
+    """
+    The class is responsible to access (or store in memory) the gridded-based forecasts of a
+    model. A keyword `lazy_load` can be set to False so the catalogs are stored in memory and
+    avoid parsing files repeatedly (Skip for large files).
 
+    """
     def __init__(self, registry: ForecastRegistry, **kwargs):
+        """
+
+        Args:
+            registry (ForecastRegistry): The registry containing the keys/path to the forecasts
+             given their time-windows.
+            **kwargs:
+        """
         self.registry = registry
         self.lazy_load = kwargs.get("lazy_load", False)
         self.forecasts = {}
@@ -115,14 +151,25 @@ class GriddedForecastRepository(ForecastRepository):
     def load_forecast(
         self, tstring: Union[str, list] = None, name="", region=None, forecast_unit=1
     ) -> Union[GriddedForecast, Sequence[GriddedForecast]]:
-        """Returns a forecast when requested."""
+        """
+        Returns a forecast object or a sequence of them for a set of time window strings.
+
+        Args:
+            tstring (str, list): String representing the time-window
+            name (str): Forecast name
+            region (optional): A region, in case the forecast requires to be filtered lazily.
+            forecast_unit (float): The time unit (in decimal years) that the forecast represents
+
+        Returns:
+            The CSEP CatalogForecast object or a list of them.
+        """
         if isinstance(tstring, str):
             return self._get_or_load_forecast(tstring, name, forecast_unit)
         else:
             return [self._get_or_load_forecast(tw, name, forecast_unit) for tw in tstring]
 
     def _get_or_load_forecast(
-        self, tstring: str, name: str, forecast_unit: int
+        self, tstring: str, name: str, forecast_unit: float
     ) -> GriddedForecast:
         """Helper method to get or load a single forecast."""
         if tstring in self.forecasts:
@@ -135,7 +182,7 @@ class GriddedForecastRepository(ForecastRepository):
                 self.forecasts[tstring] = forecast
             return forecast
 
-    def _load_single_forecast(self, tstring: str, fc_unit=1, name_=""):
+    def _load_single_forecast(self, tstring: str, fc_unit: float = 1, name_=""):
 
         start_date, end_date = str2timewindow(tstring)
 
@@ -172,8 +219,16 @@ class GriddedForecastRepository(ForecastRepository):
 
 
 class ResultsRepository:
-
+    """
+    The class is responsible to access, read and write the results of a given evaluation
+    """
     def __init__(self, registry: ExperimentRegistry):
+        """
+
+        Args:
+            registry (ExperimentRegistry): The registry of an experiment, which keeps track
+             of the filepaths of each result.
+        """
         self.registry = registry
 
     def _load_result(
@@ -197,13 +252,18 @@ class ResultsRepository:
 
     def load_results(
         self,
-        test,
+        test: "Evaluation",
         window: Union[str, Sequence[datetime.datetime]],
         models: Union[list["Model"], "Model"],
     ) -> Union[List, EvaluationResult]:
         """
         Reads an Evaluation result for a given time window and returns a list of the results for
         all tested models.
+
+        Args:
+            test (Evaluation): The tests for which the results are to be loaded
+            window (str, list): The time-windows for which the results are to be loaded
+            models (Model, list): The models for which the results are to be loaded
         """
 
         if isinstance(models, list):
@@ -216,7 +276,17 @@ class ResultsRepository:
             return self._load_result(test, window, models)
 
     def write_result(self, result: EvaluationResult, test, model, window) -> None:
+        """
+        Writes the evaluation results using their method .to_dict() as json file.
 
+
+        Args:
+            result: CSEP evaluation result
+            test: Name of the test
+            model: Name of the model
+            window: Name of the time-window
+
+        """
         path = self.registry.get_result(window, test, model)
 
         class NumpyEncoder(json.JSONEncoder):
@@ -234,8 +304,20 @@ class ResultsRepository:
 
 
 class CatalogRepository:
+    """
+    The class handles the main and sub-catalogs from the experiment. It is responsible of
+    accessing, downloading, storing the main catalog, as well as filtering and storing the
+    corresponding input-catalogs (e.g., input for a model to be run) and test-catalogs (catalogs
+    for the model's forecasts to be evaluated against).
+    """
 
     def __init__(self, registry: ExperimentRegistry):
+        """
+
+        Args:
+            registry (ExperimentRegistry): The registry of the experiment
+
+        """
         self.cat_path = None
         self._catalog = None
         self.registry = registry
@@ -412,10 +494,8 @@ class CatalogRepository:
 
     def set_input_cat(self, tstring: str, model: "Model") -> None:
         """
-        Filters the complete experiment catalog to input sub-catalog filtered.
-
-        to the beginning of thetest time-window. Writes it to filepath defined
-        in :attr:`Model.tree.catalog`
+        Filters the complete experiment catalog to input sub-catalog filtered to the beginning
+        of the test time-window.
 
         Args:
             tstring (str): Time window string

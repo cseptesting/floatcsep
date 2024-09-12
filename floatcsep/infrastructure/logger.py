@@ -1,3 +1,4 @@
+import sys, os
 import logging.config
 import warnings
 
@@ -31,16 +32,24 @@ def add_fhandler(filename):
     fhandler = logging.FileHandler(filename)
     fhandler.setFormatter(formatter)
     fhandler.setLevel(logging.DEBUG)
-
     logging.getLogger("floatLogger").addHandler(fhandler)
 
 
+def is_sphinx_build():
+    # Check if Sphinx is running
+    return 'sphinx' in sys.argv[0] or os.getenv('SPHINX_BUILD') is not None
+
+
 def setup_logger():
-    logging.config.dictConfig(LOGGING_CONFIG)
-    logging.getLogger("numexpr").setLevel(logging.WARNING)
-    logging.getLogger("matplotlib").setLevel(logging.CRITICAL)
-    # numpy.seterr(all="ignore")
-    warnings.filterwarnings("ignore")
+    if is_sphinx_build():
+        # Reduce logging or disable it during Sphinx builds
+        logging.basicConfig(level=logging.WARNING)
+    else:
+        logging.config.dictConfig(LOGGING_CONFIG)
+        logging.getLogger("numexpr").setLevel(logging.WARNING)
+        logging.getLogger("matplotlib").setLevel(logging.CRITICAL)
+        # numpy.seterr(all="ignore")
+        warnings.filterwarnings("ignore")
 
 
 def set_console_log_level(log_level):

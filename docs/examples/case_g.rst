@@ -1,5 +1,5 @@
-A - Simple(st) Time-Dependent, Catalog-based Model
-==================================================
+G - Time-Dependent, Catalog-Based Model (from Source Code)
+==========================================================
 
 .. currentmodule:: floatcsep
 
@@ -8,7 +8,7 @@ A - Simple(st) Time-Dependent, Catalog-based Model
 
 .. admonition:: **TL; DR**
 
-    In a terminal, navigate to ``floatcsep/examples/case_f`` and type:
+    In a terminal, navigate to ``floatcsep/examples/case_g`` and type:
 
     .. code-block:: console
 
@@ -23,7 +23,7 @@ Artifacts
 This example shows how a time-dependent model should be set up for a time-dependent experiment
 ::
 
-    case_f
+    case_g
         └──  pymock
             ├── input
                 ├── args.txt  (model arguments)
@@ -49,7 +49,7 @@ The experiment's complexity increases from time-independent to dependent, since 
 
     1. The input data is, at the least, a catalog filtered until the forecast beginning, which is automatically allocated by ``fecsep`` in the `{model}/input` prior to each model's run. It is stored inside the model in ``csep.ascii`` format for simplicity's sake (see :doc:`pycsep:concepts/catalogs`).
 
-    .. literalinclude:: ../../examples/case_f/catalog.csv
+    .. literalinclude:: ../../examples/case_g/catalog.csv
         :lines: 1-2
 
     2. The input arguments controls how the source code works. The minimum arguments to run a model (which should be modified dynamically during an experiment) are the forecast ``start_date`` and ``end_date``. The experiment will read `{model}/input/args.txt` and change the values of ``start_date = {datetime}`` and ``end_date = {datetime}`' before the model is run. Additional arguments can be set by convenience, such as ``catalog`` (the input catalog name), ``n_sims`` (number of synthetic catalogs) and random ``seed`` for reproducibility.
@@ -80,7 +80,7 @@ Time
 
     The configuration is identical to time-independent models, with the exception that now a ``horizon`` can be defined instead of ``intervals``, which is the forecast time-window length. The experiment's class should now be explicited as ``exp_class: td``
 
-    .. literalinclude:: ../../examples/case_f/config.yml
+    .. literalinclude:: ../../examples/case_g/config.yml
        :language: yaml
        :lines: 3-7
 
@@ -94,7 +94,7 @@ Models
 
     Additional arguments should be passed to time-independent models.
 
-    .. literalinclude:: ../../examples/case_f/models.yml
+    .. literalinclude:: ../../examples/case_g/models.yml
        :language: yaml
        :lines: 3-7
 
@@ -110,7 +110,7 @@ Tests
     With time-dependent models, now catalog evaluations found in :obj:`csep.core.catalog_evaluations` can be used.
 
 
-    .. literalinclude:: ../../examples/case_f/tests.yml
+    .. literalinclude:: ../../examples/case_g/tests.yml
        :language: yaml
 
     .. note::
@@ -120,7 +120,7 @@ Tests
 Running the experiment
 ----------------------
 
-    The experiment can be run by simply navigating to the ``examples/case_f`` folder in the terminal and typing.
+    The experiment can be run by simply navigating to the ``examples/case_g`` folder in the terminal and typing.
 
     .. code-block:: console
 

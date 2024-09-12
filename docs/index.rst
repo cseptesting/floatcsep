@@ -26,7 +26,7 @@ Preliminary documentation.
    examples/case_c.rst
    examples/case_d.rst
    examples/case_e.rst
-   examples/case_f.rst
+   examples/case_g.rst
 
 
 .. toctree::
@@ -46,7 +46,7 @@ Preliminary documentation.
    deployment/intro.rst
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 0
    :caption: Help & Reference
 
    reference/api_reference
