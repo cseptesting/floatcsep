@@ -71,16 +71,15 @@ A runtime directory will be created in a `results` folder. The experiment result
 * `pyCSEP` [Github](https://github.com/sceccode/pycsep)
 * `pyCSEP` [Documentation](https://docs.cseptesting.org/)
 
+
 # Roadmap and Known Issues
 
-* Add functionality to compare original results and reproduced results
-* Add registry to filetrees (e.g. hash/byte count) for a proper experiment re-instantiation
 * Add report customization
-* Fix the hooks properly (user code) to be inserted into plotting/reporting functionalities.
-* Add multiple logging/levels
-* Create tool to check a TD model's interface with ``fecsep``
+* Create tool to check a TD model's interface with ``floatcsep``
 * Define a dependency strategy to ensure experiments' reproducibility.
-* Publish in `conda`
+* Implement spatial database and HDF5 experiment storage feature
+* Set up task paralellization
+
 
 # Contributing
 
@@ -89,3 +88,13 @@ We encourage all types of contributions, from reporting bugs, suggesting enhance
 # License
 
 The `floatCSEP` (as well as `pyCSEP`) software is distributed under the BSD 3-Clause open-source license. Please see the [license file](https://github.com/cseptesting/floatcsep/blob/main/LICENSE) for more information.
+
+## Support
+
+<div style="max-width: 100px; margin: auto;">
+
+| <img src="https://i.postimg.cc/tC1LdjYf/scec.png" width="150"/> | <img src="https://i.postimg.cc/2S7ThcFM/eu-flag.jpg" width="150"/> |
+|:---|:---|
+| <div style="text-align: left;">This research was supported by the <a href="https://www.scec.org/">Statewide California Earthquake Center</a>. SCEC is funded by NSF Cooperative Agreement EAR-2225216 and USGS Cooperative Agreement G24AC00072-00.</div> | <div style="text-align: left;">The work in this repository has received funding from the European Union’s Horizon research and innovation programme under grant agreements No.s 101058518 and 821115 of the projects <a href="https://www.geo-inquire.eu/">GeoInquire</a> and <a href="https://www.rise-eu.org/">RISE</a>.</div> |
+
+</div>
