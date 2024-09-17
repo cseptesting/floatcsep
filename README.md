@@ -92,34 +92,10 @@ The `floatCSEP` (as well as `pyCSEP`) software is distributed under the BSD 3-Cl
 
 ## Support
 
-a
+<div style="max-width: 100px; margin: auto;">
 
-| <img src="https://i.postimg.cc/tC1LdjYf/scec.png" width="400"/> |  This research was supported by the [Statewide California Earthquake Center](https://www.scec.org/). SCEC is funded by NSF Cooperative Agreement EAR-2225216 and USGS Cooperative Agreement G24AC00072-00. |  <img src="https://i.postimg.cc/2S7ThcFM/eu-flag.jpg" width="400"/> | The work in this repository has received funding from the European Union’s Horizon research and innovation programme under grant agreements No.s 101058518 and 821115 of the projects [GeoInquire](https://www.geo-inquire.eu/) and [RISE](https://www.rise-eu.org/). |
-|:---:|:---|:---:|:---|
-
-
-
-<div style="max-width: 800px; margin: auto;">
-
-| <img src="https://i.postimg.cc/tC1LdjYf/scec.png" width="200"/> | <img src="https://i.postimg.cc/2S7ThcFM/eu-flag.jpg" width="200"/> |
+| <img src="https://i.postimg.cc/tC1LdjYf/scec.png" width="150"/> | <img src="https://i.postimg.cc/2S7ThcFM/eu-flag.jpg" width="150"/> |
 |:---|:---|
-| This research was supported by the [Statewide California Earthquake Center](https://www.scec.org/). SCEC is funded by NSF Cooperative Agreement EAR-2225216 and USGS Cooperative Agreement G24AC00072-00. | The work in this repository has received funding from the European Union’s Horizon research and innovation programme under grant agreements No.s 101058518 and 821115 of the projects [GeoInquire](https://www.geo-inquire.eu/) and [RISE](https://www.rise-eu.org/). |
-
-</div>
-
-
-<div style="display: flex; max-width: 800px; margin: auto; gap: 20px;">
-
-  <!-- SCEC Image and Text -->
-  <div style="flex: 1; text-align: center;">
-    <img src="https://i.postimg.cc/tC1LdjYf/scec.png" width="200" />
-    <p style="text-align: left;">This research was supported by the <a href="https://www.scec.org/" target="_blank">Statewide California Earthquake Center</a>. SCEC is funded by NSF Cooperative Agreement EAR-2225216 and USGS Cooperative Agreement G24AC00072-00.</p>
-  </div>
-
-  <!-- EU Image and Text -->
-  <div style="flex: 1; text-align: center;">
-    <img src="https://i.postimg.cc/2S7ThcFM/eu-flag.jpg" width="200" />
-    <p style="text-align: left;">The work in this repository has received funding from the European Union’s Horizon research and innovation programme under grant agreements No.s 101058518 and 821115 of the projects <a href="https://www.geo-inquire.eu/" target="_blank">GeoInquire</a> and <a href="https://www.rise-eu.org/" target="_blank">RISE</a>.</p>
-  </div>
+| <div style="text-align: left;">This research was supported by the <a href="https://www.scec.org/">Statewide California Earthquake Center</a>. SCEC is funded by NSF Cooperative Agreement EAR-2225216 and USGS Cooperative Agreement G24AC00072-00.</div> | <div style="text-align: left;">The work in this repository has received funding from the European Union’s Horizon research and innovation programme under grant agreements No.s 101058518 and 821115 of the projects <a href="https://www.geo-inquire.eu/">GeoInquire</a> and <a href="https://www.rise-eu.org/">RISE</a>.</div> |
 
 </div>
