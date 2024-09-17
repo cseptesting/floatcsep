@@ -17,15 +17,15 @@ B - Multiple Models and Tests
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
 
-Artifacts
-----------------------
+Experiment Components
+---------------------
 
-The following example is an experiment including multiple forecasts and evaluations. The input structure of the experiment is:
+The following example is an experiment including **multiple** time-independent forecasts and evaluations. The input structure of the experiment is:
 
 ::
 
     case_b
-        └──  models
+        └── models
             ├── model_a.csv
             ├── model_b.csv
             ├── model_c.csv

@@ -17,8 +17,8 @@ E - A Realistic Time-independent Experiment
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
 
-Artifacts
----------
+Experiment Components
+---------------------
 
 This example shows how to run a realistic testing experiment in Italy (based on https://doi.org/10.4401/ag-4844), summarizing the concepts of previous examples. The example has only a subset of the original models and evaluations. The input structure of the experiment is:
 
@@ -92,13 +92,13 @@ Post-Process
        :language: yaml
        :lines: 21-34
 
-    See :func:`~csep.utils.plots.plot_spatial_dataset` for forecast plot options and :func:`~csep.utils.plots.plot_catalog` for the catalog placed on top.
+    The forecasts are plotted and stored in ``examples/case_e/results/{timewindow}/forecasts/``. See :func:`~csep.utils.plots.plot_spatial_dataset` for forecast plot options and :func:`~csep.utils.plots.plot_catalog` for the catalog placed on top.
 
 
 Running the experiment
 ----------------------
 
-    The experiment can be run by simply navigating to the ``examples/case_a`` folder in the terminal and typing.
+    The experiment can be run by simply navigating to the ``examples/case_e`` folder in the terminal and typing.
 
     .. code-block:: console
 

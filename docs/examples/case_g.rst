@@ -17,8 +17,9 @@ G - Time-Dependent, Catalog-Based Model (from Source Code)
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
 
-Artifacts
----------
+Experiment Components
+---------------------
+
 
 This example shows how a time-dependent model should be set up for a time-dependent experiment
 ::
@@ -35,40 +36,48 @@ This example shows how a time-dependent model should be set up for a time-depend
         ├── models.yml
         └── tests.yml
 
-* The model to be evaluated (``pymock``) is a source code that generates forecast for multiple time windows.
+* The model to be evaluated (``pymock``) is a source code that generates forecasts for multiple time windows.
 
-* The testing catalog `catalog.csv` works also as the input catalog, by being filtered until the starting test_date and allocated in `pymock/input` dynamically (before the model is run)
+* The testing catalog ``catalog.csv`` works also as the input catalog, by being filtered until the starting test_date and allocated in `pymock/input` dynamically (before the model is run)
 
 
 Model
 -----
 
-The experiment's complexity increases from time-independent to dependent, since we now need a **Model** (source code) that is able to generate forecast that changes every window. The model should be conceptualized as a **black-box**, whose only interface/interaction with the ``floatcsep`` system is to receive an input (i.e. input catalog) and generates an output (i.e. the forecasts).
+The experiment's complexity increases from time-independent to dependent, since we now need a **Model** (source code) that is able to generate forecast that changes every window. The model should be conceptualized as a **black-box**, whose only interface/interaction with the ``floatcsep`` system is to receive an input (i.e., input catalog and arguments) and generates an output (the forecasts).
 
-* Input: The input consists in input **data** and **arguments**.
+* **Input**: The input consists in input **data** and **arguments**.
 
-    1. The input data is, at the least, a catalog filtered until the forecast beginning, which is automatically allocated by ``fecsep`` in the `{model}/input` prior to each model's run. It is stored inside the model in ``csep.ascii`` format for simplicity's sake (see :doc:`pycsep:concepts/catalogs`).
+    1. The **input data** is, at the least, a catalog filtered until the forecast beginning, which is automatically allocated by ``floatcsep`` in the `{model}/input` prior to each model's run. It is stored inside the model in ``csep.ascii`` format for simplicity's sake (see :doc:`pycsep:concepts/catalogs`).
 
     .. literalinclude:: ../../examples/case_g/catalog.csv
         :lines: 1-2
 
-    2. The input arguments controls how the source code works. The minimum arguments to run a model (which should be modified dynamically during an experiment) are the forecast ``start_date`` and ``end_date``. The experiment will read `{model}/input/args.txt` and change the values of ``start_date = {datetime}`` and ``end_date = {datetime}`' before the model is run. Additional arguments can be set by convenience, such as ``catalog`` (the input catalog name), ``n_sims`` (number of synthetic catalogs) and random ``seed`` for reproducibility.
+    2. The **input arguments** controls how the model's source code works. The minimum arguments to run a model (which should be modified dynamically during an experiment) are the forecast ``start_date`` and ``end_date``. The experiment will read `{model}/input/args.txt` and change the values of ``start_date = {datetime}`` and ``end_date = {datetime}`` before the model is run. Additional arguments can be set by convenience, such as ``catalog`` (the input catalog name), ``n_sims`` (number of synthetic catalogs) and random ``seed`` for reproducibility.
 
-* Output: The model's output are the synthetic catalogs, which should be allocated in `{model}/forecasts/{filename}.csv`. The format is identically to ``csep_ascii``, but unlike in an input catalog, the ``catalog_id`` column should be modified for each synthetic catalog starting from 0. The file name follows the convention `{model_name}_{start}_{end}.csv`, where ``start`` and ``end`` folowws the `%Y-%m-%dT%H:%M:%S.%f` - ISO861 FORMAT
+* **Output**: The model's output are the synthetic catalogs, which should be allocated in `{model}/forecasts/{filename}.csv`. The format is identically to ``csep_ascii``, but unlike in an input catalog, the ``catalog_id`` column should be modified for each synthetic catalog starting from 0. The file name follows the convention `{model_name}_{start}_{end}.csv`, where ``start`` and ``end`` folowws the `%Y-%m-%dT%H:%M:%S.%f` - ISO861 FORMAT
 
-* Model run: The model should be run with a simple command to which only ``arguments`` should be passed. For this example, is
+* **Model build**: Inside the model source code, there are multiple options to build it. A standard python ``setup.cfg`` is given, which can be built inside a python ``venv`` or ``conda`` managers. This is created and built automatically by ``floatCSEP``, as long as the the model build instructions are correctly set up.
+
+* **Model run**: The model should be run with a simple command to which only ``arguments`` should be passed. For this example, is
 
     .. code-block:: console
 
         $ python pymock/run.py input/args.txt
 
-or using a binary (see ``pymock/setup.cfg:entry_point``)
+    or using a binary (see ``pymock/setup.cfg:entry_point``)
 
     .. code-block:: console
 
         $ pymock input/args.txt
 
+    It can also be run simply by
 
+    .. code-block:: console
+
+        $ pymock
+
+    as long as it internally reads the ``input/args.txt`` and ``input/catalog.csv`` files.
 
 
 Configuration

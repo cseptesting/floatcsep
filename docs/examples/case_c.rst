@@ -17,8 +17,8 @@ C - Multiple Time Windows
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
 
-Artifacts
----------
+Experiment Components
+---------------------
 
 The following example shows an experiment with multiple time windows. The input structure of the experiment is:
 

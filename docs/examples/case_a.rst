@@ -17,22 +17,21 @@ A - Simple Model and Catalog
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
 
-Artifacts
----------
+Experiment Components
+---------------------
 
-The following example shows the definition of a testing experiment of a simple
-forecast against a simple catalog. The input structure of the experiment is:
+The following example shows the definition of a testing experiment of a single **time-independent** forecast against a catalog. The example files are found in ``floatcsep/examples/case_a``. The input structure of the experiment is:
 
 ::
 
     case_a
+        ├── region.txt
         ├── catalog.csep
-        ├── config.yml
         ├── best_model.dat
-        └── region.txt
+        └── config.yml
 
 
-* The testing region consists of a grid with two 1ºx1º bins, whose bottom-left nodes are defined in the file `region.txt`. The grid spacing is obtained automatically. The nodes are:
+* The testing region ``region.txt`` consists of a grid with two 1ºx1º bins, defined by its bottom-left nodes. The grid spacing is obtained automatically. The nodes are:
 
     .. literalinclude:: ../../examples/case_a/region.txt
 
@@ -40,18 +39,21 @@ forecast against a simple catalog. The input structure of the experiment is:
 
     .. literalinclude:: ../../examples/case_a/catalog.csep
 
-* The forecast ``best_model.dat`` to be evaluated is written in the ``.dat`` format (see :doc:`pycsep:concepts/forecasts`). Forecast formats are detected automatically (see :class:`floatcsep.readers`)
+* The forecast ``best_model.dat`` to be evaluated is written in the ``.dat`` format (see :doc:`pycsep:concepts/forecasts`). Forecast formats are detected automatically (see :mod:`floatcsep.utils.readers.ForecastParsers`)
 
     .. literalinclude:: ../../examples/case_a/best_model.dat
 
-.. important::
-
-    Every file path should be relative to the ``config.yml`` file.
 
 Configuration
 -------------
 
-The experiment is defined by a time-, region-, model- and test-configurations. In this example, they are written together in the ``config.yml`` file.
+The experiment is defined by a time-, region-, model- and test-configurations, as well as a catalog and a region. In this example, they are written together in the ``config.yml`` file.
+
+
+.. important::
+
+    Every file path (e.g., of a catalog) specified in the ``config.yml`` file should be relative to the directory containing the configuration file.
+
 
 
 Time
@@ -72,7 +74,7 @@ Time
 Region
 ~~~~~~
 
-    The region - a file path or :class:`csep` function (e.g. :obj:`csep.core.regions.italy_csep_region`) -, the depth limits and magnitude  discretization are defined in the ``region_config`` inset.
+    The region - a file path or a :mod:`pycsep` function, such as :obj:`~csep.core.regions.italy_csep_region` (check the available regions in :mod:`csep.core.regions`) -, the depth limits and magnitude discretization are defined in the ``region_config`` inset.
 
     .. literalinclude:: ../../examples/case_a/config.yml
        :language: yaml
@@ -82,7 +84,7 @@ Region
 Catalog
 ~~~~~~~
 
-    It is defined in the ``catalog`` inset. This should only make reference to a catalog file or a catalog query function (e.g. ``query_comcat``). ``floatcsep`` will automatically filter the catalog to the experiment time, spatial and magnitude frames:
+    It is defined in the ``catalog`` inset. This should only make reference to a catalog file or a catalog query function (e.g. :func:`~csep.query_comcat`). ``floatcsep`` will automatically filter the catalog to the experiment time, spatial and magnitude frames:
 
     .. literalinclude:: ../../examples/case_a/config.yml
        :language: yaml
@@ -160,6 +162,6 @@ Results
 Advanced
 --------
 
-The experiment run logic can be seen in the file ``case_a.py``, which executes the same example but in python source code. The run logic of the terminal commands ``run``, ``plot`` and ``reproduce`` can be found in :class:`floatcsep.cmd.main`
+The experiment run logic can be seen in the file ``case_a.py``, which executes the same example but in python source code. The run logic of the terminal commands ``run``, ``plot`` and ``reproduce`` can be found in :mod:`floatcsep.commands.main`
 
 

@@ -17,8 +17,8 @@ D - Catalog Queries and Model Repositories
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
 
-Artifacts
----------
+Experiment Components
+---------------------
 
 The following example shows an experiment whose forecasts are retrieved from a repository (Zenodo - https://zenodo.org) and the testing catalog from an authoritative source web service (namely the gCMT catalog from the ISC - http://www.isc.ac.uk). The initial structure is:
 
@@ -57,7 +57,7 @@ Configuration
 Catalog
 ~~~~~~~
 
-    The ``catalog`` inset from ``config.yml`` now makes reference to a catalog query function, in this case :func:`~floatcsep.accessors.query_isc_gcmt`.
+    The ``catalog`` inset from ``config.yml`` now makes reference to a catalog query function, in this case :func:`~pycsep.query_gcmt`.
 
     .. literalinclude:: ../../examples/case_d/config.yml
        :language: yaml
@@ -67,7 +67,7 @@ Catalog
 
     .. note::
 
-     Query functions exist in both ``pycsep`` and ``floatcsep`` (e.g. :func:`csep.query_comcat`, :func:`csep.query_bsi`, :func:`~csep.query_gcmt`, :func:`~csep.query_gns`). Only the name of the function is needed to retrieve the catalog. Refer to :obj:`csep` and :class:`floatcsep.accessors`.
+     Query functions are located in ``pycsep`` (e.g. :func:`csep.query_comcat`, :func:`csep.query_bsi`, :func:`csep.query_gcmt`, :func:`csep.query_gns`). Only the name of the function is needed to retrieve the catalog. Refer to :obj:`csep` API reference.
 
 Models
 ~~~~~~

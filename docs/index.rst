@@ -1,9 +1,3 @@
-.. floatCSEP documentation master file, created by
-   sphinx-quickstart on Wed Nov 16 09:56:55 2022.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-
 floatCSEP: Floating Experiments
 ===============================
 
@@ -19,7 +13,7 @@ Preliminary documentation.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Example Experiments
+   :caption: Tutorial Experiments
 
    examples/case_a.rst
    examples/case_b.rst
