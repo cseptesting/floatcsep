@@ -89,3 +89,8 @@ We encourage all types of contributions, from reporting bugs, suggesting enhance
 # License
 
 The `floatCSEP` (as well as `pyCSEP`) software is distributed under the BSD 3-Clause open-source license. Please see the [license file](https://github.com/cseptesting/floatcsep/blob/main/LICENSE) for more information.
+
+# Support
+
+| <img src="https://i.postimg.cc/tC1LdjYf/scec.png" style="width: 150%;"/> | This research was supported by the [Statewide California Earthquake Center](https://www.scec.org/). SCEC is funded by NSF Cooperative Agreement EAR-2225216 and USGS Cooperative Agreement G24AC00072-00. | ![EU Flag](https://i.postimg.cc/2S7ThcFM/eu-flag.jpg) | The work in this repository has received funding from the European Union’s Horizon research and innovation programme under grant agreements No.s 101058518 and 821115 of the projects [GeoInquire](https://www.geo-inquire.eu/) and [RISE](https://www.rise-eu.org/). |
+|:---:|:---|:---:|:---|
