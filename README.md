@@ -71,16 +71,15 @@ A runtime directory will be created in a `results` folder. The experiment result
 * `pyCSEP` [Github](https://github.com/sceccode/pycsep)
 * `pyCSEP` [Documentation](https://docs.cseptesting.org/)
 
+
 # Roadmap and Known Issues
 
-* Add functionality to compare original results and reproduced results
-* Add registry to filetrees (e.g. hash/byte count) for a proper experiment re-instantiation
 * Add report customization
-* Fix the hooks properly (user code) to be inserted into plotting/reporting functionalities.
-* Add multiple logging/levels
-* Create tool to check a TD model's interface with ``fecsep``
+* Create tool to check a TD model's interface with ``floatcsep``
 * Define a dependency strategy to ensure experiments' reproducibility.
-* Publish in `conda`
+* Implement spatial database and HDF5 experiment storage feature
+* Set up task paralellization
+
 
 # Contributing
 
