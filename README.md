@@ -99,5 +99,5 @@ a
 
 a
 
-| <img src="https://i.postimg.cc/tC1LdjYf/scec.png" width="200"/> | <span></span>This research was supported by the [Statewide California Earthquake Center](https://www.scec.org/). SCEC is funded by NSF Cooperative Agreement EAR-2225216 and USGS Cooperative Agreement G24AC00072-00. | <img src="https://i.postimg.cc/2S7ThcFM/eu-flag.jpg" width="200"/> | <span></span>The work in this repository has received funding from the European Union’s Horizon research and innovation programme under grant agreements No.s 101058518 and 821115 of the projects [GeoInquire](https://www.geo-inquire.eu/) and [RISE](https://www.rise-eu.org/). |
+| <img src="https://i.postimg.cc/tC1LdjYf/scec.png" width="200"/> | <p>This research was supported by the [Statewide California Earthquake Center](https://www.scec.org/). SCEC is funded by NSF Cooperative Agreement EAR-2225216 and USGS Cooperative Agreement G24AC00072-00.</p> | <img src="https://i.postimg.cc/2S7ThcFM/eu-flag.jpg" width="200"/> | <span></span>The work in this repository has received funding from the European Union’s Horizon research and innovation programme under grant agreements No.s 101058518 and 821115 of the projects [GeoInquire](https://www.geo-inquire.eu/) and [RISE](https://www.rise-eu.org/). |
 |:---:|:---|:---:|:---|
