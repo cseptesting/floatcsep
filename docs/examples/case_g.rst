@@ -20,8 +20,8 @@ G - Time-Dependent, Catalog-Based Model (from Source Code)
 Experiment Components
 ---------------------
 
-
 This example shows how a time-dependent model should be set up for a time-dependent experiment
+
 ::
 
     case_g
@@ -53,7 +53,7 @@ The experiment's complexity increases from time-independent to dependent, since 
     .. literalinclude:: ../../examples/case_g/catalog.csv
         :lines: 1-2
 
-    2. The **input arguments** controls how the model's source code works. The minimum arguments to run a model (which should be modified dynamically during an experiment) are the forecast ``start_date`` and ``end_date``. The experiment will read `{model}/input/args.txt` and change the values of ``start_date = {datetime}`` and ``end_date = {datetime}`` before the model is run. Additional arguments can be set by convenience, such as ``catalog`` (the input catalog name), ``n_sims`` (number of synthetic catalogs) and random ``seed`` for reproducibility.
+    2. The **input arguments** controls how the model's source code works. The minimum arguments to run a model (which should be modified dynamically during an experiment) are the forecast ``start_date`` and ``end_date``. The experiment will access `{model}/input/args.txt` and change the values of ``start_date = {datetime}`` and ``end_date = {datetime}`` before the model is run. Additional arguments can be set by convenience, such as ``catalog`` (the input catalog name), ``n_sims`` (number of synthetic catalogs) and random ``seed`` for reproducibility.
 
 * **Output**: The model's output are the synthetic catalogs, which should be allocated in `{model}/forecasts/{filename}.csv`. The format is identically to ``csep_ascii``, but unlike in an input catalog, the ``catalog_id`` column should be modified for each synthetic catalog starting from 0. The file name follows the convention `{model_name}_{start}_{end}.csv`, where ``start`` and ``end`` folowws the `%Y-%m-%dT%H:%M:%S.%f` - ISO861 FORMAT
 
@@ -124,6 +124,30 @@ Tests
 
     .. note::
         It is possible to assign two plotting functions to a test, whose ``plot_args`` and ``plot_kwargs`` can be placed indented beneath
+
+
+Custom Post-Process
+~~~~~~~~~~~~~~~~~~~
+
+    Additional to the default :func:`~floatcsep.postprocess.plot_handler.plot_results`, :func:`~floatcsep.postprocess.plot_handler.plot_catalogs`, :func:`~floatcsep.postprocess.plot_handler.plot_forecasts` functions, a custom plotting function(s) can be set within the ``postprocess`` configuration
+
+    .. literalinclude:: ../../examples/case_g/config.yml
+       :language: yaml
+       :lines: 22-23
+
+    This option provides `hook` for a python script and a function within as:
+
+    .. code-block:: console
+
+        {python_sript}:{function_name}
+
+    The requirements are that the script to be located within the same directory as the configuration file, whereas the function must receive a :class:`floatcsep.experiment.Experiment` as argument
+
+    .. literalinclude:: ../../examples/case_g/custom_plot_script.py
+       :language: yaml
+       :lines: 6-9
+
+    In this way, the plot function use all the :class:`~floatcsep.experiment.Experiment` attributes/methods to access catalogs, forecasts and test results. The script ``examples/case_g/custom_plot_script.py`` can also be viewed directly on `GitHub <https://github.com/cseptesting/floatcsep/blob/main/examples/case_g/custom_plot_script.py>`_, where it is exemplified how to access the experiment artifacts.
 
 
 Running the experiment

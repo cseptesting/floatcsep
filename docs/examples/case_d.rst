@@ -1,10 +1,11 @@
 D - Catalog Queries and Model Repositories
 ==========================================
 
-.. currentmodule:: floatcsep
+The following example shows an experiment whose forecasts are **retrieved from a repository** (Zenodo - https://zenodo.org) and the testing **catalog** from an authoritative source **web service** (namely the gCMT catalog from the International Seismological Centre - http://www.isc.ac.uk).
 
-.. contents::
-    :local:
+
+
+.. currentmodule:: floatcsep
 
 .. admonition:: **TL; DR**
 
@@ -16,11 +17,14 @@ D - Catalog Queries and Model Repositories
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
+.. contents::
+    :local:
+
 
 Experiment Components
 ---------------------
 
-The following example shows an experiment whose forecasts are retrieved from a repository (Zenodo - https://zenodo.org) and the testing catalog from an authoritative source web service (namely the gCMT catalog from the ISC - http://www.isc.ac.uk). The initial structure is:
+The source code can be found in the ``examples/case_d`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/examples/case_d>`_. The **initial** input structure of the experiment is:
 
 ::
 
@@ -60,8 +64,9 @@ Catalog
     The ``catalog`` inset from ``config.yml`` now makes reference to a catalog query function, in this case :func:`~pycsep.query_gcmt`.
 
     .. literalinclude:: ../../examples/case_d/config.yml
-       :language: yaml
-       :lines: 14-14
+        :caption: examples/case_d/config.yml
+        :language: yaml
+        :lines: 14-14
 
     ``floatcsep`` will automatically filter the catalog to the experiment time, spatial and magnitude windows of the experiment.
 
@@ -74,13 +79,14 @@ Models
     The model configuration is set in ``models.yml``.
 
     .. literalinclude:: ../../examples/case_d/models.yml
-       :language: yaml
+        :caption: examples/case_d/models.yml
+        :language: yaml
 
     * The option ``zenodo_id`` makes reference to the zenodo **record id**. The model ``team`` is found in https://zenodo.org/record/6289795, whereas the model ``wheel`` in https://zenodo.org/record/6255575.
 
-    * The option ``flavours`` allows multiple model sub-classes to be quickly instantiated.
-
     * The ``zenodo`` (or ``git``) repositories could contain multiple files, each of which can be assigned to a flavour.
+
+    * The option ``flavours`` allows multiple model sub-classes to be quickly instantiated.
 
     * When multiple flavours are passed, ``path`` refers to the folder where the models would be downloaded.
 

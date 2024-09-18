@@ -20,6 +20,7 @@ test_config: tests.yml
 
 postprocess:
   plot_forecasts:
+    cmap: magma
     region_border: True
     basemap: stock_img
     clabel_fontsize: 14

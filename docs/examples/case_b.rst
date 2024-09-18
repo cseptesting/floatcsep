@@ -1,10 +1,9 @@
 B - Multiple Models and Tests
 =============================
 
-.. currentmodule:: floatcsep
+The following example is an experiment including **multiple** time-independent forecasts and **multiple** evaluations.
 
-.. contents::
-    :local:
+.. currentmodule:: floatcsep
 
 .. admonition:: **TL; DR**
 
@@ -16,11 +15,15 @@ B - Multiple Models and Tests
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
+.. contents::
+    :local:
+    :depth: 2
+
 
 Experiment Components
 ---------------------
 
-The following example is an experiment including **multiple** time-independent forecasts and evaluations. The input structure of the experiment is:
+The source code can be found in the ``examples/case_b`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/examples/case_b>`_. The input structure of the experiment is:
 
 ::
 
@@ -36,11 +39,11 @@ The following example is an experiment including **multiple** time-independent f
         ├── tests.yml
         └── region.txt
 
-
-The testing catalog is now defined in ``json`` format, which is the default catalog used by ``floatcsep``, as it allows the storage of metadata.
+.. important::
+    Although not necessary, the testing catalog is here defined in the ``.json`` format, which is the default catalog used by ``floatcsep``, as it allows the storage of metadata.
 
 .. note::
-    An user-defined catalog can be saved as ``json`` with :meth:`CSEPCatalog.write_json() <csep.core.catalogs.CSEPCatalog.write_json>` using ``pycsep``
+    A catalog can be stored as ``.json`` with :meth:`CSEPCatalog.write_json() <csep.core.catalogs.CSEPCatalog.write_json>` using ``pycsep``
 
 
 Configuration
@@ -49,10 +52,11 @@ Configuration
 In this example, the time, region and catalog specifications are written in the ``config.yml`` file.
 
 .. literalinclude:: ../../examples/case_b/config.yml
+   :caption: examples/case_b/config.yml
    :language: yaml
    :lines: 3-15
 
-whereas the models' and tests' configurations are referred to external files for readability
+whereas the models' and tests' configurations are referred to external files for better readability
 
 .. literalinclude:: ../../examples/case_b/config.yml
    :language: yaml
@@ -64,6 +68,7 @@ Models
     The model configuration is now set in the ``models.yml`` file, where a list of model names specify their file paths.
 
     .. literalinclude:: ../../examples/case_b/models.yml
+       :caption: examples/case_b/models.yml
        :language: yaml
 
 Evaluations
@@ -72,11 +77,12 @@ Evaluations
 
     .. literalinclude:: ../../examples/case_b/tests.yml
        :language: yaml
+       :caption: examples/case_b/tests.yml
 
     .. note::
          Plotting keyword arguments can be set in the ``plot_kwargs`` option - see :func:`~csep.utils.plots.plot_poisson_consistency_test` and :func:`~csep.utils.plots.plot_comparison_test` -.
 
-    .. note::
+    .. important::
          Comparison tests (such as the ``paired_t_test``) requires a reference model, whose name should be set in ``ref_model`` at the given test configuration.
 
 Running the experiment
@@ -87,7 +93,7 @@ The experiment can be run by simply navigating to the ``examples/case_b`` folder
 
 .. code-block:: console
 
-    floatcsep run config.yml
+    $ floatcsep run config.yml
 
 This will automatically set all the file paths of the calculation (testing catalogs, evaluation results, figures) and will display a summarized report in ``results/report.md``.
 

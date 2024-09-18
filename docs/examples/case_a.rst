@@ -1,10 +1,9 @@
 A - Simple Model and Catalog
 ============================
 
-.. currentmodule:: floatcsep
+The following example shows the definition of a testing experiment of a single **time-independent** forecast against a catalog.
 
-.. contents::
-    :local:
+.. currentmodule:: floatcsep
 
 .. admonition:: **TL; DR**
 
@@ -16,11 +15,15 @@ A - Simple Model and Catalog
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
+.. contents::
+    :local:
+    :depth: 2
+
 
 Experiment Components
 ---------------------
 
-The following example shows the definition of a testing experiment of a single **time-independent** forecast against a catalog. The example files are found in ``floatcsep/examples/case_a``. The input structure of the experiment is:
+The source code can be found in the ``examples/case_a`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/examples/case_a>`_. The directory structure of the experiment is:
 
 ::
 
@@ -34,14 +37,17 @@ The following example shows the definition of a testing experiment of a single *
 * The testing region ``region.txt`` consists of a grid with two 1ºx1º bins, defined by its bottom-left nodes. The grid spacing is obtained automatically. The nodes are:
 
     .. literalinclude:: ../../examples/case_a/region.txt
+       :caption: examples/case_a/region.txt
 
 * The testing catalog ``catalog.csep`` contains only one event and is formatted in the :meth:`~pycsep.utils.readers.csep_ascii` style (see :doc:`pycsep:concepts/catalogs`). Catalog formats are detected automatically
 
     .. literalinclude:: ../../examples/case_a/catalog.csep
+       :caption: examples/case_a/catalog.csep
 
 * The forecast ``best_model.dat`` to be evaluated is written in the ``.dat`` format (see :doc:`pycsep:concepts/forecasts`). Forecast formats are detected automatically (see :mod:`floatcsep.utils.readers.ForecastParsers`)
 
     .. literalinclude:: ../../examples/case_a/best_model.dat
+        :caption: examples/case_a/best_model.dat
 
 
 Configuration
@@ -62,6 +68,7 @@ Time
     The time configuration is manifested in the ``time_config`` inset. The simplest definition is to set only the start and end dates of the experiment. These are always UTC date-times in isoformat (``%Y-%m-%dT%H:%M:%S.%f`` - ISO861):
 
     .. literalinclude:: ../../examples/case_a/config.yml
+       :caption: examples/case_a/config.yml
        :language: yaml
        :lines: 3-5
 
@@ -77,6 +84,7 @@ Region
     The region - a file path or a :mod:`pycsep` function, such as :obj:`~csep.core.regions.italy_csep_region` (check the available regions in :mod:`csep.core.regions`) -, the depth limits and magnitude discretization are defined in the ``region_config`` inset.
 
     .. literalinclude:: ../../examples/case_a/config.yml
+       :caption: examples/case_a/config.yml
        :language: yaml
        :lines: 7-13
 
@@ -84,9 +92,10 @@ Region
 Catalog
 ~~~~~~~
 
-    It is defined in the ``catalog`` inset. This should only make reference to a catalog file or a catalog query function (e.g. :func:`~csep.query_comcat`). ``floatcsep`` will automatically filter the catalog to the experiment time, spatial and magnitude frames:
+    It is defined in the ``catalog`` inset. This should only make reference to a catalog **file** or a catalog **query function** (e.g. :func:`~csep.query_comcat`). **floatCSEP** will automatically filter the catalog to the experiment time, spatial and magnitude frames:
 
     .. literalinclude:: ../../examples/case_a/config.yml
+       :caption: examples/case_a/config.yml
        :language: yaml
        :lines: 15-15
 
@@ -95,6 +104,7 @@ Models
     The model configuration is set in the ``models`` inset with a list of model names, which specify their file paths (and other attributes). Here, we just set the path as ``best_model.dat``, whose format is automatically detected.
 
     .. literalinclude:: ../../examples/case_a/config.yml
+       :caption: examples/case_a/config.yml
        :language: yaml
        :lines: 17-19
 
@@ -107,6 +117,7 @@ Evaluations
     The experiment's evaluations are defined in the ``tests`` inset. It should be a list of test names, making reference to their function and plotting function. These can be either defined in ``pycsep`` (see :doc:`pycsep:concepts/evaluations`) or manually. In this example, we employ the consistency N-test: its function is :func:`csep.core.poisson_evaluations.number_test`, whereas its plotting function correspond to :func:`csep.utils.plots.plot_poisson_consistency_test`
 
 .. literalinclude:: ../../examples/case_a/config.yml
+   :caption: examples/case_a/config.yml
    :language: yaml
    :lines: 21-24
 
@@ -127,26 +138,8 @@ Run command
 
     .. note::
 
-        The command ``floatcsep run <config>`` can be called from any working directory, as long as the specified file paths (e.g. region, models) are relative to the ``config.yml`` file.
+        The command ``floatcsep run {config_file}`` can be called from any working directory, as long as the specified file paths (e.g. region, models) are relative to the ``config.yml`` file.
 
-
-Plot command
-~~~~~~~~~~~~
-
-    If only the result plots are desired, when the calculation was already completed, you can type:
-
-    .. code-block:: console
-
-        $ floatcsep plot config.yml
-
-    This can be used, for example, when an additional plot is desired. Try adding to ``config.yml`` the following lines
-
-    .. code-block:: yaml
-
-        postproc_config:
-          plot_forecasts: True
-
-    and re-run with the ``plot`` command. A forecast figure will appear in ``results/{window}/forecasts``
 
 Results
 ~~~~~~~
@@ -155,13 +148,13 @@ Results
 
     *  The testing catalog of the window is stored in ``results/{window}/catalog``  in ``json`` format. This is a subset of the global testing catalog.
     *  Human-readable results are found in ``results/{window}/evaluations``
-    *  Catalog and evaluation results figures in ``results/{window}/figures``.
+    *  Catalog, forecasts and evaluation results figures in ``results/{window}/figures``.
     *  The complete results are summarized in ``results/report.md``
 
 
 Advanced
---------
+~~~~~~~~
 
-The experiment run logic can be seen in the file ``case_a.py``, which executes the same example but in python source code. The run logic of the terminal commands ``run``, ``plot`` and ``reproduce`` can be found in :mod:`floatcsep.commands.main`
+The experiment run logic can be seen in the file ``case_a.py``, which executes the same example but in python source code. The run logic of the terminal commands ``run``, ``plot`` and ``reproduce`` can be found in :mod:`floatcsep.commands.main`, and can be customized by creating a script similar to ``case_a.py``.
 
 

@@ -1,10 +1,9 @@
 E - A Realistic Time-independent Experiment
 ===========================================
 
-.. currentmodule:: floatcsep
+This example shows how to run a realistic testing experiment (based on https://doi.org/10.4401/ag-4844) while summarizing the concepts from the previous examples.
 
-.. contents::
-    :local:
+.. currentmodule:: floatcsep
 
 .. admonition:: **TL; DR**
 
@@ -16,11 +15,15 @@ E - A Realistic Time-independent Experiment
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
+.. contents::
+    :local:
+
+
 
 Experiment Components
 ---------------------
 
-This example shows how to run a realistic testing experiment in Italy (based on https://doi.org/10.4401/ag-4844), summarizing the concepts of previous examples. The example has only a subset of the original models and evaluations. The input structure of the experiment is:
+The source code can be found in the ``examples/case_e`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/examples/case_e>`_. The input structure of the experiment is:
 
 ::
 
@@ -33,6 +36,9 @@ This example shows how to run a realistic testing experiment in Italy (based on 
         ├── models.yml
         └── tests.yml
 
+.. note::
+    This experiment has only a subset of the original models and evaluations.
+
 
 Configuration
 -------------
@@ -44,8 +50,9 @@ Time
     The time configuration is manifested in the ``time-config`` inset.
 
     .. literalinclude:: ../../examples/case_e/config.yml
-       :language: yaml
-       :lines: 3-7
+        :caption: examples/case_e/config.yml
+        :language: yaml
+        :lines: 3-7
 
 Region
 ~~~~~~
@@ -53,8 +60,9 @@ Region
     The testing region is the official Italy CSEP Region obtained from :obj:`csep.core.regions.italy_csep_region`.
 
     .. literalinclude:: ../../examples/case_e/config.yml
-       :language: yaml
-       :lines: 9-15
+        :caption: examples/case_e/config.yml
+        :language: yaml
+        :lines: 9-15
 
 
 Catalog
@@ -63,21 +71,23 @@ Catalog
     The catalog is obtained from an authoritative source, namely the Bollettino Sismico Italiano (http://terremoti.ingv.it/en/bsi ), using the function :func:`csep.query_bsi`
 
     .. literalinclude:: ../../examples/case_e/config.yml
-       :language: yaml
-       :lines: 17-17
+        :caption: examples/case_e/config.yml
+        :language: yaml
+        :lines: 17-17
 
 Models
 ~~~~~~
     The models are set in ``models.yml``. For simplicity, there are only three of the nineteen models originally submitted to the Italy Experiment.
 
     .. literalinclude:: ../../examples/case_e/models.yml
-       :language: yaml
+        :caption: examples/case_e/models.yml
+        :language: yaml
 
     The ``.xml`` format is automatically detected and parsed by ``floatcsep`` readers.
 
-    .. note::
+    .. important::
 
-        The forecasts are defined in ``[Earthquakes / 10-years]``, specified with the ``forecast_unit`` option.
+        The forecasts are defined in ``[Earthquakes / 10-years]``, which is specified with the ``forecast_unit`` option (The default is `forecast_unit: 1`).
 
     .. note::
 
@@ -86,23 +96,42 @@ Models
 Post-Process
 ~~~~~~~~~~~~
 
-    Additional options for post-processing can set using the ``postprocess`` option.
+    Additional options for post-processing can set using the ``postprocess`` option. Here, we customize the forecasts plotting with:
 
     .. literalinclude:: ../../examples/case_e/config.yml
        :language: yaml
        :lines: 21-34
 
-    The forecasts are plotted and stored in ``examples/case_e/results/{timewindow}/forecasts/``. See :func:`~csep.utils.plots.plot_spatial_dataset` for forecast plot options and :func:`~csep.utils.plots.plot_catalog` for the catalog placed on top.
+    The forecasts are plotted and stored in ``examples/case_e/results/{timewindow}/forecasts/``. See :func:`~csep.utils.plots.plot_spatial_dataset` for forecast plotting options and :func:`~csep.utils.plots.plot_catalog` for the catalog placed on top of those plots.
 
 
 Running the experiment
 ----------------------
 
-    The experiment can be run by simply navigating to the ``examples/case_e`` folder in the terminal and typing.
+    The experiment can be run by navigating to the ``examples/case_e`` folder in the terminal and typing.
 
     .. code-block:: console
 
-        floatcsep run config.yml
+        $ floatcsep run config.yml
 
     This will automatically set all the calculation paths (testing catalogs, evaluation results, figures) and will create a summarized report in ``results/report.md``.
 
+
+Plot command
+~~~~~~~~~~~~
+
+    If only the result plots are desired when the calculation was already completed before, you can type:
+
+    .. code-block:: console
+
+        $ floatcsep plot config.yml
+
+    This can be used, for example, when an additional plot is desired without re-running the entire experiment. Try adding the following line to the ``postprocess`` inset of the ``config.yml`` file.
+
+    .. code-block:: yaml
+
+        postprocess:
+          plot_forecasts:
+            colormap: magma
+
+    and re-run with the ``plot`` command. A forecast figure will re-appear in ``results/{window}/forecasts`` with a different colormap. Additional forecast and catalog plotting options can be found in the :func:`csep.utils.plots.plot_spatial_dataset` and :func:`csep.utils.plots.plot_catalog` ``pycsep`` functions.

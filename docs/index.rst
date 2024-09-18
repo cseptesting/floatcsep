@@ -20,8 +20,9 @@ Preliminary documentation.
    examples/case_c.rst
    examples/case_d.rst
    examples/case_e.rst
+   examples/case_f.rst
    examples/case_g.rst
-
+   examples/case_h.rst
 
 .. toctree::
    :maxdepth: 2
@@ -32,6 +33,7 @@ Preliminary documentation.
    guide/region_config.rst
    guide/model_config.rst
    guide/tests_config.rst
+   guide/postprocess_config.rst
 
 .. toctree::
    :maxdepth: 2

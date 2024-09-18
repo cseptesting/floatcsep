@@ -96,6 +96,8 @@ def plot_forecasts(experiment: "Experiment") -> None:
             # If catalog option is passed, catalog is plotted on top of the forecast
             if plot_forecast_config.get("catalog"):
                 cat_args = plot_forecast_config.get("catalog", {})
+                if cat_args is True:
+                    cat_args = {}
                 experiment.catalog_repo.get_test_cat(window).plot(
                     ax=ax,
                     extent=ax.get_extent(),

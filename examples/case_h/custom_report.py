@@ -3,10 +3,19 @@ from floatcsep.utils.helpers import timewindow2str
 
 
 def main(experiment):
+    """
 
+    Args:
+        experiment: a floatcsep.experiment.Experiment class
+
+    """
+    # Access the last time-window
     timewindow = experiment.timewindows[-1]
+
+    # Convert the time-window to a string
     timestr = timewindow2str(timewindow)
 
+    # Instantiates a Report object and adds a title and objectives
     report = MarkdownReport()
     report.add_title(f"Experiment Report - {experiment.name}", "")
     report.add_heading("Objectives", level=2)
@@ -17,6 +26,7 @@ def main(experiment):
     ]
     report.add_list(objs)
 
+    # Adds an input figure
     report.add_figure(
         f"Input catalog",
         [
@@ -44,4 +54,5 @@ def main(experiment):
             width=200,
         )
 
+    # Stores the report
     report.save(experiment.registry.abs(experiment.registry.run_dir))

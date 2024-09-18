@@ -1,4 +1,4 @@
-name: case_f
+name: case_h
 
 time_config:
   start_date: 2016-8-25T00:00:00
@@ -20,5 +20,5 @@ model_config: models.yml
 test_config: tests.yml
 
 postprocess:
-  plot_catalog: False
   report: custom_report.py:main
+  plot_catalog: False

@@ -1,8 +1,8 @@
 - etas:
     giturl: https://git.gfz-potsdam.de/csep/it_experiment/models/vetas.git
     repo_hash: v3.2
-    args_file: input/args.json
     path: models/etas
+    args_file: input/args.json
     func: etas-run
     func_kwargs:
       n_sims: 100

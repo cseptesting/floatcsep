@@ -1,10 +1,9 @@
-G - Time-Dependent, Catalog-Based Model (from existing files)
-==========================================================
+F - Time-Dependent Catalog-Based Model (from existing files)
+=============================================================
+
+This example shows how set up an experiment with a **time-dependent** model, whose forecast files already exist.
 
 .. currentmodule:: floatcsep
-
-.. contents::
-    :local:
 
 .. admonition:: **TL; DR**
 
@@ -16,12 +15,16 @@ G - Time-Dependent, Catalog-Based Model (from existing files)
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
+.. contents::
+    :local:
+
 
 Experiment Components
 ---------------------
 
 
-This example shows how set up a time-dependent model, whose files are already existing, and experiment. The model structure is as follows:
+The source files can be found in the ``examples/case_e`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/examples/case_e>`_. The experiment structure is as follows:
+
 ::
 
     case_f
@@ -37,13 +40,14 @@ This example shows how set up a time-dependent model, whose files are already ex
 
 * The model to be evaluated (``etas``) is a collection of daily forecasts from ``2016-11-14`` until ``2016-11-21``.
 
-* The forecasts are located in a folder ``forecasts`` inside the model, to be consistent with models based on source codes (see the subsequent examples).
+.. important::
+    The forecasts must be located in a folder ``forecasts`` inside the model folder. This is meant for consistency with models based on source codes (see subsequent examples).
 
 
 Model
 -----
 
-The time-dependency of a model is manifested here by the provision of different forecasts, i.e., statistical descriptions of seismicity, for different time-windows. For this example, the forecasts were created from an external model https://github.com/lmizrahi/etas (https://doi.org/10.1785/0220200231
+The time-dependency of a model is manifested here by the provision of different forecasts, i.e., statistical descriptions of seismicity, for different time-windows. In this example, the forecasts were created from an external model https://github.com/lmizrahi/etas (https://doi.org/10.1785/0220200231
 ), with which the experiment has no interface. This means that we only the forecast files are required. We leave the handling of a model source code for subsequent examples.
 
 
@@ -55,27 +59,40 @@ Configuration
 Time
 ~~~~
 
-    The configuration is identical to time-independent models with multiple time-windows (e.g., case C), with the exception that now a ``horizon`` can be defined instead of ``intervals``, which is the forecast time-window length. The experiment's class should now be explicited as ``exp_class: td``
+    The configuration is identical to time-independent models with multiple time-windows (e.g., case C) with the exception that a ``horizon`` could be defined instead of ``intervals``, which is the forecast time-window length. The experiment's class should now be explicited as ``exp_class: td``.
 
     .. literalinclude:: ../../examples/case_f/config.yml
-       :language: yaml
-       :lines: 3-7
+        :caption: examples/case_f/config.yml
+        :language: yaml
+        :lines: 3-7
+
+.. note::
+    **floatCSEP** is flexible with the definition of time windows/deltas. Alternative string inputs for ``horizon`` can be ``1-day``, ``1 day``, ``1d``, etc.
 
 Catalog
 ~~~~~~~
 
-    The catalog was obtained ``previous to the experiment`` using ``query_geonet`` and it was filtered to the testing period.
+    The catalog ``catalog.json`` was obtained *previously* by using ``query_geonet`` and it was filtered to the testing period. However, it can be re-queried by changing its definition to:
+
+    .. code-block:: yaml
+
+          catalog: query_geonet
 
 Models
 ~~~~~~
 
-    Some additional arguments should be passed to a time-dependent model
+    Some additional arguments should be passed to a **time-dependent** model, such as its class ('td' for time-dependent) and the number of simulations.
 
     .. literalinclude:: ../../examples/case_f/models.yml
-       :language: yaml
-       :lines: 1-4
+        :caption: examples/case_f/config.yml
+        :language: yaml
+        :lines: 1-4
 
-    For consistency with time-dependent models that will create forecasts from a source code, the ``path`` should point to the folder of the model. The path folder should contain a sub-folder named ``{path}/forecasts`` where the files are located. Note that fore catalog-based forecasts, the number of simulations should be explicit.
+.. note::
+    For consistency with time-dependent models that will create forecasts from a source code, the ``path`` should point to the folder of the model, which itself should contain a sub-folder named ``{path}/forecasts`` where the files are located.
+
+.. important::
+    Note that for catalog-based forecasts, the model should explicit the number of simulations. This is meant for forecast files that contain synthetic catalogs with zero-event simulations, and therefore do not contain the total number of synthetic catalogs used.
 
 Tests
 ~~~~~

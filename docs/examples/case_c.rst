@@ -1,10 +1,9 @@
 C - Multiple Time Windows
 =========================
 
-.. currentmodule:: floatcsep
+The following example shows an experiment with **multiple time windows**.
 
-.. contents::
-    :local:
+.. currentmodule:: floatcsep
 
 .. admonition:: **TL; DR**
 
@@ -16,11 +15,15 @@ C - Multiple Time Windows
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
+.. contents::
+    :local:
+
+
 
 Experiment Components
 ---------------------
 
-The following example shows an experiment with multiple time windows. The input structure of the experiment is:
+The source code can be found in the ``examples/case_c`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/examples/case_c>`_. The input structure of the experiment is:
 
 ::
 
@@ -42,11 +45,12 @@ Configuration
 Time
 ~~~~
 
-    The time configuration now set the time intervals between the start and end dates.
+    The time configuration now sets a sequence of time intervals between the start and end dates.
 
     .. literalinclude:: ../../examples/case_c/config.yml
-       :language: yaml
-       :lines: 3-7
+        :caption: examples/case_c/config.yml
+        :language: yaml
+        :lines: 3-7
 
     .. note::
 
@@ -58,25 +62,32 @@ Time
 
 Evaluations
 ~~~~~~~~~~~
-    The experiment's evaluations are defined in ``tests.yml``, which can now include temporal evaluations (see :func:`~floatcsep.extras.sequential_likelihood`, :func:`~floatcsep.extras.sequential_information_gain`, :func:`~floatcsep.utils.plot_sequential_likelihood`).
+    The experiment's evaluations are defined in ``tests.yml``, which can now include temporal evaluations (see :func:`~floatcsep.utils.helpers.sequential_likelihood`, :func:`~floatcsep.utils.helpers.sequential_information_gain`, :func:`~floatcsep.utils.helpers.plot_sequential_likelihood`).
 
     .. literalinclude:: ../../examples/case_c/tests.yml
-       :language: yaml
+        :language: yaml
+        :caption: examples/case_c/tests.yml
 
     .. note::
 
-        Plot arguments (title, labels, font sizes, axes limits, etc.) can be passed as a dictionary in ``plot_args`` (see details in :func:`~csep.utils.plots.plot_poisson_consistency_test`)
+        Plot arguments (title, labels, font sizes, axes limits, etc.) can be passed as a dictionary in ``plot_args`` (see the arguments details in :func:`~csep.utils.plots.plot_poisson_consistency_test`)
 
 Results
 -------
 
-The :obj:`~floatcsep.cmd.main.run` command creates the result path tree for all time windows.
+The :obj:`~floatcsep.cmd.main.run` command
 
-*  The testing catalog of the window is stored in ``results/{window}/catalog``  in ``json`` format. This is a subset of the global testing catalog.
-*  Human-readable results are found in ``results/{window}/evaluations``
-*  Catalog and evaluation results figures in ``results/{window}/figures``.
+.. code-block:: console
+
+    $ floatcsep run config.yml
+
+now creates the result path tree for all time windows.
+
+*  The testing catalog of the window is stored in ``results/{time_window}/catalog``  in ``json`` format. This is a subset of the global testing catalog.
+*  Human-readable results are found in ``results/{time_window}/evaluations``
+*  Catalog and evaluation results figures in ``results/{time_window}/figures``.
 *  The complete results are summarized in ``results/report.md``
 
-The report now shows the temporal evaluations for all time-windows, whereas the discrete evaluations are shown only for the last time window.
+The report shows the temporal evaluations for all time-windows, whereas the discrete evaluations are shown only for the last time window.
 
 

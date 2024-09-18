@@ -5,7 +5,11 @@ from matplotlib import pyplot
 
 def main(experiment):
     """
-    Example custom plot function
+    Example custom plot function (Observed vs. forecast rates in time)
+
+    Args:
+        experiment: a floatcsep.experiment.Experiment class
+
     """
 
     # Get all the timewindows
