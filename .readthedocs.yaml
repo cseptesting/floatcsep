@@ -8,4 +8,9 @@ build:
 conda:
   environment: environment.yml
 
-
+python:
+  install:
+    - method: pip
+      path: .
+    - method: pip
+      path: .[dev]  # Install development dependencies via pip
