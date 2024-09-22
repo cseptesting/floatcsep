@@ -15,7 +15,7 @@ The following example is an experiment including **multiple** time-independent f
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
-.. contents::
+.. contents:: Contents
     :local:
     :depth: 2
 

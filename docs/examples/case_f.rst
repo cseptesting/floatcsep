@@ -15,7 +15,7 @@ This example shows how set up an experiment with a **time-dependent** model, who
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
-.. contents::
+.. contents:: Contents
     :local:
 
 
@@ -47,8 +47,7 @@ The source files can be found in the ``examples/case_e`` folder or in  `GitHub <
 Model
 -----
 
-The time-dependency of a model is manifested here by the provision of different forecasts, i.e., statistical descriptions of seismicity, for different time-windows. In this example, the forecasts were created from an external model https://github.com/lmizrahi/etas (https://doi.org/10.1785/0220200231
-), with which the experiment has no interface. This means that we only the forecast files are required. We leave the handling of a model source code for subsequent examples.
+The time-dependency of a model is manifested here by the provision of different forecasts, i.e., statistical descriptions of seismicity, for different time-windows. In this example, the forecasts were created from an external model https://github.com/lmizrahi/etas (`doi:10.1785/0220200231 <https://doi.org/10.1785/0220200231>`_), with which the experiment has no interface. This means that we use **only the forecast files** and no source code. We leave the handling of a model source code for subsequent examples.
 
 
 
@@ -59,7 +58,7 @@ Configuration
 Time
 ~~~~
 
-    The configuration is identical to time-independent models with multiple time-windows (e.g., case C) with the exception that a ``horizon`` could be defined instead of ``intervals``, which is the forecast time-window length. The experiment's class should now be explicited as ``exp_class: td``.
+    The configuration is analogous to time-independent models with multiple time-windows (e.g., case C) with the exception that a ``horizon`` could be defined instead of ``intervals``, which is the forecast time-window length. The experiment's class should now be explicited as ``exp_class: td``.
 
     .. literalinclude:: ../../examples/case_f/config.yml
         :caption: examples/case_f/config.yml

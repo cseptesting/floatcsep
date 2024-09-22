@@ -15,7 +15,7 @@ This example shows how to run a realistic testing experiment (based on https://d
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
-.. contents::
+.. contents:: Contents
     :local:
 
 

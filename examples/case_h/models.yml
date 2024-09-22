@@ -23,10 +23,10 @@
     repo_hash: v0.1
     path: models/pymock_nb
     func: pymock
+    prefix: pymock
     func_kwargs:
       n_sims: 100
       mag_min: 3.5
-      apply_mc_to_lambda: True
-      distribution: negbinom
       seed: 23
-    prefix: pymock
+      distribution: negbinom
+      apply_mc_to_lambda: True

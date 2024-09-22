@@ -15,7 +15,7 @@ The following example shows an experiment with **multiple time windows**.
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
-.. contents::
+.. contents:: Contents
     :local:
 
 

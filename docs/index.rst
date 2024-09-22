@@ -25,6 +25,12 @@ Preliminary documentation.
    examples/case_h.rst
 
 .. toctree::
+   :maxdepth: 0
+   :caption: Help & Reference
+
+   reference/api_reference
+
+.. toctree::
    :maxdepth: 2
    :caption: Defining an Experiment
 
@@ -41,11 +47,6 @@ Preliminary documentation.
 
    deployment/intro.rst
 
-.. toctree::
-   :maxdepth: 0
-   :caption: Help & Reference
-
-   reference/api_reference
 
 
 

@@ -17,7 +17,7 @@ The following example shows an experiment whose forecasts are **retrieved from a
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
-.. contents::
+.. contents:: Contents
     :local:
 
 

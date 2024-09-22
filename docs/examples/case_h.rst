@@ -1,11 +1,7 @@
 H - Multiple Catalog-Based Models
 =================================
 
-.. currentmodule:: floatcsep
-
-.. contents::
-    :local:
-    :depth: 1
+Here, we run an experiment that access, containerize and execute multiple **time-dependent models**, and then proceeds to evaluate the forecasts once they are created.
 
 .. admonition:: **TL; DR**
 
@@ -17,70 +13,136 @@ H - Multiple Catalog-Based Models
 
     After the calculation is complete, the results will be summarized in ``results/report.md``.
 
+.. currentmodule:: floatcsep
+
+.. contents:: Contents
+    :local:
+
+
 
 Experiment Components
 ---------------------
 
-This example shows how to run an experiment that access, downloads, containerize and execute multiple time-dependent models. The experiment input files are:
+The experiment input files are:
 
 ::
 
     case_h
         ├── catalog.csv
         ├── config.yml
-        ├── models.yml
-        └── tests.yml
+        ├── tests.yml
+        └── models.yml
 
-* The ``models.yml`` contains the instructions to clone and build the source codes from software repositories (e.g., gitlab, Github)
+* The ``models.yml`` contains the instructions to clone and build the source codes from software repositories (e.g., gitlab, Github), and how to interface them with **floatCSEP**. Once downloaded and built, the experiment structure should look like:
 
+::
 
-Models
-------
-
-As in Example G, the complexity increases because each **Model** requires to build and execute a source code to generate forecast for multilpe time-windows. The instructions for each model are located within ``models.yml``. The URL and specific version (e.g., commit hash, tag, release) are specified as:
-
-
-    .. literalinclude:: ../../examples/case_h/models.yml
-        :lines: 1-3
-
-The model source code requires to be synchronized with the experiment interface, in such a way that is able to read the inputs (catalog and argument file) from an ``{model_path}/input`` folder and store the forecast outputs from a folder ``{model_path}/forecasts``.
-
-    .. literalinclude:: ../../examples/case_h/models.yml
-        :lines: 4-6
-
-The ``func`` parameter indicates how the model should be invoked from a terminal (e.g, a python virtual environment, docker container, etc.). The type of container is set with the parameter ``build`` (``floatcsep`` supports ``conda``, ``venv`` and ``Dockerfile``). Note that we specify to ``floatcsep`` which arguments file will be read from the module. In this case, the ETAS model uses ``args.json`` file (``floatcsep`` suports ``.json`` and ``.txt`` files). ``floatcsep`` will dynamically modify the ``start_time`` and ``end_time`` for each time window run, and statically (i.e., for all time-windows) allocate the parameters set as:
-
-    .. literalinclude:: ../../examples/case_h/models.yml
-        :lines: 7-9
-
-Same as Example G, the repositories should follow the following:
-
-
-* **Input**: The input consists in input **data** and **arguments**.
-
-    1. The **input data** is, at the least, a catalog filtered until the forecast beginning, which is automatically allocated by ``floatcsep`` in the `{model}/input` prior to each model's run. It is stored inside the model in ``csep.ascii`` format for simplicity's sake (see :doc:`pycsep:concepts/catalogs`).
-
-    .. literalinclude:: ../../examples/case_h/catalog.csv
-        :lines: 1-2
-
-    2. The **input arguments** controls how the model's source code works. The minimum arguments to run a model (which should be modified dynamically during an experiment) are the forecast ``start_date`` and ``end_date``. The experiment will access `{model}/input/args.json` and change the values of ``"start_date": "{datetime}"`` and ``"end_date": "{datetime}"`` before the model is run. Additional arguments can be set by convenience, such as ``n_sims`` (number of synthetic catalogs), ``m_c`` for the cutoff magnitude and a random ``seed`` for reproducibility.
-
-* **Output**: The model's output are the synthetic catalogs, which should be allocated in `{model}/forecasts/{filename}.csv`. The format is identically to ``csep_ascii``, but unlike in an input catalog, the ``catalog_id`` column should be modified for each synthetic catalog starting from 0. The file name follows the convention `{model_name}_{start}_{end}.csv`, where ``start`` and ``end`` folowws the `%Y-%m-%dT%H:%M:%S.%f` - ISO861 FORMAT
-
-* **Model build**: Inside the model source code, there are multiple options to build it. A standard python ``setup.cfg`` is given, which can be built inside a python ``venv`` or ``conda`` managers. This is created and built automatically by ``floatCSEP``, as long as the the model build instructions are correctly set up.
-
-* **Model run**: The model should be run with a simple command to which only ``arguments`` should be passed. For this example, is
-
-    .. code-block:: console
-
-        $ etas-run
-
-
-    as long as it internally reads the ``input/args.json`` and ``input/catalog.csv`` files.
-
+    case_h
+        ├── models
+            ├── etas
+                └── ...     (ETAS source code)
+            ├── pymock_poisson
+                └── ...     (Poisson-PyMock source code)
+            └── pymock_nb
+                └── ...     (Negative-Binomial-PyMock source code)
+        ├── catalog.csv
+        ├── config.yml
+        ├── tests.yml
+        ├── custom_report.py
+        └── models.yml
 
 Configuration
 -------------
+
+Models
+~~~~~~
+
+As in :ref:`Tutorial G<example_g>`, each **Model** requires to build and execute a source code to generate forecasts. The instructions for each model are located within ``models.yml``, which we further explain here:
+
+.. note::
+    The ``models.yml`` will define how to interface **floatCSEP** to each Model, implying that a Model should be developed, or adapted to ensure the interface requirements specified below.
+
+1. The repository URL of each model and their specific versions (e.g., commit hash, tag, release) are specified as:
+
+    .. literalinclude:: ../../examples/case_h/models.yml
+        :caption: examples/case_h/models.yml
+        :language: yaml
+        :lines: 1-3, 11-13, 21-23
+
+2. A ``path`` needs to be indicated for each model, to both download the repository contents therein and from where the source code will be executed.
+
+    .. literalinclude:: ../../examples/case_h/models.yml
+        :caption: examples/case_h/models.yml
+        :language: yaml
+        :lines: 1-4
+        :emphasize-lines: 4
+        :lineno-match:
+
+    .. important::
+     The implies that the inputs (catalog and argument file) should be read by the model from a ``{path}/input`` folder, and the forecast outputs stored into a folder ``{path}/forecasts``.
+
+2. There is some flexibility to interface **floatCSEP** with a model. For instance, a different `filepath` can be set for the argument file:
+
+    .. literalinclude:: ../../examples/case_h/models.yml
+        :caption: examples/case_h/models.yml
+        :language: yaml
+        :lines: 5
+        :lineno-match:
+
+    .. note::
+        **floatCSEP** can read `.txt`, `.json` and `.yml` format-styled argument files. In all cases, the minimum required arguments, should be formatted as:
+
+        .. code-block:: console
+
+            #.txt
+            start_date = {DATESTRING}
+            end_date = {DATESTRING}
+
+        .. code-block:: yaml
+
+            #.yml
+            start_date: {DATESTRING}
+            end_date: {DATESTRING}
+
+        .. code-block:: json
+
+            //.json
+            "start_date": "{DATESTRING}",
+            "end_date": "{DATESTRING}"
+
+        **floatcsep** will dynamically modify the ``start_date`` and ``start_date`` for each time window run, and any extra arguments will just be added for all time-windows.
+
+4. The ``func`` entry indicates how the models are invoked from a shell terminal.
+
+    .. literalinclude:: ../../examples/case_h/models.yml
+        :caption: examples/case_h/models.yml
+        :language: yaml
+        :lines: 1,6,11,15,21,25
+
+    .. important::
+        Please refer to :ref:`Tutorial G<example_g>` for example of how to set up ``func`` for the model and interface it to **floatCSEP**.
+
+5. A prefix for the resulting forecast filepaths can be specified beforehand for each model. Without specifying this, the default is ``{model_name}`` (e.g., `etas`, `Poisson Mock`, `Negbinom Mock`).
+
+    .. literalinclude:: ../../examples/case_h/models.yml
+        :caption: examples/case_h/models.yml
+        :language: yaml
+        :lines: 21, 26
+
+    The experiment will read the forecasts as:
+
+    .. code-block::
+
+        {model_path}/{forecasts}/{prefix}_{start}_{end}.csv
+
+    where ``start`` and ``end`` follow either the ``%Y-%m-%dT%H:%M:%S.%f`` - ISO861 FORMAT, or the short date version ``%Y-%m-%d`` if the windows are set by midnight.
+
+6. Additional function arguments can be passed to the model with the entry ``func_kwargs``. We perhaps noted that both Poisson Mock and Negbinom Mock use the same source code. With ``func_kwargs`` a different subclass can be defined for the same source code (in this case, a Negative-Binomial number distribution instead of Poisson).
+
+    .. literalinclude:: ../../examples/case_h/models.yml
+        :caption: examples/case_h/models.yml
+        :language: yaml
+        :lines: 11,17-20,21,27-31
 
 
 Time
@@ -89,13 +151,14 @@ Time
     The configuration is identical to time-independent models, with the exception that now a ``horizon`` can be defined instead of ``intervals``, which is the forecast time-window length. The experiment's class should now be explicited as ``exp_class: td``
 
     .. literalinclude:: ../../examples/case_h/config.yml
-       :language: yaml
-       :lines: 3-7
+        :caption: examples/case_h/config.yml
+        :language: yaml
+        :lines: 3-7
 
 Catalog
 ~~~~~~~
 
-    The catalog was obtained ``previous to the experiment`` using ``query_bsi``, but it was filtered from 2006 onwards, so it has enough data for the model calibration.
+    The catalog was obtained `previous to the experiment` using ``query_bsi``, but it was filtered from 2006 onwards, so it has enough data for the model calibration.
 
 
 Tests
@@ -105,7 +168,8 @@ Tests
 
 
     .. literalinclude:: ../../examples/case_h/tests.yml
-       :language: yaml
+        :caption: examples/case_h/tests.yml
+        :language: yaml
 
     .. note::
         It is possible to assign two plotting functions to a test, whose ``plot_args`` and ``plot_kwargs`` can be placed indented beneath
@@ -117,8 +181,9 @@ Custom Post-Process
     A custom reporting function can be set within the ``postprocess`` configuration to replace the :func:`~floatcsep.postprocess.reporting.generate_report`:
 
     .. literalinclude:: ../../examples/case_h/config.yml
-       :language: yaml
-       :lines: 22-23
+        :caption: examples/case_h/config.yml
+        :language: yaml
+        :lines: 22-23
 
     This option provides `hook` for a python script and a function within as:
 
