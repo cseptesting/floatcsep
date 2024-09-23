@@ -1,12 +1,13 @@
 Installation
 ============
 
-    .. note::
-
-        This application uses ``python >= 3.8``
-
 Installing the latest version
 -----------------------------
+
+    .. important::
+
+        This application uses ``python >= 3.9``
+
 
 Using ``conda``
 ~~~~~~~~~~~~~~~

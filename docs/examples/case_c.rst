@@ -1,3 +1,5 @@
+.. _example_c:
+
 C - Multiple Time Windows
 =========================
 

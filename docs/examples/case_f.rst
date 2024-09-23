@@ -1,5 +1,7 @@
-F - Time-Dependent Catalog-Based Model (from existing files)
-=============================================================
+.. _example_f:
+
+F - Testing Catalog-Based Forecasts
+===================================
 
 This example shows how set up an experiment with a **time-dependent** model, whose forecast files already exist.
 

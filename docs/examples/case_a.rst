@@ -1,5 +1,7 @@
-A - Simple Model and Catalog
-============================
+.. _example_a:
+
+A - Testing a Simple Model
+==========================
 
 The following example shows the definition of a testing experiment of a single **time-independent** forecast against a catalog.
 

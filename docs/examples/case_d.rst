@@ -1,3 +1,5 @@
+.. _example_d:
+
 D - Catalog Queries and Model Repositories
 ==========================================
 

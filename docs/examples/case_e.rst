@@ -1,3 +1,5 @@
+.. _example_e:
+
 E - A Realistic Time-independent Experiment
 ===========================================
 

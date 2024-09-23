@@ -1,7 +1,7 @@
 .. _example_g:
 
-G - Time-Dependent, Catalog-Based Model (from Source Code)
-==========================================================
+G - A Time-Dependent Experiment
+===============================
 
 Here, we set up a time-dependent model from its **source code** for an experiment.
 

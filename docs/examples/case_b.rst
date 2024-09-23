@@ -1,3 +1,5 @@
+.. _example_b:
+
 B - Multiple Models and Tests
 =============================
 
