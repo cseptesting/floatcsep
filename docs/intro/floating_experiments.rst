@@ -22,34 +22,3 @@ This is an application to deploy reproducible and prospective experiments of ear
     * Produce human-readable results and figures.
     * Reproduce, reuse, and share forecasting experiments.
 
-Collaborators
--------------
-
-    * Pablo Iturrieta, GFZ Potsdam (pciturri@gfz-potsdam.de)
-
-    * William Savran, UNR
-
-    * Fabio Silva, Southern California Earthquake Center
-
-    * Khawaja Asim, GFZ Potsdam
-
-    * Jose Bayona, University of Bristol
-
-    * Leila Mizrahi, ETH
-
-    * Kirsty Bayliss, GEM
-
-    * Francesco Serafini, University of Edinburgh
-
-    * Marcus Hermann, University of Naples ‘Frederico II’
-
-    * Max Werner, University of Bristol
-
-    * Danijel Schorlemmner, GFZ Potsdam
-
-    * Philip Maechling, Southern California Earthquake Center
-
-
-
-
-

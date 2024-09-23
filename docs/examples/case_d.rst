@@ -1,7 +1,7 @@
 .. _example_d:
 
-D - Catalog Queries and Model Repositories
-==========================================
+D - Catalog and Model Queries
+=============================
 
 The following example shows an experiment whose forecasts are **retrieved from a repository** (Zenodo - https://zenodo.org) and the testing **catalog** from an authoritative source **web service** (namely the gCMT catalog from the International Seismological Centre - http://www.isc.ac.uk).
 

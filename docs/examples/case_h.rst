@@ -1,7 +1,7 @@
 .. _example_h:
 
-H - Multiple Time-Dependent Models
-==================================
+H - A time-dependent experiment
+===============================
 
 Here, we run an experiment that access, containerize and execute multiple **time-dependent models**, and then proceeds to evaluate the forecasts once they are created.
 

@@ -1,4 +1,4 @@
-Experiment configuration
+Experiment Configuration
 ========================
 
 In progress

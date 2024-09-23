@@ -1,7 +1,7 @@
 .. _example_g:
 
-G - A Time-Dependent Experiment
-===============================
+G - Testing a Time-Dependent Model
+==================================
 
 Here, we set up a time-dependent model from its **source code** for an experiment.
 

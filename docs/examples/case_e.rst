@@ -1,7 +1,7 @@
 .. _example_e:
 
-E - A Realistic Time-independent Experiment
-===========================================
+E - A Time-Independent Experiment
+=================================
 
 This example shows how to run a realistic testing experiment (based on https://doi.org/10.4401/ag-4844) while summarizing the concepts from the previous examples.
 

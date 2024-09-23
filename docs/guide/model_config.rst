@@ -1,4 +1,4 @@
-Models configuration
+Models Configuration
 ====================
 
 TBI

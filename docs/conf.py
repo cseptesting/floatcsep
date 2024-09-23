@@ -29,6 +29,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
+    "sphinx_copybutton",
 ]
 
 # language = 'en'
@@ -65,3 +66,19 @@ html_theme_options = {
 }
 html_logo = "_static/floatcsep_logo.svg"
 todo_include_todos = False
+
+copybutton_prompt_text = "$ "  # Text to ignore when copying (for shell commands)
+copybutton_only_copy_prompt_lines = False
+
+
+rst_epilog = """
+.. raw:: html
+
+    <hr />
+    <div style="text-align: center;">
+        <a href="https://github.com/cseptesting/floatcsep">GitHub</a> |
+        <a href="https://cseptesting.org">CSEP Website</a> |
+        <a href="https://github.com/sceccode/pycsep">pyCSEP</a> |
+       <a href="https://floatcsep.readthedocs.io/_/downloads/en/latest/pdf/">Download PDF</a>
+    </div>
+"""
