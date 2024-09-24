@@ -1,4 +1,4 @@
-.. _example_d:
+.. _case_d:
 
 D - Catalog and Model Queries
 =============================
@@ -11,7 +11,7 @@ The following example shows an experiment whose forecasts are **retrieved from a
 
 .. admonition:: **TL; DR**
 
-    In a terminal, navigate to ``floatcsep/examples/case_d`` and type:
+    In a terminal, navigate to ``floatcsep/tutorials/case_d`` and type:
 
     .. code-block:: console
 
@@ -26,7 +26,7 @@ The following example shows an experiment whose forecasts are **retrieved from a
 Experiment Components
 ---------------------
 
-The source code can be found in the ``examples/case_d`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/examples/case_d>`_. The **initial** input structure of the experiment is:
+The source code can be found in the ``tutorials/case_d`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_d>`_. The **initial** input structure of the experiment is:
 
 ::
 
@@ -65,8 +65,8 @@ Catalog
 
     The ``catalog`` inset from ``config.yml`` now makes reference to a catalog query function, in this case :func:`~pycsep.query_gcmt`.
 
-    .. literalinclude:: ../../examples/case_d/config.yml
-        :caption: examples/case_d/config.yml
+    .. literalinclude:: ../../tutorials/case_d/config.yml
+        :caption: tutorials/case_d/config.yml
         :language: yaml
         :lines: 14-14
 
@@ -80,8 +80,8 @@ Models
 ~~~~~~
     The model configuration is set in ``models.yml``.
 
-    .. literalinclude:: ../../examples/case_d/models.yml
-        :caption: examples/case_d/models.yml
+    .. literalinclude:: ../../tutorials/case_d/models.yml
+        :caption: tutorials/case_d/models.yml
         :language: yaml
 
     * The option ``zenodo_id`` makes reference to the zenodo **record id**. The model ``team`` is found in https://zenodo.org/record/6289795, whereas the model ``wheel`` in https://zenodo.org/record/6255575.
@@ -104,7 +104,7 @@ Models
 Running the experiment
 ----------------------
 
-    The experiment can be run by simply navigating to the ``examples/case_d`` folder in the terminal and typing.
+    The experiment can be run by simply navigating to the ``tutorials/case_d`` folder in the terminal and typing.
 
     .. code-block:: console
 

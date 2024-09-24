@@ -1,4 +1,4 @@
-.. _example_c:
+.. _case_c:
 
 C - Multiple Time Windows
 =========================
@@ -9,7 +9,7 @@ The following example shows an experiment with **multiple time windows**.
 
 .. admonition:: **TL; DR**
 
-    In a terminal, navigate to ``floatcsep/examples/case_c`` and type:
+    In a terminal, navigate to ``floatcsep/tutorials/case_c`` and type:
 
     .. code-block:: console
 
@@ -25,7 +25,7 @@ The following example shows an experiment with **multiple time windows**.
 Experiment Components
 ---------------------
 
-The source code can be found in the ``examples/case_c`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/examples/case_c>`_. The input structure of the experiment is:
+The source code can be found in the ``tutorials/case_c`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_c>`_. The input structure of the experiment is:
 
 ::
 
@@ -49,8 +49,8 @@ Time
 
     The time configuration now sets a sequence of time intervals between the start and end dates.
 
-    .. literalinclude:: ../../examples/case_c/config.yml
-        :caption: examples/case_c/config.yml
+    .. literalinclude:: ../../tutorials/case_c/config.yml
+        :caption: tutorials/case_c/config.yml
         :language: yaml
         :lines: 3-7
 
@@ -66,9 +66,9 @@ Evaluations
 ~~~~~~~~~~~
     The experiment's evaluations are defined in ``tests.yml``, which can now include temporal evaluations (see :func:`~floatcsep.utils.helpers.sequential_likelihood`, :func:`~floatcsep.utils.helpers.sequential_information_gain`, :func:`~floatcsep.utils.helpers.plot_sequential_likelihood`).
 
-    .. literalinclude:: ../../examples/case_c/tests.yml
+    .. literalinclude:: ../../tutorials/case_c/tests.yml
         :language: yaml
-        :caption: examples/case_c/tests.yml
+        :caption: tutorials/case_c/tests.yml
 
     .. note::
 

@@ -1,4 +1,4 @@
-.. _example_g:
+.. _case_g:
 
 G - Testing a Time-Dependent Model
 ==================================
@@ -7,7 +7,7 @@ Here, we set up a time-dependent model from its **source code** for an experimen
 
 .. admonition:: **TL; DR**
 
-    In a terminal, navigate to ``floatcsep/examples/case_g`` and type:
+    In a terminal, navigate to ``floatcsep/tutorials/case_g`` and type:
 
     .. code-block:: console
 
@@ -70,8 +70,8 @@ The experiment's complexity increases from time-independent to dependent mostly 
 
     1. The **input data** is, at the very least, a catalog filtered until the forecast beginning. The catalog will be automatically allocated by ``floatcsep`` prior to each model's run (e.g., a single forecast run) in the `{model}/input` folder. It is stored in the ``csep.ascii`` format for simplicity's sake (see :doc:`pycsep:concepts/catalogs`).
 
-    .. literalinclude:: ../../examples/case_g/catalog.csv
-        :caption: examples/case_g/catalog.csv
+    .. literalinclude:: ../../tutorials/case_g/catalog.csv
+        :caption: tutorials/case_g/catalog.csv
         :lines: 1-2
 
     2. The **input arguments** controls how the model's source code works. The minimum arguments to run a model are the forecast ``start_date`` and ``end_date``, which will be modified dynamically during an experiment with multiple time-windows. The experiment system will access `{model}/input/args.txt` and change the values of ``start_date = {datetime}`` and ``end_date = {datetime}`` before the model is run. Additional arguments can be set by convenience, such as (not limited to) ``catalog`` (the input catalog name), ``n_sims`` (number of synthetic catalogs) and random ``seed`` for reproducibility.
@@ -116,8 +116,8 @@ Time
 
     The configuration is identical to time-independent models, with the exception that now a ``horizon`` can be defined instead of ``intervals``, which is the forecast time-window length. The experiment's class should now be explicited as ``exp_class: td``
 
-    .. literalinclude:: ../../examples/case_g/config.yml
-        :caption: examples/case_g/config.yml
+    .. literalinclude:: ../../tutorials/case_g/config.yml
+        :caption: tutorials/case_g/config.yml
         :language: yaml
         :lines: 3-7
 
@@ -131,8 +131,8 @@ Models
 
     Additional arguments should be passed to time-independent models.
 
-    .. literalinclude:: ../../examples/case_g/models.yml
-        :caption: examples/case_g/models.yml
+    .. literalinclude:: ../../tutorials/case_g/models.yml
+        :caption: tutorials/case_g/models.yml
         :language: yaml
         :lines: 1-7
 
@@ -146,7 +146,7 @@ Models
     4. The ``build`` option defines the style of container within which the model will be placed. Currently in **floatCSEP**, only the python module ``venv``, the package manager ``conda`` and the containerization manager ``Docker`` are currently supported.
 
     .. important::
-        For these examples, we use ``venv`` sub-environments, but we recommend ``Docker`` to set up real experiments.
+        For these tutorials, we use ``venv`` sub-environments, but we recommend ``Docker`` to set up real experiments.
 
 
 Tests
@@ -155,8 +155,8 @@ Tests
     With time-dependent models, now catalog evaluations found in :obj:`csep.core.catalog_evaluations` can be used.
 
 
-    .. literalinclude:: ../../examples/case_g/tests.yml
-        :caption: examples/case_g/tests.yml
+    .. literalinclude:: ../../tutorials/case_g/tests.yml
+        :caption: tutorials/case_g/tests.yml
         :language: yaml
 
     .. note::
@@ -168,8 +168,8 @@ Custom Post-Process
 
     Additional to the default :func:`~floatcsep.postprocess.plot_handler.plot_results`, :func:`~floatcsep.postprocess.plot_handler.plot_catalogs`, :func:`~floatcsep.postprocess.plot_handler.plot_forecasts` functions, a custom plotting function(s) can be set within the ``postprocess`` configuration
 
-    .. literalinclude:: ../../examples/case_g/config.yml
-        :caption: examples/case_g/config.yml
+    .. literalinclude:: ../../tutorials/case_g/config.yml
+        :caption: tutorials/case_g/config.yml
         :language: yaml
         :lines: 22-23
 
@@ -181,20 +181,20 @@ Custom Post-Process
 
     The requirements are that the script to be located within the same directory as the configuration file, whereas the function must receive a :class:`floatcsep.experiment.Experiment` as argument
 
-    .. literalinclude:: ../../examples/case_g/custom_plot_script.py
-        :caption: examples/case_g/custom_plot_script.py
+    .. literalinclude:: ../../tutorials/case_g/custom_plot_script.py
+        :caption: tutorials/case_g/custom_plot_script.py
         :language: python
         :lines: 6-13
 
 
 
-    In this way, the plot function can use all the :class:`~floatcsep.experiment.Experiment` attributes/methods to access catalogs, forecasts and test results. The script ``examples/case_g/custom_plot_script.py`` can also be viewed directly on `GitHub <https://github.com/cseptesting/floatcsep/blob/main/examples/case_g/custom_plot_script.py>`_, where it is exemplified how to access the experiment data in runtime.
+    In this way, the plot function can use all the :class:`~floatcsep.experiment.Experiment` attributes/methods to access catalogs, forecasts and test results. The script ``tutorials/case_g/custom_plot_script.py`` can also be viewed directly on `GitHub <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_g/custom_plot_script.py>`_, where it is exemplified how to access the experiment data in runtime.
 
 
 Running the experiment
 ----------------------
 
-    The experiment can be run by simply navigating to the ``examples/case_g`` folder in the terminal and typing.
+    The experiment can be run by simply navigating to the ``tutorials/case_g`` folder in the terminal and typing.
 
     .. code-block:: console
 

@@ -46,7 +46,7 @@ floatCSEP: Floating Experiments
    :height: 48px
 
 .. |tutorials| image:: https://img.icons8.com/nolan/64/checklist.png
-   :target: examples/case_a.html
+   :target: tutorials/case_a.html
    :height: 48px
 
 
@@ -56,14 +56,14 @@ Quickstart
 +--------------------------------------------------+-------------------------------------+
 | |start| **Get Started**                          | |tutorials| **Tutorials**           |
 |                                                  |                                     |
-| |learn1| **Forecasting Concepts**                | - :ref:`example_a`                  |
-|                                                  | - :ref:`example_b`                  |
-| |learn2| **Testing Theory**                      | - :ref:`example_c`                  |
-|                                                  | - :ref:`example_d`                  |
-| |experiment| **Floating Experiments**            | - :ref:`example_e`                  |
-|                                                  | - :ref:`example_f`                  |
-| |api| **API Reference**                          | - :ref:`example_g`                  |
-|                                                  | - :ref:`example_h`                  |
+| |learn1| **Forecasting Concepts**                | - :ref:`case_a`                     |
+|                                                  | - :ref:`case_b`                     |
+| |learn2| **Testing Theory**                      | - :ref:`case_c`                     |
+|                                                  | - :ref:`case_d`                     |
+| |experiment| **Floating Experiments**            | - :ref:`case_e`                     |
+|                                                  | - :ref:`case_f`                     |
+| |api| **API Reference**                          | - :ref:`case_g`                     |
+|                                                  | - :ref:`case_h`                     |
 +--------------------------------------------------+-------------------------------------+
 
 What is floatCSEP
@@ -84,7 +84,7 @@ Goals
 Running
 -------
 
-Start using **floatCSEP** by `installing <intro/installation.html>`_ the latest version and running the ``examples`` with simply:
+Start using **floatCSEP** by `installing <intro/installation.html>`_ the latest version and running the ``tutorials`` with simply:
 
 .. code-block::
 
@@ -146,14 +146,14 @@ Collaborators
    :maxdepth: 1
    :caption: Tutorial Experiments
 
-   examples/case_a.rst
-   examples/case_b.rst
-   examples/case_c.rst
-   examples/case_d.rst
-   examples/case_e.rst
-   examples/case_f.rst
-   examples/case_g.rst
-   examples/case_h.rst
+   tutorials/case_a.rst
+   tutorials/case_b.rst
+   tutorials/case_c.rst
+   tutorials/case_d.rst
+   tutorials/case_e.rst
+   tutorials/case_f.rst
+   tutorials/case_g.rst
+   tutorials/case_h.rst
 
 .. toctree::
    :hidden:

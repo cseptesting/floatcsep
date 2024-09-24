@@ -1,4 +1,4 @@
-.. _example_b:
+.. _case_b:
 
 B - Multiple Models and Tests
 =============================
@@ -9,7 +9,7 @@ The following example is an experiment including **multiple** time-independent f
 
 .. admonition:: **TL; DR**
 
-    In a terminal, navigate to ``floatcsep/examples/case_b`` and type:
+    In a terminal, navigate to ``floatcsep/tutorials/case_b`` and type:
 
     .. code-block:: console
 
@@ -25,7 +25,7 @@ The following example is an experiment including **multiple** time-independent f
 Experiment Components
 ---------------------
 
-The source code can be found in the ``examples/case_b`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/examples/case_b>`_. The input structure of the experiment is:
+The source code can be found in the ``tutorials/case_b`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_b>`_. The input structure of the experiment is:
 
 ::
 
@@ -53,14 +53,14 @@ Configuration
 
 In this example, the time, region and catalog specifications are written in the ``config.yml`` file.
 
-.. literalinclude:: ../../examples/case_b/config.yml
-   :caption: examples/case_b/config.yml
+.. literalinclude:: ../../tutorials/case_b/config.yml
+   :caption: tutorials/case_b/config.yml
    :language: yaml
    :lines: 3-15
 
 whereas the models' and tests' configurations are referred to external files for better readability
 
-.. literalinclude:: ../../examples/case_b/config.yml
+.. literalinclude:: ../../tutorials/case_b/config.yml
    :language: yaml
    :lines: 17-18
 
@@ -69,17 +69,17 @@ Models
 ~~~~~~
     The model configuration is now set in the ``models.yml`` file, where a list of model names specify their file paths.
 
-    .. literalinclude:: ../../examples/case_b/models.yml
-       :caption: examples/case_b/models.yml
+    .. literalinclude:: ../../tutorials/case_b/models.yml
+       :caption: tutorials/case_b/models.yml
        :language: yaml
 
 Evaluations
 ~~~~~~~~~~~
     The evaluations are defined in the ``tests.yml`` file as a list of evaluation names, with their  functions and plots (see :doc:`pycsep:concepts/evaluations`). In this example, we use the  N-, M-, S- and CL-consistency tests, along with the comparison T-test.
 
-    .. literalinclude:: ../../examples/case_b/tests.yml
+    .. literalinclude:: ../../tutorials/case_b/tests.yml
        :language: yaml
-       :caption: examples/case_b/tests.yml
+       :caption: tutorials/case_b/tests.yml
 
     .. note::
          Plotting keyword arguments can be set in the ``plot_kwargs`` option - see :func:`~csep.utils.plots.plot_poisson_consistency_test` and :func:`~csep.utils.plots.plot_comparison_test` -.
@@ -91,7 +91,7 @@ Running the experiment
 ----------------------
 
 
-The experiment can be run by simply navigating to the ``examples/case_b`` folder in the terminal an type.
+The experiment can be run by simply navigating to the ``tutorials/case_b`` folder in the terminal an type.
 
 .. code-block:: console
 

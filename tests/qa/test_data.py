@@ -10,14 +10,14 @@ class DataTest(unittest.TestCase):
     @staticmethod
     def get_runpath(case):
         return os.path.abspath(
-            os.path.join(__file__, "../../..", "examples", f"case_{case}", f"config.yml")
+            os.path.join(__file__, "../../..", "tutorials", f"case_{case}", f"config.yml")
         )
 
     @staticmethod
     def get_rerunpath(case):
         return os.path.abspath(
             os.path.join(
-                __file__, "../../..", "examples", f"case_{case}", "results", f"repr_config.yml"
+                __file__, "../../..", "tutorials", f"case_{case}", "results", f"repr_config.yml"
             )
         )
 

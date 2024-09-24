@@ -1,15 +1,15 @@
-.. _example_e:
+.. _case_e:
 
 E - A Time-Independent Experiment
 =================================
 
-This example shows how to run a realistic testing experiment (based on https://doi.org/10.4401/ag-4844) while summarizing the concepts from the previous examples.
+This example shows how to run a realistic testing experiment (based on https://doi.org/10.4401/ag-4844) while summarizing the concepts from the previous tutorials.
 
 .. currentmodule:: floatcsep
 
 .. admonition:: **TL; DR**
 
-    In a terminal, navigate to ``floatcsep/examples/case_e`` and type:
+    In a terminal, navigate to ``floatcsep/tutorials/case_e`` and type:
 
     .. code-block:: console
 
@@ -25,7 +25,7 @@ This example shows how to run a realistic testing experiment (based on https://d
 Experiment Components
 ---------------------
 
-The source code can be found in the ``examples/case_e`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/examples/case_e>`_. The input structure of the experiment is:
+The source code can be found in the ``tutorials/case_e`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_e>`_. The input structure of the experiment is:
 
 ::
 
@@ -51,8 +51,8 @@ Time
 
     The time configuration is manifested in the ``time-config`` inset.
 
-    .. literalinclude:: ../../examples/case_e/config.yml
-        :caption: examples/case_e/config.yml
+    .. literalinclude:: ../../tutorials/case_e/config.yml
+        :caption: tutorials/case_e/config.yml
         :language: yaml
         :lines: 3-7
 
@@ -61,8 +61,8 @@ Region
 
     The testing region is the official Italy CSEP Region obtained from :obj:`csep.core.regions.italy_csep_region`.
 
-    .. literalinclude:: ../../examples/case_e/config.yml
-        :caption: examples/case_e/config.yml
+    .. literalinclude:: ../../tutorials/case_e/config.yml
+        :caption: tutorials/case_e/config.yml
         :language: yaml
         :lines: 9-15
 
@@ -72,8 +72,8 @@ Catalog
 
     The catalog is obtained from an authoritative source, namely the Bollettino Sismico Italiano (http://terremoti.ingv.it/en/bsi ), using the function :func:`csep.query_bsi`
 
-    .. literalinclude:: ../../examples/case_e/config.yml
-        :caption: examples/case_e/config.yml
+    .. literalinclude:: ../../tutorials/case_e/config.yml
+        :caption: tutorials/case_e/config.yml
         :language: yaml
         :lines: 17-17
 
@@ -81,8 +81,8 @@ Models
 ~~~~~~
     The models are set in ``models.yml``. For simplicity, there are only three of the nineteen models originally submitted to the Italy Experiment.
 
-    .. literalinclude:: ../../examples/case_e/models.yml
-        :caption: examples/case_e/models.yml
+    .. literalinclude:: ../../tutorials/case_e/models.yml
+        :caption: tutorials/case_e/models.yml
         :language: yaml
 
     The ``.xml`` format is automatically detected and parsed by ``floatcsep`` readers.
@@ -100,17 +100,17 @@ Post-Process
 
     Additional options for post-processing can set using the ``postprocess`` option. Here, we customize the forecasts plotting with:
 
-    .. literalinclude:: ../../examples/case_e/config.yml
+    .. literalinclude:: ../../tutorials/case_e/config.yml
        :language: yaml
        :lines: 21-34
 
-    The forecasts are plotted and stored in ``examples/case_e/results/{timewindow}/forecasts/``. See :func:`~csep.utils.plots.plot_spatial_dataset` for forecast plotting options and :func:`~csep.utils.plots.plot_catalog` for the catalog placed on top of those plots.
+    The forecasts are plotted and stored in ``tutorials/case_e/results/{timewindow}/forecasts/``. See :func:`~csep.utils.plots.plot_spatial_dataset` for forecast plotting options and :func:`~csep.utils.plots.plot_catalog` for the catalog placed on top of those plots.
 
 
 Running the experiment
 ----------------------
 
-    The experiment can be run by navigating to the ``examples/case_e`` folder in the terminal and typing.
+    The experiment can be run by navigating to the ``tutorials/case_e`` folder in the terminal and typing.
 
     .. code-block:: console
 

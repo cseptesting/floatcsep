@@ -12,15 +12,12 @@ Installing the latest version
 Using ``conda``
 ~~~~~~~~~~~~~~~
 
-The core of `floatCSEP` is built around the `pyCSEP` package (https://github.com/sceccode/pycsep), which itself contains the core dependencies.
+To install **floatCSEP**, first a ``conda`` manager should be installed (https://conda.io). Checkout `Anaconda`, `Miniconda` or `Miniforge` (recommended). Once installed, create an environment with:
 
-The simplest way to install `floatCSEP`, is by creating a `conda` environment (https://conda.io - checkout Anaconda or Miniconda) and install `pyCSEP` from `conda-forge`
+    .. code-block:: sh
 
-    .. code-block:: console
-
-        $ conda env create -n $NAME
-        $ conda activate $NAME
-        $ conda install -c conda-forge pycsep
+        $ conda env create -n csep_env
+        $ conda activate csep_env
 
 Then, clone and install the floatCSEP source code using ``pip``
 
@@ -30,27 +27,50 @@ Then, clone and install the floatCSEP source code using ``pip``
         cd floatcsep
         pip install .
 
-Using ``apt`` and ``pip``
-~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To install from ``pip``, we require to install the binary dependencies of ``pyCSEP`` (see `Installing pyCSEP <https://docs.cseptesting.org/getting_started/installing.html>`_}
+Using ``pip``
+~~~~~~~~~~~~~
 
-Then, install the ``pycsep`` latest version
-
-    .. code-block::
-
-        git clone https://github.com/SCECcode/pycsep
-        cd pycsep
-        python -m virtualenv venv
-        source venv/bin/activate
-        pip install -e .[all]
-
-and the ``floatcsep`` latest version
+To install using the ``pip`` manager, we require to install the binary dependencies of **pyCSEP** (see `Installing pyCSEP <https://docs.cseptesting.org/getting_started/installing.html>`_}. The **floatcsep** latest version then can be installed as:
 
     .. code-block::
 
         cd ..
         git clone https://github.com/cseptesting/floatcsep
         cd floatcsep
-        pip install .[all]
+        pip install .
 
+Installing the stable version
+-----------------------------
+
+
+Using ``conda``
+~~~~~~~~~~~~~~~
+
+To install **floatCSEP**, first a ``conda`` manager should be installed (https://conda.io). Checkout `Anaconda`, `Miniconda` or `Miniforge` (recommended). Once installed, create an environment with:
+
+    .. code-block:: sh
+
+        $ conda env create -n csep_env
+        $ conda activate csep_env
+
+Then, clone and install the floatCSEP source code using ``pip``
+
+    .. code-block:: console
+
+        git clone https://github.com/cseptesting/floatcsep
+        cd floatcsep
+        pip install .
+
+
+Using ``pip``
+~~~~~~~~~~~~~
+
+To install using the ``pip`` manager, we require to install the binary dependencies of **pyCSEP** (see `Installing pyCSEP <https://docs.cseptesting.org/getting_started/installing.html>`_}. The **floatcsep** latest version can then be installed as:
+
+    .. code-block::
+
+        cd ..
+        git clone https://github.com/cseptesting/floatcsep
+        cd floatcsep
+        pip install .

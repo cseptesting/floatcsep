@@ -1,4 +1,4 @@
-.. _example_f:
+.. _case_f:
 
 F - Testing Catalog-Based Forecasts
 ===================================
@@ -9,7 +9,7 @@ This example shows how set up an experiment with a **time-dependent** model, who
 
 .. admonition:: **TL; DR**
 
-    In a terminal, navigate to ``floatcsep/examples/case_f`` and type:
+    In a terminal, navigate to ``floatcsep/tutorials/case_f`` and type:
 
     .. code-block:: console
 
@@ -25,7 +25,7 @@ Experiment Components
 ---------------------
 
 
-The source files can be found in the ``examples/case_e`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/examples/case_e>`_. The experiment structure is as follows:
+The source files can be found in the ``tutorials/case_e`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_e>`_. The experiment structure is as follows:
 
 ::
 
@@ -43,13 +43,13 @@ The source files can be found in the ``examples/case_e`` folder or in  `GitHub <
 * The model to be evaluated (``etas``) is a collection of daily forecasts from ``2016-11-14`` until ``2016-11-21``.
 
 .. important::
-    The forecasts must be located in a folder ``forecasts`` inside the model folder. This is meant for consistency with models based on source codes (see subsequent examples).
+    The forecasts must be located in a folder ``forecasts`` inside the model folder. This is meant for consistency with models based on source codes (see subsequent tutorials).
 
 
 Model
 -----
 
-The time-dependency of a model is manifested here by the provision of different forecasts, i.e., statistical descriptions of seismicity, for different time-windows. In this example, the forecasts were created from an external model https://github.com/lmizrahi/etas (`doi:10.1785/0220200231 <https://doi.org/10.1785/0220200231>`_), with which the experiment has no interface. This means that we use **only the forecast files** and no source code. We leave the handling of a model source code for subsequent examples.
+The time-dependency of a model is manifested here by the provision of different forecasts, i.e., statistical descriptions of seismicity, for different time-windows. In this example, the forecasts were created from an external model https://github.com/lmizrahi/etas (`doi:10.1785/0220200231 <https://doi.org/10.1785/0220200231>`_), with which the experiment has no interface. This means that we use **only the forecast files** and no source code. We leave the handling of a model source code for subsequent tutorials.
 
 
 
@@ -62,8 +62,8 @@ Time
 
     The configuration is analogous to time-independent models with multiple time-windows (e.g., case C) with the exception that a ``horizon`` could be defined instead of ``intervals``, which is the forecast time-window length. The experiment's class should now be explicited as ``exp_class: td``.
 
-    .. literalinclude:: ../../examples/case_f/config.yml
-        :caption: examples/case_f/config.yml
+    .. literalinclude:: ../../tutorials/case_f/config.yml
+        :caption: tutorials/case_f/config.yml
         :language: yaml
         :lines: 3-7
 
@@ -84,8 +84,8 @@ Models
 
     Some additional arguments should be passed to a **time-dependent** model, such as its class ('td' for time-dependent) and the number of simulations.
 
-    .. literalinclude:: ../../examples/case_f/models.yml
-        :caption: examples/case_f/config.yml
+    .. literalinclude:: ../../tutorials/case_f/models.yml
+        :caption: tutorials/case_f/config.yml
         :language: yaml
         :lines: 1-4
 
@@ -101,7 +101,7 @@ Tests
     With time-dependent models, now catalog evaluations found in :obj:`csep.core.catalog_evaluations` can be used.
 
 
-    .. literalinclude:: ../../examples/case_f/tests.yml
+    .. literalinclude:: ../../tutorials/case_f/tests.yml
        :language: yaml
 
     .. note::
@@ -111,7 +111,7 @@ Tests
 Running the experiment
 ----------------------
 
-    The experiment can be run by simply navigating to the ``examples/case_h`` folder in the terminal and typing.
+    The experiment can be run by simply navigating to the ``tutorials/case_h`` folder in the terminal and typing.
 
     .. code-block:: console
 

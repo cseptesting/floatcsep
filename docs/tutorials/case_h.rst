@@ -1,4 +1,4 @@
-.. _example_h:
+.. _case_h:
 
 H - A time-dependent experiment
 ===============================
@@ -7,7 +7,7 @@ Here, we run an experiment that access, containerize and execute multiple **time
 
 .. admonition:: **TL; DR**
 
-    In a terminal, navigate to ``floatcsep/examples/case_h`` and type:
+    In a terminal, navigate to ``floatcsep/tutorials/case_h`` and type:
 
     .. code-block:: console
 
@@ -59,22 +59,22 @@ Configuration
 Models
 ~~~~~~
 
-As in :ref:`Tutorial G<example_g>`, each **Model** requires to build and execute a source code to generate forecasts. The instructions for each model are located within ``models.yml``, which we further explain here:
+As in :ref:`Tutorial G<case_g>`, each **Model** requires to build and execute a source code to generate forecasts. The instructions for each model are located within ``models.yml``, which we further explain here:
 
 .. note::
     The ``models.yml`` will define how to interface **floatCSEP** to each Model, implying that a Model should be developed, or adapted to ensure the interface requirements specified below.
 
 1. The repository URL of each model and their specific versions (e.g., commit hash, tag, release) are specified as:
 
-    .. literalinclude:: ../../examples/case_h/models.yml
-        :caption: examples/case_h/models.yml
+    .. literalinclude:: ../../tutorials/case_h/models.yml
+        :caption: tutorials/case_h/models.yml
         :language: yaml
         :lines: 1-3, 11-13, 21-23
 
 2. A ``path`` needs to be indicated for each model, to both download the repository contents therein and from where the source code will be executed.
 
-    .. literalinclude:: ../../examples/case_h/models.yml
-        :caption: examples/case_h/models.yml
+    .. literalinclude:: ../../tutorials/case_h/models.yml
+        :caption: tutorials/case_h/models.yml
         :language: yaml
         :lines: 1-4
         :emphasize-lines: 4
@@ -85,8 +85,8 @@ As in :ref:`Tutorial G<example_g>`, each **Model** requires to build and execute
 
 2. There is some flexibility to interface **floatCSEP** with a model. For instance, a different `filepath` can be set for the argument file:
 
-    .. literalinclude:: ../../examples/case_h/models.yml
-        :caption: examples/case_h/models.yml
+    .. literalinclude:: ../../tutorials/case_h/models.yml
+        :caption: tutorials/case_h/models.yml
         :language: yaml
         :lines: 5
         :lineno-match:
@@ -116,18 +116,18 @@ As in :ref:`Tutorial G<example_g>`, each **Model** requires to build and execute
 
 4. The ``func`` entry indicates how the models are invoked from a shell terminal.
 
-    .. literalinclude:: ../../examples/case_h/models.yml
-        :caption: examples/case_h/models.yml
+    .. literalinclude:: ../../tutorials/case_h/models.yml
+        :caption: tutorials/case_h/models.yml
         :language: yaml
         :lines: 1,6,11,15,21,25
 
     .. important::
-        Please refer to :ref:`Tutorial G<example_g>` for example of how to set up ``func`` for the model and interface it to **floatCSEP**.
+        Please refer to :ref:`Tutorial G<case_g>` for example of how to set up ``func`` for the model and interface it to **floatCSEP**.
 
 5. A prefix for the resulting forecast filepaths can be specified beforehand for each model. Without specifying this, the default is ``{model_name}`` (e.g., `etas`, `Poisson Mock`, `Negbinom Mock`).
 
-    .. literalinclude:: ../../examples/case_h/models.yml
-        :caption: examples/case_h/models.yml
+    .. literalinclude:: ../../tutorials/case_h/models.yml
+        :caption: tutorials/case_h/models.yml
         :language: yaml
         :lines: 21, 26
 
@@ -141,8 +141,8 @@ As in :ref:`Tutorial G<example_g>`, each **Model** requires to build and execute
 
 6. Additional function arguments can be passed to the model with the entry ``func_kwargs``. We perhaps noted that both Poisson Mock and Negbinom Mock use the same source code. With ``func_kwargs`` a different subclass can be defined for the same source code (in this case, a Negative-Binomial number distribution instead of Poisson).
 
-    .. literalinclude:: ../../examples/case_h/models.yml
-        :caption: examples/case_h/models.yml
+    .. literalinclude:: ../../tutorials/case_h/models.yml
+        :caption: tutorials/case_h/models.yml
         :language: yaml
         :lines: 11,17-20,21,27-31
 
@@ -152,8 +152,8 @@ Time
 
     The configuration is identical to time-independent models, with the exception that now a ``horizon`` can be defined instead of ``intervals``, which is the forecast time-window length. The experiment's class should now be explicited as ``exp_class: td``
 
-    .. literalinclude:: ../../examples/case_h/config.yml
-        :caption: examples/case_h/config.yml
+    .. literalinclude:: ../../tutorials/case_h/config.yml
+        :caption: tutorials/case_h/config.yml
         :language: yaml
         :lines: 3-7
 
@@ -169,8 +169,8 @@ Tests
     With time-dependent models, now catalog evaluations found in :obj:`csep.core.catalog_evaluations` can be used.
 
 
-    .. literalinclude:: ../../examples/case_h/tests.yml
-        :caption: examples/case_h/tests.yml
+    .. literalinclude:: ../../tutorials/case_h/tests.yml
+        :caption: tutorials/case_h/tests.yml
         :language: yaml
 
     .. note::
@@ -182,8 +182,8 @@ Custom Post-Process
 
     A custom reporting function can be set within the ``postprocess`` configuration to replace the :func:`~floatcsep.postprocess.reporting.generate_report`:
 
-    .. literalinclude:: ../../examples/case_h/config.yml
-        :caption: examples/case_h/config.yml
+    .. literalinclude:: ../../tutorials/case_h/config.yml
+        :caption: tutorials/case_h/config.yml
         :language: yaml
         :lines: 22-23
 
@@ -195,17 +195,17 @@ Custom Post-Process
 
     The requirements are that the script to be located within the same directory as the configuration file, whereas the function must receive a :class:`floatcsep.experiment.Experiment` as argument
 
-    .. literalinclude:: ../../examples/case_h/custom_report.py
+    .. literalinclude:: ../../tutorials/case_h/custom_report.py
        :language: yaml
        :lines: 5-11
 
-    In this way, the report function use all the :class:`~floatcsep.experiment.Experiment` attributes/methods to access catalogs, forecasts and test results. The script ``examples/case_h/custom_report.py`` can also be viewed directly on `GitHub <https://github.com/cseptesting/floatcsep/blob/main/examples/case_h/custom_report.py>`_, where it is exemplified how to access the experiment artifacts.
+    In this way, the report function use all the :class:`~floatcsep.experiment.Experiment` attributes/methods to access catalogs, forecasts and test results. The script ``tutorials/case_h/custom_report.py`` can also be viewed directly on `GitHub <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_h/custom_report.py>`_, where it is exemplified how to access the experiment artifacts.
 
 
 Running the experiment
 ----------------------
 
-    The experiment can be run by simply navigating to the ``examples/case_h`` folder in the terminal and typing.
+    The experiment can be run by simply navigating to the ``tutorials/case_h`` folder in the terminal and typing.
 
     .. code-block:: console
 
