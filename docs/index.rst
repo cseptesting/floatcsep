@@ -60,7 +60,7 @@ Quickstart
 |                                                  | - :ref:`case_b`                     |
 | |learn2| **Testing Theory**                      | - :ref:`case_c`                     |
 |                                                  | - :ref:`case_d`                     |
-| |experiment| **Floating Experiments**            | - :ref:`case_e`                     |
+| |experiment| **Experiment Concepts**             | - :ref:`case_e`                     |
 |                                                  | - :ref:`case_f`                     |
 | |api| **API Reference**                          | - :ref:`case_g`                     |
 |                                                  | - :ref:`case_h`                     |
@@ -78,7 +78,6 @@ Goals
 
     * Set up a testing experiment for your forecasts using authoritative data sources/benchmarks.
     * Encapsulate the complete experiment's definition and rules in a couple of lines.
-    * Produce human-readable results and figures.
     * Reproduce, reuse, and share forecasting experiments.
 
 Running
@@ -137,8 +136,7 @@ Collaborators
    :caption: Get Started
 
    intro/installation.rst
-   intro/forecasting_experiments.rst
-   intro/floating_experiments.rst
+   intro/concepts.rst
 
 
 .. toctree::
