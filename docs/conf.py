@@ -60,7 +60,8 @@ html_static_path = ["_static"]
 html_theme_options = {
     "display_version": True,
     "prev_next_buttons_location": "both",
-    "collapse_navigation": False,
+    "sticky_navigation": True,
+    "collapse_navigation": True,
     "style_nav_header_background": "#343131ff",
     "logo_only": True,
 }
@@ -79,6 +80,6 @@ rst_epilog = """
         <a href="https://github.com/cseptesting/floatcsep">GitHub</a> |
         <a href="https://cseptesting.org">CSEP Website</a> |
         <a href="https://github.com/sceccode/pycsep">pyCSEP</a> |
-       <a href="https://floatcsep.readthedocs.io/_/downloads/en/latest/pdf/">Download PDF</a>
+        <a href="https://floatcsep.readthedocs.io/_/downloads/en/latest/pdf/">Download PDF</a>
     </div>
 """

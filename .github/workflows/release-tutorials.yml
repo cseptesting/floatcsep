@@ -1,0 +1,24 @@
+name: Release Tutorials
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  upload-tutorials:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v3
+
+      - name: Zip the tutorials folder
+        run: |
+          zip -r tutorials.zip tutorials/
+
+      - name: Upload the tutorials.zip to the release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: tutorials.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

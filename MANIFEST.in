@@ -2,6 +2,7 @@ include README.md
 include CODE_OF_CONDUCT.md
 include requirements.txt
 include requirements_dev.txt
+include environment.yml
 include setup.py
 include setup.cfg
 include pyproject.toml
@@ -14,7 +15,6 @@ graft tests
 graft docs
 prune docs/_build
 prune docs/referenced/generated
-prune docs/tutorials/
 
 global-exclude .git*
 global-exclude *.pyc
