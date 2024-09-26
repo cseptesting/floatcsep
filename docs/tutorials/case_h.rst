@@ -1,6 +1,6 @@
 .. _case_h:
 
-H - A time-dependent experiment
+H - A Time-Dependent Experiment
 ===============================
 
 Here, we run an experiment that access, containerize and execute multiple **time-dependent models**, and then proceeds to evaluate the forecasts once they are created.

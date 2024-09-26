@@ -1,7 +1,7 @@
 ===============================
 floatCSEP: Floating Experiments
 ===============================
-*Testing earthquake forecasts made simple.*
+*Earthquake forecasting experiments made simple.*
 
 .. image:: https://img.shields.io/badge/GitHub-Repository-blue?logo=github
    :target: https://github.com/cseptesting/floatcsep
@@ -152,12 +152,6 @@ Collaborators
    tutorials/case_g.rst
    tutorials/case_h.rst
 
-.. toctree::
-   :hidden:
-   :maxdepth: 0
-   :caption: Help & Reference
-
-   reference/api_reference
 
 .. toctree::
    :maxdepth: 2
@@ -168,6 +162,17 @@ Collaborators
    guide/model_config.rst
    guide/evaluation_config.rst
    guide/postprocess_config.rst
+   guide/run_experiment.rst
+   guide/reproduce_experiment.rst
+
+
+.. toctree::
+   :hidden:
+   :maxdepth: 0
+   :caption: Help & Reference
+
+   reference/api_reference
+
 
 .. toctree::
    :hidden:

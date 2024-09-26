@@ -1,16 +1,18 @@
+.. _experiment_config:
+
 Experiment Configuration
 ========================
 
-**floatCSEP** provides a standardized workflow for forecasting experiments, whose instructions can be set in a configuration file. Here, we need to define the Experiments' temporal settings, geographic region, seismic catalogs, forecasting models, evaluation tests and post-process.
+**floatCSEP** provides a standardized workflow for forecasting experiments, the instructions of which can be set in a configuration file. Here, we need to define the Experiments' temporal settings, geographic region, seismic catalogs, forecasting models, evaluation tests and any post-process options.
 
 
 Configuration Structure
 -----------------------
-Configuration files are written in ``YAML`` format and is divided into different aspects of the Experiment setup:
+Configuration files are written in ``YAML`` format and are divided into different aspects of the experiment setup:
 
-1. **Experiment Metadata**: Experiment's information such as its ``name``, ``authors``, ``doi``, ``URL``, etc.
+1. **Metadata**: Experiment's information such as its ``name``, ``authors``, ``doi``, ``URL``, etc.
 2. **Temporal Configuration** (``time_config``): Temporal characteristics of the experiment, such as the start and end dates, experiment class (time-independent or time-dependent), the testing intervals, etc.
-3. **Spatial and Magnitude Configuration** (``region_config``): Describes testing region, such as its geographic bounds, magnitude ranges, and depth ranges.
+3. **Spatial and Magnitude Configuration** (``region_config``): Describes the testing region, such as its geographic bounds, magnitude ranges, and depth ranges.
 4. **Seismic Catalog** (``catalog``): Defines the seismicity data source to test the models. It can either link to a seismic network API, or an existing file in the system.
 5. **Models** (``models``): Configuration of forecasting models. It can direct to an additional configuration file with ``model_config`` for readability. See :ref:`model_config`.
 6. **Evaluation Tests** (``tests``): Configuration of the statistical tests to evaluate the models. It can direct to an additional configuration file with ``test_config`` for readability. See :ref:`evaluation_config`.
@@ -18,7 +20,7 @@ Configuration files are written in ``YAML`` format and is divided into different
 
 .. note::
 
-    YAML (Yet Another Markup Language) is a human-readable format used for configuration files. It uses **key: value** pairs to define settings, and indentation to represent nested structures. Lists are denoted by hyphens (`-`).
+    `YAML` (Yet Another Markup Language) is a human-readable format used for configuration files. It uses **key: value** pairs to define settings, and indentation to represent nested structures. Lists are denoted by hyphens (`-`).
 
 
 **Example Basic Configuration** (``config.yml``):
@@ -74,7 +76,7 @@ Any non-parsed parameter (e.g., not specified in the documentation) will be stor
 Temporal Definition
 -------------------
 
-Configuring the temporal definition of the experiment is indicated with the ``time_config`` option, followed by an indented block of admissible parameters. The purpose of this configuration section is to set a testing **time-window**, or a sequence of **time-windows**. Each time-window is then defined by ``datetime`` strings representing its lower and upper edges.
+Configuring the experiment temporal definition is indicated with the ``time_config`` option, followed by an indented block of admissible parameters. The purpose of this configuration section is to set a testing **time-window**, or a sequence of **time-windows**. Each time-window is defined by two ``datetime`` strings representing its lower and upper edges.
 
 Time-windows can be defined from different combination of the following parameters:
 
@@ -86,13 +88,13 @@ Time-windows can be defined from different combination of the following paramete
    * - **end_date**
      - The end date of the experiment  in UTC and ISO8601 format (``%Y-%m-%dT%H:%M:%S``)
    * - **intervals**
-     - An integer amount of testing intervals (time windows).
+     - An integer amount of testing intervals (time windows). If **horizon** is given, each time-window has a length equal to **horizon**. Else, the range between **start_date** and **end_date** is equally divided into the amount of **intervals**.
    * - **horizon**
      - Indicates the time windows `length`. It is written as a number, followed by a hyphen (`-`) and a time unit (``days``, ``weeks``, ``months``, ``years``). e.g.: ``1-days``, ``2.5-years``.
-   * - **offset**
-     - Offset between consecutive time-windows. If none given or ``offset=horizon``, time-windows are non-overlapping. It is written as a number, followed by a hyphen (`-`) and a time unit (``days``, ``weeks``, ``months``, ``years``). e.g.: ``1-days``, ``2.5-years``.
    * - **growth**
      - How to discretize the time-windows between ``start_date`` and ``end_date``. Options are: **incremental** (The end of a time window matches the beginning of the next) or **cumulative** (All time-windows have a start at the experiment ``start_date``).
+   * - **offset**
+     - Offset between consecutive time-windows. If none given or ``offset=horizon``, time-windows are non-overlapping. It is written as a number, followed by a hyphen (`-`) and a time unit (``days``, ``weeks``, ``months``, ``years``). e.g.: ``1-days``, ``2.5-years``.
    * - **exp_class**
      - Experiment temporal class. Options are:
        **ti** (default): Time-Independent; **td**: Time-Dependent.
@@ -151,7 +153,7 @@ Some example of parameter combinations:
 |        exp_class: td                           |                                                          |
 +------------------------------------------------+----------------------------------------------------------+
 
-Alternatively, time windows can be defined explicitly as a **list** of timewindow (which are a **list** of ``datetimes``):
+Alternatively, time windows can be defined explicitly as a **list** of time-windows (each of which is a **list** of ``datetimes``):
 
 .. code-block:: yaml
 
@@ -165,7 +167,7 @@ Alternatively, time windows can be defined explicitly as a **list** of timewindo
 Spatial and Magnitude Definition
 --------------------------------
 
-Configuring the spatial and magnitude definitions is done through the ``region_config`` option, followed by an indented block of admissible parameters. Here, we need to define the spatial region (check the `Region <https://docs.cseptesting.org/concepts/regions.html>`_ concept from **pyCSEP**), the magnitude `bins` (i.e., discretization) and the `depth` extent (used mostly to filter out seismicity outside this range):
+Configuring the spatial and magnitude definitions is done through the ``region_config`` option, followed by an indented block of admissible parameters. Here, we need to define the spatial region (check the `Region <https://docs.cseptesting.org/concepts/regions.html>`_ documentation from **pyCSEP**), the magnitude `bins` (i.e., discretization) and the `depth` extent.
 
 .. list-table::
    :widths: 20 80
@@ -177,7 +179,7 @@ Configuring the spatial and magnitude definitions is done through the ``region_c
    * - **mag_max**
      - The maximum magnitude of the experiment.
    * - **mag_bin**
-     - The size of a magnitude bin.
+     - The size of the magnitude bin.
    * - **depth_min**
      - The minimum depth (in `km`) of the experiment.
    * - **depth_max**
@@ -187,8 +189,14 @@ Configuring the spatial and magnitude definitions is done through the ``region_c
 1. The ``region`` parameter can be defined from:
 
 
-   * A **CSEP** region: This correspond to pre-established testing regions for highly seismic areas. This parameter is linked to **pyCSEP** functions, and can be either ``italy_csep_region``, ``nz_csep_region``, ``california_relm_region`` or ``global_region``.
-   * A `txt` file with the spatial cells collection , where each cell is defined by its origin (e.g., the x (lon) and y (lat) of the lower-left corner). See the **pyCSEP** `documentation <https://docs.cseptesting.org/concepts/regions.html#cartesian-grid>`_ on Regions, the class :class:`~csep.core.regions.CartesianGrid2D` and its method :meth:`~csep.core.regions.CartesianGrid2D.from_origins`. For example, for a region consisting of three cells, their origins can be written as:
+   * A **CSEP** region: They correspond to pre-established testing regions for seismic areas. This parameter is linked to **pyCSEP** functions, and can be one of the following values:
+
+      * ``italy_csep_region``
+      * ``nz_csep_region``
+      * ``california_relm_region``
+      * ``global_region``.
+
+   * A text file with the spatial cells collection. Each cell is defined by its origin (e.g., the x (lon) and y (lat) of the lower-left corner). For example, for a region consisting of three cells, their origins can be written as:
 
       .. code-block::
 
@@ -196,6 +204,7 @@ Configuring the spatial and magnitude definitions is done through the ``region_c
           10.0 40.1
           10.1 40.0
 
+   See the **pyCSEP** `Region documentation <https://docs.cseptesting.org/concepts/regions.html#cartesian-grid>`_, the class :class:`~csep.core.regions.CartesianGrid2D` and its method :meth:`~csep.core.regions.CartesianGrid2D.from_origins` for more info.
 2. Magnitude definition: We need to define a magnitude discretization or `bins`. The parameters **mag_min**, **mag_max**, **mag_bin** allows to create an uniformly distributed set of bins. For example, the command:
 
    .. code-block:: yaml
@@ -204,7 +213,7 @@ Configuring the spatial and magnitude definitions is done through the ``region_c
         mag_max: 5.0
         mag_bin: 0.5
 
-   would result in two magnitude bins with ranges ``[4.0, 4.5)`` and ``[4.5, 5.0)``. Alternatively, magnitudes can be written explicitly by their bin edges. For example:
+   would result in two magnitude bins with ranges ``[4.0, 4.5)`` and ``[4.5, 5.0)``. Alternatively, magnitudes can be written explicitly by their bin `left` edge. For example:
 
    .. code-block:: yaml
 
@@ -213,7 +222,8 @@ Configuring the spatial and magnitude definitions is done through the ``region_c
           - 4.1
           - 4.2
 
-   resulting in the ``[4.0, 4.1)`` and ``[4.1, 4.2)``
+   resulting in the ``[4.0, 4.1)``, ``[4.1, 4.2)`` and ``[4.2, 4.3)``.
+
 
 3. Depths: The minimum and maximum depths are just required to filter out seismicity outside those ranges.
 
@@ -253,8 +263,8 @@ The seismicity catalog can be defined with the ``catalog`` parameter. It represe
 
   **floatCSEP** can retrieve the catalog from a seismic network API. The possible options are:
 
-  - ``query_gcmt``: Global Centroid Moment Tensor Catalog (https://www.globalcmt.org/) - via the API of the ISC (https://www.isc.ac.uk/)
-  - ``query_comcat``: ANSS Comprehensive Earthquake Catalog ComCat (https://earthquake.usgs.gov/data/comcat/)
+  - ``query_gcmt``: Global Centroid Moment Tensor Catalog (https://www.globalcmt.org/), obtained via ISC (https://www.isc.ac.uk/)
+  - ``query_comcat``: ANSS ComCat (https://earthquake.usgs.gov/data/comcat/)
   - ``query_bsi``: Bollettino Sismico Italiano (https://bsi.ingv.it/)
   - ``query_gns``: GNS GeoNet New Zealand Catalog (https://www.geonet.org.nz/)
 
