@@ -1,7 +1,6 @@
 ===============================
 floatCSEP: Floating Experiments
 ===============================
-
 *Testing earthquake forecasts made simple.*
 
 .. image:: https://img.shields.io/badge/GitHub-Repository-blue?logo=github
@@ -76,9 +75,9 @@ The `Collaboratory for the Study of Earthquake Predictability <https://cseptesti
 Goals
 -----
 
-    * Set up a testing experiment for your forecasts using authoritative data sources/benchmarks.
-    * Encapsulate the complete experiment's definition and rules in a couple of lines.
-    * Reproduce, reuse, and share forecasting experiments.
+* Set up a testing experiment for your forecasts using authoritative data sources/benchmarks.
+* Encapsulate the complete experiment's definition and rules in a couple of lines.
+* Reproduce, reuse, and share forecasting experiments.
 
 Running
 -------
@@ -165,11 +164,9 @@ Collaborators
    :hidden:
    :caption: Defining an Experiment
 
-   guide/config.rst
-   guide/time_config.rst
-   guide/region_config.rst
+   guide/experiment_config.rst
    guide/model_config.rst
-   guide/tests_config.rst
+   guide/evaluation_config.rst
    guide/postprocess_config.rst
 
 .. toctree::

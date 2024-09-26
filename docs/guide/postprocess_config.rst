@@ -1,4 +1,6 @@
-Post-process Options
+.. _postprocess:
+
+Post-Process Options
 ====================
 
 TBI
