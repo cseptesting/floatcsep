@@ -11,6 +11,7 @@ In the experiment ``config.yml`` file (See :ref:`experiment_config`), the parame
 **Example**:
 
    .. code-block:: yaml
+      :caption: model_config.yml
 
       - MODEL_1 NAME:
           parameter_1: value

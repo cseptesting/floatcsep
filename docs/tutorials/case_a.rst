@@ -116,7 +116,7 @@ Models
 
 Evaluations
 ~~~~~~~~~~~
-    The experiment's evaluations are defined in the ``tests`` inset. It should be a list of test names, making reference to their function and plotting function. These can be either defined in ``pycsep`` (see :doc:`pycsep:concepts/evaluations`) or manually. In this example, we employ the consistency N-test: its function is :func:`csep.core.poisson_evaluations.number_test`, whereas its plotting function correspond to :func:`csep.utils.plots.plot_poisson_consistency_test`
+    The experiment's evaluations are defined in the ``tests`` inset. It should be a list of test names making reference to their function and plotting function. These can be either from **pyCSEP** (see :doc:`pycsep:concepts/evaluations`) or defined manually. Here, we use the Poisson consistency N-test: its function is :func:`poisson_evaluations.number_test <csep.core.poisson_evaluations.number_test>` with a plotting function :func:`plot_poisson_consistency_test <csep.utils.plots.plot_poisson_consistency_test>`
 
 .. literalinclude:: ../../tutorials/case_a/config.yml
    :caption: tutorials/case_a/config.yml

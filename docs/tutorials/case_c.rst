@@ -64,7 +64,7 @@ Time
 
 Evaluations
 ~~~~~~~~~~~
-    The experiment's evaluations are defined in ``tests.yml``, which can now include temporal evaluations (see :func:`~floatcsep.utils.helpers.sequential_likelihood`, :func:`~floatcsep.utils.helpers.sequential_information_gain`, :func:`~floatcsep.utils.helpers.plot_sequential_likelihood`).
+    The experiment's evaluations are defined in ``tests.yml``, which can now include temporal evaluations (see :obj:`~floatcsep.utils.helpers.sequential_likelihood`, :obj:`~floatcsep.utils.helpers.sequential_information_gain`, :obj:`~floatcsep.utils.helpers.plot_sequential_likelihood`).
 
     .. literalinclude:: ../../tutorials/case_c/tests.yml
         :language: yaml
@@ -77,7 +77,7 @@ Evaluations
 Results
 -------
 
-The :obj:`~floatcsep.cmd.main.run` command
+The :obj:`~floatcsep.commands.main.run` command
 
 .. code-block:: console
 

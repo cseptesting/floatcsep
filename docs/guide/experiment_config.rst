@@ -23,9 +23,10 @@ Configuration files are written in ``YAML`` format and are divided into differen
     `YAML` (Yet Another Markup Language) is a human-readable format used for configuration files. It uses **key: value** pairs to define settings, and indentation to represent nested structures. Lists are denoted by hyphens (`-`).
 
 
-**Example Basic Configuration** (``config.yml``):
+**Example Basic Configuration**:
 
 .. code-block:: yaml
+   :caption: config.yml
 
    name: CSEP Experiment
    time_config:

@@ -30,6 +30,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx_copybutton",
+    "sphinx_design",
 ]
 
 # language = 'en'
@@ -66,6 +67,10 @@ html_theme_options = {
     "logo_only": True,
 }
 html_logo = "_static/floatcsep_logo.svg"
+html_js_files = [
+    "custom.js",
+]
+
 todo_include_todos = False
 
 copybutton_prompt_text = "$ "  # Text to ignore when copying (for shell commands)
