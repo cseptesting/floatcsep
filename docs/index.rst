@@ -38,6 +38,7 @@ floatCSEP: Floating Experiments
    :height: 48px
 
 .. |experiment| image:: https://img.icons8.com/pulsar-color/48/science-application.png
+   :target: intro/concepts.html
    :height: 48px
 
 .. |api| image:: https://img.icons8.com/nolan/64/code--v2.png

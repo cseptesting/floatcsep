@@ -188,8 +188,11 @@ class Experiment:
 
     def __getattr__(self, item: str) -> object:
         """
-        Override built-in method to return attributes found within.
-        :attr:`region_config` or :attr:`time_config`
+        Override built-in method to return the experiment attributes by also using the command
+        ``experiment.{attr}``. Adds also to the experiment scope the keys of
+        :attr:`region_config` or :attr:`time_config`. These are: ``start_date``, ``end_date``,
+        ``timewindows``, ``horizon``, ``offset``, ``region``, ``magnitudes``, ``mag_min``,
+        `mag_max``, ``mag_bin``, ``depth_min`` depth_max .
         """
 
         try:
@@ -206,7 +209,7 @@ class Experiment:
                     ) from None
 
     def __dir__(self):
-        """Adds time and region configs keys to instance scope."""
+        """Adds the time and region configs keys the to instance scope."""
 
         _dir = (
             list(super().__dir__()) + list(self.time_config.keys()) + list(self.region_config)
@@ -295,6 +298,12 @@ class Experiment:
         for model in self.models:
             if model.name == name:
                 return model
+
+    def get_test(self, name: str) -> Model:
+        """Returns an Evaluation by its name string."""
+        for test in self.tests:
+            if test.name == name:
+                return test
 
     def stage_models(self) -> None:
         """
