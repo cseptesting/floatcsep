@@ -14,9 +14,9 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = "floatCSEP"
-copyright = "2022, Pablo Iturrieta"
+copyright = "2024, Pablo Iturrieta"
 author = "Pablo Iturrieta"
-release = "v0.1.0"
+release = "v0.2.0"
 
 # -- General configuration ---------------------------------------------------
 

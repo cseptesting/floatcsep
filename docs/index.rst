@@ -163,8 +163,7 @@ Collaborators
    guide/model_config.rst
    guide/evaluation_config.rst
    guide/postprocess_config.rst
-   guide/run_experiment.rst
-   guide/reproduce_experiment.rst
+   guide/executing_experiment.rst
 
 
 .. toctree::
