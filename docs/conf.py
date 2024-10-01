@@ -33,7 +33,7 @@ extensions = [
     "sphinx_design",
 ]
 
-# language = 'en'
+language = 'en'
 autosummary_generate = False
 autoclass_content = "both"
 suppress_warnings = [
@@ -53,6 +53,10 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable", None),
     "pycsep": ("https://docs.cseptesting.org/", None),
 }
+todo_include_todos = False
+copybutton_prompt_text = "$ "  # Text to ignore when copying (for shell commands)
+copybutton_only_copy_prompt_lines = False
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
@@ -71,11 +75,30 @@ html_js_files = [
     "custom.js",
 ]
 
-todo_include_todos = False
-
-copybutton_prompt_text = "$ "  # Text to ignore when copying (for shell commands)
-copybutton_only_copy_prompt_lines = False
-
+html_context = {
+    "github_links": [
+        (
+            'Getting help',
+            "https://github.com/cseptesting/floatcsep/issues"
+        ),
+        (
+            'Contributing',
+            "https://github.com/cseptesting/floatcsep/blob/master/CONTRIBUTING.md"
+        ),
+        (
+            'Code of Conduct',
+            "https://github.com/cseptesting/floatcsep/blob/master/CODE_OF_CONDUCT.md"
+        ),
+        (
+            'License',
+            "https://github.com/cseptesting/floatcsep/blob/master/LICENSE"
+        ),
+        (
+            'Source Code',
+            "https://github.com/cseptesting/floatcsep"
+        ),
+    ],
+}
 
 rst_epilog = """
 .. raw:: html

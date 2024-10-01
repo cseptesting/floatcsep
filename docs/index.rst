@@ -76,6 +76,7 @@ The `Collaboratory for the Study of Earthquake Predictability <https://cseptesti
 Goals
 -----
 
+* Test your forecasts with simple commands.
 * Set up a testing experiment for your forecasts using authoritative data sources/benchmarks.
 * Encapsulate the complete experiment's definition and rules in a couple of lines.
 * Reproduce, reuse, and share forecasting experiments.
@@ -85,7 +86,7 @@ Running
 
 Start using **floatCSEP** by `installing <intro/installation.html>`_ the latest version and running the ``tutorials`` with simply:
 
-.. code-block::
+.. code-block:: console
 
    $ floatcsep run config.yml
 
@@ -105,6 +106,10 @@ Useful Links
 |   :height: 48px                                         |                                         |
 |   :target: https://github.com/sceccode/pycsep           |                                         |
 +---------------------------------------------------------+-----------------------------------------+
+| .. image:: https://img.icons8.com/nolan/64/github.png   | **hazard2csep GitHub**                  |
+|   :height: 48px                                         |                                         |
+|   :target: https://github.com/cseptesting/hazard2csep   |                                         |
++---------------------------------------------------------+-----------------------------------------+
 | .. image:: https://img.icons8.com/nolan/64/europe.png   | **European Testing Center**             |
 |   :height: 48px                                         |                                         |
 |   :target: http://eqstats.efehr.org                     |                                         |
@@ -116,16 +121,17 @@ Useful Links
 Collaborators
 -------------
 
-    * Pablo Iturrieta, GFZ Potsdam (pciturri@gfz-potsdam.de)
-    * William Savran, University of Nevada, Reno
-    * Jose Bayona, University of Bristol
-    * Francesco Serafini, University of Edinburgh
-    * Khawaja Asim, GFZ Potsdam
-    * Fabio Silva, Southern California Earthquake Center
-    * Marcus Hermann, University of Naples ‘Frederico II’
-    * Max Werner, University of Bristol
-    * Danijel Schorlemmner, GFZ Potsdam
-    * Philip Maechling, Southern California Earthquake Center
+    * Pablo Iturrieta, GFZ Potsdam, Germany (pciturri@gfz-potsdam.de)
+    * William Savran, University of Nevada, Reno, USA
+    * Jose Bayona, University of Bristol, United Kingdom
+    * Francesco Serafini, University of Edinburgh, United Kingdom
+    * Kenny Graham, GNS Science, New Zealand
+    * Khawaja Asim, GFZ Potsdam, Germany
+    * Fabio Silva, Southern California Earthquake Center, USA
+    * Marcus Hermann, University of Naples ‘Frederico II’, Italy
+    * Max Werner, University of Bristol, United Kingdom
+    * Danijel Schorlemmner, GFZ Potsdam, Germany
+    * Philip Maechling, Southern California Earthquake Center, USA
 
 
 

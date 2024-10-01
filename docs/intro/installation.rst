@@ -9,7 +9,7 @@ Installation
 Latest Version
 --------------
 
-Recommended to learn the software, run the tutorials, and drafting Testing Experiments.
+Recommended to learn the software, run the tutorials, and drafting **Testing Experiments**.
 
 1. Using ``conda``
 ~~~~~~~~~~~~~~~~~~
@@ -28,6 +28,10 @@ Then, clone and install the floatCSEP source code using ``pip``
         $ git clone https://github.com/cseptesting/floatcsep
         $ cd floatcsep
         $ pip install .
+
+.. note::
+
+    Use the ``mamba`` command instead of ``conda`` if `Miniforge` was installed.
 
 
 2. Using ``pip`` only
@@ -93,8 +97,8 @@ It is recommended (not obligatory) to use a ``conda`` environment to make sure y
 
         $ conda env create -n csep_dev
         $ conda activate csep_dev
-        $ git clone https://github.com/{your_fork}/floatcsep
+        $ git clone https://github.com/${your_fork}/floatcsep
         $ cd floatcsep
         $ pip install .[dev]
 
-This will install (and configure) all the unit-testing, linting and documentation packages.
+This will install and configure all the unit-testing, linting and documentation packages.
