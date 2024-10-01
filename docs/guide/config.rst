@@ -1,4 +1,0 @@
-Experiment configuration
-========================
-
-In progress

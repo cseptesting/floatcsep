@@ -159,12 +159,16 @@ def read_time_cfg(time_config, **kwargs):
     if "offset" in time_config.keys():
         time_config["offset"] = parse_timedelta_string(time_config["offset"])
 
-    if experiment_class == "ti":
-        time_config["timewindows"] = timewindows_ti(**time_config)
-        return time_config
-    elif experiment_class == "td":
-        time_config["timewindows"] = timewindows_td(**time_config)
-        return time_config
+    if not time_config.get("timewindows"):
+        if experiment_class == "ti":
+            time_config["timewindows"] = timewindows_ti(**time_config)
+        elif experiment_class == "td":
+            time_config["timewindows"] = timewindows_td(**time_config)
+    else:
+        time_config["start_date"] = time_config["timewindows"][0][0]
+        time_config["end_date"] = time_config["timewindows"][-1][-1]
+
+    return time_config
 
 
 def read_region_cfg(region_config, **kwargs):
@@ -340,7 +344,7 @@ def timewindows_td(
     Creates the testing intervals for a time-dependent experiment.
 
     Note:
-        The following arg combinations are possible:
+        The following are combinations are possible:
             - (start_date, end_date, timeintervals)
             - (start_date, end_date, timehorizon)
             - (start_date, timeintervals, timehorizon)
@@ -391,10 +395,11 @@ def timewindows_td(
     except ValueError as e_:
         raise ValueError(
             "The following experiment parameters combinations are possible:\n"
-            "   (start_date, end_date)\n"
-            "   (start_date, end_date, intervals)\n"
-            "   (start_date, end_date, timewindow)\n"
-            "   (start_date, intervals, timewindow)\n"
+            "   (start_date, end_date, timeintervals)\n"
+            "   (start_date, end_date, timehorizon)\n"
+            "   (start_date, timeintervals, timehorizon)\n"
+            "   (start_date, end_date, timehorizon, timeoffset)\n"
+            "   (start_date, timeinvervals, timehorizon, timeoffset)\n"
         )
 
     # if growth == 'incremental':

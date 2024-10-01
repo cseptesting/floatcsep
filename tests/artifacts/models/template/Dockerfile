@@ -40,7 +40,7 @@ WORKDIR $MODEL_PATH
 COPY --chown=$USER_UID:$USER_GID {relpaths_host} $MODEL_PATH
 
 ## Ideally, the folder/files to be copied should be explicited
-# COPY --chown=$USER_UID:$USER_GID source examples tests docs parameters setup $MODEL_PATH
+# COPY --chown=$USER_UID:$USER_GID source tutorials tests docs parameters setup $MODEL_PATH
 
 # ______________________________
 # 4- Build the model source code
@@ -49,7 +49,7 @@ COPY --chown=$USER_UID:$USER_GID {relpaths_host} $MODEL_PATH
 ## Provide a set of instructions to build the model inside the docker image, and run the unit tests
 RUN setup && run_tests
 
-## See examples in
+## See tutorials in
 #### Python (https://git.gfz-potsdam.de/csep-group/rise_italy_experiment/models/mockup_py)
 #### R (https://git.gfz-potsdam.de/csep-group/rise_italy_experiment/models/mockup_R)
 

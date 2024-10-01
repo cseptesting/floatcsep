@@ -71,7 +71,7 @@ class TestForecastParsers(unittest.TestCase):
     def test_parse_xml(self):
         fname = os.path.join(
             self._path,
-            "../../examples",
+            "../../tutorials",
             "case_e",
             "models",
             "gulia-wiemer.ALM.italy.10yr.2010-01-01.xml",

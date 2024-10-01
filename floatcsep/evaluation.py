@@ -250,7 +250,7 @@ class Evaluation:
             self.results_repo.write_result(evaluation_result, self, model, timewindow)
 
     def read_results(
-        self, window: Union[str, Sequence[datetime.datetime]], models: List[Model]
+        self, window: Union[str, Sequence[datetime.datetime]], models: Union[Model, List[Model]]
     ) -> List:
         """
         Reads an Evaluation result for a given time window and returns a list of the results for

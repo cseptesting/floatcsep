@@ -1,0 +1,24 @@
+name: case_h
+
+time_config:
+  start_date: 2016-8-25T00:00:00
+  end_date: 2016-8-26T00:00:00
+  horizon: 1days
+  exp_class: td
+
+region_config:
+  region: italy_csep_region
+  mag_min: 3.5
+  mag_max: 8.0
+  mag_bin: 0.5
+  depth_min: 0
+  depth_max: 70
+
+force_rerun: True
+catalog: catalog.csv
+model_config: models.yml
+test_config: tests.yml
+
+postprocess:
+  report: custom_report.py:main
+  plot_catalog: False

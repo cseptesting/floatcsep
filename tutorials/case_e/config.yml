@@ -1,0 +1,35 @@
+name: italy
+
+time_config:
+  start_date: 2010-1-1T00:00:00
+  end_date: 2022-1-1T00:00:00
+  intervals: 4
+  growth: cumulative
+
+region_config:
+  region: italy_csep_region
+  mag_min: 5.0
+  mag_max: 9.0
+  mag_bin: 0.1
+  depth_min: -2
+  depth_max: 30
+
+catalog: query_bsi
+models: models.yml
+test_config: tests.yml
+
+postprocess:
+  plot_forecasts:
+    cmap: magma
+    region_border: True
+    basemap: stock_img
+    clabel_fontsize: 14
+    cticks_fontsize: 12
+    alpha_exp: 0.8
+    catalog:
+      legend: True
+      legend_loc: 1
+      legend_fontsize: 14
+      legend_titlesize: 16
+      markersize: 7
+      markercolor: blue

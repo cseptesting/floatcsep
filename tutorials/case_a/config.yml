@@ -1,0 +1,29 @@
+name: case_a
+
+time_config:
+  start_date: 2020-1-1T00:00:00
+  end_date: 2021-1-1T00:00:00
+
+region_config:
+  region: region.txt
+  mag_min: 6.0
+  mag_max: 7.0
+  mag_bin: 1.0
+  depth_min: 0
+  depth_max: 70
+
+catalog: catalog.csep
+
+models:
+  - best_model:
+      path: best_model.dat
+
+tests:
+  - Poisson N-test:
+      func: poisson_evaluations.number_test
+      plot_func: plot_poisson_consistency_test
+
+postprocess:
+  plot_forecasts:
+    cmap: magma
+    catalog: True

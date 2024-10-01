@@ -1,0 +1,19 @@
+name: case_f
+
+time_config:
+  start_date: 2016-11-14T00:00:00
+  end_date: 2016-11-21T00:00:00
+  horizon: 1day
+  exp_class: td
+
+region_config:
+  region: nz_csep_region
+  mag_min: 3.6
+  mag_max: 8.0
+  mag_bin: 0.1
+  depth_min: 0
+  depth_max: 30
+
+catalog: catalog.json
+model_config: models.yml
+test_config: tests.yml

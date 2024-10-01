@@ -1,4 +1,0 @@
-Temporal definition
-===================
-
-TBI

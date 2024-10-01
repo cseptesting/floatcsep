@@ -139,7 +139,7 @@ class TestModelFromFile(TestCase):
         cls._dir = os.path.join(path, "../", "artifacts", "models")
         cls._alm_fn = os.path.join(
             path,
-            "../../examples",
+            "../../tutorials",
             "case_e",
             "models",
             "gulia-wiemer.ALM.italy.10yr.2010-01-01.xml",
@@ -201,7 +201,7 @@ class TestModelFromFile(TestCase):
     def tearDownClass(cls) -> None:
         alm_db = os.path.join(
             cls._path,
-            "../../examples",
+            "../../tutorials",
             "case_e",
             "models",
             "gulia-wiemer.ALM.italy.10yr.2010-01-01.hdf5",

@@ -14,9 +14,9 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = "floatCSEP"
-copyright = "2022, Pablo Iturrieta"
+copyright = "2024, Pablo Iturrieta"
 author = "Pablo Iturrieta"
-release = "v0.1.0"
+release = "v0.2.0"
 
 # -- General configuration ---------------------------------------------------
 
@@ -25,13 +25,20 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
+    'sphinx_toolbox.github',
+    'sphinx_toolbox.sidebar_links',
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
+    "sphinx_copybutton",
+    "sphinx_design",
 ]
 
-# language = 'en'
+github_username = 'cseptesting'
+github_repository = 'floatcsep'
+
+language = 'en'
 autosummary_generate = False
 autoclass_content = "both"
 suppress_warnings = [
@@ -51,6 +58,10 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable", None),
     "pycsep": ("https://docs.cseptesting.org/", None),
 }
+todo_include_todos = False
+copybutton_prompt_text = "$ "  # Text to ignore when copying (for shell commands)
+copybutton_only_copy_prompt_lines = False
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
@@ -59,9 +70,51 @@ html_static_path = ["_static"]
 html_theme_options = {
     "display_version": True,
     "prev_next_buttons_location": "both",
-    "collapse_navigation": False,
+    "sticky_navigation": True,
+    "collapse_navigation": True,
     "style_nav_header_background": "#343131ff",
     "logo_only": True,
 }
 html_logo = "_static/floatcsep_logo.svg"
-todo_include_todos = False
+html_js_files = [
+    "custom.js",
+]
+
+html_context = {
+    "github_links": [
+        (
+            'Getting help',
+            "https://github.com/cseptesting/floatcsep/issues"
+        ),
+        (
+            'Contributing',
+            "https://github.com/cseptesting/floatcsep/blob/master/CONTRIBUTING.md"
+        ),
+        (
+            'Code of Conduct',
+            "https://github.com/cseptesting/floatcsep/blob/master/CODE_OF_CONDUCT.md"
+        ),
+        (
+            'License',
+            "https://github.com/cseptesting/floatcsep/blob/master/LICENSE"
+        ),
+        (
+            'Source Code',
+            "https://github.com/cseptesting/floatcsep"
+        ),
+    ],
+}
+extlinks = {
+    'github_contrib': ('https://github.com/cseptesting/floatcsep/main/blob/%s', ''),
+}
+rst_epilog = """
+.. raw:: html
+
+    <hr />
+    <div style="text-align: center;">
+        <a href="https://github.com/cseptesting/floatcsep">GitHub</a> |
+        <a href="https://cseptesting.org">CSEP Website</a> |
+        <a href="https://github.com/sceccode/pycsep">pyCSEP</a> |
+        <a href="https://floatcsep.readthedocs.io/_/downloads/en/latest/pdf/">Download PDF</a>
+    </div>
+"""

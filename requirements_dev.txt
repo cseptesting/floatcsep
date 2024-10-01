@@ -26,8 +26,11 @@ seaborn
 shapely
 sphinx
 sphinx-autoapi
+sphinx_design
 sphinx-gallery
 sphinx-rtd-theme
+sphinx-toolbox
+sphinx_copybutton
 tables
 tox
 vcrpy==4.3.1
