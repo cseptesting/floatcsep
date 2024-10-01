@@ -29,6 +29,7 @@ sphinx-autoapi
 sphinx_design
 sphinx-gallery
 sphinx-rtd-theme
+sphinx-toolbox
 sphinx_copybutton
 tables
 tox

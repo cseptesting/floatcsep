@@ -85,11 +85,11 @@ the tutorials**!
 
 # Roadmap and Known Issues
 
-* Add report customization
 * Create tool to check a TD model's interface with ``floatcsep``
 * Define a dependency strategy to ensure experiments' reproducibility.
 * Implement spatial database and HDF5 experiment storage feature
-* Set up task paralellization
+* Set up task parallelization
+* Document the process of an experiment deployment
 
 # Contributing
 

@@ -25,6 +25,8 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
+    'sphinx_toolbox.github',
+    'sphinx_toolbox.sidebar_links',
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
@@ -32,6 +34,9 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
 ]
+
+github_username = 'cseptesting'
+github_repository = 'floatcsep'
 
 language = 'en'
 autosummary_generate = False
@@ -99,7 +104,9 @@ html_context = {
         ),
     ],
 }
-
+extlinks = {
+    'github_contrib': ('https://github.com/cseptesting/floatcsep/main/blob/%s', ''),
+}
 rst_epilog = """
 .. raw:: html
 

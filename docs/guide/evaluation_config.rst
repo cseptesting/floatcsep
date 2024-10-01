@@ -28,8 +28,8 @@ Each evaluation specifies a ``func`` parameter, representing the evaluation func
         plot_func: plot_comparison_test
 
 
-Evaluation Parameters:
-----------------------
+Evaluation Parameters
+---------------------
 
 Each evaluation listed in ``test_config`` accepts the following parameters:
 

@@ -111,11 +111,13 @@ The general command structure is:
 A ``repr_config.yml`` is always generated once an experiment is run with ``floatcsep run``. The ``reproduce`` command re-runs the experiment based on this configuration and compares the newly generated results with the original results to provide reproducibility metrics:
 
 - **Statistical Reproducibility**: It analyzes statistical changes of the evaluation results:
+
   - **Forecast Scores**: The numerical difference between the observed scores of the original and reproduced experiments.
   - **Test Statistics**: Statistical metrics like mean, standard deviation, and skewness of the test distributions are compared.
   - **Kolmogorov-Smirnov (KS) Test**: The KS-test p-value is computed to assess whether the test distributions from both experiments are significantly different. A p-value below 0.1 indicates a potential difference between distributions.
 
 - **Data Reproducibility**: A comparison of the result files, checking for discrepancies in file contents or structure.
+
   - **Hash Comparison (SHA-256)**: Each result file is hashed using the SHA-256 algorithm to check if the content has changed between the original and reproduced experiments.
   - **Byte-to-Byte Comparison**: This is a direct comparison of the file contents at the byte level, ensuring that no unintended changes have occurred.
 

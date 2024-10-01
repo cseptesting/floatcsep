@@ -172,21 +172,11 @@ Collaborators
    guide/executing_experiment.rst
 
 
-.. toctree::
-   :hidden:
-   :maxdepth: 0
+.. sidebar-links::
    :caption: Help & Reference
+   :github:
 
    reference/api_reference
-
-
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-   :caption: Deploying an Experiment
-
-   deployment/intro.rst
-
-
-
-
+   Getting Help <https://github.com/cseptesting/floatcsep/issues>
+   Contributing <https://github.com/cseptesting/floatcsep/blob/master/CONTRIBUTING.md>
+   License <https://github.com/cseptesting/floatcsep/blob/master/LICENSE>
