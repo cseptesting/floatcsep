@@ -25,7 +25,7 @@ jobs:
 
       - name: Install floatCSEP
         run: |
-          pip install sphinx sphinx-autoapi sphinx-gallery sphinx-rtd-theme
+          pip install -r requirements_dev.txt
           pip install --no-deps -e .
           python -c "import floatcsep; print('Version: ', floatcsep.__version__)"
 
