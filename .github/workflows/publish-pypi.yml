@@ -23,16 +23,16 @@ jobs:
           create-args: >-
             python=3.10
 
-      - name: Install py-build
+      - name: Install py-build and setuptools-scm
         run: |
-          python3 -m pip install --upgrade build
+          micromamba run -n floatcsep python3 -m pip install --upgrade build setuptools-scm
 
       - name: Build
         run: |
-          python3 -m build --sdist --wheel --outdir dist/
+          micromamba run -n floatcsep python3 -m build --sdist --wheel --outdir dist/
 
       - name: Publish Package
-        uses: pypa/gh-action-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@v1.9.0
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}

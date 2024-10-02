@@ -6,18 +6,15 @@
 
 <p left>
 
-<a href='https://floatcsep.readthedocs.io/en/latest/?badge=latest'>
-    <img src='https://readthedocs.org/projects/floatcsep/badge/?version=latest' alt='Documentation Status' />
-</a>
-<a href='https://github.com/cseptesting/floatcsep/actions/workflows/build-test.yml'>
-    <img src='https://github.com/cseptesting/floatcsep/actions/workflows/build-test.yml/badge.svg' alt='Documentation Status' />
-</a>
-<img alt="PyPI" src="https://img.shields.io/pypi/v/floatcsep">
+[![Documentation Status](https://readthedocs.org/projects/floatcsep/badge/?version=latest)](https://floatcsep.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://github.com/cseptesting/floatcsep/actions/workflows/build-test.yml/badge.svg)](https://github.com/cseptesting/floatcsep/actions/workflows/build-test.yml)
+[![PyPI Version](https://img.shields.io/pypi/v/floatcsep)](https://pypi.org/project/floatcsep/)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/floatcsep)](https://anaconda.org/conda-forge/floatcsep)
+[![Python Versions](https://img.shields.io/pypi/pyversions/floatcsep)](https://pypi.org/project/floatcsep/)
+[![Code Coverage](https://codecov.io/gh/cseptesting/floatcsep/branch/main/graph/badge.svg?token=LI4RSDOKA1)](https://codecov.io/gh/cseptesting/floatcsep)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7953816.svg)](https://doi.org/10.5281/zenodo.7953816)
 
-<a href="https://codecov.io/gh/cseptesting/floatcsep" > 
- <img src="https://codecov.io/gh/cseptesting/floatcsep/branch/main/graph/badge.svg?token=LI4RSDOKA1"/> 
- </a>
-<a href="https://doi.org/10.5281/zenodo.7953816"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.7953816.svg" alt="DOI"></a>
+
 </p>
 
 * Set up a testing **experiment** for your earthquake forecasts using authoritative data sources
