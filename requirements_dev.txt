@@ -9,12 +9,10 @@ gitpython
 h5py
 matplotlib
 mercantile
-mypy
 obspy
 packaging
 pandas
 pycsep
-pydocstringformatter
 pyproj
 pyshp
 pytest

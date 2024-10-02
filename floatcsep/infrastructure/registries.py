@@ -492,7 +492,8 @@ class ExperimentRegistry(FileRegistry):
                         log.debug(f"  Time Window: {timewindow} - All models evaluated.")
                     else:
                         log.debug(
-                            f"  Time Window: {timewindow} - Missing results for models: {', '.join(missing_models)}"
+                            f"  Time Window: {timewindow} - Missing results for models: "
+                            f"{', '.join(missing_models)}"
                         )
 
         log.debug(f"Total Results: {total_results}")

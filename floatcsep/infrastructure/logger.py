@@ -1,4 +1,5 @@
-import sys, os
+import sys
+import os
 import logging.config
 import warnings
 
@@ -37,7 +38,7 @@ def add_fhandler(filename):
 
 def is_sphinx_build():
     # Check if Sphinx is running
-    return 'sphinx' in sys.argv[0] or os.getenv('SPHINX_BUILD') is not None
+    return "sphinx" in sys.argv[0] or os.getenv("SPHINX_BUILD") is not None
 
 
 def setup_logger():

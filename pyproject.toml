@@ -13,12 +13,3 @@ testpaths = [
 line-length = 96
 skip-string-normalization = false
 target-version = ["py39", "py310", "py311"]
-
-[tool.pydocstringformatter]
-write = true
-exclude = ["examples/", "docs"]
-strip-whitespaces = true
-split-summary-body = false
-style = "pep257"
-max-line-length = 96
-linewrap-full-docstring = true

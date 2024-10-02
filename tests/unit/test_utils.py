@@ -15,6 +15,7 @@ from floatcsep.utils.helpers import (
     read_time_cfg,
     read_region_cfg,
     parse_csep_func,
+    timewindows_td,
 )
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -94,8 +95,97 @@ class TimeUtilsTest(unittest.TestCase):
         ]
         self.assertEqual(timewindows_ti(start_date=start, end_date=end, intervals=7), t2)
 
-    def test_timewindows_ti_td(self):
-        pass
+    def test_timewindows_td(self):
+        start = datetime(2010, 1, 1)
+        end = datetime(2020, 1, 1)
+
+        self.assertEqual(
+            timewindows_td(start_date=start, end_date=end, timeintervals=1), [(start, end)]
+        )
+
+        self.assertEqual(
+            timewindows_td(start_date=start, end_date=end, timeintervals=5),
+            [
+                (datetime(2010, 1, 1, 0, 0), datetime(2012, 1, 1, 9, 36)),
+                (datetime(2012, 1, 1, 9, 36), datetime(2013, 12, 31, 19, 12)),
+                (datetime(2013, 12, 31, 19, 12), datetime(2016, 1, 1, 4, 48)),
+                (datetime(2016, 1, 1, 4, 48), datetime(2017, 12, 31, 14, 24)),
+                (datetime(2017, 12, 31, 14, 24), datetime(2020, 1, 1, 0, 0)),
+            ],
+        )
+
+        self.assertEqual(
+            timewindows_td(start_date=start, timeintervals=1, timehorizon="1-years"),
+            [(datetime(2010, 1, 1, 0, 0), datetime(2011, 1, 1, 0, 0))],
+        )
+        self.assertEqual(
+            timewindows_td(start_date=start, timeintervals=5, timehorizon="5-days"),
+            [
+                (datetime(2010, 1, 1, 0, 0), datetime(2010, 1, 6, 0, 0)),
+                (datetime(2010, 1, 6, 0, 0), datetime(2010, 1, 11, 0, 0)),
+                (datetime(2010, 1, 11, 0, 0), datetime(2010, 1, 16, 0, 0)),
+                (datetime(2010, 1, 16, 0, 0), datetime(2010, 1, 21, 0, 0)),
+                (datetime(2010, 1, 21, 0, 0), datetime(2010, 1, 26, 0, 0)),
+            ],
+        )
+        self.assertEqual(
+            timewindows_td(
+                start_date=start, end_date=end, timehorizon="10-years", timeoffset="10-years"
+            ),
+            [(datetime(2010, 1, 1, 0, 0), datetime(2020, 1, 1, 0, 0))],
+        )
+        self.assertEqual(
+            timewindows_td(
+                start_date=start, end_date=end, timehorizon="12-years", timeoffset="10-years"
+            ),
+            [(datetime(2010, 1, 1, 0, 0), datetime(2022, 1, 1, 0, 0))],
+        )
+        self.assertEqual(
+            timewindows_td(
+                start_date=start, end_date=end, timehorizon="5-years", timeoffset="5-years"
+            ),
+            [
+                (datetime(2010, 1, 1, 0, 0), datetime(2015, 1, 1, 0, 0)),
+                (datetime(2015, 1, 1, 0, 0), datetime(2020, 1, 1, 0, 0)),
+            ],
+        )
+        self.assertEqual(
+            timewindows_td(
+                start_date=start, end_date=end, timehorizon="5-years", timeoffset="3-years"
+            ),
+            [
+                (datetime(2010, 1, 1, 0, 0), datetime(2015, 1, 1, 0, 0)),
+                (datetime(2013, 1, 1, 0, 0), datetime(2018, 1, 1, 0, 0)),
+                (datetime(2016, 1, 1, 0, 0), datetime(2021, 1, 1, 0, 0)),
+            ],
+        )
+        self.assertEqual(
+            timewindows_td(
+                start_date=start,
+                end_date=datetime(2010, 2, 1),
+                timehorizon="14-days",
+                timeoffset="7-days",
+            ),
+            [
+                (datetime(2010, 1, 1, 0, 0), datetime(2010, 1, 15, 0, 0)),
+                (datetime(2010, 1, 8, 0, 0), datetime(2010, 1, 22, 0, 0)),
+                (datetime(2010, 1, 15, 0, 0), datetime(2010, 1, 29, 0, 0)),
+                (datetime(2010, 1, 22, 0, 0), datetime(2010, 2, 5, 0, 0)),
+            ],
+        )
+        self.assertEqual(
+            timewindows_td(
+                start_date=start,
+                timeintervals=3,
+                timehorizon="3-years",
+                timeoffset="1-years",
+            ),
+            [
+                (datetime(2010, 1, 1, 0, 0), datetime(2013, 1, 1, 0, 0)),
+                (datetime(2011, 1, 1, 0, 0), datetime(2014, 1, 1, 0, 0)),
+                (datetime(2012, 1, 1, 0, 0), datetime(2015, 1, 1, 0, 0)),
+            ],
+        )
 
     def test_read_time_config(self):
         start = datetime(2014, 1, 1)

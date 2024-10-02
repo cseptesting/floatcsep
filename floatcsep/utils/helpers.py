@@ -7,16 +7,18 @@ import re
 from datetime import datetime, date
 from typing import Union, Mapping, Sequence
 
-# pyCSEP libraries
-import csep.core
-import csep.utils
-
 # third-party libraries
 import numpy
 import pandas
 import scipy.stats
 import seaborn
 import yaml
+from matplotlib import pyplot
+from matplotlib.lines import Line2D
+
+# pyCSEP libraries
+import csep.core
+import csep.utils
 from csep.core.catalogs import CSEPCatalog
 from csep.core.exceptions import CSEPCatalogException
 from csep.core.forecasts import GriddedForecast
@@ -29,8 +31,6 @@ from csep.core.regions import CartesianGrid2D
 from csep.models import EvaluationResult
 from csep.utils.calc import cleaner_range
 from csep.utils.plots import plot_spatial_dataset
-from matplotlib import pyplot
-from matplotlib.lines import Line2D
 
 # floatCSEP libraries
 import floatcsep.utils.accessors
@@ -237,9 +237,7 @@ def read_region_cfg(region_config, **kwargs):
     return region_config
 
 
-def timewindow2str(
-    datetimes: Union[Sequence[datetime], Sequence[Sequence[datetime]]]
-) -> Union[str, list[str]]:
+def timewindow2str(datetimes: Sequence) -> Union[str, list[str]]:
     """
     Converts a time window (list/tuple of datetimes) to a string that represents it.  Can be a
     single timewindow or a list of time windows.
@@ -250,10 +248,10 @@ def timewindow2str(
     Returns:
         A sequence of strings for each time window
     """
-    if isinstance(datetimes[0], datetime):
+    if all(isinstance(i, datetime) for i in datetimes):
         return "_".join([j.date().isoformat() for j in datetimes])
 
-    elif isinstance(datetimes[0], (list, tuple)):
+    elif all(isinstance(i, (list, tuple)) for i in datetimes):
         return ["_".join([j.date().isoformat() for j in i]) for i in datetimes]
 
 
@@ -320,14 +318,17 @@ def timewindows_ti(
     try:
         timelimits = pandas.date_range(
             start=start_date, end=end_date, periods=periods, freq=frequency
-        ).to_pydatetime()
+        )
+        print(timelimits)
+        timelimits = timelimits.to_pydatetime()
     except ValueError as e_:
         raise ValueError(
             "The following experiment parameters combinations are possible:\n"
             "   (start_date, end_date)\n"
             "   (start_date, end_date, intervals)\n"
             "   (start_date, end_date, timewindow)\n"
-            "   (start_date, intervals, timewindow)\n"
+            "   (start_date, intervals, timewindow)\n",
+            e_,
         )
 
     if growth == "incremental":
@@ -365,34 +366,74 @@ def timewindows_td(
         testing window, as :py:class:`datetime.datetime`.
     """
 
-    frequency = None
+    frequency = parse_timedelta_string(timehorizon)
+    offset = parse_timedelta_string(timeoffset)
 
-    if timehorizon:
-        n, unit = timehorizon.split("-")
+    if frequency:
+        n, unit = frequency.split("-")
         frequency = f"{n}{_PD_FORMAT[_UNITS.index(unit)]}"
+    if offset:
+        n, unit = offset.split("-")
+        offset = f"{n}{_PD_FORMAT[_UNITS.index(unit)]}"
 
     periods = timeintervals + 1 if timeintervals else timeintervals
 
-    try:
-        offset = timeoffset.split("-") if timeoffset else None
-        start_offset = (
-            start_date + pandas.DateOffset(**{offset[1]: float(offset[0])})
-            if offset
-            else start_date
-        )
-        end_offset = (
-            end_date - pandas.DateOffset(**{offset[1]: float(offset[0])})
-            if offset
-            else start_date
-        )
+    windows = []
 
-        lower_limits = pandas.date_range(
-            start=start_date, end=end_offset, periods=periods, freq=frequency
-        ).to_pydatetime()[:-1]
-        upper_limits = pandas.date_range(
-            start=start_offset, end=end_date, periods=periods, freq=frequency
-        ).to_pydatetime()[:-1]
-    except ValueError as e_:
+    if start_date and end_date and timehorizon and timeoffset:
+
+        current_start = start_date
+        current_end = start_date
+        while current_end < end_date:
+            next_window = pandas.date_range(
+                start=current_start, periods=2, freq=frequency
+            ).tolist()
+
+            current_end = next_window[1]
+
+            windows.append((current_start, current_end))
+
+            current_start = pandas.date_range(start=current_start, periods=2, freq=offset)[
+                1
+            ].to_pydatetime()
+
+    elif start_date and timeintervals and timehorizon and timeoffset:
+
+        for _ in range(timeintervals):
+            next_window = pandas.date_range(
+                start=start_date, periods=2, freq=frequency
+            ).tolist()
+            lower_bound = start_date
+            upper_bound = next_window[1]
+            windows.append((lower_bound, upper_bound))
+            start_date = pandas.date_range(start=start_date, periods=2, freq=offset)[
+                1
+            ].to_pydatetime()
+
+    elif start_date and end_date and timeintervals:
+        if timeintervals == 1:
+            log.warning("Only 1 time window is presentL. Consider using exp_class: ti")
+
+        timelimits = pandas.date_range(
+            start=start_date, end=end_date, periods=periods, freq=frequency
+        ).tolist()
+        windows = [(i, j) for i, j in zip(timelimits[:-1], timelimits[1:])]
+
+    # Case 2: (start_date, end_date, timehorizon)
+    elif start_date and end_date and timehorizon:
+        timelimits = pandas.date_range(
+            start=start_date, end=end_date, periods=periods, freq=frequency
+        ).tolist()
+        windows = [(i, j) for i, j in zip(timelimits[:-1], timelimits[1:])]
+
+    # Case 3: (start_date, timeintervals, timehorizon)
+    elif start_date and timeintervals and timehorizon:
+        timelimits = pandas.date_range(
+            start=start_date, end=end_date, periods=periods, freq=frequency
+        ).tolist()
+        windows = [(i, j) for i, j in zip(timelimits[:-1], timelimits[1:])]
+
+    else:
         raise ValueError(
             "The following experiment parameters combinations are possible:\n"
             "   (start_date, end_date, timeintervals)\n"
@@ -401,14 +442,7 @@ def timewindows_td(
             "   (start_date, end_date, timehorizon, timeoffset)\n"
             "   (start_date, timeinvervals, timehorizon, timeoffset)\n"
         )
-
-    # if growth == 'incremental':
-    #     timewindows = [(i, j) for i, j in zip(timelimits[:-1],
-    #                                           timelimits[1:])]
-    # elif growth == 'cumulative':
-    #     timewindows = [(timelimits[0], i) for i in timelimits[1:]]
-
-    # return timewindows
+    return windows
 
 
 def parse_nested_dicts(nested_dict: dict) -> dict:
@@ -466,17 +500,18 @@ def sequential_likelihood(
     """
     Performs the likelihood test on Gridded Forecast using an Observed Catalog.
 
-    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
-    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
-    gridded forecasts that supply their forecasts as rates.
+    Note: The forecast and the observations should be scaled to the same time period before
+    calling this function. This increases transparency as no assumptions are being made about
+    the length of the forecasts. This is particularly important for gridded forecasts that
+    supply their forecasts as rates.
 
     Args:
         gridded_forecasts: list csep.core.forecasts.GriddedForecast
         observed_catalogs: list csep.core.catalogs.Catalog
-        timewindows: list str.
         seed (int): used fore reproducibility, and testing
-        random_numbers (numpy.ndarray): random numbers used to override the random number generation.
-                               injection point for testing.
+        random_numbers (numpy.ndarray): random numbers used to override the random number
+         generation injection point for testing.
+
     Returns:
         evaluation_result: csep.core.evaluations.EvaluationResult
     """
@@ -535,16 +570,18 @@ def sequential_information_gain(
         gridded_forecasts: list csep.core.forecasts.GriddedForecast
         benchmark_forecasts: list csep.core.forecasts.GriddedForecast
         observed_catalogs: list csep.core.catalogs.Catalog
-        timewindows: list str.
         seed (int): used fore reproducibility, and testing
-        random_numbers (numpy.ndarray): random numbers used to override the random number generation.
-                               injection point for testing.
+        random_numbers (numpy.ndarray): random numbers used to override the random number
+            generation injection point for testing.
 
     Returns:
         evaluation_result: csep.core.evaluations.EvaluationResult
     """
 
     information_gains = []
+
+    gridded_forecast = None
+    observed_catalog = None
 
     for gridded_forecast, reference_forecast, observed_catalog in zip(
         gridded_forecasts, benchmark_forecasts, observed_catalogs
@@ -587,6 +624,7 @@ def sequential_information_gain(
     result.obs_name = observed_catalog.name
     result.status = "normal"
     result.min_mw = numpy.min(gridded_forecast.magnitudes)
+
     return result
 
 

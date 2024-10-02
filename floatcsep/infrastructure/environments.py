@@ -494,4 +494,3 @@ class EnvironmentFactory:
             log.warning("Micromamba not found in PATH.")
 
         return None
-
