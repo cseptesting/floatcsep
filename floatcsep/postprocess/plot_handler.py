@@ -1,7 +1,6 @@
 import importlib.util
 import logging
 import os
-from datetime import datetime
 from typing import TYPE_CHECKING, Union
 
 from cartopy import crs as ccrs

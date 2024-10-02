@@ -88,22 +88,6 @@ class Experiment:
         intervals=1, region='csep-italy', ...)``
     """
 
-    """
-    Data management
-    
-    Model:
-        - FILE   - read from file, scale in runtime             
-                 - drop to db, scale from function in runtime   
-        - CODE  - run, read from file              
-                - run, store in db, read from db   
-    
-    TEST:
-        - use forecast from runtime
-        - read forecast from file (TD)
-          (does not make sense for TI (too much FS space) unless is already
-           dropped to DB)
-    """
-
     def __init__(
         self,
         name: str = None,
@@ -155,7 +139,7 @@ class Experiment:
             log.info(f"Logging at {self.registry.logger}")
             add_fhandler(self.registry.logger)
 
-        log.debug(f"-------- BEGIN OF RUN --------")
+        log.debug("-------- BEGIN OF RUN --------")
         log.info(f"Setting up experiment {self.name}:")
         log.info(f"\tStart: {self.start_date}")
         log.info(f"\tEnd: {self.end_date}")
@@ -554,7 +538,7 @@ class Experiment:
             numpy.random.seed(self.seed)
 
         self.task_graph.run()
-        log.info(f"Calculation completed")
+        log.info("Calculation completed")
         log.debug("Post-run forecast registry")
         self.registry.log_forecast_trees(self.timewindows)
         log.debug("Post-run result summary")
@@ -687,8 +671,6 @@ class Experiment:
             # experiment configuration file
             _dict = yaml.load(yml, NoAliasLoader)
             _dir_yml = dirname(config_yml)
-            # uses yml path and append if a rel/abs path is given in config.
-            _path = _dict.get("path", "")
 
             # Only ABSOLUTE PATH
             _dict["path"] = abspath(join(_dir_yml, _dict.get("path", "")))
@@ -750,13 +732,10 @@ class ExperimentComparison:
     def get_results(self):
 
         win_orig = timewindow2str(self.original.timewindows)
-        win_repr = timewindow2str(self.reproduced.timewindows)
 
         tests_orig = self.original.tests
-        tests_repr = self.reproduced.tests
 
         models_orig = [i.name for i in self.original.models]
-        models_repr = [i.name for i in self.reproduced.models]
 
         results = dict.fromkeys([i.name for i in tests_orig])
 
@@ -809,13 +788,10 @@ class ExperimentComparison:
     def get_filecomp(self):
 
         win_orig = timewindow2str(self.original.timewindows)
-        win_repr = timewindow2str(self.reproduced.timewindows)
 
         tests_orig = self.original.tests
-        tests_repr = self.reproduced.tests
 
         models_orig = [i.name for i in self.original.models]
-        models_repr = [i.name for i in self.reproduced.models]
 
         results = dict.fromkeys([i.name for i in tests_orig])
 

@@ -30,7 +30,6 @@ from csep.core.poisson_evaluations import (
 from csep.core.regions import CartesianGrid2D
 from csep.models import EvaluationResult
 from csep.utils.calc import cleaner_range
-from csep.utils.plots import plot_spatial_dataset
 
 # floatCSEP libraries
 import floatcsep.utils.accessors

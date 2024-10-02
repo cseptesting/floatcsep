@@ -90,7 +90,7 @@ def run(config: str, **kwargs) -> None:
     exp.make_repr()
 
     log.info("Finalized")
-    log.debug(f"-------- END OF RUN --------")
+    log.debug("-------- END OF RUN --------")
 
 
 def plot(config: str, **kwargs) -> None:

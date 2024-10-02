@@ -104,7 +104,7 @@ def download_file(url: str, filename: str) -> None:
     if total_size:
         print(f"Downloading file with size of {total_size / block_size:.3f} kB")
     else:
-        print(f"Downloading file with unknown size")
+        print("Downloading file with unknown size")
     with open(filename, "wb") as f:
         for data in r.iter_content(chunk_size=block_size):
             download_size += len(data)

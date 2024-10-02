@@ -57,7 +57,7 @@ def generate_report(experiment, timewindow=-1):
     # Generate catalog plot
     if experiment.catalog_repo.catalog is not None:
         report.add_figure(
-            f"Input catalog",
+            "Input catalog",
             [
                 experiment.registry.get_figure("main_catalog_map"),
                 experiment.registry.get_figure("main_catalog_time"),
@@ -434,7 +434,7 @@ class MarkdownReport:
             table (str): this can be added to subheading or other cell if
                 desired.
         """
-        table = ['<div class="table table-striped">', f"<table>"]
+        table = ['<div class="table table-striped">', "<table>"]
 
         def make_header(row_):
             header = ["<tr>"]

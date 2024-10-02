@@ -1,6 +1,6 @@
 import datetime
 import os
-from typing import Dict, Callable, Union, Sequence, List, Optional, Any
+from typing import Dict, Callable, Union, Sequence, List, Any
 
 from csep.core.catalogs import CSEPCatalog
 from csep.core.forecasts import GriddedForecast
@@ -297,7 +297,7 @@ class Evaluation:
                             pyplot.show()
                 # Single model test plots (e.g., test distribution)
                 # todo: handle this more elegantly
-                except AttributeError as msg:
+                except AttributeError:
                     if self.type in ["consistency", "comparative"]:
                         for time_str in timewindow:
                             results = self.read_results(time_str, models)
@@ -311,7 +311,9 @@ class Evaluation:
                                 ax = func(result, plot_args=fargs, **fkwargs, show=False)
                                 if "code" in fargs:
                                     exec(fargs["code"])
-                                pyplot.savefig(fig_path, dpi=dpi)
+                                fig = ax.get_figure()
+                                fig.savefig(fig_path, dpi=dpi)
+
                                 if show:
                                     pyplot.show()
 

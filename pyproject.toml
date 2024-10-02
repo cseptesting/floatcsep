@@ -13,3 +13,7 @@ testpaths = [
 line-length = 96
 skip-string-normalization = false
 target-version = ["py39", "py310", "py311"]
+
+[tool.flake8]
+ignore = ["E203", "W503", "F401"]
+max-line-length = 96
