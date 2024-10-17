@@ -73,6 +73,8 @@ def generate_report(experiment, timewindow=-1):
     test_names = [test.name for test in experiment.tests]
     report.add_list(test_names)
 
+    report.add_heading("Test results", level=2)
+
     # Include results from Experiment
     for test in experiment.tests:
         fig_path = experiment.registry.get_figure(timestr, test)
