@@ -9,35 +9,52 @@ Installation
 Latest Version
 --------------
 
-Recommended to learn the software, run the tutorials, and drafting **Testing Experiments**.
+This option is recommended to learn the software, run the tutorials, and drafting **Testing Experiments**.
 
 1. Using ``conda``
 ~~~~~~~~~~~~~~~~~~
 
-To install **floatCSEP**, first a ``conda`` manager should be installed (https://conda.io). Checkout `Anaconda`, `Miniconda` or `Miniforge` (recommended). Once installed, create an environment with:
+First, clone the **floatCSEP** source code into a new directory by typing into a terminal:
+
+    .. code-block:: console
+
+        $ git clone https://github.com/cseptesting/floatcsep
+        $ cd floatcsep
+
+Then, let ``conda`` automatically install all required dependencies of **floatCSEP** (from its ``environment.yml`` file) into a new environment, and activate it:
 
     .. code-block:: console
 
         $ conda env create -n csep_env
         $ conda activate csep_env
 
-Then, clone and install the floatCSEP source code using ``pip``
+.. note::
+
+    For this to work, you need to have ``conda`` installed (see `conda.io <https://conda.io>`_), either by installing the `Anaconda Distribution <https://docs.anaconda.com/anaconda/install/>`_,
+    or its more minimal variants `Miniconda <https://docs.anaconda.com/miniconda/>`_ or `Miniforge <https://conda-forge.org/download>`_ (recommended).
+    If you install `Miniforge`, we further recommend to use the ``mamba`` command instead of ``conda`` (a faster drop-in replacement).
+
+
+Lastly, install **floatCSEP** into the new environment using ``pip``:
 
     .. code-block:: console
 
-        $ git clone https://github.com/cseptesting/floatcsep
-        $ cd floatcsep
         $ pip install .
 
 .. note::
 
-    Use the ``mamba`` command instead of ``conda`` if `Miniforge` was installed.
+    To *update* **floatCSEP** and its dependencies at a later date, simply execute:
+
+        .. code-block:: console
+
+            $ conda env update --file environment.yml
+            $ pip install . -U
 
 
-2. Using ``pip`` only
+2. Using only ``pip``
 ~~~~~~~~~~~~~~~~~~~~~
 
-To install using the ``pip`` manager only, we require to install the binary dependencies of **pyCSEP** (see `Installing pyCSEP <https://docs.cseptesting.org/getting_started/installing.html>`_}. The **floatCSEP** latest version can then be installed as:
+To install using the ``pip`` manager only, we require to install the binary dependencies of **pyCSEP** (see `Installing pyCSEP <https://docs.cseptesting.org/getting_started/installing.html>`_). The **floatCSEP** latest version can then be installed as:
 
     .. code-block:: console
 
@@ -50,17 +67,16 @@ To install using the ``pip`` manager only, we require to install the binary depe
 Latest Stable Release
 ---------------------
 
-Recommended for deploying live Floating Testing Experiments
+This option is recommended for deploying *Floating Testing Experiments* live.
 
 1. From the ``conda-forge`` channel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Having a ``conda`` manager installed (https://conda.io), type in a console:
-
+Having a ``conda`` manager installed (see **Note** box above), type in a console:
 
     .. code-block:: console
 
-        $ conda env create -n csep_env
+        $ conda create -n csep_env
         $ conda activate csep_env
         $ conda install -c conda-forge floatcsep
 
@@ -91,7 +107,7 @@ Having installed the binary dependencies of **pyCSEP** (see `Installing pyCSEP <
 For Developers
 --------------
 
-It is recommended (not obligatory) to use a ``conda`` environment to make sure your contributions do not depend on your system local libraries. For contributions to the **floatCSEP** codebase, please consider using a `fork <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo>`_ and creating pull-requests from there.
+It is recommended (not obligatory) to use a ``conda`` environment to make sure your contributions do not depend on your system local libraries. For contributing to the **floatCSEP** codebase, please consider `forking the repository <https://docs.github.com/articles/fork-a-repo>`_ and `create pull-requests <https://docs.github.com/articles/creating-a-pull-request>`_ from there.
 
     .. code-block:: console
 
@@ -101,4 +117,4 @@ It is recommended (not obligatory) to use a ``conda`` environment to make sure y
         $ cd floatcsep
         $ pip install .[dev]
 
-This will install and configure all the unit-testing, linting and documentation packages.
+This will install and configure all the unit-testing, linting, and documentation packages.
