@@ -333,6 +333,9 @@ class MarkdownReport:
         else:
             paths = relative_filepaths
 
+        # make "relative path" (to experiment dir) relative to report
+        paths = [p.replace("results/", "") for p in paths]
+
         correct_paths = []
         if add_ext:
             for fp in paths:

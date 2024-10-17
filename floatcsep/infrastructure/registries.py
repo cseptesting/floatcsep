@@ -376,7 +376,7 @@ class ExperimentRegistry(FileRegistry):
         for i in args:
             parsed_arg = self._parse_arg(i)
             val = val[parsed_arg]
-        return self.abs(self.run_dir, val)
+        return self.rel(self.run_dir, val)
 
     def result_exist(self, timewindow_str: str, test_name: str, model_name: str) -> bool:
         """
