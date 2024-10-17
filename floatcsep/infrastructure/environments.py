@@ -364,7 +364,7 @@ class VenvManager(EnvironmentManager):
             os.path.join(self.env_path, "bin") + os.pathsep + virtualenv.get("PATH", "")
         )
 
-        full_command = f"bash -c 'source {activate_script}' && {command}"
+        full_command = f"bash -c 'source \"{activate_script}\"' && {command}"
 
         process = subprocess.Popen(
             full_command,

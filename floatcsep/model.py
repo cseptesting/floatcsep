@@ -401,7 +401,7 @@ class TimeDependentModel(Model):
             f"Running {self.name} using {self.environment.__class__.__name__}:"
             f" {timewindow2str([start_date, end_date])}"
         )
-        self.environment.run_command(f"{self.func} {self.registry.get('args_file')}")
+        self.environment.run_command(f"{self.func} \"{self.registry.get('args_file')}\"")
 
     def prepare_args(self, start: datetime, end: datetime, **kwargs) -> None:
         """
