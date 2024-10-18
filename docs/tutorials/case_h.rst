@@ -3,7 +3,7 @@
 H - A Time-Dependent Experiment
 ===============================
 
-Here, we run an experiment that access, containerize and execute multiple **time-dependent models**, and then proceeds to evaluate the forecasts once they are created.
+Here, we run an experiment that accesses, containerizes and executes multiple **time-dependent models**, and then proceeds to evaluate the forecasts once they are created.
 
 .. admonition:: **TL; DR**
 
@@ -35,7 +35,7 @@ The experiment input files are:
         ├── tests.yml
         └── models.yml
 
-* The ``models.yml`` contains the instructions to clone and build the source codes from software repositories (e.g., gitlab, Github), and how to interface them with **floatCSEP**. Once downloaded and built, the experiment structure should look like:
+* The ``models.yml`` contains the instructions to clone and build the source codes from software repositories (e.g., gitlab, Github), and how to interface them with **floatCSEP**. Once downloaded and built, the experiment structure should look like this:
 
 ::
 
@@ -139,7 +139,7 @@ As in :ref:`Tutorial G<case_g>`, each **Model** requires to build and execute a 
 
     where ``start`` and ``end`` follow either the ``%Y-%m-%dT%H:%M:%S.%f`` - ISO861 FORMAT, or the short date version ``%Y-%m-%d`` if the windows are set by midnight.
 
-6. Additional function arguments can be passed to the model with the entry ``func_kwargs``. We perhaps noted that both Poisson Mock and Negbinom Mock use the same source code. With ``func_kwargs`` a different subclass can be defined for the same source code (in this case, a Negative-Binomial number distribution instead of Poisson).
+6. Additional function arguments can be passed to the model with the entry ``func_kwargs``. Both `Poisson Mock` and `Negbinom Mock` use the same source code, but a different subclass can be defined with ``func_kwargs`` (in this case, a Negative-Binomial number distribution instead of Poisson).
 
     .. literalinclude:: ../../tutorials/case_h/models.yml
         :caption: tutorials/case_h/models.yml
@@ -160,13 +160,13 @@ Time
 Catalog
 ~~~~~~~
 
-    The catalog was obtained `previous to the experiment` using ``query_bsi``, but it was filtered from 2006 onwards, so it has enough data for the model calibration.
+    The catalog was obtained *prior* to the experiment using ``query_bsi``, but it was filtered from 2006 onwards, so it has enough data for the model calibration.
 
 
 Tests
 ~~~~~
 
-    With time-dependent models, now catalog evaluations found in :obj:`csep.core.catalog_evaluations` can be used.
+    Catalog-based evaluations found in :obj:`csep.core.catalog_evaluations` can be used.
 
 
     .. literalinclude:: ../../tutorials/case_h/tests.yml
@@ -174,7 +174,7 @@ Tests
         :language: yaml
 
     .. note::
-        It is possible to assign two plotting functions to a test, whose ``plot_args`` and ``plot_kwargs`` can be placed indented beneath
+        It is possible to assign two plotting functions to a test, whose ``plot_args`` and ``plot_kwargs`` can be placed indented beneath.
 
 
 Custom Post-Process
@@ -187,25 +187,25 @@ Custom Post-Process
         :language: yaml
         :lines: 22-23
 
-    This option provides `hook` for a python script and a function within as:
+    This option provides `hook` for a Python script and a function within as:
 
     .. code-block:: console
 
         {python_sript}:{function_name}
 
-    The requirements are that the script to be located within the same directory as the configuration file, whereas the function must receive a :class:`floatcsep.experiment.Experiment` as argument
+    The script must be located within the same directory as the configuration file, whereas the function must receive a :class:`floatcsep.experiment.Experiment` as argument:
 
     .. literalinclude:: ../../tutorials/case_h/custom_report.py
        :language: yaml
        :lines: 5-11
 
-    In this way, the report function use all the :class:`~floatcsep.experiment.Experiment` attributes/methods to access catalogs, forecasts and test results. The script ``tutorials/case_h/custom_report.py`` can also be viewed directly on `GitHub <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_h/custom_report.py>`_, where it is exemplified how to access the experiment artifacts.
+    In this way, the report function use all the :class:`~floatcsep.experiment.Experiment` attributes/methods to access catalogs, forecasts and test results. The script ``tutorials/case_h/custom_report.py`` can also be viewed directly in `the GitHub repository <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_h/custom_report.py>`_, where it is exemplified how to access the experiment artifacts.
 
 
 Running the experiment
 ----------------------
 
-    The experiment can be run by simply navigating to the ``tutorials/case_h`` folder in the terminal and typing.
+    The experiment can be run by simply navigating to the ``tutorials/case_h`` folder in the terminal and typing:
 
     .. code-block:: console
 
