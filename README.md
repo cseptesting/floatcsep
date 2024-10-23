@@ -83,7 +83,7 @@ the tutorials**!
 # Roadmap and Known Issues
 
 * Create tool to check a TD model's interface with ``floatcsep``
-* Define a dependency strategy to ensure experiments' reproducibility.
+* Define a dependency strategy to ensure experiments' reproducibility (e.g., storing docker image).
 * Implement spatial database and HDF5 experiment storage feature
 * Set up task parallelization
 * Document the process of an experiment deployment
