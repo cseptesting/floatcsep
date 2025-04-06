@@ -238,9 +238,7 @@ class TestModelFromGit(TestCase):
         path_ = os.path.join(tempfile.tempdir, _dir)
         if os.path.exists(path_):
             shutil.rmtree(path_)
-        giturl = (
-            "https://git.gfz-potsdam.de/csep-group/" "rise_italy_experiment/models/template.git"
-        )
+        giturl = "https://github.com/pabloitu/" "template.git"
         model_a = self.init_model(name=name, model_path=path_, giturl=giturl)
         model_a.stage()
 

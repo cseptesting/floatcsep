@@ -18,7 +18,7 @@ To install **floatCSEP**, first a ``conda`` manager should be installed (https:/
 
     .. code-block:: console
 
-        $ conda env create -n csep_env
+        $ conda create -n csep_env
         $ conda activate csep_env
 
 Then, clone and install the floatCSEP source code using ``pip``
@@ -60,7 +60,7 @@ Having a ``conda`` manager installed (https://conda.io), type in a console:
 
     .. code-block:: console
 
-        $ conda env create -n csep_env
+        $ conda create -n csep_env
         $ conda activate csep_env
         $ conda install -c conda-forge floatcsep
 
@@ -95,7 +95,7 @@ It is recommended (not obligatory) to use a ``conda`` environment to make sure y
 
     .. code-block:: console
 
-        $ conda env create -n csep_dev
+        $ conda create -n csep_dev
         $ conda activate csep_dev
         $ git clone https://github.com/${your_fork}/floatcsep
         $ cd floatcsep

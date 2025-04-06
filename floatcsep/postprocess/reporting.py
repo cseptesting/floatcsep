@@ -59,8 +59,14 @@ def generate_report(experiment, timewindow=-1):
         report.add_figure(
             "Input catalog",
             [
-                experiment.registry.get_figure("main_catalog_map"),
-                experiment.registry.get_figure("main_catalog_time"),
+                os.path.relpath(
+                    experiment.registry.get_figure("main_catalog_map"),
+                    experiment.registry.run_dir,
+                ),
+                os.path.relpath(
+                    experiment.registry.get_figure("main_catalog_time"),
+                    experiment.registry.run_dir,
+                ),
             ],
             level=3,
             ncols=1,
@@ -78,7 +84,12 @@ def generate_report(experiment, timewindow=-1):
         fig_path = experiment.registry.get_figure(timestr, test)
         width = test.plot_args[0].get("figsize", [4])[0] * 96
         report.add_figure(
-            f"{test.name}", fig_path, level=3, caption=test.markdown, add_ext=True, width=width
+            f"{test.name}",
+            os.path.relpath(fig_path, experiment.registry.run_dir),
+            level=3,
+            caption=test.markdown,
+            add_ext=True,
+            width=width,
         )
         for model in experiment.models:
             try:

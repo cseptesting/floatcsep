@@ -88,9 +88,8 @@ def plot_forecasts(experiment: "Experiment") -> None:
 
     for model in experiment.models:
         for window in time_windows:
-            ax = model.get_forecast(window, experiment.region).plot(
-                plot_args=plot_forecast_config
-            )
+            forecast = model.get_forecast(window, region=experiment.region)
+            ax = forecast.plot(plot_args=plot_forecast_config)
 
             # If catalog option is passed, catalog is plotted on top of the forecast
             if plot_forecast_config.get("catalog"):

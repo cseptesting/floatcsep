@@ -38,19 +38,25 @@
 The core of `floatCSEP` is built around the `pyCSEP`
 package (https://github.com/sceccode/pycsep), which itself contains the core dependencies.
 
-The simplest way to install `floatCSEP`, is by creating a `conda`
-environment (https://conda.io - checkout Anaconda or Miniconda) and install `pyCSEP`
+## Stable Release
+
+The simplest way to install `floatCSEP` is by creating a `conda`
+environment (https://conda.io - checkout Anaconda or Miniforge) and install `floatCSEP`
 from `conda-forge`
 
 ```
-conda env create -n $NAME
+conda create -n $NAME -y
 conda activate $NAME
-conda install -c conda-forge pycsep
+conda install -c conda-forge floatcsep -y
 ```
+
+## Latest version
 
 Clone and install the floatCSEP source code using `pip`
 
 ```
+conda create -n $NAME -y
+conda activate $NAME
 git clone https://github.com/cseptesting/floatcsep
 cd floatcsep
 pip install .
