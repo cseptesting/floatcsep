@@ -9,6 +9,8 @@ import venv
 from abc import ABC, abstractmethod
 from typing import Union
 
+import docker
+from docker.errors import ImageNotFound, NotFound, APIError
 from packaging.specifiers import SpecifierSet
 
 log = logging.getLogger("floatLogger")
@@ -387,20 +389,123 @@ class DockerManager(EnvironmentManager):
     """
 
     def __init__(self, base_name: str, model_directory: str) -> None:
-        self.base_name = base_name
+        self.base_name = base_name.replace(" ", "_")
         self.model_directory = model_directory
 
-    def create_environment(self, force=False) -> None:
-        pass
+        # use a lower-case slug for tags
+        slug = self.base_name.lower()
+        self.image_tag = f"{slug}_image"
+        self.container_name = f"{slug}_container"
 
-    def env_exists(self) -> None:
-        pass
+        # Docker SDK client
+        self.client = docker.from_env()
 
-    def run_command(self, command) -> None:
-        pass
+    def create_environment(self, force: bool = False) -> None:
+        """
+        Build (or rebuild) the Docker image for this model.
+        """
+
+        # If forced, remove the existing image
+        if force and self.env_exists():
+            log.info(f"[{self.base_name}] Removing existing image '{self.image_tag}'")
+            try:
+                self.client.images.remove(self.image_tag, force=True)
+            except APIError as e:
+                log.warning(f"[{self.base_name}] Could not remove image: {e}")
+
+        # If image is missing or rebuild was requested, build it now
+        if force or not self.env_exists():
+            build_path = os.path.abspath(self.model_directory)
+            uid, gid = os.getuid(), os.getgid()
+            build_args = {
+                "USER_UID": str(uid),
+                "USER_GID": str(gid),
+            }
+            log.info(f"[{self.base_name}] Building image '{self.image_tag}' from {build_path}")
+
+            build_logs = self.client.api.build(
+                path=build_path,
+                tag=self.image_tag,
+                rm=True,
+                decode=True,
+                buildargs=build_args,
+                nocache=False # todo: create model arg for --no-cache
+            )
+
+            # Stream each chunk
+            for chunk in build_logs:
+                if "stream" in chunk:
+                    for line in chunk["stream"].splitlines():
+                        log.debug(f"[{self.base_name}][build] {line}")
+                elif "errorDetail" in chunk:
+                    msg = chunk["errorDetail"].get("message", "").strip()
+                    log.error(f"[{self.base_name}][build error] {msg}")
+                    raise RuntimeError(f"Docker build error: {msg}")
+            log.info(f"[{self.base_name}] Successfully built '{self.image_tag}'")
+
+    def env_exists(self) -> bool:
+        """
+        Checks if the Docker image with the given tag already exists.
+
+        Returns:
+            bool: True if the Docker image exists, False otherwise.
+        """
+        """
+        Returns True if an image with our tag already exists locally.
+        """
+        try:
+            self.client.images.get(self.image_tag)
+            return True
+        except ImageNotFound:
+            return False
+
+    def run_command(self,  command=None) -> None:
+        """
+        Runs the model’s Docker container with input/ and forecasts/ mounted.
+        Streams logs and checks for non-zero exit codes.
+        """
+        model_root = os.path.abspath(self.model_directory)
+        mounts = {
+            os.path.join(model_root, "input"): {'bind': '/app/input', 'mode': 'rw'},
+            os.path.join(model_root, "forecasts"): {'bind': '/app/forecasts', 'mode': 'rw'},
+        }
+
+        uid, gid = os.getuid(), os.getgid()
+
+        log.info(f"[{self.base_name}] Launching container {self.container_name}")
+
+        try:
+            container = self.client.containers.run(
+                self.image_tag,
+                remove=False,
+                volumes=mounts,
+                detach=True,
+                user=f"{uid}:{gid}",
+            )
+        except docker.errors.APIError as e:
+            raise RuntimeError(f"[{self.base_name}] Failed to start container: {e}")
+
+        # Log output live
+        for line in container.logs(stream=True):
+            log.info(f"[{self.base_name}] {line.decode().rstrip()}")
+
+        # Wait for exit
+        exit_code = container.wait().get("StatusCode", 1)
+
+        # Clean up
+        container.remove(force=True)
+
+        if exit_code != 0:
+            raise RuntimeError(f"[{self.base_name}] Container exited with code {exit_code}")
+
+        log.info(f"[{self.base_name}] Container finished successfully.")
 
     def install_dependencies(self) -> None:
-        pass
+        """
+        Installs dependencies for Docker-based models. This is typically handled by the Dockerfile,
+        so no additional action is needed here.
+        """
+        log.info("No additional dependency installation required for Docker environments.")
 
 
 class EnvironmentFactory:

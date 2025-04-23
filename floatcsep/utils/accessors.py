@@ -5,10 +5,6 @@ import os
 import sys
 import shutil
 
-HOST_CATALOG = "https://service.iris.edu/fdsnws/event/1/query?"
-TIMEOUT = 180
-
-
 def from_zenodo(record_id, folder, force=False):
     """
     Download data from a Zenodo repository.

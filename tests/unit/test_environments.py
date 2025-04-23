@@ -1,7 +1,7 @@
+import os
 import venv
 import unittest
 import subprocess
-import os
 from unittest.mock import patch, MagicMock, call, mock_open
 import shutil
 import hashlib
@@ -12,6 +12,12 @@ from floatcsep.infrastructure.environments import (
     VenvManager,
     DockerManager,
 )
+try:
+    import docker
+    from docker.errors import ImageNotFound, APIError
+    DOCKER_SDK_AVAILABLE = True
+except ImportError:
+    DOCKER_SDK_AVAILABLE = False
 
 
 class TestCondaEnvironmentManager(unittest.TestCase):
@@ -43,7 +49,6 @@ class TestCondaEnvironmentManager(unittest.TestCase):
     def test_generate_env_name(self, mock_which, mock_run):
         manager = CondaManager("test_base", "/path/to/model")
         expected_name = "test_base_" + hashlib.md5("/path/to/model".encode()).hexdigest()[:8]
-        print(expected_name)
         self.assertEqual(manager.generate_env_name(), expected_name)
 
     @patch("subprocess.run")
@@ -357,6 +362,140 @@ class TestVenvEnvironmentManager(unittest.TestCase):
             universal_newlines=True,
         )
 
+
+@unittest.skipUnless(DOCKER_SDK_AVAILABLE, "docker SDK is not installed")
+class TestDockerManagerWithSDK(unittest.TestCase):
+    def setUp(self):
+        # Prepare a fake model directory with a Dockerfile
+        self.model_dir = "/tmp/test_model"
+        os.makedirs(self.model_dir, exist_ok=True)
+        with open(os.path.join(self.model_dir, "Dockerfile"), "w") as f:
+            f.write("FROM scratch\n")
+
+        self.patcher = patch("docker.from_env")
+        self.mock_from_env = self.patcher.start()
+        self.mock_client = MagicMock()
+        self.mock_from_env.return_value = self.mock_client
+
+        self.manager = DockerManager("My Model", self.model_dir)
+
+    def tearDown(self):
+        self.patcher.stop()
+        shutil.rmtree(self.model_dir, ignore_errors=True)
+
+    def test_init(self):
+        # base_name slugged
+        self.assertEqual(self.manager.base_name, "My_Model")
+        # tags
+        self.assertEqual(self.manager.image_tag, "my_model_image")
+        self.assertEqual(self.manager.container_name, "my_model_container")
+        # client setup
+        self.mock_from_env.assert_called_once()
+        self.assertIs(self.manager.client, self.mock_client)
+
+    def test_env_exists_true(self):
+        # images.get returns without error
+        self.mock_client.images.get.return_value = MagicMock()
+        self.assertTrue(self.manager.env_exists())
+        self.mock_client.images.get.assert_called_once_with(self.manager.image_tag)
+
+    def test_env_exists_false(self):
+        # images.get raises ImageNotFound
+        self.mock_client.images.get.side_effect = ImageNotFound("not found")
+        self.assertFalse(self.manager.env_exists())
+        self.mock_client.images.get.assert_called_once_with(self.manager.image_tag)
+
+    def test_create_environment_builds_when_missing(self):
+
+        # no image exists
+        self.manager.env_exists = MagicMock(return_value=False)
+        fake_logs = [{"stream": "Step 1/2\n"}, {"stream": "Step 2/2\n"}]
+        self.mock_client.api.build.return_value = fake_logs
+
+        with patch("floatcsep.environments.log") as mock_log:
+            self.manager.create_environment(force=False)
+
+        self.mock_client.api.build.assert_called_once_with(
+            path=self.manager.model_directory,
+            tag=self.manager.image_tag,
+            rm=True,
+            decode=True,
+            buildargs={
+                "USER_UID": str(os.getuid()),
+                "USER_GID": str(os.getgid()),
+            },
+            nocache=False
+        )
+        # success logged only once
+        infos = [call_args[0][0] for call_args in mock_log.info.call_args_list]
+        self.assertEqual(sum("Successfully built" in msg for msg in infos), 1)
+
+    def test_create_environment_skips_when_exists_and_not_forced(self):
+        self.manager.env_exists = MagicMock(return_value=True)
+        self.manager.create_environment(force=False)
+        self.mock_client.images.remove.assert_not_called()
+        self.mock_client.api.build.assert_not_called()
+
+    def test_create_environment_force(self):
+        self.manager.env_exists = MagicMock(return_value=True)
+        fake_logs = [{"stream": ""}]
+        self.mock_client.api.build.return_value = fake_logs
+
+        with patch("floatcsep.environments.log") as mock_log:
+            self.manager.create_environment(force=True)
+
+        # remove then build
+        self.mock_client.images.remove.assert_called_once_with(self.manager.image_tag, force=True)
+        self.mock_client.api.build.assert_called_once()
+        infos = [call_args[0][0] for call_args in mock_log.info.call_args_list]
+        self.assertEqual(sum("Successfully built" in msg for msg in infos), 1)
+
+    def test_create_environment_build_error(self):
+        self.manager.env_exists = MagicMock(return_value=False)
+        self.mock_client.api.build.side_effect = APIError("fail", response=None, explanation="err")
+        with self.assertRaises(APIError):
+            self.manager.create_environment(force=False)
+
+    def test_run_command_success(self):
+        fake_container = MagicMock()
+        fake_container.logs.return_value = [b"out1\n", b"out2\n"]
+        fake_container.wait.return_value = {"StatusCode": 0}
+        self.mock_client.containers.run.return_value = fake_container
+
+        with patch("floatcsep.environments.log") as mock_log:
+            self.manager.run_command()
+
+        uid, gid = os.getuid(), os.getgid()
+        expected_volumes = {
+            os.path.join(self.model_dir, "input"): {'bind': '/app/input', 'mode': 'rw'},
+            os.path.join(self.model_dir, "forecasts"): {'bind': '/app/forecasts', 'mode': 'rw'},
+        }
+        self.mock_client.containers.run.assert_called_once_with(
+            self.manager.image_tag,
+            name=self.manager.container_name,
+            remove=True,
+            volumes=expected_volumes,
+            detach=True,
+            user=f"{uid}:{gid}",
+        )
+        fake_container.logs.assert_called_once_with(stream=True)
+        fake_container.wait.assert_called_once()
+
+        info_msgs = [args[0] for args, _ in mock_log.info.call_args_list]
+        self.assertTrue(any("out1" in m for m in info_msgs))
+
+    def test_run_command_failure(self):
+        fake_container = MagicMock()
+        fake_container.logs.return_value = []
+        fake_container.wait.return_value = {"StatusCode": 5}
+        self.mock_client.containers.run.return_value = fake_container
+
+        with self.assertRaises(RuntimeError):
+            self.manager.run_command()
+
+    def test_install_dependencies_noop(self):
+        # No exception should be raised
+        self.manager.install_dependencies()
 
 if __name__ == "__main__":
     unittest.main()

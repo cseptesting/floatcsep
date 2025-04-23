@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import List, Callable, Union, Sequence
 
 import git
+import yaml
 from csep.core.forecasts import GriddedForecast, CatalogForecast
 
 from floatcsep.utils.accessors import from_zenodo, from_git
@@ -122,7 +123,7 @@ class Model(ABC):
                 f"structure"
             )
 
-    def as_dict(self, excluded=("name", "repository", "workdir")):
+    def as_dict(self, excluded=("name", "repository", "workdir", "environment")):
         """
         Returns:
             Dictionary with relevant attributes. Model can be re-instantiated from this dict
@@ -295,6 +296,7 @@ class TimeDependentModel(Model):
         model_path: str,
         func: Union[str, Callable] = None,
         func_kwargs: dict = None,
+        fmt: str = 'csv',
         **kwargs,
     ) -> None:
         """
@@ -317,7 +319,9 @@ class TimeDependentModel(Model):
         self.func = func
         self.func_kwargs = func_kwargs or {}
 
-        self.registry = ForecastRegistry(kwargs.get("workdir", os.getcwd()), model_path)
+        self.registry = ForecastRegistry(workdir=kwargs.get("workdir", os.getcwd()),
+                                         path=model_path,
+                                         fmt=fmt)
         self.repository = ForecastRepository.factory(
             self.registry, model_class=self.__class__.__name__, **kwargs
         )
@@ -451,3 +455,32 @@ class TimeDependentModel(Model):
 
             with open(filepath, "w") as file_:
                 json.dump(args, file_, indent=2)
+
+        elif fmt == ".yml" or fmt == ".yaml":
+
+            def nested_update(dest: dict, src: dict, max_depth: int = 3, _level: int = 1):
+                """
+                Recursively update dest with values from src down to max_depth levels.
+                - If dest[k] and src[k] are both dicts, recurse (until max_depth).
+                - Otherwise overwrite dest[k] with src[k].
+                """
+                for key, val in src.items():
+                    if (
+                            _level < max_depth
+                            and key in dest
+                            and isinstance(dest[key], dict)
+                            and isinstance(val, dict)
+                    ):
+                        nested_update(dest[key], val, max_depth, _level + 1)
+                    else:
+                        dest[key] = val
+
+
+            with open(filepath, "r") as file_:
+                args = yaml.safe_load(file_)
+            args["start_date"] = start.isoformat()
+            args["end_date"] = end.isoformat()
+
+            nested_update(args, self.func_kwargs)
+            with open(filepath, "w") as file_:
+                yaml.safe_dump(args, file_, indent=2)
