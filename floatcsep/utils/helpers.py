@@ -318,7 +318,6 @@ def timewindows_ti(
         timelimits = pandas.date_range(
             start=start_date, end=end_date, periods=periods, freq=frequency
         )
-        print(timelimits)
         timelimits = timelimits.to_pydatetime()
     except ValueError as e_:
         raise ValueError(

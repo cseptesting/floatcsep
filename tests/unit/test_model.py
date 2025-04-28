@@ -205,7 +205,7 @@ class TestTimeDependentModel(TestModel):
     def test_init(self):
         # Assertions to check if the components were instantiated correctly
         self.mock_registry.assert_called_once_with(
-            os.getcwd(), self.model_path
+            workdir=os.getcwd(), path=self.model_path, fmt='csv'
         )  # Ensure the registry is initialized correctly
         self.mock_repository_factory.assert_called_once_with(
             self.mock_registry_instance, model_class="TimeDependentModel"

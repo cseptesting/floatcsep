@@ -93,6 +93,7 @@ class ForecastRegistry(FileRegistry):
         database: str = None,
         args_file: str = None,
         input_cat: str = None,
+        fmt: str = None,
     ) -> None:
         """
 
@@ -110,6 +111,8 @@ class ForecastRegistry(FileRegistry):
         self.args_file = args_file
         self.input_cat = input_cat
         self.forecasts = {}
+
+        self._fmt = fmt
 
     def get(self, *args: Sequence[str]) -> str:
         """
@@ -161,7 +164,11 @@ class ForecastRegistry(FileRegistry):
         if self.database:
             return os.path.splitext(self.database)[1][1:]
         else:
-            return os.path.splitext(self.path)[1][1:]
+            ext = os.path.splitext(self.path)[1][1:]
+            if ext:
+                return ext
+            else:
+                return self._fmt
 
     def as_dict(self) -> dict:
         """
@@ -199,7 +206,7 @@ class ForecastRegistry(FileRegistry):
         model_class: str = "TimeIndependentModel",
         prefix: str = None,
         args_file: str = None,
-        input_cat: str = None,
+        input_cat: str = None
     ) -> None:
         """
         Creates the run directory, and reads the file structure inside.
@@ -210,6 +217,7 @@ class ForecastRegistry(FileRegistry):
             prefix (str): prefix of the model forecast filenames if TD
             args_file (str, bool): input arguments path of the model if TD
             input_cat (str, bool): input catalog path of the model if TD
+            fmt (str, bool): for time dependent mdoels
 
         """
 
@@ -235,7 +243,7 @@ class ForecastRegistry(FileRegistry):
 
             # set forecast names
             self.forecasts = {
-                win: join(dirtree["forecasts"], f"{prefix}_{win}.csv") for win in windows
+                win: join(dirtree["forecasts"], f"{prefix}_{win}.{self.fmt}") for win in windows
             }
 
     def log_tree(self) -> None:

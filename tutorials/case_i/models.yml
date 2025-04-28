@@ -1,0 +1,14 @@
+- step:
+    giturl: git@github.com:KennyGraham1/STEPModel.git
+    repo_hash: floatcsep-interface
+    forecast_type: gridded
+    fmt: dat
+    path: models/step
+    args_file: input/step_config.yaml
+    build: docker
+#    force_stage: True
+#    force_build: True
+    func: run
+    func_kwargs:
+      paths:
+        catalog_file: catalog.csv
