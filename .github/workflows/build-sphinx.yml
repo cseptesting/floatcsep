@@ -20,6 +20,7 @@ jobs:
         with:
           generate-run-shell: true
           environment-file: environment.yml
+
       - name: Install floatCSEP
         run: |
           pip install -e .[dev]

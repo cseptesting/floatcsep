@@ -29,7 +29,6 @@ jobs:
         create-args: >-
           python=${{ matrix.python-version }}
 
-
     - name: Install floatCSEP
       run: |
         pip install -e .[dev]
