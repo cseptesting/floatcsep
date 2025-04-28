@@ -107,6 +107,7 @@ class Model(ABC):
                 from_git(
                     giturl,
                     self.registry.dir if self.registry.fmt else self.registry.path,
+                    force=self.force_stage,
                     **kwargs,
                 )
             except (git.NoSuchPathError, git.CommandError) as msg:

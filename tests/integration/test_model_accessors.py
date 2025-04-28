@@ -120,11 +120,12 @@ class TestModelFromGit(TestCase):
         mock_create_environment.return_value = None
         name = "mock_git"
         _dir = "git_template"
-        path_ = os.path.join(tempfile.tempdir, _dir)
+        path_ = os.path.join(tempfile.gettempdir(), _dir)
         if os.path.exists(path_):
             shutil.rmtree(path_)
+        os.makedirs(path_, exist_ok=True)
         giturl = "https://github.com/pabloitu/" "template.git"
-        model_a = self.init_model(name=name, model_path=path_, giturl=giturl)
+        model_a = self.init_model(name=name, model_path=path_, giturl=giturl, force_stage=True)
         model_a.stage()
 
         path = os.path.join(self._dir, "template")

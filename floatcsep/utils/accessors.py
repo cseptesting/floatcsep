@@ -46,7 +46,7 @@ def from_zenodo(record_id, folder, force=False):
             sys.exit(-1)
 
 
-def from_git(url, path, branch=None, depth=1, **kwargs):
+def from_git(url, path, branch=None, depth=1, force=False, **kwargs):
     """
     Clones a shallow repository from a git url.
 
@@ -55,6 +55,7 @@ def from_git(url, path, branch=None, depth=1, **kwargs):
         path (str): path/folder where to clone the repo
         branch (str): repository's branch to clone (default: main)
         depth (int): depth history of commits
+        force (bool): If True, deletes existing path before cloning
         **kwargs: keyword args passed to Repo.clone_from
 
     Returns:
@@ -63,6 +64,13 @@ def from_git(url, path, branch=None, depth=1, **kwargs):
 
     kwargs.update({"depth": depth})
     git.refresh()
+
+    if os.path.exists(path):
+        if force:
+            shutil.rmtree(path)
+        elif os.listdir(path):
+            raise ValueError(f"Cannot clone into non-empty directory: {path}")
+    os.makedirs(path, exist_ok=True)
 
     try:
         repo = git.Repo(path)

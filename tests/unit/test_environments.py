@@ -472,8 +472,7 @@ class TestDockerManagerWithSDK(unittest.TestCase):
         }
         self.mock_client.containers.run.assert_called_once_with(
             self.manager.image_tag,
-            name=self.manager.container_name,
-            remove=True,
+            remove=False,
             volumes=expected_volumes,
             detach=True,
             user=f"{uid}:{gid}",
