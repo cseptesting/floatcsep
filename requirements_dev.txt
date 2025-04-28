@@ -32,5 +32,5 @@ sphinx-toolbox
 sphinx_copybutton
 tables
 tox
-vcrpy==4.3.1
+vcrpy
 xmltodict

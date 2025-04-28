@@ -1,9 +1,9 @@
 version: 2
 
 build:
-  os: "ubuntu-20.04"
+  os: "ubuntu-22.04"
   tools:
-    python: "mambaforge-4.10"
+    python: "mambaforge-22.9"
 
 conda:
   environment: environment.yml
@@ -12,5 +12,9 @@ python:
   install:
     - method: pip
       path: .
-    - method: pip
-      path: .[dev]  # Install development dependencies via pip
+      extra_requirements:
+        - dev
+      editable: true
+
+sphinx:
+  configuration: docs/conf.py

@@ -15,7 +15,7 @@ jobs:
         shell: bash -l {0}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4.2.2
       - uses: mamba-org/setup-micromamba@v1
         with:
           generate-run-shell: true
@@ -25,14 +25,19 @@ jobs:
 
       - name: Install py-build and setuptools-scm
         run: |
-          micromamba run -n floatcsep python3 -m pip install --upgrade build setuptools-scm
+          micromamba run -n floatcsep pip install --upgrade build setuptools-scm
 
       - name: Build
         run: |
           micromamba run -n floatcsep python3 -m build --sdist --wheel --outdir dist/
 
+      - name: Check distribution files
+        run: |
+          micromamba run -n floatcsep pip install twine
+          micromamba run -n floatcsep twine check dist/*
+
       - name: Publish Package
-        uses: pypa/gh-action-pypi-publish@v1.9.0
+        uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
