@@ -10,14 +10,14 @@ jobs:
 
     steps:
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4.2.2
 
       - name: Zip the tutorials folder
         run: |
           zip -r tutorials.zip tutorials/
 
       - name: Upload the tutorials.zip to the release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2.2.2
         with:
           files: tutorials.zip
         env:
