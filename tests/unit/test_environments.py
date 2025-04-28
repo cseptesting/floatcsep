@@ -211,9 +211,10 @@ class TestEnvironmentFactory(unittest.TestCase):
         self.assertEqual(env_manager.base_name, "test_model")
         self.assertEqual(env_manager.model_directory, "/absolute/path/to/model")
 
+    @patch("docker.from_env")
     @patch("os.path.abspath", return_value="/absolute/path/to/model")
     @patch.object(EnvironmentFactory, "check_environment_type", return_value=None)
-    def test_get_env_docker(self, mock_check_env, mock_abspath):
+    def test_get_env_docker(self, mock_check_env, mock_abspath, mock_from_env):
         env_manager = EnvironmentFactory.get_env(
             build="docker", model_name="test_model", model_path="/path/to/model"
         )

@@ -14,6 +14,17 @@ from floatcsep.model import TimeDependentModel
 # set_console_log_level("DEBUG")
 
 
+try:
+    # Try to create a docker client
+    client = docker.from_env()
+    client.ping()  # Check if Docker daemon is responding
+    DOCKER_AVAILABLE = True
+except Exception:
+    DOCKER_AVAILABLE = False
+
+skip_docker = unittest.skipUnless(DOCKER_AVAILABLE, "Docker is not available")
+
+@skip_docker
 class TestModelDockerIntegration(unittest.TestCase):
 
     @classmethod
