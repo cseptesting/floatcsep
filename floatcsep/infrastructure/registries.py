@@ -395,12 +395,12 @@ class ExperimentRegistry(FileRegistry):
         """
         return self.forecast_registries.get(model_name)
 
-    def log_forecast_trees(self, timewindows: list) -> None:
+    def log_forecast_trees(self, time_windows: list) -> None:
         """
         Logs the forecasts for all models managed by this ExperimentRegistry.
         """
         log.debug("===================")
-        log.debug(f" Total Time Windows: {len(timewindows)}")
+        log.debug(f" Total Time Windows: {len(time_windows)}")
         for model_name, registry in self.forecast_registries.items():
             log.debug(f"  Model: {model_name}")
             registry.log_tree()

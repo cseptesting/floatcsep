@@ -67,9 +67,9 @@ class TestModelFileRegistry(unittest.TestCase):
     @patch("os.makedirs")
     @patch("os.listdir")
     def test_build_tree_time_independent(self, mock_listdir, mock_makedirs):
-        timewindows = [[datetime(2023, 1, 1), datetime(2023, 1, 2)]]
+        time_windows = [[datetime(2023, 1, 1), datetime(2023, 1, 2)]]
         self.registry_for_filebased_model.build_tree(
-            time_windows=timewindows, model_class="TimeIndependentModel"
+            time_windows=time_windows, model_class="TimeIndependentModel"
         )
         self.assertIn("2023-01-01_2023-01-02", self.registry_for_filebased_model.forecasts)
         # self.assertIn("2023-01-01_2023-01-02", self.registry_for_filebased_model.inventory)
@@ -78,12 +78,12 @@ class TestModelFileRegistry(unittest.TestCase):
     @patch("os.listdir")
     def test_build_tree_time_dependent(self, mock_listdir, mock_makedirs):
         mock_listdir.return_value = ["forecast_1.csv"]
-        timewindows = [
+        time_windows = [
             [datetime(2023, 1, 1), datetime(2023, 1, 2)],
             [datetime(2023, 1, 2), datetime(2023, 1, 3)],
         ]
         self.registry_for_folderbased_model.build_tree(
-            time_windows=timewindows, model_class="TimeDependentModel", prefix="forecast"
+            time_windows=time_windows, model_class="TimeDependentModel", prefix="forecast"
         )
         self.assertIn("2023-01-01_2023-01-02", self.registry_for_folderbased_model.forecasts)
         # self.assertTrue(self.registry_for_folderbased_model.inventory["2023-01-01_2023-01-02"])

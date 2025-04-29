@@ -60,7 +60,7 @@ class Model(ABC):
         self.__dict__.update(**kwargs)
 
     @abstractmethod
-    def stage(self, timewindows=None) -> None:
+    def stage(self, time_windows=None) -> None:
         """Prepares the stage for a model run."""
         pass
 
@@ -215,13 +215,13 @@ class TimeIndependentModel(Model):
             self.registry, model_class=self.__class__.__name__, **kwargs
         )
 
-    def stage(self, timewindows: Sequence[Sequence[datetime]] = None) -> None:
+    def stage(self, time_windows: Sequence[Sequence[datetime]] = None) -> None:
         """
         Acquire the forecast data if it is not in the file system. Sets the paths internally
         (or database pointers) to the forecast data.
 
         Args:
-            timewindows (list): time_windows that the forecast data represents.
+            time_windows (list): time_windows that the forecast data represents.
         """
 
         if self.force_stage or not self.registry.file_exists("path"):
@@ -231,7 +231,7 @@ class TimeIndependentModel(Model):
         if self.store_db:
             self.init_db()
 
-        self.registry.build_tree(time_windows=timewindows, model_class=self.__class__.__name__)
+        self.registry.build_tree(time_windows=time_windows, model_class=self.__class__.__name__)
 
     def init_db(self, dbpath: str = "", force: bool = False) -> None:
         """
@@ -333,7 +333,7 @@ class TimeDependentModel(Model):
                 self.build, self.name, self.registry.abs(model_path)
             )
 
-    def stage(self, timewindows=None) -> None:
+    def stage(self, time_windows=None) -> None:
         """
         Core method to interface a model with the experiment.
 
@@ -351,7 +351,7 @@ class TimeDependentModel(Model):
             self.environment.create_environment(force=self.force_build)
 
         self.registry.build_tree(
-            time_windows=timewindows,
+            time_windows=time_windows,
             model_class=self.__class__.__name__,
             prefix=self.__dict__.get("prefix", self.name),
             args_file=self.__dict__.get("args_file", None),

@@ -381,8 +381,8 @@ class CatalogRepository:
             if isfile(self.cat_path):
                 return CSEPCatalog.load_json(self.cat_path)
             bounds = {
-                "start_time": min([item for sublist in self.timewindows for item in sublist]),
-                "end_time": max([item for sublist in self.timewindows for item in sublist]),
+                "start_time": min([item for sublist in self.time_windows for item in sublist]),
+                "end_time": max([item for sublist in self.time_windows for item in sublist]),
                 "min_magnitude": self.magnitudes.min(),
                 "max_depth": self.depths.max(),
             }

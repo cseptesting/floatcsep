@@ -35,7 +35,7 @@ def generate_report(experiment, timewindow=-1):
         custom_report(report_function, experiment)
         return
 
-    timewindow = experiment.timewindows[timewindow]
+    timewindow = experiment.time_windows[timewindow]
     timestr = timewindow2str(timewindow)
 
     log.info(f"Saving report into {experiment.registry.run_dir}")

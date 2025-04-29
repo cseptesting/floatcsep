@@ -224,7 +224,7 @@ class TestTimeDependentModel(TestModel):
     def test_stage(self, mk):
         self.model.force_stage = True  # Force staging to occur
 
-        self.model.stage(timewindows=["2020-01-01_2020-12-31"])
+        self.model.stage(time_windows=["2020-01-01_2020-12-31"])
 
         self.mock_get_source.assert_called_once_with(
             self.model.zenodo_id, self.model.giturl, branch=self.model.repo_hash

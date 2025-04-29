@@ -158,14 +158,14 @@ def read_time_cfg(time_config, **kwargs):
     if "offset" in time_config.keys():
         time_config["offset"] = parse_timedelta_string(time_config["offset"])
 
-    if not time_config.get("timewindows"):
+    if not time_config.get("time_windows"):
         if experiment_class == "ti":
-            time_config["timewindows"] = timewindows_ti(**time_config)
+            time_config["time_windows"] = time_windows_ti(**time_config)
         elif experiment_class == "td":
-            time_config["timewindows"] = timewindows_td(**time_config)
+            time_config["time_windows"] = time_windows_td(**time_config)
     else:
-        time_config["start_date"] = time_config["timewindows"][0][0]
-        time_config["end_date"] = time_config["timewindows"][-1][-1]
+        time_config["start_date"] = time_config["time_windows"][0][0]
+        time_config["end_date"] = time_config["time_windows"][-1][-1]
 
     return time_config
 
@@ -242,7 +242,7 @@ def timewindow2str(datetimes: Sequence) -> Union[str, list[str]]:
     single timewindow or a list of time windows.
 
     Args:
-        datetimes: A sequence (of sequences) of datetimes, representing a list of timewindows
+        datetimes: A sequence (of sequences) of datetimes, representing a list of time_windows
 
     Returns:
         A sequence of strings for each time window
@@ -279,7 +279,7 @@ def str2timewindow(
         return datetimes
 
 
-def timewindows_ti(
+def time_windows_ti(
     start_date=None, end_date=None, intervals=None, horizon=None, growth="incremental", **_
 ):
     """
@@ -336,7 +336,7 @@ def timewindows_ti(
         return [(timelimits[0], i) for i in timelimits[1:]]
 
 
-def timewindows_td(
+def time_windows_td(
     start_date=None, end_date=None, timeintervals=None, timehorizon=None, timeoffset=None, **_
 ):
     """

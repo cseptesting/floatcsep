@@ -52,8 +52,8 @@ class Experiment:
             - growth (:class:`str`): `incremental` or `cumulative`
             - offset (:class:`float`): recurrence of forecast creation.
 
-            For further details, see :func:`~floatcsep.utils.timewindows_ti`
-            and :func:`~floatcsep.utils.timewindows_td`
+            For further details, see :func:`~floatcsep.utils.time_windows_ti`
+            and :func:`~floatcsep.utils.time_windows_td`
 
         region_config (dict): Contains all the spatial and magnitude
             specifications. It must contain the following keys:
@@ -143,7 +143,7 @@ class Experiment:
         log.info(f"Setting up experiment {self.name}:")
         log.info(f"\tStart: {self.start_date}")
         log.info(f"\tEnd: {self.end_date}")
-        log.info(f"\tTime windows: {len(self.timewindows)}")
+        log.info(f"\tTime windows: {len(self.time_windows)}")
         log.info(f"\tRegion: {self.region.name if self.region else None}")
         log.info(
             f"\tMagnitude range: [{numpy.min(self.magnitudes)},"
@@ -295,7 +295,7 @@ class Experiment:
         """
         log.info("Staging models")
         for i in self.models:
-            i.stage(self.timewindows)
+            i.stage(self.time_windows)
             self.registry.add_forecast_registry(i)
 
     def set_tests(self, test_config: Union[str, Dict, List]) -> list:
@@ -376,17 +376,17 @@ class Experiment:
         """
 
         # Set the file path structure
-        self.registry.build_tree(self.timewindows, self.models, self.tests)
+        self.registry.build_tree(self.time_windows, self.models, self.tests)
 
         log.debug("Pre-run forecast summary")
-        self.registry.log_forecast_trees(self.timewindows)
+        self.registry.log_forecast_trees(self.time_windows)
         log.debug("Pre-run result summary")
         self.registry.log_results_tree()
 
         log.info("Setting up experiment's tasks")
 
         # Get the time windows strings
-        tw_strings = timewindow2str(self.timewindows)
+        tw_strings = timewindow2str(self.time_windows)
 
         # Prepare the testing catalogs
         task_graph = TaskGraph()
@@ -481,7 +481,7 @@ class Experiment:
                         )
             # Set up the Sequential_Comparative Scores
             elif test_k.type == "sequential_comparative":
-                tw_strs = timewindow2str(self.timewindows)
+                tw_strs = timewindow2str(self.time_windows)
                 for model_j in self.models:
                     task_k = Task(
                         instance=test_k,
@@ -504,7 +504,7 @@ class Experiment:
                         )
             # Set up the Batch comparative Scores
             elif test_k.type == "batch":
-                time_str = timewindow2str(self.timewindows[-1])
+                time_str = timewindow2str(self.time_windows[-1])
                 for model_j in self.models:
                     task_k = Task(
                         instance=test_k,
@@ -540,7 +540,7 @@ class Experiment:
         self.task_graph.run()
         log.info("Calculation completed")
         log.debug("Post-run forecast registry")
-        self.registry.log_forecast_trees(self.timewindows)
+        self.registry.log_forecast_trees(self.time_windows)
         log.debug("Post-run result summary")
         self.registry.log_results_tree()
 
@@ -604,7 +604,7 @@ class Experiment:
             "time_config": {
                 i: j
                 for i, j in self.time_config.items()
-                if (i not in ("timewindows",) or extended)
+                if (i not in ("time_windows",) or extended)
             },
             "region_config": {
                 i: j
@@ -731,7 +731,7 @@ class ExperimentComparison:
 
     def get_results(self):
 
-        win_orig = timewindow2str(self.original.timewindows)
+        win_orig = timewindow2str(self.original.time_windows)
 
         tests_orig = self.original.tests
 
@@ -787,7 +787,7 @@ class ExperimentComparison:
 
     def get_filecomp(self):
 
-        win_orig = timewindow2str(self.original.timewindows)
+        win_orig = timewindow2str(self.original.time_windows)
 
         tests_orig = self.original.tests
 
