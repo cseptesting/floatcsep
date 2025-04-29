@@ -78,20 +78,20 @@ class TestModelDockerIntegration(unittest.TestCase):
             workdir=str(model_dir),
         )
 
-    @patch("floatcsep.infrastructure.registries.ForecastRegistry.build_tree")
+    @patch("floatcsep.infrastructure.registries.ModelFileRegistry.build_tree")
     def test_valid_model(self, mock_registry):
         model = self._make_model("valid", "testdocker_valid")
         model.stage()
         model.environment.run_command()  # Should succeed with no exceptions
 
-    @patch("floatcsep.infrastructure.registries.ForecastRegistry.build_tree")
+    @patch("floatcsep.infrastructure.registries.ModelFileRegistry.build_tree")
     def test_invalid_image_build_fails(self, mock_registry):
         model = self._make_model("invalid_image", "testdocker_invalid_image")
         with self.assertRaises(RuntimeError) as err:
             model.environment.create_environment(force=True)
         self.assertIn("Docker build error", str(err.exception))
 
-    @patch("floatcsep.infrastructure.registries.ForecastRegistry.build_tree")
+    @patch("floatcsep.infrastructure.registries.ModelFileRegistry.build_tree")
     def test_invalid_entrypoint_fails_to_run(self, mock_registry):
         model = self._make_model("invalid_entrypoint", "testdocker_invalid_entrypoint")
         model.stage()
@@ -99,7 +99,7 @@ class TestModelDockerIntegration(unittest.TestCase):
             model.environment.run_command()
         self.assertIn("exited with code", str(err.exception))
 
-    @patch("floatcsep.infrastructure.registries.ForecastRegistry.build_tree")
+    @patch("floatcsep.infrastructure.registries.ModelFileRegistry.build_tree")
     def test_invalid_permission_fails_to_run(self, mock_registry):
         model = self._make_model("invalid_permission", "testdocker_invalid_permission")
         model.stage()
@@ -107,7 +107,7 @@ class TestModelDockerIntegration(unittest.TestCase):
             model.environment.run_command()
         self.assertIn("exited with code", str(err.exception))
 
-    @patch("floatcsep.infrastructure.registries.ForecastRegistry.build_tree")
+    @patch("floatcsep.infrastructure.registries.ModelFileRegistry.build_tree")
     def test_valid_custom_uid_gid(self, mock_registry):
         # todo: look into it
         model = self._make_model("valid_custom_uid-gid", "testdocker_uid_gid")

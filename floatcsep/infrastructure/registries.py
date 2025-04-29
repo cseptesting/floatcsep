@@ -14,6 +14,276 @@ if TYPE_CHECKING:
 log = logging.getLogger("floatLogger")
 
 
+class ModelRegistry(ABC):
+    @abstractmethod
+    def get_input_catalog_key(self, tstring: str) -> str:
+        pass
+
+    @abstractmethod
+    def get_forecast_key(self, tstring: str) -> str:
+        pass
+
+    @abstractmethod
+    def get_args_key(self, tstring: str) -> str:
+        pass
+
+
+
+class ModelFileRegistry(ModelRegistry):
+    def __init__(
+        self,
+        workdir: str,
+        path: str,
+        database: str = None,
+        args_file: str = None,
+        input_cat: str = None,
+        fmt: str = None,
+    ) -> None:
+        """
+
+        Args:
+            workdir (str): The current working directory of the experiment.
+            path (str): The path of the model working directory (or model filepath).
+            database (str): The path of the database, in case forecasts are stored therein.
+            args_file (str): The path of the arguments file (only for TimeDependentModel).
+            input_cat (str): : The path of the arguments file (only for TimeDependentModel).
+        """
+
+        self.workdir = workdir
+        self.path = path
+        self.database = database
+        self.args_file = args_file
+        self.input_cat = input_cat
+        self.forecasts = {}
+        self._fmt = fmt
+
+    @property
+    def dir(self) -> str:
+        """
+        Returns:
+            The directory containing the model source.
+        """
+        if os.path.isdir(self.get_attr("path")):
+            return self.get_attr("path")
+        else:
+            return os.path.dirname(self.get_attr("path"))
+
+    @property
+    def fmt(self) -> str:
+        """
+
+        Returns:
+            The extension or format of the forecast
+        """
+        if self.database:
+            return os.path.splitext(self.database)[1][1:]
+        else:
+            ext = os.path.splitext(self.path)[1][1:]
+            if ext:
+                return ext
+            else:
+                return self._fmt
+    @staticmethod
+    def _parse_arg(arg) -> Union[str, list[str]]:
+        if isinstance(arg, (list, tuple)):
+            return timewindow2str(arg)
+        elif isinstance(arg, str):
+            return arg
+        elif hasattr(arg, "name"):
+            return arg.name
+        elif hasattr(arg, "__name__"):
+            return arg.__name__
+        else:
+            raise Exception("Arg is not found")
+        
+    def get_attr(self, *args: Sequence[str]) -> str:
+        """
+        Args:
+            *args: A sequence of keys (usually time-window strings)
+
+        Returns:
+            The registry element (forecast, catalogs, etc.) from a sequence of key value
+            (usually time-window strings)
+        """
+
+        val = self.__dict__
+        for i in args:
+            parsed_arg = self._parse_arg(i)
+            val = val[parsed_arg]
+        return self.abs(val)
+
+    def abs(self, *paths: Sequence[str]) -> str:
+        
+        _path = normpath(abspath(join(self.workdir, *paths)))
+        return _path
+    
+    def abs_dir(self, *paths: Sequence[str]) -> str:
+        _path = normpath(abspath(join(self.workdir, *paths)))
+        _dir = dirname(_path)
+        return _dir
+    
+    def rel(self, *paths: Sequence[str]) -> str:
+        """Gets the relative path of a file, when it was defined relative to.
+
+        the experiment working dir.
+        """
+
+        _abspath = normpath(abspath(join(self.workdir, *paths)))
+        _relpath = relpath(_abspath, self.workdir)
+        return _relpath
+
+    def rel_dir(self, *paths: Sequence[str]) -> str:
+        """Gets the absolute path of a file, when it was defined relative to.
+
+        the experiment working dir.
+        """
+
+        _path = normpath(abspath(join(self.workdir, *paths)))
+        _dir = dirname(_path)
+
+        return relpath(_dir, self.workdir)
+
+    def file_exists(self, *args: Sequence[str]):
+        file_abspath = self.get_attr(*args)
+        return exists(file_abspath)
+
+    def forecast_exists(self, timewindow: Union[str, list]) -> Union[bool, Sequence[bool]]:
+        """
+        Checks if forecasts exist for a sequence of time_windows
+
+        Args:
+            timewindow (str, list): A single or sequence of strings representing a time window
+
+        Returns:
+            A list of bool representing the existence of such forecasts.
+        """
+        if isinstance(timewindow, str):
+            return self.file_exists("forecasts", timewindow)
+        else:
+            return [self.file_exists("forecasts", i) for i in timewindow]
+
+    def get_input_catalog_key(self, *args: Sequence[str]) -> str:
+        """
+        Gets the filepath of the input catalog for a given sequence of keys (usually a timewindow
+        string).
+
+        Args:
+            *args: A sequence of keys (usually time-window strings)
+
+        Returns:
+           The input catalog registry key from a sequence of key values
+        """
+        return self.get_attr("input_cat", *args)
+
+    def get_forecast_key(self, *args: Sequence[str]) -> str:
+        """
+        Gets the filepath of a forecast for a given sequence of keys (usually a timewindow
+        string).
+
+        Args:
+            *args: A sequence of keys (usually time-window strings)
+
+        Returns:
+           The forecast registry from a sequence of key values
+        """
+        return self.get_attr("forecasts", *args)
+
+    def get_args_key(self, *args: Sequence[str]) -> str:
+        """
+        Gets the filepath of an arguments file for a given sequence of keys (usually a timewindow
+        string).
+
+        Args:
+            *args: A sequence of keys (usually time-window strings)
+
+        Returns:
+           The argument file's key(s) from a sequence of key values
+        """
+        return self.get_attr("args_file", *args)
+
+    def build_tree(
+        self,
+        time_windows: Sequence[Sequence[datetime]] = None,
+        model_class: str = "TimeIndependentModel",
+        prefix: str = None,
+        args_file: str = None,
+        input_cat: str = None
+    ) -> None:
+        """
+        Creates the run directory, and reads the file structure inside.
+
+        Args:
+            time_windows (list(str)): List of time windows or strings.
+            model_class (str): Model's class name
+            prefix (str): prefix of the model forecast filenames if TD
+            args_file (str, bool): input arguments path of the model if TD
+            input_cat (str, bool): input catalog path of the model if TD
+            fmt (str, bool): for time dependent mdoels
+
+        """
+
+        windows = timewindow2str(time_windows)
+
+        if model_class == "TimeIndependentModel":
+            fname = self.database if self.database else self.path
+            self.forecasts = {win: fname for win in windows}
+
+        elif model_class == "TimeDependentModel":
+
+            args = args_file if args_file else join("input", "args.txt")
+            self.args_file = join(self.path, args)
+            input_cat = input_cat if input_cat else join("input", "catalog.csv")
+            self.input_cat = join(self.path, input_cat)
+            # grab names for creating directories
+            subfolders = ["input", "forecasts"]
+            dirtree = {folder: self.abs(self.path, folder) for folder in subfolders}
+
+            # create directories if they don't exist
+            for _, folder_ in dirtree.items():
+                os.makedirs(folder_, exist_ok=True)
+
+            # set forecast names
+            self.forecasts = {
+                win: join(dirtree["forecasts"], f"{prefix}_{win}.{self.fmt}") for win in windows
+            }
+
+    def as_dict(self) -> dict:
+        """
+
+        Returns:
+            Simple dictionary serialization of the instance with the core attributes
+        """
+        return {
+            "workdir": self.workdir,
+            "path": self.path,
+            "database": self.database,
+            "args_file": self.args_file,
+            "input_cat": self.input_cat,
+            "forecasts": self.forecasts,
+        }
+
+    def log_tree(self) -> None:
+        """
+        Logs a grouped summary of the forecasts' dictionary.
+        Groups time windows by whether the forecast exists or not.
+        """
+        exists_group = []
+        not_exist_group = []
+
+        for timewindow, filepath in self.forecasts.items():
+            if self.forecast_exists(timewindow):
+                exists_group.append(timewindow)
+            else:
+                not_exist_group.append(timewindow)
+
+        log.debug(f"    Existing forecasts: {len(exists_group)}")
+        log.debug(f"    Missing forecasts: {len(not_exist_group)}")
+        for timewindow in not_exist_group:
+            log.debug(f"      Time Window: {timewindow}")
+
+
+
+
 class FileRegistry(ABC):
 
     def __init__(self, workdir: str) -> None:
@@ -79,193 +349,6 @@ class FileRegistry(ABC):
         return exists(file_abspath)
 
 
-class ForecastRegistry(FileRegistry):
-    """
-    The class has the responsibility of managing the keys (based on timewindow strings) and path
-    structure of the forecast pertaining to a model (i.e., forecasts from different
-    time-windows), keeping track of the forecast existence and path in the filesystem.
-    """
-
-    def __init__(
-        self,
-        workdir: str,
-        path: str,
-        database: str = None,
-        args_file: str = None,
-        input_cat: str = None,
-        fmt: str = None,
-    ) -> None:
-        """
-
-        Args:
-            workdir (str): The current working directory of the experiment.
-            path (str): The path of the model working directory (or model filepath).
-            database (str): The path of the database, in case forecasts are stored therein.
-            args_file (str): The path of the arguments file (only for TimeDependentModel).
-            input_cat (str): : The path of the arguments file (only for TimeDependentModel).
-        """
-        super().__init__(workdir)
-
-        self.path = path
-        self.database = database
-        self.args_file = args_file
-        self.input_cat = input_cat
-        self.forecasts = {}
-
-        self._fmt = fmt
-
-    def get(self, *args: Sequence[str]) -> str:
-        """
-        Args:
-            *args: A sequence of keys (usually time-window strings)
-
-        Returns:
-            The registry element (forecast, catalogs, etc.) from a sequence of key value
-            (usually time-window strings)
-        """
-
-        val = self.__dict__
-        for i in args:
-            parsed_arg = self._parse_arg(i)
-            val = val[parsed_arg]
-        return self.abs(val)
-
-    def get_forecast(self, *args: Sequence[str]) -> str:
-        """
-        Gets the filepath of a forecast for a given sequence of keys (usually a timewindow
-        string).
-
-        Args:
-            *args: A sequence of keys (usually time-window strings)
-
-        Returns:
-           The forecast registry from a sequence of key values
-        """
-        return self.get("forecasts", *args)
-
-    @property
-    def dir(self) -> str:
-        """
-        Returns:
-            The directory containing the model source.
-        """
-        if os.path.isdir(self.get("path")):
-            return self.get("path")
-        else:
-            return os.path.dirname(self.get("path"))
-
-    @property
-    def fmt(self) -> str:
-        """
-
-        Returns:
-            The extension or format of the forecast
-        """
-        if self.database:
-            return os.path.splitext(self.database)[1][1:]
-        else:
-            ext = os.path.splitext(self.path)[1][1:]
-            if ext:
-                return ext
-            else:
-                return self._fmt
-
-    def as_dict(self) -> dict:
-        """
-
-        Returns:
-            Simple dictionary serialization of the instance with the core attributes
-        """
-        return {
-            "workdir": self.workdir,
-            "path": self.path,
-            "database": self.database,
-            "args_file": self.args_file,
-            "input_cat": self.input_cat,
-            "forecasts": self.forecasts,
-        }
-
-    def forecast_exists(self, timewindow: Union[str, list]) -> Union[bool, Sequence[bool]]:
-        """
-        Checks if forecasts exist for a sequence of timewindows
-
-        Args:
-            timewindow (str, list): A single or sequence of strings representing a time window
-
-        Returns:
-            A list of bool representing the existence of such forecasts.
-        """
-        if isinstance(timewindow, str):
-            return self.file_exists("forecasts", timewindow)
-        else:
-            return [self.file_exists("forecasts", i) for i in timewindow]
-
-    def build_tree(
-        self,
-        timewindows: Sequence[Sequence[datetime]] = None,
-        model_class: str = "TimeIndependentModel",
-        prefix: str = None,
-        args_file: str = None,
-        input_cat: str = None
-    ) -> None:
-        """
-        Creates the run directory, and reads the file structure inside.
-
-        Args:
-            timewindows (list(str)): List of time windows or strings.
-            model_class (str): Model's class name
-            prefix (str): prefix of the model forecast filenames if TD
-            args_file (str, bool): input arguments path of the model if TD
-            input_cat (str, bool): input catalog path of the model if TD
-            fmt (str, bool): for time dependent mdoels
-
-        """
-
-        windows = timewindow2str(timewindows)
-
-        if model_class == "TimeIndependentModel":
-            fname = self.database if self.database else self.path
-            self.forecasts = {win: fname for win in windows}
-
-        elif model_class == "TimeDependentModel":
-
-            args = args_file if args_file else join("input", "args.txt")
-            self.args_file = join(self.path, args)
-            input_cat = input_cat if input_cat else join("input", "catalog.csv")
-            self.input_cat = join(self.path, input_cat)
-            # grab names for creating directories
-            subfolders = ["input", "forecasts"]
-            dirtree = {folder: self.abs(self.path, folder) for folder in subfolders}
-
-            # create directories if they don't exist
-            for _, folder_ in dirtree.items():
-                os.makedirs(folder_, exist_ok=True)
-
-            # set forecast names
-            self.forecasts = {
-                win: join(dirtree["forecasts"], f"{prefix}_{win}.{self.fmt}") for win in windows
-            }
-
-    def log_tree(self) -> None:
-        """
-        Logs a grouped summary of the forecasts' dictionary.
-        Groups time windows by whether the forecast exists or not.
-        """
-        exists_group = []
-        not_exist_group = []
-
-        for timewindow, filepath in self.forecasts.items():
-            if self.forecast_exists(timewindow):
-                exists_group.append(timewindow)
-            else:
-                not_exist_group.append(timewindow)
-
-        log.debug(f"    Existing forecasts: {len(exists_group)}")
-        log.debug(f"    Missing forecasts: {len(not_exist_group)}")
-        for timewindow in not_exist_group:
-            log.debug(f"      Time Window: {timewindow}")
-
-
 class ExperimentRegistry(FileRegistry):
     """
     The class has the responsibility of managing the keys (based on models, timewindow and
@@ -308,7 +391,7 @@ class ExperimentRegistry(FileRegistry):
             model_name (str): The name of the model.
 
         Returns:
-            ForecastRegistry: The ForecastRegistry associated with the model.
+            ModelRegistry: The ModelRegistry associated with the model.
         """
         return self.forecast_registries.get(model_name)
 
@@ -404,7 +487,7 @@ class ExperimentRegistry(FileRegistry):
 
     def build_tree(
         self,
-        timewindows: Sequence[Sequence[datetime]],
+        time_windows: Sequence[Sequence[datetime]],
         models: Sequence["Model"],
         tests: Sequence["Evaluation"],
     ) -> None:
@@ -412,12 +495,12 @@ class ExperimentRegistry(FileRegistry):
         Creates the run directory and reads the file structure inside.
 
         Args:
-            timewindows: List of time windows, or representing string.
+            time_windows: List of time windows, or representing string.
             models: List of models or model names
             tests: List of tests or test names
 
         """
-        windows = timewindow2str(timewindows)
+        windows = timewindow2str(time_windows)
 
         models = [i.name for i in models]
         tests = [i.name for i in tests]

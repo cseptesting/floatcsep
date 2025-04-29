@@ -13,7 +13,7 @@ from csep.models import EvaluationResult
 from csep.utils.time_utils import decimal_year
 
 from floatcsep.utils.readers import ForecastParsers
-from floatcsep.infrastructure.registries import ForecastRegistry, ExperimentRegistry
+from floatcsep.infrastructure.registries import ExperimentRegistry, ModelRegistry
 from floatcsep.utils.helpers import str2timewindow, parse_csep_func
 from floatcsep.utils.helpers import timewindow2str
 
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 class ForecastRepository(ABC):
 
     @abstractmethod
-    def __init__(self, registry: ForecastRegistry):
+    def __init__(self, registry: ModelRegistry):
         self.registry = registry
         self.lazy_load = False
         self.forecasts = {}
@@ -61,7 +61,7 @@ class ForecastRepository(ABC):
 
     @classmethod
     def factory(
-        cls, registry: ForecastRegistry, model_class: str, forecast_type: str = None, **kwargs
+        cls, registry: ModelRegistry, model_class: str, forecast_type: str = None, **kwargs
     ) -> "ForecastRepository":
         """Factory method. Instantiate first on explicit option provided in the model
         configuration. Then, defaults to gridded forecast for TimeIndependentModel and catalog
@@ -89,11 +89,11 @@ class CatalogForecastRepository(ForecastRepository):
 
     """
 
-    def __init__(self, registry: ForecastRegistry, **kwargs):
+    def __init__(self, registry: ModelRegistry, **kwargs):
         """
 
         Args:
-            registry (ForecastRegistry): The registry containing the keys/path to the forecasts
+            registry (ModelRegistry): The registry containing the keys/path to the forecasts
              given their time-windows.
             **kwargs:
         """
@@ -120,7 +120,7 @@ class CatalogForecastRepository(ForecastRepository):
             return [self._load_single_forecast(t, region) for t in tstring]
 
     def _load_single_forecast(self, t: str, region=None):
-        fc_path = self.registry.get_forecast(t)
+        fc_path = self.registry.get_forecast_key(t)
         return csep.load_catalog_forecast(
             fc_path, region=region, apply_filters=True, filter_spatial=True
         )
@@ -136,11 +136,11 @@ class GriddedForecastRepository(ForecastRepository):
     avoid parsing files repeatedly (Skip for large files).
 
     """
-    def __init__(self, registry: ForecastRegistry, **kwargs):
+    def __init__(self, registry: ModelRegistry, **kwargs):
         """
 
         Args:
-            registry (ForecastRegistry): The registry containing the keys/path to the forecasts
+            registry (ModelRegistry): The registry containing the keys/path to the forecasts
              given their time-windows.
             **kwargs:
         """
@@ -189,7 +189,7 @@ class GriddedForecastRepository(ForecastRepository):
         time_horizon = decimal_year(end_date) - decimal_year(start_date)
         tstring_ = timewindow2str([start_date, end_date])
 
-        f_path = self.registry.get_forecast(tstring_)
+        f_path = self.registry.get_forecast_key(tstring_)
         f_parser = getattr(ForecastParsers, self.registry.fmt)
 
         rates, region, mags = f_parser(f_path)
@@ -504,4 +504,4 @@ class CatalogRepository:
         """
         start, end = str2timewindow(tstring)
         sub_cat = self.catalog.filter([f"origin_time < {start.timestamp() * 1000}"])
-        sub_cat.write_ascii(filename=model.registry.get("input_cat"))
+        sub_cat.write_ascii(filename=model.registry.get_input_catalog_key())

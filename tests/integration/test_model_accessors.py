@@ -113,7 +113,7 @@ class TestModelFromGit(TestCase):
         return model
 
     @patch.object(EnvironmentManager, "create_environment")
-    @patch("floatcsep.infrastructure.registries.ForecastRegistry.build_tree")
+    @patch("floatcsep.infrastructure.registries.ModelFileRegistry.build_tree")
     def test_from_git(self, mock_build_tree, mock_create_environment):
         """clones model from git, checks with test artifacts"""
         mock_build_tree.return_value = None
@@ -169,7 +169,7 @@ class TestModelFromZenodo(TestCase):
         model = TimeIndependentModel(name=name, model_path=model_path, **kwargs)
         return model
 
-    @patch("floatcsep.infrastructure.registries.ForecastRegistry.build_tree")
+    @patch("floatcsep.infrastructure.registries.ModelFileRegistry.build_tree")
     def test_zenodo(self, mock_buildtree):
         """downloads model from zenodo, checks with test artifacts"""
         mock_buildtree.return_value = None
@@ -194,11 +194,11 @@ class TestModelFromZenodo(TestCase):
         model_b.stage()
 
         self.assertEqual(
-            os.path.basename(model_a.registry.get("path")),
-            os.path.basename(model_b.registry.get("path")),
+            os.path.basename(model_a.registry.get_attr("path")),
+            os.path.basename(model_b.registry.get_attr("path")),
         )
         self.assertEqual(model_a.name, model_b.name)
-        self.assertTrue(filecmp.cmp(model_a.registry.get("path"), model_b.registry.get("path")))
+        self.assertTrue(filecmp.cmp(model_a.registry.get_attr("path"), model_b.registry.get_attr("path")))
 
     def test_zenodo_fail(self):
         name = "mock_zenodo"

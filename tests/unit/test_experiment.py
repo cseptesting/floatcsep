@@ -41,6 +41,7 @@ class TestExperiment(TestCase):
         self.assertEqual(exp_a.registry.workdir, os.getcwd())
         self.assertEqual(exp_a.registry.workdir, exp_b.registry.workdir)
         self.assertEqual(exp_a.start_date, exp_b.start_date)
+        print(exp_a.timewindows, exp_b.timewindows)
         self.assertEqual(exp_a.timewindows, exp_b.timewindows)
         self.assertEqual(exp_a.exp_class, exp_b.exp_class)
         self.assertEqual(exp_a.region, exp_b.region)

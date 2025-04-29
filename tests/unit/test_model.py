@@ -2,7 +2,7 @@ import os.path
 from unittest import TestCase
 
 from floatcsep.model import TimeIndependentModel
-from floatcsep.infrastructure.registries import ForecastRegistry
+from floatcsep.infrastructure.registries import ModelRegistry
 from floatcsep.infrastructure.repositories import GriddedForecastRepository
 from unittest.mock import patch, MagicMock, mock_open
 from floatcsep.model import TimeDependentModel
@@ -27,7 +27,7 @@ class TestModel(TestCase):
             raise AssertionError("Models are not equal")
 
         for i in keys_a:
-            if isinstance(getattr(model_a, i), ForecastRegistry):
+            if isinstance(getattr(model_a, i), ModelRegistry):
                 continue
             if not (getattr(model_a, i) == getattr(model_b, i)):
                 print(getattr(model_a, i), getattr(model_b, i))
@@ -59,7 +59,7 @@ class TestTimeIndependentModel(TestModel):
 
     @patch("os.makedirs")
     @patch("floatcsep.model.TimeIndependentModel.get_source")
-    @patch("floatcsep.infrastructure.registries.ForecastRegistry.build_tree")
+    @patch("floatcsep.infrastructure.registries.ModelFileRegistry.build_tree")
     def test_stage_creates_directory(self, mock_build_tree, mock_get_source, mock_makedirs):
         """Test stage method creates directory."""
         model = self.init_model("mock", "mockfile.csv")
@@ -159,7 +159,7 @@ class TestTimeDependentModel(TestModel):
 
     def setUp(self):
         # Patches
-        self.patcher_registry = patch("floatcsep.model.ForecastRegistry")
+        self.patcher_registry = patch("floatcsep.model.ModelFileRegistry")
         self.patcher_repository = patch("floatcsep.model.ForecastRepository.factory")
         self.patcher_environment = patch("floatcsep.model.EnvironmentFactory.get_env")
         self.patcher_get_source = patch(
@@ -185,7 +185,7 @@ class TestTimeDependentModel(TestModel):
         # Set attributes on the mock objects
         self.mock_registry_instance.workdir = "/path/to/workdir"
         self.mock_registry_instance.path = "/path/to/model"
-        self.mock_registry_instance.get.return_value = (
+        self.mock_registry_instance.get_args_key.return_value = (
             "/path/to/args_file.txt"  # Mocking the return of the registry call
         )
 
@@ -230,7 +230,7 @@ class TestTimeDependentModel(TestModel):
             self.model.zenodo_id, self.model.giturl, branch=self.model.repo_hash
         )
         self.mock_registry_instance.build_tree.assert_called_once_with(
-            timewindows=["2020-01-01_2020-12-31"],
+            time_windows=["2020-01-01_2020-12-31"],
             model_class="TimeDependentModel",
             prefix=self.model.__dict__.get("prefix", self.name),
             args_file=self.model.__dict__.get("args_file", None),
@@ -254,7 +254,7 @@ class TestTimeDependentModel(TestModel):
         self.model.create_forecast(tstring, force=True)
 
         self.mock_environment_instance.run_command.assert_called_once_with(
-            f'{self.func} {self.model.registry.get("args_file")}'
+            f'{self.func} {self.model.registry.get_args_key()}'
         )
 
     @patch("builtins.open", new_callable=mock_open)
@@ -279,7 +279,7 @@ class TestTimeDependentModel(TestModel):
         ]
 
         # Call the method
-        args_file_path = self.model.registry.get("args_file")
+        args_file_path = self.model.registry.get_args_key()
         self.model.prepare_args(start_date, end_date, custom_arg="value")
         mock_open_file.assert_any_call(args_file_path, "r")
         mock_open_file.assert_any_call(args_file_path, "w")
@@ -293,7 +293,7 @@ class TestTimeDependentModel(TestModel):
         )
 
         json_file_path = "/path/to/args_file.json"
-        self.model.registry.get.return_value = json_file_path
+        self.model.registry.get_args_key.return_value = json_file_path
         self.model.prepare_args(start_date, end_date, custom_arg="value")
 
         mock_open_file.assert_any_call(json_file_path, "r")
