@@ -27,6 +27,17 @@ class ModelRegistry(ABC):
     def get_args_key(self, tstring: str) -> str:
         pass
 
+    @classmethod
+    def factory(cls, registry_type: str = 'file', **kwargs) -> "ModelRegistry":
+        """Factory method. Instantiate first on any explicit option provided in the model
+        configuration.
+        """
+
+        if registry_type == 'file':
+            return ModelFileRegistry(**kwargs)
+
+        elif registry_type == 'hdf5':
+            return ModelHDF5Registry(**kwargs)
 
 
 class ModelFileRegistry(ModelRegistry):
@@ -281,8 +292,16 @@ class ModelFileRegistry(ModelRegistry):
         for timewindow in not_exist_group:
             log.debug(f"      Time Window: {timewindow}")
 
+class ModelHDF5Registry(ModelRegistry):
 
-
+    def __init__(self, workdir: str, path: str):
+        pass
+    def get_input_catalog_key(self, tstring: str) -> str:
+        return ''
+    def get_forecast_key(self, tstring: str) -> str:
+        return ''
+    def get_args_key(self, tstring: str) -> str:
+        return ''
 
 class FileRegistry(ABC):
 

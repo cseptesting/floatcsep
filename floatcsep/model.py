@@ -12,7 +12,7 @@ from csep.core.forecasts import GriddedForecast, CatalogForecast
 from floatcsep.utils.accessors import from_zenodo, from_git
 from floatcsep.infrastructure.environments import EnvironmentFactory
 from floatcsep.utils.readers import ForecastParsers, HDF5Serializer
-from floatcsep.infrastructure.registries import ModelFileRegistry
+from floatcsep.infrastructure.registries import ModelRegistry
 from floatcsep.infrastructure.repositories import ForecastRepository
 from floatcsep.utils.helpers import timewindow2str, str2timewindow, parse_nested_dicts
 
@@ -210,7 +210,8 @@ class TimeIndependentModel(Model):
 
         self.forecast_unit = forecast_unit
         self.store_db = store_db
-        self.registry = ModelFileRegistry(kwargs.get("workdir", os.getcwd()), model_path) # todo: Set factory for registry.
+        self.registry = ModelRegistry.factory(workdir=kwargs.get("workdir", os.getcwd()),
+                                          path=model_path)
         self.repository = ForecastRepository.factory(
             self.registry, model_class=self.__class__.__name__, **kwargs
         )
@@ -320,9 +321,9 @@ class TimeDependentModel(Model):
         self.func = func
         self.func_kwargs = func_kwargs or {}
 
-        self.registry = ModelFileRegistry(workdir=kwargs.get("workdir", os.getcwd()),
+        self.registry = ModelRegistry.factory(workdir=kwargs.get("workdir", os.getcwd()),
                                           path=model_path,
-                                          fmt=fmt)  # todo:  Set Factory for Registry
+                                          fmt=fmt)
         self.repository = ForecastRepository.factory(
             self.registry, model_class=self.__class__.__name__, **kwargs
         )

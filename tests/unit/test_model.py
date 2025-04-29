@@ -159,7 +159,7 @@ class TestTimeDependentModel(TestModel):
 
     def setUp(self):
         # Patches
-        self.patcher_registry = patch("floatcsep.model.ModelFileRegistry")
+        self.patcher_registry = patch("floatcsep.model.ModelRegistry.factory")
         self.patcher_repository = patch("floatcsep.model.ForecastRepository.factory")
         self.patcher_environment = patch("floatcsep.model.EnvironmentFactory.get_env")
         self.patcher_get_source = patch(
@@ -167,14 +167,14 @@ class TestTimeDependentModel(TestModel):
         )  # Patch the get_source method on Model
 
         # Start patches
-        self.mock_registry = self.patcher_registry.start()
+        self.mock_registry_factory = self.patcher_registry.start()
         self.mock_repository_factory = self.patcher_repository.start()
         self.mock_environment = self.patcher_environment.start()
         self.mock_get_source = self.patcher_get_source.start()
 
         # Mock instances
         self.mock_registry_instance = MagicMock()
-        self.mock_registry.return_value = self.mock_registry_instance
+        self.mock_registry_factory.return_value = self.mock_registry_instance
 
         self.mock_repository_instance = MagicMock()
         self.mock_repository_factory.return_value = self.mock_repository_instance
@@ -204,7 +204,7 @@ class TestTimeDependentModel(TestModel):
 
     def test_init(self):
         # Assertions to check if the components were instantiated correctly
-        self.mock_registry.assert_called_once_with(
+        self.mock_registry_factory.assert_called_once_with(
             workdir=os.getcwd(), path=self.model_path, fmt='csv'
         )  # Ensure the registry is initialized correctly
         self.mock_repository_factory.assert_called_once_with(
