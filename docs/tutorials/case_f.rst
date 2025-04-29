@@ -25,7 +25,7 @@ Experiment Components
 ---------------------
 
 
-The source files can be found in the ``tutorials/case_e`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_e>`_. The experiment structure is as follows:
+The source files can be found in the ``tutorials/case_e`` folder or in  `the GitHub repository <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_e>`_. The experiment structure is as follows:
 
 ::
 
@@ -49,7 +49,7 @@ The source files can be found in the ``tutorials/case_e`` folder or in  `GitHub 
 Model
 -----
 
-The time-dependency of a model is manifested here by the provision of different forecasts, i.e., statistical descriptions of seismicity, for different time-windows. In this example, the forecasts were created from an external model https://github.com/lmizrahi/etas (`doi:10.1785/0220200231 <https://doi.org/10.1785/0220200231>`_), with which the experiment has no interface. This means that we use **only the forecast files** and no source code. We leave the handling of a model source code for subsequent tutorials.
+The time-dependency of a model is manifested here by the provision of different forecasts, i.e., statistical descriptions of seismicity, for different time-windows. In this example, the forecasts were created from an external model https://github.com/lmizrahi/etas (:ref:`Mizrahi et al. 2021<References>`_), with which the experiment has no interface. This means that we use **only the forecast files** and no source code. We leave the handling of a model source code for subsequent tutorials.
 
 
 
@@ -73,7 +73,7 @@ Time
 Catalog
 ~~~~~~~
 
-    The catalog ``catalog.json`` was obtained *previously* by using ``query_geonet`` and it was filtered to the testing period. However, it can be re-queried by changing its definition to:
+    The catalog ``catalog.json`` was obtained *prior* to the experiment by using ``query_geonet`` and it was filtered to the testing period. However, it can be re-queried by changing its definition to:
 
     .. code-block:: yaml
 
@@ -93,25 +93,25 @@ Models
     For consistency with time-dependent models that will create forecasts from a source code, the ``path`` should point to the folder of the model, which itself should contain a sub-folder named ``{path}/forecasts`` where the files are located.
 
 .. important::
-    Note that for catalog-based forecasts, the model should explicit the number of simulations. This is meant for forecast files that contain synthetic catalogs with zero-event simulations, and therefore do not contain the total number of synthetic catalogs used.
+    Note that for catalog-based forecast models, the number of catalog simulations (``n_sims``) must be specified – because a forecast may contain synthetic catalogs with zero-event simulations and therefore does not imply the total number of simulated synthetic catalogs.
 
 Tests
 ~~~~~
 
-    With time-dependent models, now catalog evaluations found in :obj:`csep.core.catalog_evaluations` can be used.
+    Having a time-dependent and catalog-based forecast model, catalog-based evaluations found in :obj:`csep.core.catalog_evaluations` can now be used.
 
 
     .. literalinclude:: ../../tutorials/case_f/tests.yml
        :language: yaml
 
     .. note::
-        It is possible to assign two plotting functions to a test, whose ``plot_args`` and ``plot_kwargs`` can be placed indented beneath
+        It is possible to assign two plotting functions to a test, whose ``plot_args`` and ``plot_kwargs`` can be placed indented beneath.
 
 
 Running the experiment
 ----------------------
 
-    The experiment can be run by simply navigating to the ``tutorials/case_h`` folder in the terminal and typing.
+    The experiment can be run by simply navigating to the ``tutorials/case_h`` folder in the terminal and typing:
 
     .. code-block:: console
 
@@ -119,3 +119,8 @@ Running the experiment
 
     This will automatically set all the calculation paths (testing catalogs, evaluation results, figures) and will create a summarized report in ``results/report.md``.
 
+
+References
+----------
+
+    * Mizrahi, L., Nandan, S., & Wiemer, S. (2021). The effect of declustering on the size distribution of mainshocks. _Seismological Research Letters, 92_(4), 2333–2342. doi: `10.1785/0220200231 <https://doi.org/10.1785/0220200231>`_

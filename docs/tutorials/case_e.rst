@@ -3,7 +3,7 @@
 E - A Time-Independent Experiment
 =================================
 
-This example shows how to run a realistic testing experiment (based on https://doi.org/10.4401/ag-4844) while summarizing the concepts from the previous tutorials.
+This example shows how to run a realistic testing experiment (based on :ref:`Schorlemmer et al. 2010<References>`) while summarizing the concepts from the previous tutorials.
 
 .. currentmodule:: floatcsep
 
@@ -25,7 +25,7 @@ This example shows how to run a realistic testing experiment (based on https://d
 Experiment Components
 ---------------------
 
-The source code can be found in the ``tutorials/case_e`` folder or in  `GitHub <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_e>`_. The input structure of the experiment is:
+The source code can be found in the ``tutorials/case_e`` folder or in `the GitHub repository <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_e>`_. The input structure of the experiment is:
 
 ::
 
@@ -137,3 +137,9 @@ Plot command
             colormap: magma
 
     and re-run with the ``plot`` command. A forecast figure will re-appear in ``results/{window}/forecasts`` with a different colormap. Additional forecast and catalog plotting options can be found in the :func:`csep.utils.plots.plot_spatial_dataset` and :func:`csep.utils.plots.plot_catalog` ``pycsep`` functions.
+
+
+References
+----------
+
+    * Schorlemmer, D., Christophersen, A., Rovida, A., Mele, F., Stucchi, M. and Marzocchi, W. (2010). Setting up an earthquake forecast experiment in Italy. Annals of Geophysics, 53(3), 1–9. doi: `10.4401/ag-4844 <https://doi.org/10.4401/ag-4844>`_
