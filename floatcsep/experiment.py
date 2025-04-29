@@ -25,6 +25,7 @@ from floatcsep.utils.helpers import (
     parse_nested_dicts,
 )
 from floatcsep.infrastructure.engine import Task, TaskGraph
+from floatcsep.infrastructure.logger import log_models_tree, log_results_tree
 
 log = logging.getLogger("floatLogger")
 
@@ -118,7 +119,7 @@ class Experiment:
         os.makedirs(os.path.join(workdir, rundir), exist_ok=True)
 
         self.name = name if name else "floatingExp"
-        self.registry = ExperimentRegistry(workdir, rundir)
+        self.registry = ExperimentRegistry.factory(workdir=workdir, run_dir=rundir)
         self.results_repo = ResultsRepository(self.registry)
         self.catalog_repo = CatalogRepository(self.registry)
 
@@ -296,7 +297,7 @@ class Experiment:
         log.info("Staging models")
         for i in self.models:
             i.stage(self.time_windows)
-            self.registry.add_forecast_registry(i)
+            self.registry.add_model_registry(i)
 
     def set_tests(self, test_config: Union[str, Dict, List]) -> list:
         """
@@ -379,9 +380,9 @@ class Experiment:
         self.registry.build_tree(self.time_windows, self.models, self.tests)
 
         log.debug("Pre-run forecast summary")
-        self.registry.log_forecast_trees(self.time_windows)
+        log_models_tree(log, self.registry, self.time_windows)
         log.debug("Pre-run result summary")
-        self.registry.log_results_tree()
+        log_results_tree(log, self.registry)
 
         log.info("Setting up experiment's tasks")
 
@@ -540,9 +541,9 @@ class Experiment:
         self.task_graph.run()
         log.info("Calculation completed")
         log.debug("Post-run forecast registry")
-        self.registry.log_forecast_trees(self.time_windows)
+        log_models_tree(log, self.registry, self.time_windows)
         log.debug("Post-run result summary")
-        self.registry.log_results_tree()
+        log_results_tree(log, self.registry)
 
     def read_results(self, test: Evaluation, window: str) -> List:
         """
@@ -559,7 +560,7 @@ class Experiment:
 
         """
         log.info("Creating reproducibility config file")
-        repr_config = self.registry.get("repr_config")
+        repr_config = self.registry.get_attr("repr_config")
 
         # Dropping region to results folder if it is a file
         region_path = self.region_config.get("path", False)
@@ -801,8 +802,8 @@ class ExperimentComparison:
                 for tw in win_orig:
                     results[test.name][tw] = dict.fromkeys(models_orig)
                     for model in models_orig:
-                        orig_path = self.original.registry.get_result(tw, test, model)
-                        repr_path = self.reproduced.registry.get_result(tw, test, model)
+                        orig_path = self.original.registry.get_result_key(tw, test, model)
+                        repr_path = self.reproduced.registry.get_result_key(tw, test, model)
 
                         results[test.name][tw][model] = {
                             "hash": (self.get_hash(orig_path) == self.get_hash(repr_path)),
@@ -811,8 +812,8 @@ class ExperimentComparison:
             else:
                 results[test.name] = dict.fromkeys(models_orig)
                 for model in models_orig:
-                    orig_path = self.original.registry.get_result(win_orig[-1], test, model)
-                    repr_path = self.reproduced.registry.get_result(win_orig[-1], test, model)
+                    orig_path = self.original.registry.get_result_key(win_orig[-1], test, model)
+                    repr_path = self.reproduced.registry.get_result_key(win_orig[-1], test, model)
                     results[test.name][model] = {
                         "hash": (self.get_hash(orig_path) == self.get_hash(repr_path)),
                         "byte2byte": filecmp.cmp(orig_path, repr_path),

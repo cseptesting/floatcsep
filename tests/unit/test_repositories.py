@@ -160,9 +160,10 @@ class TestGriddedForecastRepository(unittest.TestCase):
 
 class TestResultsRepository(unittest.TestCase):
 
-    @patch("floatcsep.infrastructure.repositories.ExperimentRegistry")
-    def setUp(self, MockRegistry):
-        self.mock_registry = MockRegistry()
+    @patch("floatcsep.infrastructure.repositories.ExperimentRegistry.factory")
+    def setUp(self, mock_registry):
+        self.mock_registry = MagicMock()
+        self.mock_registry.return_value = mock_registry()
         self.results_repo = ResultsRepository(self.mock_registry)
 
     def test_initialization(self):
@@ -191,9 +192,10 @@ class TestResultsRepository(unittest.TestCase):
 
 class TestCatalogRepository(unittest.TestCase):
 
-    @patch("floatcsep.infrastructure.repositories.ExperimentRegistry")
-    def setUp(self, MockRegistry):
-        self.mock_registry = MockRegistry()
+    @patch("floatcsep.infrastructure.repositories.ExperimentRegistry.factory")
+    def setUp(self, mock_registry):
+        self.mock_registry = MagicMock()
+        self.mock_registry.return_value = mock_registry()
         self.catalog_repo = CatalogRepository(self.mock_registry)
 
     def test_initialization(self):

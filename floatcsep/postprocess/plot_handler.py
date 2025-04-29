@@ -106,7 +106,7 @@ def plot_forecasts(experiment: "Experiment") -> None:
                         }
                     ),
                 )
-            fig_path = experiment.registry.get_figure(window, "forecasts", model.name)
+            fig_path = experiment.registry.get_figure_key(window, "forecasts", model.name)
             pyplot.savefig(fig_path, dpi=plot_forecast_config.get("dpi", 300))
 
 
@@ -167,12 +167,12 @@ def plot_catalogs(experiment: "Experiment") -> None:
 
     # Plot catalog map
     ax = main_catalog.plot(plot_args=plot_catalog_config)
-    cat_map_path = experiment.registry.get_figure("main_catalog_map")
+    cat_map_path = experiment.registry.get_figure_key("main_catalog_map")
     ax.get_figure().savefig(cat_map_path, dpi=plot_catalog_config.get("dpi", 300))
 
     # Plot catalog time series vs. magnitude
     ax = magnitude_vs_time(main_catalog)
-    cat_time_path = experiment.registry.get_figure("main_catalog_time")
+    cat_time_path = experiment.registry.get_figure_key("main_catalog_time")
     ax.get_figure().savefig(cat_time_path, dpi=plot_catalog_config.get("dpi", 300))
 
     # If selected, plot the test catalogs for each of the time windows
@@ -185,11 +185,11 @@ def plot_catalogs(experiment: "Experiment") -> None:
                 continue
 
             ax = test_catalog.plot(plot_args=plot_catalog_config)
-            cat_map_path = experiment.registry.get_figure(tw, "catalog_map")
+            cat_map_path = experiment.registry.get_figure_key(tw, "catalog_map")
             ax.get_figure().savefig(cat_map_path, dpi=plot_catalog_config.get("dpi", 300))
 
             ax = magnitude_vs_time(test_catalog)
-            cat_time_path = experiment.registry.get_figure(tw, "catalog_time")
+            cat_time_path = experiment.registry.get_figure_key(tw, "catalog_time")
             ax.get_figure().savefig(cat_time_path, dpi=plot_catalog_config.get("dpi", 300))
 
 

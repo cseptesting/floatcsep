@@ -243,7 +243,7 @@ class ResultsRepository:
         else:
             wstr_ = window
 
-        eval_path = self.registry.get_result(wstr_, test, model)
+        eval_path = self.registry.get_result_key(wstr_, test, model)
 
         with open(eval_path, "r") as file_:
             model_eval = EvaluationResult.from_dict(json.load(file_))
@@ -287,7 +287,7 @@ class ResultsRepository:
             window: Name of the time-window
 
         """
-        path = self.registry.get_result(window, test, model)
+        path = self.registry.get_result_key(window, test, model)
 
         class NumpyEncoder(json.JSONEncoder):
             def default(self, obj):
@@ -471,7 +471,7 @@ class CatalogRepository:
             tstring (str): Time window string
         """
 
-        testcat_name = self.registry.get_test_catalog(tstring)
+        testcat_name = self.registry.get_test_catalog_key(tstring)
         if not exists(testcat_name):
             log.debug(
                 f"Filtering testing catalog and saving to {self.registry.rel(testcat_name)}"

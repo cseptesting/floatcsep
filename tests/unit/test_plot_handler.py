@@ -63,7 +63,7 @@ class TestPlotHandler(unittest.TestCase):
 
         mock_parse_plot_config.return_value = {"projection": "Mercator"}
         mock_parse_projection.return_value = MagicMock()
-        mock_experiment.registry.get_figure.return_value = "cat.png"
+        mock_experiment.registry.get_figure_key.return_value = "cat.png"
 
         plot_handler.plot_catalogs(mock_experiment)
 

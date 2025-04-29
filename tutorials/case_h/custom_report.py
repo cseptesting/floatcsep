@@ -30,8 +30,8 @@ def main(experiment):
     report.add_figure(
         f"Input catalog",
         [
-            experiment.registry.get_figure("main_catalog_map"),
-            experiment.registry.get_figure("main_catalog_time"),
+            experiment.registry.get_figure_key("main_catalog_map"),
+            experiment.registry.get_figure_key("main_catalog_time"),
         ],
         level=3,
         ncols=1,
@@ -44,7 +44,7 @@ def main(experiment):
     # Include results from Experiment
     test = experiment.tests[0]
     for model in experiment.models:
-        fig_path = experiment.registry.get_figure(timestr, f"{test.name}_{model.name}")
+        fig_path = experiment.registry.get_figure_key(timestr, f"{test.name}_{model.name}")
         report.add_figure(
             f"{test.name}: {model.name}",
             fig_path,

@@ -25,7 +25,7 @@ class TestReporting(unittest.TestCase):
         # Mock experiment without a custom report function
         mock_experiment = MagicMock()
         mock_experiment.postprocess.get.return_value = None
-        mock_experiment.registry.get_figure.return_value = "figure_path"
+        mock_experiment.registry.get_figure_key.return_value = "figure_path"
         mock_experiment.magnitudes = [0, 1]
         # Call the generate_report function
         reporting.generate_report(mock_experiment)

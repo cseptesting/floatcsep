@@ -1,7 +1,8 @@
+import os
 import unittest
 from datetime import datetime
 from unittest.mock import patch, MagicMock
-from floatcsep.infrastructure.registries import ModelFileRegistry
+from floatcsep.infrastructure.registries import ModelFileRegistry, ExperimentFileRegistry
 
 
 class TestModelFileRegistry(unittest.TestCase):
@@ -86,9 +87,85 @@ class TestModelFileRegistry(unittest.TestCase):
             time_windows=time_windows, model_class="TimeDependentModel", prefix="forecast"
         )
         self.assertIn("2023-01-01_2023-01-02", self.registry_for_folderbased_model.forecasts)
-        # self.assertTrue(self.registry_for_folderbased_model.inventory["2023-01-01_2023-01-02"])
         self.assertIn("2023-01-02_2023-01-03", self.registry_for_folderbased_model.forecasts)
-        # self.assertTrue(self.registry_for_folderbased_model.inventory["2023-01-02_2023-01-03"])
+
+
+class TestExperimentFileRegistry(unittest.TestCase):
+
+    def setUp(self):
+        self.registry = ExperimentFileRegistry(workdir="/test/workdir")
+
+    def test_initialization(self):
+        self.assertEqual(self.registry.workdir, "/test/workdir")
+        self.assertEqual(self.registry.run_dir, "results")
+        self.assertEqual(self.registry.results, {})
+        self.assertEqual(self.registry.test_catalogs, {})
+        self.assertEqual(self.registry.figures, {})
+        self.assertEqual(self.registry.model_registries, {})
+
+    def test_add_and_get_model_registry(self):
+        model_mock = MagicMock()
+        model_mock.name = "TestModel"
+        model_mock.registry = MagicMock(spec=ModelFileRegistry)
+
+        self.registry.add_model_registry(model_mock)
+        self.assertIn("TestModel", self.registry.model_registries)
+        self.assertEqual(self.registry.get_model_registry("TestModel"), model_mock.registry)
+
+    @patch("os.makedirs")
+    def test_build_tree(self, mock_makedirs):
+        time_windows = [[datetime(2023, 1, 1), datetime(2023, 1, 2)]]
+        models = [MagicMock(name="Model1"), MagicMock(name="Model2")]
+        tests = [MagicMock(name="Test1")]
+
+        self.registry.build_tree(time_windows, models, tests)
+
+        timewindow_str = "2023-01-01_2023-01-02"
+        self.assertIn(timewindow_str, self.registry.results)
+        self.assertIn(timewindow_str, self.registry.test_catalogs)
+        self.assertIn(timewindow_str, self.registry.figures)
+
+    def test_get_test_catalog_key(self):
+        self.registry.test_catalogs = {"2023-01-01_2023-01-02": "some/path/to/catalog.json"}
+        result = self.registry.get_test_catalog_key("2023-01-01_2023-01-02")
+        self.assertTrue(result.endswith("results/some/path/to/catalog.json"))
+
+    def test_get_result_key(self):
+        self.registry.results = {
+            "2023-01-01_2023-01-02": {
+                "Test1": {
+                    "Model1": "some/path/to/result.json"
+                }
+            }
+        }
+        result = self.registry.get_result_key("2023-01-01_2023-01-02", "Test1", "Model1")
+        self.assertTrue(result.endswith("results/some/path/to/result.json"))
+
+    def test_get_figure_key(self):
+        self.registry.figures = {
+            "2023-01-01_2023-01-02": {
+                "Test1": "some/path/to/figure.png",
+                "catalog_map": "some/path/to/catalog_map.png",
+                "catalog_time": "some/path/to/catalog_time.png",
+                "forecasts": {"Model1": "some/path/to/forecast.png"}
+            }
+        }
+        result = self.registry.get_figure_key("2023-01-01_2023-01-02", "Test1")
+        self.assertTrue(result.endswith("results/some/path/to/figure.png"))
+
+    @patch("floatcsep.infrastructure.registries.exists")
+    def test_result_exist(self, mock_exists):
+        mock_exists.return_value = True
+        self.registry.results = {
+            "2023-01-01_2023-01-02": {
+                "Test1": {
+                    "Model1": "some/path/to/result.json"
+                }
+            }
+        }
+        result = self.registry.result_exist("2023-01-01_2023-01-02", "Test1", "Model1")
+        self.assertTrue(result)
+        mock_exists.assert_called()
 
 
 if __name__ == "__main__":

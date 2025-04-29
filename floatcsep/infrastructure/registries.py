@@ -14,6 +14,114 @@ if TYPE_CHECKING:
 log = logging.getLogger("floatLogger")
 
 
+class FilepathMixin:
+    """
+    Small mixin to provide filepath management functionality to Registries that uses files to
+    store objects
+    """
+    workdir: str
+
+    @staticmethod
+    def _parse_arg(arg) -> Union[str, list[str]]:
+        if isinstance(arg, (list, tuple)):
+            return timewindow2str(arg)
+        elif isinstance(arg, str):
+            return arg
+        elif hasattr(arg, "name"):
+            return arg.name
+        elif hasattr(arg, "__name__"):
+            return arg.__name__
+        else:
+            raise Exception("Arg is not found")
+
+    def get_attr(self, *args: Sequence[str]) -> str:
+        """
+        Access instance attributes and its contents (e.g., through dict keys) recursively in a
+        normalized function call. Returns the expected absolute path of this element
+
+        Args:
+            *args: A sequence of keys (usually time-window strings)
+
+        Returns:
+            The registry element (forecast, catalogs, etc.) from a sequence of key value
+            (usually time-window strings) as filepath
+        """
+
+        val = self.__dict__
+        for i in args:
+            parsed_arg = self._parse_arg(i)
+            val = val[parsed_arg]
+        return self.abs(val)
+
+    def abs(self, *paths: Sequence[str]) -> str:
+        """
+        Returns the absolute path of an object, relative to the Registry workdir.
+
+        Args:
+            *paths:
+
+        Returns:
+
+        """
+        _path = normpath(abspath(join(self.workdir, *paths)))
+        return _path
+
+    def abs_dir(self, *paths: Sequence[str]) -> str:
+        """
+        Returns the absolute path of the directory containing an item relative to the Registry
+        workdir.
+        Args:
+            *paths: sequence of keys (usually time-window strings)
+
+        Returns:
+            String describing the absolute directory
+        """
+        _path = normpath(abspath(join(self.workdir, *paths)))
+        _dir = dirname(_path)
+        return _dir
+
+    def rel(self, *paths: Sequence[str]) -> str:
+        """
+        Gets the relative path of an item, relative to the Registry workdir
+
+        Args:
+            *paths: sequence of keys (usually time-window strings)
+        Returns:
+            String describing the relative path
+        """
+
+        _abspath = normpath(abspath(join(self.workdir, *paths)))
+        _relpath = relpath(_abspath, self.workdir)
+        return _relpath
+
+    def rel_dir(self, *paths: Sequence[str]) -> str:
+        """
+        Gets the relative path of the directory containing an item, relative to the Registry
+        workdir
+
+        Args:
+            *paths: sequence of keys (usually time-window strings)
+        Returns:
+            String describing the relative path
+        """
+
+        _path = normpath(abspath(join(self.workdir, *paths)))
+        _dir = dirname(_path)
+
+        return relpath(_dir, self.workdir)
+
+    def file_exists(self, *args: Sequence[str]):
+        """
+        Determine is such file exists in the filesystem
+
+        Args:
+            *paths: sequence of keys (usually time-window strings)
+        Returns:
+            flag indicating if file exists
+        """
+        file_abspath = self.get_attr(*args)
+        return exists(file_abspath)
+
 class ModelRegistry(ABC):
     @abstractmethod
     def get_input_catalog_key(self, tstring: str) -> str:
@@ -40,7 +148,7 @@ class ModelRegistry(ABC):
             return ModelHDF5Registry(**kwargs)
 
 
-class ModelFileRegistry(ModelRegistry):
+class ModelFileRegistry(ModelRegistry, FilepathMixin):
     def __init__(
         self,
         workdir: str,
@@ -94,69 +202,6 @@ class ModelFileRegistry(ModelRegistry):
                 return ext
             else:
                 return self._fmt
-    @staticmethod
-    def _parse_arg(arg) -> Union[str, list[str]]:
-        if isinstance(arg, (list, tuple)):
-            return timewindow2str(arg)
-        elif isinstance(arg, str):
-            return arg
-        elif hasattr(arg, "name"):
-            return arg.name
-        elif hasattr(arg, "__name__"):
-            return arg.__name__
-        else:
-            raise Exception("Arg is not found")
-        
-    def get_attr(self, *args: Sequence[str]) -> str:
-        """
-        Args:
-            *args: A sequence of keys (usually time-window strings)
-
-        Returns:
-            The registry element (forecast, catalogs, etc.) from a sequence of key value
-            (usually time-window strings)
-        """
-
-        val = self.__dict__
-        for i in args:
-            parsed_arg = self._parse_arg(i)
-            val = val[parsed_arg]
-        return self.abs(val)
-
-    def abs(self, *paths: Sequence[str]) -> str:
-        
-        _path = normpath(abspath(join(self.workdir, *paths)))
-        return _path
-    
-    def abs_dir(self, *paths: Sequence[str]) -> str:
-        _path = normpath(abspath(join(self.workdir, *paths)))
-        _dir = dirname(_path)
-        return _dir
-    
-    def rel(self, *paths: Sequence[str]) -> str:
-        """Gets the relative path of a file, when it was defined relative to.
-
-        the experiment working dir.
-        """
-
-        _abspath = normpath(abspath(join(self.workdir, *paths)))
-        _relpath = relpath(_abspath, self.workdir)
-        return _relpath
-
-    def rel_dir(self, *paths: Sequence[str]) -> str:
-        """Gets the absolute path of a file, when it was defined relative to.
-
-        the experiment working dir.
-        """
-
-        _path = normpath(abspath(join(self.workdir, *paths)))
-        _dir = dirname(_path)
-
-        return relpath(_dir, self.workdir)
-
-    def file_exists(self, *args: Sequence[str]):
-        file_abspath = self.get_attr(*args)
-        return exists(file_abspath)
 
     def forecast_exists(self, timewindow: Union[str, list]) -> Union[bool, Sequence[bool]]:
         """
@@ -273,24 +318,6 @@ class ModelFileRegistry(ModelRegistry):
             "forecasts": self.forecasts,
         }
 
-    def log_tree(self) -> None:
-        """
-        Logs a grouped summary of the forecasts' dictionary.
-        Groups time windows by whether the forecast exists or not.
-        """
-        exists_group = []
-        not_exist_group = []
-
-        for timewindow, filepath in self.forecasts.items():
-            if self.forecast_exists(timewindow):
-                exists_group.append(timewindow)
-            else:
-                not_exist_group.append(timewindow)
-
-        log.debug(f"    Existing forecasts: {len(exists_group)}")
-        log.debug(f"    Missing forecasts: {len(not_exist_group)}")
-        for timewindow in not_exist_group:
-            log.debug(f"      Time Window: {timewindow}")
 
 class ModelHDF5Registry(ModelRegistry):
 
@@ -303,72 +330,46 @@ class ModelHDF5Registry(ModelRegistry):
     def get_args_key(self, tstring: str) -> str:
         return ''
 
-class FileRegistry(ABC):
-
-    def __init__(self, workdir: str) -> None:
-        self.workdir = workdir
-
-    @staticmethod
-    def _parse_arg(arg) -> Union[str, list[str]]:
-        if isinstance(arg, (list, tuple)):
-            return timewindow2str(arg)
-        elif isinstance(arg, str):
-            return arg
-        elif hasattr(arg, "name"):
-            return arg.name
-        elif hasattr(arg, "__name__"):
-            return arg.__name__
-        else:
-            raise Exception("Arg is not found")
-
+class ExperimentRegistry(ABC):
     @abstractmethod
-    def as_dict(self) -> dict:
+    def add_model_registry(self, model: "Model") -> None:
         pass
 
     @abstractmethod
-    def build_tree(self, *args, **kwargs) -> None:
+    def get_model_registry(self, model_name: str) -> ModelRegistry:
         pass
 
     @abstractmethod
-    def get(self, *args: Sequence[str]) -> Any:
+    def get_result_key(self, test_name: str, model_name: str, tstring: str) -> str:
         pass
 
-    def abs(self, *paths: Sequence[str]) -> str:
-        _path = normpath(abspath(join(self.workdir, *paths)))
-        return _path
+    @abstractmethod
+    def get_figure_key(self, test_name: str, model_name: str, tstring: str) -> str:
+        pass
 
-    def abs_dir(self, *paths: Sequence[str]) -> str:
-        _path = normpath(abspath(join(self.workdir, *paths)))
-        _dir = dirname(_path)
-        return _dir
+    @abstractmethod
+    def get_test_catalog_key(self, tstring: str) -> str:
+        pass
 
-    def rel(self, *paths: Sequence[str]) -> str:
-        """Gets the relative path of a file, when it was defined relative to.
+    @abstractmethod
+    def build_tree(
+        self,
+        time_windows: Sequence[Sequence[datetime]],
+        models: Sequence["Model"],
+        tests: Sequence["Evaluation"],
+    ) -> None:
+        pass
 
-        the experiment working dir.
+    @classmethod
+    def factory(cls, registry_type: str = 'file', **kwargs) -> "ExperimentRegistry":
+        """Factory method. Instantiate first on any explicit option provided in the experiment
+        configuration.
         """
 
-        _abspath = normpath(abspath(join(self.workdir, *paths)))
-        _relpath = relpath(_abspath, self.workdir)
-        return _relpath
+        if registry_type == 'file':
+            return ExperimentFileRegistry(**kwargs)
 
-    def rel_dir(self, *paths: Sequence[str]) -> str:
-        """Gets the absolute path of a file, when it was defined relative to.
-
-        the experiment working dir.
-        """
-
-        _path = normpath(abspath(join(self.workdir, *paths)))
-        _dir = dirname(_path)
-
-        return relpath(_dir, self.workdir)
-
-    def file_exists(self, *args: Sequence[str]):
-        file_abspath = self.get(*args)
-        return exists(file_abspath)
-
-
-class ExperimentRegistry(FileRegistry):
+class ExperimentFileRegistry(ExperimentRegistry, FilepathMixin):
     """
     The class has the responsibility of managing the keys (based on models, timewindow and
     evaluation name strings) to the structure of the experiment inputs (catalogs, models etc)
@@ -383,49 +384,16 @@ class ExperimentRegistry(FileRegistry):
             workdir: The working directory for the experiment run-time.
             run_dir: The directory in which the results will be stored.
         """
-        super().__init__(workdir)
+        self.workdir = workdir
         self.run_dir = run_dir
         self.results = {}
         self.test_catalogs = {}
         self.figures = {}
 
         self.repr_config = "repr_config.yml"
-        self.forecast_registries = {}
+        self.model_registries = {}
 
-    def add_forecast_registry(self, model: "Model") -> None:
-        """
-        Adds a model's ForecastRegistry to the ExperimentRegistry.
-
-        Args:
-            model (str): A Model object
-
-        """
-        self.forecast_registries[model.name] = model.registry
-
-    def get_forecast_registry(self, model_name: str) -> None:
-        """
-        Retrieves a model's ForecastRegistry from the ExperimentRegistry.
-
-        Args:
-            model_name (str): The name of the model.
-
-        Returns:
-            ModelRegistry: The ModelRegistry associated with the model.
-        """
-        return self.forecast_registries.get(model_name)
-
-    def log_forecast_trees(self, time_windows: list) -> None:
-        """
-        Logs the forecasts for all models managed by this ExperimentRegistry.
-        """
-        log.debug("===================")
-        log.debug(f" Total Time Windows: {len(time_windows)}")
-        for model_name, registry in self.forecast_registries.items():
-            log.debug(f"  Model: {model_name}")
-            registry.log_tree()
-        log.debug("===================")
-
-    def get(self, *args: Any) -> str:
+    def get_attr(self, *args: Any) -> str:
         """
         Args:
             *args: A sequence of keys (usually models, tests and/or time-window strings)
@@ -440,23 +408,41 @@ class ExperimentRegistry(FileRegistry):
             val = val[parsed_arg]
         return self.abs(self.run_dir, val)
 
-    def get_result(self, *args: Sequence[any]) -> str:
+    def add_model_registry(self, model: "Model") -> None:
         """
-        Gets the file path of an evaluation result.
+        Adds a model's ForecastRegistry to the ExperimentFileRegistry.
 
         Args:
-            args: A sequence of keys (usually models, tests and/or time-window strings)
+            model (str): A Model object
+
+        """
+        self.model_registries[model.name] = model.registry
+
+    def get_model_registry(self, model_name: str) -> None:
+        """
+        Retrieves a model's ForecastRegistry from the ExperimentFileRegistry.
+
+        Args:
+            model_name (str): The name of the model.
 
         Returns:
-            The filepath of a serialized result
+            ModelRegistry: The ModelRegistry associated with the model.
         """
-        val = self.results
-        for i in args:
-            parsed_arg = self._parse_arg(i)
-            val = val[parsed_arg]
-        return self.abs(self.run_dir, val)
+        return self.model_registries.get(model_name)
 
-    def get_test_catalog(self, *args: Sequence[any]) -> str:
+    def result_exist(self, timewindow_str: str, test_name: str, model_name: str) -> bool:
+        """
+        Checks if a given test results exist
+
+        Args:
+            timewindow_str (str): String representing the time window
+            test_name (str): Name of the evaluation
+            model_name (str): Name of the model
+
+        """
+        return self.file_exists("results", timewindow_str, test_name, model_name)
+
+    def get_test_catalog_key(self, *args: Sequence[any]) -> str:
         """
         Gets the file path of a testing catalog.
 
@@ -472,7 +458,23 @@ class ExperimentRegistry(FileRegistry):
             val = val[parsed_arg]
         return self.abs(self.run_dir, val)
 
-    def get_figure(self, *args: Sequence[any]) -> str:
+    def get_result_key(self, *args: Sequence[any]) -> str:
+        """
+        Gets the file path of an evaluation result.
+
+        Args:
+            args: A sequence of keys (usually models, tests and/or time-window strings)
+
+        Returns:
+            The filepath of a serialized result
+        """
+        val = self.results
+        for i in args:
+            parsed_arg = self._parse_arg(i)
+            val = val[parsed_arg]
+        return self.abs(self.run_dir, val)
+
+    def get_figure_key(self, *args: Sequence[any]) -> str:
         """
         Gets the file path of a result figure.
 
@@ -487,22 +489,6 @@ class ExperimentRegistry(FileRegistry):
             parsed_arg = self._parse_arg(i)
             val = val[parsed_arg]
         return self.abs(self.run_dir, val)
-
-    def result_exist(self, timewindow_str: str, test_name: str, model_name: str) -> bool:
-        """
-        Checks if a given test results exist
-
-        Args:
-            timewindow_str (str): String representing the time window
-            test_name (str): Name of the evaluation
-            model_name (str): Name of the model
-
-        """
-        return self.file_exists("results", timewindow_str, test_name, model_name)
-
-    def as_dict(self) -> str:
-        # todo: rework
-        return self.workdir
 
     def build_tree(
         self,
@@ -567,46 +553,7 @@ class ExperimentRegistry(FileRegistry):
         self.test_catalogs = test_catalogs
         self.figures = figures
 
-    def log_results_tree(self):
-        """
-        Logs a summary of the results dictionary, sorted by test.
-        For each test and time window, it logs whether all models have results,
-        or if some results are missing, and specifies which models are missing.
-        """
-        log.debug("===================")
+    def as_dict(self) -> str:
 
-        total_results = results_exist_count = results_not_exist_count = 0
+        return self.workdir
 
-        # Get all unique test names and sort them
-        all_tests = sorted(
-            {test_name for tests in self.results.values() for test_name in tests}
-        )
-
-        for test_name in all_tests:
-            log.debug(f"Test: {test_name}")
-            for timewindow, tests in self.results.items():
-                if test_name in tests:
-                    models = tests[test_name]
-                    missing_models = []
-
-                    for model_name, result_path in models.items():
-                        total_results += 1
-                        result_full_path = self.get_result(timewindow, test_name, model_name)
-                        if os.path.exists(result_full_path):
-                            results_exist_count += 1
-                        else:
-                            results_not_exist_count += 1
-                            missing_models.append(model_name)
-
-                    if not missing_models:
-                        log.debug(f"  Time Window: {timewindow} - All models evaluated.")
-                    else:
-                        log.debug(
-                            f"  Time Window: {timewindow} - Missing results for models: "
-                            f"{', '.join(missing_models)}"
-                        )
-
-        log.debug(f"Total Results: {total_results}")
-        log.debug(f"Results that Exist: {results_exist_count}")
-        log.debug(f"Results that Do Not Exist: {results_not_exist_count}")
-        log.debug("===================")
