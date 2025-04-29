@@ -12,7 +12,7 @@ from csep.core.forecasts import GriddedForecast, CatalogForecast
 from floatcsep.utils.accessors import from_zenodo, from_git
 from floatcsep.infrastructure.environments import EnvironmentFactory
 from floatcsep.utils.readers import ForecastParsers, HDF5Serializer
-from floatcsep.infrastructure.registries import ForecastRegistry
+from floatcsep.infrastructure.registries import ModelRegistry
 from floatcsep.infrastructure.repositories import ForecastRepository
 from floatcsep.utils.helpers import timewindow2str, str2timewindow, parse_nested_dicts
 
@@ -60,7 +60,7 @@ class Model(ABC):
         self.__dict__.update(**kwargs)
 
     @abstractmethod
-    def stage(self, timewindows=None) -> None:
+    def stage(self, time_windows=None) -> None:
         """Prepares the stage for a model run."""
         pass
 
@@ -116,7 +116,7 @@ class Model(ABC):
             raise FileNotFoundError("Model has no path or identified")
 
         if not os.path.exists(self.registry.dir) or not os.path.exists(
-            self.registry.get("path")
+            self.registry.get_attr("path")
         ):
             raise FileNotFoundError(
                 f"Directory '{self.registry.dir}' or file {self.registry}' do not exist. "
@@ -210,18 +210,19 @@ class TimeIndependentModel(Model):
 
         self.forecast_unit = forecast_unit
         self.store_db = store_db
-        self.registry = ForecastRegistry(kwargs.get("workdir", os.getcwd()), model_path)
+        self.registry = ModelRegistry.factory(workdir=kwargs.get("workdir", os.getcwd()),
+                                          path=model_path)
         self.repository = ForecastRepository.factory(
             self.registry, model_class=self.__class__.__name__, **kwargs
         )
 
-    def stage(self, timewindows: Sequence[Sequence[datetime]] = None) -> None:
+    def stage(self, time_windows: Sequence[Sequence[datetime]] = None) -> None:
         """
         Acquire the forecast data if it is not in the file system. Sets the paths internally
         (or database pointers) to the forecast data.
 
         Args:
-            timewindows (list): time_windows that the forecast data represents.
+            time_windows (list): time_windows that the forecast data represents.
         """
 
         if self.force_stage or not self.registry.file_exists("path"):
@@ -231,7 +232,7 @@ class TimeIndependentModel(Model):
         if self.store_db:
             self.init_db()
 
-        self.registry.build_tree(timewindows=timewindows, model_class=self.__class__.__name__)
+        self.registry.build_tree(time_windows=time_windows, model_class=self.__class__.__name__)
 
     def init_db(self, dbpath: str = "", force: bool = False) -> None:
         """
@@ -247,7 +248,7 @@ class TimeIndependentModel(Model):
         """
 
         parser = getattr(ForecastParsers, self.registry.fmt)
-        rates, region, mag = parser(self.registry.get("path"))
+        rates, region, mag = parser(self.registry.get_attr("path"))
         db_func = HDF5Serializer.grid2hdf5
 
         if not dbpath:
@@ -320,9 +321,9 @@ class TimeDependentModel(Model):
         self.func = func
         self.func_kwargs = func_kwargs or {}
 
-        self.registry = ForecastRegistry(workdir=kwargs.get("workdir", os.getcwd()),
-                                         path=model_path,
-                                         fmt=fmt)
+        self.registry = ModelRegistry.factory(workdir=kwargs.get("workdir", os.getcwd()),
+                                          path=model_path,
+                                          fmt=fmt)
         self.repository = ForecastRepository.factory(
             self.registry, model_class=self.__class__.__name__, **kwargs
         )
@@ -333,7 +334,7 @@ class TimeDependentModel(Model):
                 self.build, self.name, self.registry.abs(model_path)
             )
 
-    def stage(self, timewindows=None) -> None:
+    def stage(self, time_windows=None) -> None:
         """
         Core method to interface a model with the experiment.
 
@@ -351,7 +352,7 @@ class TimeDependentModel(Model):
             self.environment.create_environment(force=self.force_build)
 
         self.registry.build_tree(
-            timewindows=timewindows,
+            time_windows=time_windows,
             model_class=self.__class__.__name__,
             prefix=self.__dict__.get("prefix", self.name),
             args_file=self.__dict__.get("args_file", None),
@@ -366,7 +367,7 @@ class TimeDependentModel(Model):
 
         Note:
             The argument ``tstring`` is formatted according to how the Experiment
-            handles timewindows, specified in the functions
+            handles time_windows, specified in the functions
             :func:`~floatcsep.utils.helpers.timewindow2str` and
             :func:`~floatcsep.utils.helpers.str2timewindow`
 
@@ -385,7 +386,7 @@ class TimeDependentModel(Model):
 
         Note:
             The argument ``tstring`` is formatted according to how the Experiment
-            handles timewindows, specified in the functions
+            handles time_windows, specified in the functions
             :func:`~floatcsep.utils.helpers.timewindow2str` and
             :func:`~floatcsep.utils.helpers.str2timewindow`
 
@@ -406,7 +407,7 @@ class TimeDependentModel(Model):
             f"Running {self.name} using {self.environment.__class__.__name__}:"
             f" {timewindow2str([start_date, end_date])}"
         )
-        self.environment.run_command(f"{self.func} {self.registry.get('args_file')}")
+        self.environment.run_command(f"{self.func} {self.registry.get_args_key()}")
 
     def prepare_args(self, start: datetime, end: datetime, **kwargs) -> None:
         """
@@ -421,7 +422,7 @@ class TimeDependentModel(Model):
             **kwargs: represents additional model arguments (name/value pair)
 
         """
-        filepath = self.registry.get("args_file")
+        filepath = self.registry.get_args_key()
         fmt = os.path.splitext(filepath)[1]
 
         if fmt == ".txt":

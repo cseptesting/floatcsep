@@ -287,7 +287,7 @@ class Evaluation:
                 # Regular consistency/comparative test plots (e.g., many models)
                 try:
                     for time_str in timewindow:
-                        fig_path = registry.get_figure(time_str, self.name)
+                        fig_path = registry.get_figure_key(time_str, self.name)
                         results = self.read_results(time_str, models)
                         ax = func(results, plot_args=fargs, **fkwargs)
                         if "code" in fargs:
@@ -307,7 +307,7 @@ class Evaluation:
                                 registry.figures[time_str][fig_name] = os.path.join(
                                     time_str, "figures", fig_name
                                 )
-                                fig_path = registry.get_figure(time_str, fig_name)
+                                fig_path = registry.get_figure_key(time_str, fig_name)
                                 ax = func(result, plot_args=fargs, **fkwargs, show=False)
                                 if "code" in fargs:
                                     exec(fargs["code"])
@@ -318,7 +318,7 @@ class Evaluation:
                                     pyplot.show()
 
             elif self.type in ["sequential", "sequential_comparative", "batch"]:
-                fig_path = registry.get_figure(timewindow[-1], self.name)
+                fig_path = registry.get_figure_key(timewindow[-1], self.name)
                 results = self.read_results(timewindow[-1], models)
                 ax = func(results, plot_args=fargs, **fkwargs)
 

@@ -25,6 +25,7 @@ from floatcsep.utils.helpers import (
     parse_nested_dicts,
 )
 from floatcsep.infrastructure.engine import Task, TaskGraph
+from floatcsep.infrastructure.logger import log_models_tree, log_results_tree
 
 log = logging.getLogger("floatLogger")
 
@@ -52,8 +53,8 @@ class Experiment:
             - growth (:class:`str`): `incremental` or `cumulative`
             - offset (:class:`float`): recurrence of forecast creation.
 
-            For further details, see :func:`~floatcsep.utils.timewindows_ti`
-            and :func:`~floatcsep.utils.timewindows_td`
+            For further details, see :func:`~floatcsep.utils.time_windows_ti`
+            and :func:`~floatcsep.utils.time_windows_td`
 
         region_config (dict): Contains all the spatial and magnitude
             specifications. It must contain the following keys:
@@ -118,7 +119,7 @@ class Experiment:
         os.makedirs(os.path.join(workdir, rundir), exist_ok=True)
 
         self.name = name if name else "floatingExp"
-        self.registry = ExperimentRegistry(workdir, rundir)
+        self.registry = ExperimentRegistry.factory(workdir=workdir, run_dir=rundir)
         self.results_repo = ResultsRepository(self.registry)
         self.catalog_repo = CatalogRepository(self.registry)
 
@@ -143,7 +144,7 @@ class Experiment:
         log.info(f"Setting up experiment {self.name}:")
         log.info(f"\tStart: {self.start_date}")
         log.info(f"\tEnd: {self.end_date}")
-        log.info(f"\tTime windows: {len(self.timewindows)}")
+        log.info(f"\tTime windows: {len(self.time_windows)}")
         log.info(f"\tRegion: {self.region.name if self.region else None}")
         log.info(
             f"\tMagnitude range: [{numpy.min(self.magnitudes)},"
@@ -175,7 +176,7 @@ class Experiment:
         Override built-in method to return the experiment attributes by also using the command
         ``experiment.{attr}``. Adds also to the experiment scope the keys of
         :attr:`region_config` or :attr:`time_config`. These are: ``start_date``, ``end_date``,
-        ``timewindows``, ``horizon``, ``offset``, ``region``, ``magnitudes``, ``mag_min``,
+        ``time_windows``, ``horizon``, ``offset``, ``region``, ``magnitudes``, ``mag_min``,
         `mag_max``, ``mag_bin``, ``depth_min`` depth_max .
         """
 
@@ -295,8 +296,8 @@ class Experiment:
         """
         log.info("Staging models")
         for i in self.models:
-            i.stage(self.timewindows)
-            self.registry.add_forecast_registry(i)
+            i.stage(self.time_windows)
+            self.registry.add_model_registry(i)
 
     def set_tests(self, test_config: Union[str, Dict, List]) -> list:
         """
@@ -376,17 +377,17 @@ class Experiment:
         """
 
         # Set the file path structure
-        self.registry.build_tree(self.timewindows, self.models, self.tests)
+        self.registry.build_tree(self.time_windows, self.models, self.tests)
 
         log.debug("Pre-run forecast summary")
-        self.registry.log_forecast_trees(self.timewindows)
+        log_models_tree(log, self.registry, self.time_windows)
         log.debug("Pre-run result summary")
-        self.registry.log_results_tree()
+        log_results_tree(log, self.registry)
 
         log.info("Setting up experiment's tasks")
 
         # Get the time windows strings
-        tw_strings = timewindow2str(self.timewindows)
+        tw_strings = timewindow2str(self.time_windows)
 
         # Prepare the testing catalogs
         task_graph = TaskGraph()
@@ -481,7 +482,7 @@ class Experiment:
                         )
             # Set up the Sequential_Comparative Scores
             elif test_k.type == "sequential_comparative":
-                tw_strs = timewindow2str(self.timewindows)
+                tw_strs = timewindow2str(self.time_windows)
                 for model_j in self.models:
                     task_k = Task(
                         instance=test_k,
@@ -504,7 +505,7 @@ class Experiment:
                         )
             # Set up the Batch comparative Scores
             elif test_k.type == "batch":
-                time_str = timewindow2str(self.timewindows[-1])
+                time_str = timewindow2str(self.time_windows[-1])
                 for model_j in self.models:
                     task_k = Task(
                         instance=test_k,
@@ -540,9 +541,9 @@ class Experiment:
         self.task_graph.run()
         log.info("Calculation completed")
         log.debug("Post-run forecast registry")
-        self.registry.log_forecast_trees(self.timewindows)
+        log_models_tree(log, self.registry, self.time_windows)
         log.debug("Post-run result summary")
-        self.registry.log_results_tree()
+        log_results_tree(log, self.registry)
 
     def read_results(self, test: Evaluation, window: str) -> List:
         """
@@ -559,7 +560,7 @@ class Experiment:
 
         """
         log.info("Creating reproducibility config file")
-        repr_config = self.registry.get("repr_config")
+        repr_config = self.registry.get_attr("repr_config")
 
         # Dropping region to results folder if it is a file
         region_path = self.region_config.get("path", False)
@@ -604,7 +605,7 @@ class Experiment:
             "time_config": {
                 i: j
                 for i, j in self.time_config.items()
-                if (i not in ("timewindows",) or extended)
+                if (i not in ("time_windows",) or extended)
             },
             "region_config": {
                 i: j
@@ -731,7 +732,7 @@ class ExperimentComparison:
 
     def get_results(self):
 
-        win_orig = timewindow2str(self.original.timewindows)
+        win_orig = timewindow2str(self.original.time_windows)
 
         tests_orig = self.original.tests
 
@@ -787,7 +788,7 @@ class ExperimentComparison:
 
     def get_filecomp(self):
 
-        win_orig = timewindow2str(self.original.timewindows)
+        win_orig = timewindow2str(self.original.time_windows)
 
         tests_orig = self.original.tests
 
@@ -801,8 +802,8 @@ class ExperimentComparison:
                 for tw in win_orig:
                     results[test.name][tw] = dict.fromkeys(models_orig)
                     for model in models_orig:
-                        orig_path = self.original.registry.get_result(tw, test, model)
-                        repr_path = self.reproduced.registry.get_result(tw, test, model)
+                        orig_path = self.original.registry.get_result_key(tw, test, model)
+                        repr_path = self.reproduced.registry.get_result_key(tw, test, model)
 
                         results[test.name][tw][model] = {
                             "hash": (self.get_hash(orig_path) == self.get_hash(repr_path)),
@@ -811,8 +812,8 @@ class ExperimentComparison:
             else:
                 results[test.name] = dict.fromkeys(models_orig)
                 for model in models_orig:
-                    orig_path = self.original.registry.get_result(win_orig[-1], test, model)
-                    repr_path = self.reproduced.registry.get_result(win_orig[-1], test, model)
+                    orig_path = self.original.registry.get_result_key(win_orig[-1], test, model)
+                    repr_path = self.reproduced.registry.get_result_key(win_orig[-1], test, model)
                     results[test.name][model] = {
                         "hash": (self.get_hash(orig_path) == self.get_hash(repr_path)),
                         "byte2byte": filecmp.cmp(orig_path, repr_path),

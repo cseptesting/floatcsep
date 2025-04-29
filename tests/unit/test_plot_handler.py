@@ -15,7 +15,7 @@ class TestPlotHandler(unittest.TestCase):
 
         plot_handler.plot_results(mock_experiment)
 
-        mock_timewindow2str.assert_called_once_with(mock_experiment.timewindows)
+        mock_timewindow2str.assert_called_once_with(mock_experiment.time_windows)
         mock_test.plot_results.assert_called_once_with(
             ["2021-01-01", "2021-12-31"], mock_experiment.models, mock_experiment.registry
         )
@@ -63,7 +63,7 @@ class TestPlotHandler(unittest.TestCase):
 
         mock_parse_plot_config.return_value = {"projection": "Mercator"}
         mock_parse_projection.return_value = MagicMock()
-        mock_experiment.registry.get_figure.return_value = "cat.png"
+        mock_experiment.registry.get_figure_key.return_value = "cat.png"
 
         plot_handler.plot_catalogs(mock_experiment)
 

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch, PropertyMock, mock_open
 from csep.core.forecasts import GriddedForecast
 
 from floatcsep.utils.readers import ForecastParsers
-from floatcsep.infrastructure.registries import ForecastRegistry
+from floatcsep.infrastructure.registries import ModelFileRegistry
 from floatcsep.infrastructure.repositories import (
     CatalogForecastRepository,
     GriddedForecastRepository,
@@ -17,7 +17,7 @@ from floatcsep.infrastructure.repositories import (
 class TestCatalogForecastRepository(unittest.TestCase):
 
     def setUp(self):
-        self.registry = MagicMock(spec=ForecastRegistry)
+        self.registry = MagicMock(spec=ModelFileRegistry) #todo: Factory registry
         self.registry.__call__ = MagicMock(return_value="a_duck")
 
     @patch("csep.load_catalog_forecast")
@@ -48,7 +48,7 @@ class TestCatalogForecastRepository(unittest.TestCase):
 class TestGriddedForecastRepository(unittest.TestCase):
 
     def setUp(self):
-        self.registry = MagicMock(spec=ForecastRegistry)
+        self.registry = MagicMock(spec=ModelFileRegistry) #todo: Factory registry
         self.registry.fmt = "hdf5"
         self.registry.__call__ = MagicMock(return_value="a_duck")
 
@@ -138,10 +138,10 @@ class TestGriddedForecastRepository(unittest.TestCase):
             self.assertEqual(forecast, "forecatto")
             self.assertNotIn("2023-01-02_2023-01-03", repo.forecasts)
 
-    @patch("floatcsep.infrastructure.registries.ForecastRegistry")
-    def test_equal(self, MockForecastRegistry):
+    @patch("floatcsep.infrastructure.registries.ModelFileRegistry")
+    def test_equal(self, MockModelFileRegistry):
 
-        self.registry = MockForecastRegistry()
+        self.registry = MockModelFileRegistry()
 
         self.repo1 = CatalogForecastRepository(self.registry)
         self.repo2 = CatalogForecastRepository(self.registry)
@@ -160,9 +160,10 @@ class TestGriddedForecastRepository(unittest.TestCase):
 
 class TestResultsRepository(unittest.TestCase):
 
-    @patch("floatcsep.infrastructure.repositories.ExperimentRegistry")
-    def setUp(self, MockRegistry):
-        self.mock_registry = MockRegistry()
+    @patch("floatcsep.infrastructure.repositories.ExperimentRegistry.factory")
+    def setUp(self, mock_registry):
+        self.mock_registry = MagicMock()
+        self.mock_registry.return_value = mock_registry()
         self.results_repo = ResultsRepository(self.mock_registry)
 
     def test_initialization(self):
@@ -191,9 +192,10 @@ class TestResultsRepository(unittest.TestCase):
 
 class TestCatalogRepository(unittest.TestCase):
 
-    @patch("floatcsep.infrastructure.repositories.ExperimentRegistry")
-    def setUp(self, MockRegistry):
-        self.mock_registry = MockRegistry()
+    @patch("floatcsep.infrastructure.repositories.ExperimentRegistry.factory")
+    def setUp(self, mock_registry):
+        self.mock_registry = MagicMock()
+        self.mock_registry.return_value = mock_registry()
         self.catalog_repo = CatalogRepository(self.mock_registry)
 
     def test_initialization(self):

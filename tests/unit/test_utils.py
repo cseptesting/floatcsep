@@ -11,11 +11,11 @@ import floatcsep
 import floatcsep.utils.accessors
 from floatcsep.utils.helpers import (
     parse_timedelta_string,
-    timewindows_ti,
+    time_windows_ti,
     read_time_cfg,
     read_region_cfg,
     parse_csep_func,
-    timewindows_td,
+    time_windows_td,
 )
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -58,19 +58,19 @@ class TimeUtilsTest(unittest.TestCase):
         dt = "1decade"
         self.assertRaises(ValueError, parse_timedelta_string, dt)
 
-    def test_timewindows_ti(self):
+    def test_time_windows_ti(self):
         start = datetime(2014, 1, 1)
         end = datetime(2022, 1, 1)
 
-        self.assertEqual(timewindows_ti(start_date=start, end_date=end), [(start, end)])
+        self.assertEqual(time_windows_ti(start_date=start, end_date=end), [(start, end)])
 
         t1 = [
             (datetime(2014, 1, 1), datetime(2018, 1, 1)),
             (datetime(2018, 1, 1), datetime(2022, 1, 1)),
         ]
-        self.assertEqual(timewindows_ti(start_date=start, end_date=end, intervals=2), t1)
-        self.assertEqual(timewindows_ti(start_date=start, end_date=end, horizon="4-years"), t1)
-        self.assertEqual(timewindows_ti(start_date=start, intervals=2, horizon="4-years"), t1)
+        self.assertEqual(time_windows_ti(start_date=start, end_date=end, intervals=2), t1)
+        self.assertEqual(time_windows_ti(start_date=start, end_date=end, horizon="4-years"), t1)
+        self.assertEqual(time_windows_ti(start_date=start, intervals=2, horizon="4-years"), t1)
 
         t2 = [
             (datetime(2014, 1, 1, 0, 0), datetime(2015, 2, 22, 10, 17, 8, 571428)),
@@ -93,18 +93,18 @@ class TimeUtilsTest(unittest.TestCase):
             ),
             (datetime(2020, 11, 9, 13, 42, 51, 428571), datetime(2022, 1, 1, 0, 0)),
         ]
-        self.assertEqual(timewindows_ti(start_date=start, end_date=end, intervals=7), t2)
+        self.assertEqual(time_windows_ti(start_date=start, end_date=end, intervals=7), t2)
 
-    def test_timewindows_td(self):
+    def test_time_windows_td(self):
         start = datetime(2010, 1, 1)
         end = datetime(2020, 1, 1)
 
         self.assertEqual(
-            timewindows_td(start_date=start, end_date=end, timeintervals=1), [(start, end)]
+            time_windows_td(start_date=start, end_date=end, timeintervals=1), [(start, end)]
         )
 
         self.assertEqual(
-            timewindows_td(start_date=start, end_date=end, timeintervals=5),
+            time_windows_td(start_date=start, end_date=end, timeintervals=5),
             [
                 (datetime(2010, 1, 1, 0, 0), datetime(2012, 1, 1, 9, 36)),
                 (datetime(2012, 1, 1, 9, 36), datetime(2013, 12, 31, 19, 12)),
@@ -115,11 +115,11 @@ class TimeUtilsTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            timewindows_td(start_date=start, timeintervals=1, timehorizon="1-years"),
+            time_windows_td(start_date=start, timeintervals=1, timehorizon="1-years"),
             [(datetime(2010, 1, 1, 0, 0), datetime(2011, 1, 1, 0, 0))],
         )
         self.assertEqual(
-            timewindows_td(start_date=start, timeintervals=5, timehorizon="5-days"),
+            time_windows_td(start_date=start, timeintervals=5, timehorizon="5-days"),
             [
                 (datetime(2010, 1, 1, 0, 0), datetime(2010, 1, 6, 0, 0)),
                 (datetime(2010, 1, 6, 0, 0), datetime(2010, 1, 11, 0, 0)),
@@ -129,19 +129,19 @@ class TimeUtilsTest(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            timewindows_td(
+            time_windows_td(
                 start_date=start, end_date=end, timehorizon="10-years", timeoffset="10-years"
             ),
             [(datetime(2010, 1, 1, 0, 0), datetime(2020, 1, 1, 0, 0))],
         )
         self.assertEqual(
-            timewindows_td(
+            time_windows_td(
                 start_date=start, end_date=end, timehorizon="12-years", timeoffset="10-years"
             ),
             [(datetime(2010, 1, 1, 0, 0), datetime(2022, 1, 1, 0, 0))],
         )
         self.assertEqual(
-            timewindows_td(
+            time_windows_td(
                 start_date=start, end_date=end, timehorizon="5-years", timeoffset="5-years"
             ),
             [
@@ -150,7 +150,7 @@ class TimeUtilsTest(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            timewindows_td(
+            time_windows_td(
                 start_date=start, end_date=end, timehorizon="5-years", timeoffset="3-years"
             ),
             [
@@ -160,7 +160,7 @@ class TimeUtilsTest(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            timewindows_td(
+            time_windows_td(
                 start_date=start,
                 end_date=datetime(2010, 2, 1),
                 timehorizon="14-days",
@@ -174,7 +174,7 @@ class TimeUtilsTest(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            timewindows_td(
+            time_windows_td(
                 start_date=start,
                 timeintervals=3,
                 timehorizon="3-years",

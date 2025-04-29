@@ -35,10 +35,10 @@ class TestModelRegistryIntegration(TestCase):
         )
 
     def test_time_independent_model_stage(self):
-        timewindows = [
+        time_windows = [
             [datetime(2023, 1, 1), datetime(2023, 1, 2)],
         ]
-        self.time_independent_model.stage(timewindows=timewindows)
+        self.time_independent_model.stage(time_windows=time_windows)
         print("a", self.time_independent_model.registry.as_dict())
         self.assertIn("2023-01-01_2023-01-02", self.time_independent_model.registry.forecasts)
 
@@ -50,10 +50,10 @@ class TestModelRegistryIntegration(TestCase):
 
     def test_time_independent_model_get_forecast_real(self):
         tstring = "2023-01-01_2023-01-02"
-        timewindows = [
+        time_windows = [
             [datetime(2023, 1, 1), datetime(2023, 1, 2)],
         ]
-        self.time_independent_model.stage(timewindows=timewindows)
+        self.time_independent_model.stage(time_windows=time_windows)
         forecast = self.time_independent_model.get_forecast(tstring)
         self.assertIsInstance(forecast, GriddedForecast)
         self.assertAlmostEqual(forecast.data[0, 0], 0.002739726027357392)  # 1 / 365 days
@@ -63,12 +63,12 @@ class TestModelRegistryIntegration(TestCase):
     def test_time_dependent_model_stage(self, mock_venv, mock_conda):
         mock_venv.return_value = None
         mock_conda.return_value = None
-        timewindows = [
+        time_windows = [
             [datetime(2020, 1, 1), datetime(2020, 1, 2)],
             [datetime(2020, 1, 2), datetime(2020, 1, 3)],
         ]
         tstrings = ["2020-01-01_2020-01-02", "2020-01-02_2020-01-03"]
-        self.time_dependent_model.stage(timewindows=timewindows)
+        self.time_dependent_model.stage(time_windows=time_windows)
 
         self.assertIn(tstrings[0], self.time_dependent_model.registry.forecasts)
         self.assertIn(tstrings[1], self.time_dependent_model.registry.forecasts)
@@ -78,11 +78,11 @@ class TestModelRegistryIntegration(TestCase):
     def test_time_dependent_model_get_forecast(self, mock_venv, mock_conda):
         mock_venv.return_value = None
         mock_conda.return_value = None
-        timewindows = [
+        time_windows = [
             [datetime(2020, 1, 1), datetime(2020, 1, 2)],
             [datetime(2020, 1, 2), datetime(2020, 1, 3)],
         ]
-        self.time_dependent_model.stage(timewindows)
+        self.time_dependent_model.stage(time_windows)
         tstring = "2020-01-01_2020-01-02"
         forecast = self.time_dependent_model.get_forecast(tstring)
         self.assertIsNotNone(forecast)

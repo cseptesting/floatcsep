@@ -27,10 +27,10 @@ def plot_results(experiment: "Experiment") -> None:
 
     """
     log.info("Plotting evaluation results")
-    timewindows = timewindow2str(experiment.timewindows)
+    time_windows = timewindow2str(experiment.time_windows)
 
     for test in experiment.tests:
-        test.plot_results(timewindows, experiment.models, experiment.registry)
+        test.plot_results(time_windows, experiment.models, experiment.registry)
 
 
 def plot_forecasts(experiment: "Experiment") -> None:
@@ -76,9 +76,9 @@ def plot_forecasts(experiment: "Experiment") -> None:
 
     # Get the time windows to be plotted. Defaults to only the last time window.
     time_windows = (
-        timewindow2str(experiment.timewindows)
+        timewindow2str(experiment.time_windows)
         if plot_forecast_config.get("all_time_windows")
-        else [timewindow2str(experiment.timewindows[-1])]
+        else [timewindow2str(experiment.time_windows[-1])]
     )
 
     # Get the projection of the plots
@@ -106,7 +106,7 @@ def plot_forecasts(experiment: "Experiment") -> None:
                         }
                     ),
                 )
-            fig_path = experiment.registry.get_figure(window, "forecasts", model.name)
+            fig_path = experiment.registry.get_figure_key(window, "forecasts", model.name)
             pyplot.savefig(fig_path, dpi=plot_forecast_config.get("dpi", 300))
 
 
@@ -167,17 +167,17 @@ def plot_catalogs(experiment: "Experiment") -> None:
 
     # Plot catalog map
     ax = main_catalog.plot(plot_args=plot_catalog_config)
-    cat_map_path = experiment.registry.get_figure("main_catalog_map")
+    cat_map_path = experiment.registry.get_figure_key("main_catalog_map")
     ax.get_figure().savefig(cat_map_path, dpi=plot_catalog_config.get("dpi", 300))
 
     # Plot catalog time series vs. magnitude
     ax = magnitude_vs_time(main_catalog)
-    cat_time_path = experiment.registry.get_figure("main_catalog_time")
+    cat_time_path = experiment.registry.get_figure_key("main_catalog_time")
     ax.get_figure().savefig(cat_time_path, dpi=plot_catalog_config.get("dpi", 300))
 
     # If selected, plot the test catalogs for each of the time windows
     if plot_catalog_config.get("all_time_windows"):
-        for tw in experiment.timewindows:
+        for tw in experiment.time_windows:
             test_catalog = experiment.catalog_repo.get_test_cat(timewindow2str(tw))
 
             if test_catalog.get_number_of_events() != 0:
@@ -185,11 +185,11 @@ def plot_catalogs(experiment: "Experiment") -> None:
                 continue
 
             ax = test_catalog.plot(plot_args=plot_catalog_config)
-            cat_map_path = experiment.registry.get_figure(tw, "catalog_map")
+            cat_map_path = experiment.registry.get_figure_key(tw, "catalog_map")
             ax.get_figure().savefig(cat_map_path, dpi=plot_catalog_config.get("dpi", 300))
 
             ax = magnitude_vs_time(test_catalog)
-            cat_time_path = experiment.registry.get_figure(tw, "catalog_time")
+            cat_time_path = experiment.registry.get_figure_key(tw, "catalog_time")
             ax.get_figure().savefig(cat_time_path, dpi=plot_catalog_config.get("dpi", 300))
 
 

@@ -35,7 +35,7 @@ def generate_report(experiment, timewindow=-1):
         custom_report(report_function, experiment)
         return
 
-    timewindow = experiment.timewindows[timewindow]
+    timewindow = experiment.time_windows[timewindow]
     timestr = timewindow2str(timewindow)
 
     log.info(f"Saving report into {experiment.registry.run_dir}")
@@ -60,11 +60,11 @@ def generate_report(experiment, timewindow=-1):
             "Input catalog",
             [
                 os.path.relpath(
-                    experiment.registry.get_figure("main_catalog_map"),
+                    experiment.registry.get_figure_key("main_catalog_map"),
                     experiment.registry.run_dir,
                 ),
                 os.path.relpath(
-                    experiment.registry.get_figure("main_catalog_time"),
+                    experiment.registry.get_figure_key("main_catalog_time"),
                     experiment.registry.run_dir,
                 ),
             ],
@@ -81,7 +81,7 @@ def generate_report(experiment, timewindow=-1):
 
     # Include results from Experiment
     for test in experiment.tests:
-        fig_path = experiment.registry.get_figure(timestr, test)
+        fig_path = experiment.registry.get_figure_key(timestr, test)
         width = test.plot_args[0].get("figsize", [4])[0] * 96
         report.add_figure(
             f"{test.name}",
@@ -93,7 +93,7 @@ def generate_report(experiment, timewindow=-1):
         )
         for model in experiment.models:
             try:
-                fig_path = experiment.registry.get_figure(timestr, f"{test.name}_{model.name}")
+                fig_path = experiment.registry.get_figure_key(timestr, f"{test.name}_{model.name}")
                 width = test.plot_args[0].get("figsize", [4])[0] * 96
                 report.add_figure(
                     f"{test.name}: {model.name}",
