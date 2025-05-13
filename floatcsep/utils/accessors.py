@@ -1,9 +1,22 @@
+import json
+import time
+from datetime import datetime
+from urllib import request
+
 import git
 import requests
 import hashlib
 import os
 import sys
 import shutil
+
+from csep.core import catalogs
+from csep.core.exceptions import CSEPCatalogException
+import csep.utils.comcat
+from csep.utils.time_utils import utc_now_datetime, datetime_to_utc_epoch
+from urllib import request
+from urllib.parse import urlencode
+
 
 def from_zenodo(record_id, folder, force=False):
     """
@@ -140,3 +153,208 @@ def check_hash(filename, checksum):
             h.update(data)
     digest = h.hexdigest()
     return value, digest
+
+
+HOST_CATALOG = 'http://arclink.ethz.ch/fdsnws/event/1/query?'
+TIMEOUT = 180
+
+def query_sed(start_time, end_time, min_magnitude=2.0,
+              min_latitude=45.5, max_latitude=48.0,
+              min_longitude=5.5, max_longitude=11.0,
+              max_depth=1000,
+              verbose=True,
+              apply_filters=False, **kwargs):
+    """
+    Access SED catalog through web service
+
+    Args:
+        start_time: datetime object of start of catalog
+        end_time: datetime object for end of catalog
+        min_magnitude: minimum magnitude to query
+        min_latitude:  maximum magnitude to query
+        max_latitude: max latitude of bounding box
+        min_longitude: min latitude of bounding box
+        max_longitude: max longitude of bounding box
+        max_depth: maximum depth of the bounding box
+        verbose (bool): print catalog summary statistics
+
+    Returns:
+        :class:`csep.core.catalogs.CSEPCatalog`
+    """
+
+    # Timezone should be in UTC
+    t0 = time.time()
+    eventlist = _query_sed(start_time=start_time, end_time=end_time,
+                           min_magnitude=min_magnitude,
+                           min_latitude=min_latitude,
+                           max_latitude=max_latitude,
+                           min_longitude=min_longitude,
+                           max_longitude=max_longitude,
+                           max_depth=max_depth)
+    t1 = time.time()
+    sed = catalogs.CSEPCatalog(data=eventlist,
+                               date_accessed=utc_now_datetime(), **kwargs)
+    print("Fetched Swiss Seismological Service catalog in {} seconds.\n".format(t1 - t0))
+
+    if apply_filters:
+        try:
+            sed = sed.filter().filter_spatial()
+        except CSEPCatalogException:
+            sed = sed.filter()
+
+    if verbose:
+        print(
+            "Downloaded catalog from Swiss Seismological Service (SED) with following parameters")
+        print("Start Date: {}\nEnd Date: {}".format(str(sed.start_time),
+                                                    str(sed.end_time)))
+        print("Min Latitude: {} and Max Latitude: {}".format(sed.min_latitude,
+                                                             sed.max_latitude))
+        print(
+            "Min Longitude: {} and Max Longitude: {}".format(sed.min_longitude,
+                                                             sed.max_longitude))
+        print("Min Magnitude: {}".format(sed.min_magnitude))
+        print(f"Found {sed.event_count} events in the BSI catalog.")
+
+    return sed
+
+
+def _query_sed(start_time, end_time, min_magnitude=2.50,
+               min_latitude=45.5, max_latitude=48.0,
+               min_longitude=5.5, max_longitude=11.0,
+               max_depth=1000, extra_bsi_params=None):
+    """
+    Queries INGV Bulletino Sismico Italiano, revised version.
+    :return: csep.core.Catalog object
+    """
+    extra_sed_params = extra_bsi_params or {}
+    extra_sed_params.update()
+    # get eventlist from Comcat
+
+    eventlist = sed_search(minmagnitude=min_magnitude,
+                       minlatitude=min_latitude, maxlatitude=max_latitude,
+                       minlongitude=min_longitude, maxlongitude=max_longitude,
+                       maxdepth=max_depth,
+                       starttime=start_time, endtime=end_time, **extra_sed_params)
+
+    return eventlist
+
+def sed_search(format='text',
+                starttime=None,
+                endtime=None,
+                updatedafter=None,
+                minlatitude=None,
+                maxlatitude=None,
+                minlongitude=None,
+                maxlongitude=None,
+                latitude=None,
+                longitude=None,
+                maxradius=None,
+                contributor=None,
+                maxdepth=1000,
+                maxmagnitude=10.0,
+                mindepth=-100,
+                minmagnitude=0,
+                # offset=1,
+                # orderby='time-asc',
+                host=None,
+                verbose=False):
+    """Search the IRIS database for events matching input criteria.
+    This search function is a wrapper around the ComCat Web API described here:
+    https://service.iris.edu/fdsnws/event/1/
+
+    This function returns a list of SummaryEvent objects, described elsewhere in this package.
+    Args:
+        starttime (datetime):
+            Python datetime - Limit to events on or after the specified start time.
+        endtime (datetime):
+            Python datetime - Limit to events on or before the specified end time.
+        updatedafter (datetime):
+           Python datetime - Limit to events updated after the specified time.
+        minlatitude (float):
+            Limit to events with a latitude larger than the specified minimum.
+        maxlatitude (float):
+            Limit to events with a latitude smaller than the specified maximum.
+        minlongitude (float):
+            Limit to events with a longitude larger than the specified minimum.
+        maxlongitude (float):
+            Limit to events with a longitude smaller than the specified maximum.
+        latitude (float):
+            Specify the latitude to be used for a radius search.
+        longitude (float):
+            Specify the longitude to be used for a radius search.
+        maxradius (float):
+            Limit to events within the specified maximum number of degrees
+            from the geographic point defined by the latitude and longitude parameters.
+        catalog (str):
+            Limit to events from a specified catalog.
+        contributor (str):
+            Limit to events contributed by a specified contributor.
+        maxdepth (float):
+            Limit to events with depth less than the specified maximum.
+        maxmagnitude (float):
+            Limit to events with a magnitude smaller than the specified maximum.
+        mindepth (float):
+            Limit to events with depth more than the specified minimum.
+        minmagnitude (float):
+            Limit to events with a magnitude larger than the specified minimum.
+        offset (int):
+            Return results starting at the event count specified, starting at 1.
+        orderby (str):
+            Order the results. The allowed values are:
+            - time order by origin descending time
+            - time-asc order by origin ascending time
+            - magnitude order by descending magnitude
+            - magnitude-asc order by ascending magnitude
+        host (str):
+            Replace default ComCat host (earthquake.usgs.gov) with a custom host.
+    Returns:
+        list: List of SummaryEvent() objects.
+    """
+
+    # getting the inputargs must be the first line of the method!
+    inputargs = locals().copy()
+    newargs = {}
+
+    for key, value in inputargs.items():
+        if value is True:
+            newargs[key] = 'true'
+            continue
+        if value is False:
+            newargs[key] = 'false'
+            continue
+        if value is None:
+            continue
+        newargs[key] = value
+
+    del newargs['verbose']
+
+    events = _search_sed(**newargs)
+
+    return events
+
+
+
+def _search_sed(**_newargs):
+    """
+    Performs de-query at ISC API and returns event list and access date
+
+    """
+    paramstr = urlencode(_newargs)
+    url = HOST_CATALOG + paramstr
+    fh = request.urlopen(url, timeout=TIMEOUT)
+    data = fh.read().decode('utf8').split('\n')
+    fh.close()
+    eventlist = []
+    for line in data[1:]:
+        line_ = line.split('|')
+        if len(line_) != 1:
+            id_ = line_[0]
+            time_ = datetime.fromisoformat(line_[1])
+            dt = datetime_to_utc_epoch(time_)
+            lat = float(line_[2])
+            lon = float(line_[3])
+            depth = float(line_[4])
+            mag = float(line_[10])
+            eventlist.append((id_, dt, lat, lon, depth, mag))
+
+    return eventlist
