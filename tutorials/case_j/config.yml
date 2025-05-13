@@ -1,0 +1,29 @@
+name: case_h
+
+time_config:
+  start_date: 2025-04-04T03:00:00
+  end_date: 2025-05-11T03:00:00
+
+region_config:
+  region: nz_csep_region
+  mag_min: 2.5
+  mag_max: 8.0
+  mag_bin: 0.1
+  depth_min: 0
+  depth_max: 70
+
+catalog: query_sed
+
+models:
+  - etas:
+      path: models/etas
+      class: td
+      fmt: csv
+
+tests:
+  - Catalog_N-test:
+      func: catalog_evaluations.number_test
+
+
+
+
