@@ -1,29 +1,33 @@
 name: case_h
 
-time_config:
+time_config: # Should be dynamically typed
   start_date: 2025-04-04T03:00:00
-  end_date: 2025-05-11T03:00:00
+  end_date: 2025-04-11T03:00:00
 
 region_config:
-  region: nz_csep_region
-  mag_min: 2.5
-  mag_max: 8.0
-  mag_bin: 0.1
-  depth_min: 0
-  depth_max: 70
+  region: ch_region.csv  # dummy. Replaced when defining official CH region
+  mag_min: 2.5            # Should be derived from Hermes' Test or Model configs
+  mag_max: 8.0            # Should be derived from Hermes' Test or Model configs
+  mag_bin: 0.1            # dummy (not needed for N-test).
+  depth_min: 0            # Should be derived from Hermes' Test or Model configs
+  depth_max: 70           # Should be derived from Hermes' Test or Model configs
 
-catalog: query_sed
+catalog: query_sed        # Implemented in floatcsep
 
 models:
   - etas:
-      path: models/etas
-      class: td
+      path: ./            # This implies, that the forecasts should be placed  ./forecasts/etas_{startdate}_{enddate}.csv
+      class: td           # time-dependent
       fmt: csv
 
 tests:
-  - Catalog_N-test:
+  - N-test:
       func: catalog_evaluations.number_test
+      plot_func: plots.plot_number_test
 
-
+postprocess:
+  plot_forecasts:
+    region_border: False
+  plot_catalog: False
 
 

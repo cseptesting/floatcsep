@@ -4,6 +4,8 @@ FROM python:3.11.12-slim-bullseye
 ARG USERNAME=modeler
 ARG USER_UID=1100
 ARG USER_GID=1100
+ARG REPO_URL=https://github.com/cseptesting/floatcsep.git
+ARG BRANCH_NAME=hermes-interface
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git
@@ -20,10 +22,10 @@ ENV VIRTUAL_ENV=/home/$USERNAME/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 
-RUN python3 -m venv $VIRTUAL_ENV && pip install --upgrade pip setuptools wheel && pip install floatcsep seismostats
+RUN python3 -m venv $VIRTUAL_ENV && pip install --upgrade pip setuptools wheel && pip install git+$REPO_URL@$BRANCH_NAME
 
 # Copy and install STEP
-COPY --chown=$USERNAME:$USERNAME config.yml pre_process.py model_results.csv seismicityobservation.xml ./
-COPY --chown=$USERNAME:$USERNAME models/ models/
+COPY --chown=$USERNAME:$USERNAME config.yml forecasts ch_region.csv ./
 
-ENTRYPOINT ["python3 pre_process.py", "floatcsep run config.yml"]
+
+ENTRYPOINT ["floatcsep run config.yml"]
