@@ -213,7 +213,7 @@ def query_sed(start_time, end_time, min_magnitude=2.0,
             "Min Longitude: {} and Max Longitude: {}".format(sed.min_longitude,
                                                              sed.max_longitude))
         print("Min Magnitude: {}".format(sed.min_magnitude))
-        print(f"Found {sed.event_count} events in the BSI catalog.")
+        print(f"Found {sed.event_count} events in the SED catalog.")
 
     return sed
 
