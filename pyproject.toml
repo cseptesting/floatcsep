@@ -1,6 +1,57 @@
 [build-system]
-requires = ["setuptools>=52.0", "wheel", "setuptools-scm"]
+requires = ["setuptools>=61", "wheel", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "floatcsep"
+description = "CSEP Floating Experiment application"
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { text = "BSD-3-Clause" }
+authors = [
+    { name = "Pablo Iturrieta", email = "pciturri@gfz-potsdam.de" },
+]
+requires-python = ">=3.9,<3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "numpy",
+    "dateparser",
+    "docker",
+    "gitpython",
+    "h5py",
+    "matplotlib",
+    "pandas",
+    "pycsep",
+    "pyshp",
+    "pyyaml",
+    "requests",
+    "scipy",
+    "seaborn",
+    "tables",
+    "xmltodict",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/cseptesting/floatcsep.git"
+
+[project.scripts]
+floatcsep = "floatcsep.commands.main:floatcsep"
+
+[tool.setuptools]
+zip-safe = false
+
+[tool.setuptools.packages.find]
+include = ["floatcsep*"]
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "no-local-version"
+fallback_version = "0.0.0"
 
 [tool.pytest.ini_options]
 norecursedirs = ["tutorials", "tests/artifacts"]
@@ -17,7 +68,34 @@ target-version = ["py39", "py310", "py311"]
 ignore = ["E203", "W503", "F401"]
 max-line-length = 96
 
-[tool.setuptools_scm]
-version_scheme = "post-release"
-local_scheme = "no-local-version"
-fallback_version = "0.2.0"
+[tool.tox]
+min_version = "4.0"
+requires = ["tox>=4", "tox-conda>=0.10"]
+env_list = ["py39", "py310", "py311"]
+
+[tool.tox.vars]
+
+[tool.tox.env_run_base]
+set_env = { PYTHONPATH = "{toxinidir}" }
+description = "Run tests"
+commands = [
+    "pip install -e .[dev]",
+    "pytest --basetemp={envtmpdir}",
+]
+package = "wheel"
+wheel_build_env = ".pkg"
+
+[tool.tox.env.py39]
+deps = ["-r{toxinidir}/requirements_dev.txt"]
+conda_channels = ["defaults", "conda-forge"]
+conda_deps = ["cartopy", "pycsep"]
+
+[tool.tox.env.py310]
+deps = ["-r{toxinidir}/requirements_dev.txt"]
+conda_channels = ["defaults", "conda-forge"]
+conda_deps = ["cartopy", "pycsep"]
+
+[tool.tox.env.py311]
+deps = ["-r{toxinidir}/requirements_dev.txt"]
+conda_channels = ["defaults", "conda-forge"]
+conda_deps = ["cartopy", "pycsep"]
