@@ -4,9 +4,9 @@ docker
 gitpython
 h5py
 matplotlib
+packaging
 pandas
 pycsep
-pyshp
 pyyaml
 requests
 scipy

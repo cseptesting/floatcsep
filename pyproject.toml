@@ -6,7 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "floatcsep"
 description = "CSEP Floating Experiment application"
 readme = { file = "README.md", content-type = "text/markdown" }
-license = { text = "BSD-3-Clause" }
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 authors = [
     { name = "Pablo Iturrieta", email = "pciturri@gfz-potsdam.de" },
 ]
@@ -25,8 +26,8 @@ dependencies = [
     "h5py",
     "matplotlib",
     "pandas",
+    "packaging",
     "pycsep",
-    "pyshp",
     "pyyaml",
     "requests",
     "scipy",
@@ -35,6 +36,22 @@ dependencies = [
     "xmltodict",
 ]
 dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "flake8",
+    "pytest",
+    "pytest-cov",
+    "sphinx",
+    "sphinx-autoapi",
+    "sphinx_design",
+    "sphinx-toolbox",
+    "sphinx-gallery",
+    "sphinx-rtd-theme",
+    "sphinx_copybutton",
+    "vcrpy",
+]
 
 [project.urls]
 Homepage = "https://github.com/cseptesting/floatcsep.git"
@@ -67,35 +84,3 @@ target-version = ["py39", "py310", "py311"]
 [tool.flake8]
 ignore = ["E203", "W503", "F401"]
 max-line-length = 96
-
-[tool.tox]
-min_version = "4.0"
-requires = ["tox>=4", "tox-conda>=0.10"]
-env_list = ["py39", "py310", "py311"]
-
-[tool.tox.vars]
-
-[tool.tox.env_run_base]
-set_env = { PYTHONPATH = "{toxinidir}" }
-description = "Run tests"
-commands = [
-    "pip install -e .[dev]",
-    "pytest --basetemp={envtmpdir}",
-]
-package = "wheel"
-wheel_build_env = ".pkg"
-
-[tool.tox.env.py39]
-deps = ["-r{toxinidir}/requirements_dev.txt"]
-conda_channels = ["defaults", "conda-forge"]
-conda_deps = ["cartopy", "pycsep"]
-
-[tool.tox.env.py310]
-deps = ["-r{toxinidir}/requirements_dev.txt"]
-conda_channels = ["defaults", "conda-forge"]
-conda_deps = ["cartopy", "pycsep"]
-
-[tool.tox.env.py311]
-deps = ["-r{toxinidir}/requirements_dev.txt"]
-conda_channels = ["defaults", "conda-forge"]
-conda_deps = ["cartopy", "pycsep"]
