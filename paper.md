@@ -56,10 +56,10 @@ bibliography: paper.bib
 # Summary
 
 floatCSEP is a Python application that standardizes and orchestrates the workflow of earthquake forecasting experiments.
-Based on principles established by the Collaboratory for the Study of Earthquake Predictability (CSEP, [https://cseptesting.org](https://cseptesting.org)), it enables reproducible, transparent, and reusable evaluations of earthquake forecasts (both prospective or pseudo-prospective).
-floatCSEP builds on the existing pyCSEP toolkit for core evaluation routines and adds the functionality needed to deploy and conduct entire experiments, including catalog handling, forecast generation, evaluation, visualization, and reporting.
+Based on principles established by the Collaboratory for the Study of Earthquake Predictability (CSEP, [https://cseptesting.org](https://cseptesting.org)), it enables reproducible, transparent, and reusable experiments to evaluate earthquake forecast.
+floatCSEP builds on the existing [pyCSEP](https://github.com/cseptesting/pycsep) toolkit for core evaluation routines and adds the functionality needed to deploy and conduct entire experiments, including catalog handling, forecast generation, evaluation, visualization, and reporting.
 Accompanying tutorials illustrate experiment use cases, which users can extend to incorporate new models, alternative evaluation metrics, or different regions and timeframes.
-Ultimately, floatCSEP will support new official CSEP experiments, and also encourage and empower independent researchers to validate their own models.
+Ultimately, floatCSEP is intended to support new official CSEP experiments, and also encourage and empower independent researchers to validate their own models.
 
 # Background
 
