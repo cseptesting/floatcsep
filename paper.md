@@ -75,7 +75,7 @@ These efforts have substantially advanced scientific rigor and established commu
 # Statement of Need
 
 Despite their achievements, the original CSEP Testing Centers were centralized, rigid, and with data management tightly coupled to local hardware, significantly limiting software reusability, scalability, and broader community engagement [e.g., @savran2022pycsepsrl; @zechar2010collaboratory; @schorlemmer2018collaboratory].
-As also noted by @mizrahi2024developing Mizrahi et al. (2024), there is broad consensus in the earthquake forecasting community that transparency and reproducibility are essential in forecast testing.
+As also noted by @mizrahi2024developing, there is broad consensus in the earthquake forecasting community that transparency and reproducibility are essential in forecast testing.
 However, due to the complexity of Testing Centers, independent researchers often require advanced technical expertise to access, reproduce, and analyze CSEP experiments.
 To overcome these limitations, the Python package pyCSEP [@savran2022pycsepsrl; @savran2022pycsepjoss; @graham2024new] was developed to provide core forecast evaluation routines, which can be directly integrated into modelers’ workflows.
 
