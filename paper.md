@@ -121,6 +121,7 @@ floatCSEP contributes to a growing CSEP software ecosystem that, together with r
 
 # Acknowledgements
 
+Details of author contributions can be found in [```CREDITS.md```](https://github.com/cseptesting/floatcsep/blob/c9b831f804c14129c6c20cc5618234a456dcfbc7/CREDITS.md) in the code repository.
 The development of this software was supported and funded in part by (i) the European Commission under project Geo-INQUIRE [https://www.geo-inquire.eu/](https://www.geo-inquire.eu/), number 101058518 within the HORIZON-INFRA-2021-SERV-01 call; (ii) the European Union H2020 program, Grant number 821115, Real-time earthquake rIsk reduction for a reSilient Europe (RISE, [http://www.rise-eu.org/home/](http://www.rise-eu.org/home/)); (iii) the Statewide California Earthquake Center (Contribution No. 14983). SCEC is funded by NSF Cooperative Agreement EAR-2225216 and USGS Cooperative Agreement G24AC00072-00; (iv) the U.S. Geological Survey Earthquake Hazards Program under Grant Nos. G24AP00059 and G25AP00379; and (v) the Leverhulme Trust through its Early Career Fellowship program.
 
 # References
