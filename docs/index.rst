@@ -73,7 +73,19 @@ What is floatCSEP
 
 The `Collaboratory for the Study of Earthquake Predictability <https://cseptesting.org>`_ (CSEP) has organized Earthquake Forecast Testing Experiments during the last decades and is now consolidating its research into open-software initiatives.
 
-**floatCSEP** is an easy-to-use software application that contains the workflow to deploy Earthquake Forecasting Experiments. It is based on the code python library **pyCSEP** (`Github <https://github.com/sceccode/pycsep>`_), which itself contains the core routines to test earthquake forecasts.
+**floatCSEP** is an easy-to-use software application that contains the workflow to deploy Earthquake Forecasting Experiments. It is based on the code python library **pyCSEP** (`Github <https://github.com/sceccode/pycsep>`_), which contains the core routines to test earthquake forecasts. While pyCSEP focuses on evaluation routines, floatCSEP provides the surrounding workflow needed to define, run, and update complete testing experiments.
+
+
+Why floatCSEP?
+--------------
+
+**floatCSEP** fills the gap to set up a testing experiment by
+
+* Standardizing experiment definitions, such as clear input/testing data partitions, spatial/magnitude domains, model parameters, tests, etc.
+* Orchestrating the workflow by an automated execution of all experiment tasks (building source codes, querying input data, create and test forecasts, output visualizations , etc.), while maintaining a prospective testing philosophy when required.
+* Assisting with containerizing the computational environment (using Docker).
+* Automated reporting and result visualization tools.
+
 
 Goals
 -----
@@ -82,6 +94,12 @@ Goals
 * Set up a testing experiment for your forecasts using authoritative data sources/benchmarks.
 * Encapsulate the complete experiment's definition and rules in a couple of lines.
 * Reproduce, reuse, and share forecasting experiments.
+
+Target users
+------------
+
+**floatCSEP** is aimed at earthquake forecast model developers, Testing Center operators, and researchers in statistical seismology who want evaluate forecasts and design experiments in a consistent way.
+
 
 Running
 -------
