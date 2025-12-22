@@ -68,7 +68,7 @@ documentation for detailed instructions and additional installation methods.
 
 # Run an Experiment
 
-Using the command terminal, navigate to an example experiment in ``floatcsep/tutorials/`` and
+Using the command terminal, navigate to any tutorial experiment in ``floatcsep/tutorials/`` and
 type
 
 ```
@@ -76,8 +76,13 @@ floatcsep run config.yml
 ```
 
 A runtime directory will be created in a `results` folder. The experiment results can be
-visualized in `results/report.md` or `results/report.pdf`. **Check out the experiment, models and tests definition in
-the tutorials**!
+visualized in `results/report.md`, `results/report.pdf` or in a dashboard with:
+
+```
+floatcsep view config.yml
+```
+
+**Check out the experiment, models and tests definition in the tutorials [documentation](https://floatcsep.readthedocs.io/en/latest/tutorials/case_a.html)** or in the configuration files for each case in ``floatcsep/tutorials/``. 
 
 # Important Links
 
