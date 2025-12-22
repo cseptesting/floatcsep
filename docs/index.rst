@@ -98,7 +98,7 @@ Goals
 Target users
 ------------
 
-**floatCSEP** is aimed at earthquake forecast model developers, Testing Center operators, and researchers in statistical seismology who want evaluate forecasts and design experiments in a consistent way.
+**floatCSEP** is aimed at earthquake forecast model developers, Testing Center operators, and researchers in statistical seismology who want to evaluate forecasts and design experiments in a consistent way.
 
 
 Running
