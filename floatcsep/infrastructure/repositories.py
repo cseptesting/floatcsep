@@ -238,7 +238,22 @@ class CatalogRepository:
         max_depth=None,
         region=None,
     ) -> CSEPCatalog:
+        """
+        Wrapper for pyCSEP catalog filters, to constrain a catalog to a given time and magnitude
+        range, as well to a spatial region.
 
+        Args:
+            start_date (datetime.datetime): Initial datetime
+            end_date (datetime.datetime): Final datetime
+            min_mag (float): Minimum magnitude to filter
+            max_mag (float): Maximum magnitude to filter
+            min_depth (float): Minimum depth to filter (positive downwards from surface)
+            max_depth (float): Maximum depth to filter (positive downwards from surface)
+            region (csep.core.regions.CartesianGrid2D): Spatial domain to filter
+
+        Returns:
+            Filtered catalog
+        """
         filters = []
         if start_date:
             filters.append(
