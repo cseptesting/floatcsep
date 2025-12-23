@@ -4,46 +4,114 @@ import logging
 import os.path
 import time
 import xml.etree.ElementTree as eTree
+from typing import Iterator
 
 import csep
 import h5py
 import numpy
 import pandas
-import pandas as pd
 from csep.core.catalogs import CSEPCatalog
 from csep.core.regions import QuadtreeGrid2D, CartesianGrid2D
+from csep.core.forecasts import CatalogForecast
 from csep.models import Polygon
 from csep.utils.time_utils import strptime_to_utc_epoch
+
 
 log = logging.getLogger(__name__)
 
 
 class CatalogSerializer:
+    """
+    Serializers for :class:`csep.core.catalogs.CSEPCatalog`.
+
+    Delegates to the built-in I/O methods from pyCSEP catalog objects.
+    """
 
     @staticmethod
-    def ascii(catalog, filename: str) -> None:
+    def ascii(catalog: CSEPCatalog, filename: str) -> None:
+        """
+        Serialize a catalog to the pyCSEP ASCII format.
+
+        Args:
+            catalog (:class:`csep.core.catalogs.CSEPCatalog`): Catalog instance to write.
+            filename (str): Destination filepath.
+
+        Returns:
+            None
+        """
         catalog.write_ascii(filename=filename)
 
     @staticmethod
-    def json(catalog, filename: str) -> None:
+    def json(catalog: CSEPCatalog, filename: str) -> None:
+        """
+        Serialize a catalog to JSON using the pyCSEP encoder.
+
+        Args:
+            catalog (:class:`csep.core.catalogs.CSEPCatalog`): Catalog instance to write.
+            filename (str): Destination filepath.
+
+        Returns:
+            None
+        """
         catalog.write_json(filename=filename)
 
 
 class CatalogParser:
+    """
+    Parsers for :class:`csep.core.catalogs.CSEPCatalog`.
 
+    Wraps pyCSEP catalog loaders and provides an interface for loading catalogs.
+    """
     @staticmethod
-    def ascii(filename: str) -> None:
+    def ascii(filename: str) -> CSEPCatalog:
+        """
+        Load a pyCSEP catalog in the ASCII catalog format.
+
+        Args:
+            filename (str): Path to file.
+
+        Returns:
+            :class:`csep.core.catalogs.CSEPCatalog`.
+        """
         return CSEPCatalog.load_catalog(filename=filename)
 
     @staticmethod
-    def json(filename: str) -> None:
+    def json(filename: str) -> CSEPCatalog:
+        """
+        Load a pyCSEP catalog from JSON.
+
+        Args:
+            filename (str): Path to the file.
+
+        Returns:
+            :class:`csep.core.catalogs.CSEPCatalog`
+        """
         return CSEPCatalog.load_json(filename=filename)
 
 
 class CatalogForecastParsers:
+    """
+    Parsers for catalog-based forecasts stored on disk.
 
+    These helpers select the appropriate loader based on file headers and return
+    the object produced by :func:`csep.load_catalog_forecast`.
+    """
     @staticmethod
-    def csv(filename, **kwargs):
+    def csv(filename: str, **kwargs) -> CatalogForecast:
+        """
+        Load a catalog-based forecast from a CSV file.
+
+        The loader inspects the header to detect either:
+        (i) a CSEP/pyCSEP-style catalog layout or (ii) a Hermes layout.
+
+        Args:
+            filename (str): Path to the CSV file.
+            **kwargs: Passed to :func:`csep.load_catalog_forecast`.
+
+        Returns:
+            :class:`csep.core.forecasts.CatalogForecast`.
+
+        """
         csep_headers = [
             "lon",
             "lat",
@@ -61,7 +129,7 @@ class CatalogForecastParsers:
             "longitude",
             "time",
         ]
-        headers_df = pd.read_csv(filename, nrows=0).columns.str.strip().to_list()
+        headers_df = pandas.read_csv(filename, nrows=0).columns.str.strip().to_list()
 
         # CSEP headers
         if headers_df[:2] == csep_headers[:2]:
@@ -76,18 +144,20 @@ class CatalogForecastParsers:
             raise Exception("Catalog Forecast could not be loaded")
 
     @staticmethod
-    def load_hermes_catalog(filename, **kwargs):
-        """Loads hermes synthetic catalogs in csep-ascii format.
+    def load_hermes_catalog(filename, **kwargs) -> Iterator[CSEPCatalog]:
+        """
+        Loads hermes synthetic catalogs in csep-ascii format.
 
-        This function can load multiple catalogs stored in a single file. This typically called to
-        load a catalog-based forecast, but could also load a collection of catalogs stored in the same file
+        This function can load multiple catalogs stored in a single file. This typically called
+        to load a catalog-based forecast, but could also load a collection of catalogs stored
+        in the same file
 
         Args:
             filename (str): filepath or directory of catalog files
             **kwargs (dict): passed to class constructor
 
-        Return:
-            yields CSEPCatalog class
+        Yields:
+            :class:`csep.core.forecasts.CatalogForecast`.
         """
 
         def read_float(val):
@@ -206,9 +276,29 @@ class CatalogForecastParsers:
 
 
 class GriddedForecastParsers:
+    """
+    Parsers for grid-based earthquake forecasts.
 
+    Each parser returns a tuple ``(rates, region, magnitudes)`` where `rates` is a
+    2D array shaped ``(num_spatial_bins, num_magnitude_bins)`` and `region` is a
+    pyCSEP region instance describing the spatial bins.
+    """
     @staticmethod
-    def dat(filename):
+    def dat(filename: str):
+        """
+        Load a CSEP-style ASCII `.dat` gridded forecast.
+
+        Args:
+            filename (str): Path to the `.dat` file.
+
+        Returns:
+            tuple:
+                - rates (numpy.ndarray): Forecast rates with shape
+                  ``(n_cells, n_mag_bins)``.
+                - region (csep.core.regions.CartesianGrid2D): Region built from
+                  rectangular polygons.
+                - magnitudes (numpy.ndarray): Magnitude bin edges.
+        """
         data = numpy.loadtxt(filename)
         all_polys = data[:, :4]
         all_poly_mask = data[:, -1]
@@ -232,6 +322,22 @@ class GriddedForecastParsers:
 
     @staticmethod
     def xml(filename, verbose=False):
+        """
+        Load a CSEP XML gridded forecast.
+
+        Args:
+            filename (str): Path to the XML file.
+            verbose (bool): If True, logs parsed metadata.
+
+        Returns:
+            tuple:
+                - rates (numpy.ndarray): Forecast rates with shape
+                  ``(n_cells, n_mag_bins)``.
+                - region (csep.core.regions.CartesianGrid2D): Region built from
+                  cell bounding boxes.
+                - magnitudes (numpy.ndarray): Magnitude bin edges.
+
+        """
         tree = eTree.parse(filename)
         root = tree.getroot()
         metadata = {}
@@ -305,6 +411,23 @@ class GriddedForecastParsers:
 
     @staticmethod
     def quadtree(filename):
+        """
+        Load a quadtree forecast from CSV.
+
+        The file is expected to contain a `tile` column with quadkeys and one
+        column per magnitude bin.
+
+        Args:
+            filename (str): Path to the CSV file.
+
+        Returns:
+            tuple:
+                - rates (numpy.ndarray): Forecast rates with shape
+                  ``(n_tiles, n_mag_bins)``.
+                - region (csep.core.regions.QuadtreeGrid2D): Region reconstructed
+                  from quadkeys.
+                - magnitudes (numpy.ndarray): Magnitude bin edges.
+        """
         with open(filename, "r") as file_:
             qt_header = file_.readline().split(",")
             formats = [str]
@@ -325,6 +448,24 @@ class GriddedForecastParsers:
 
     @staticmethod
     def csv(filename):
+        """
+        Load a gridded forecast from CSV.
+
+        If the header contains `tile`, dispatches to :meth:`quadtree`. Otherwise,
+        expects bounding-box columns (`lon_min`, `lon_max`, `lat_min`, `lat_max`)
+        and one column per magnitude bin. An optional `mask` column is used as the
+        region mask.
+
+        Args:
+            filename (str): Path to the CSV file.
+
+        Returns:
+            tuple:
+                - rates (numpy.ndarray): Forecast rates.
+                - region (csep.core.regions.CartesianGrid2D or
+                  csep.core.regions.QuadtreeGrid2D): Region describing spatial bins.
+                - magnitudes (numpy.ndarray): Magnitude bin edges.
+        """
         def is_mag(num):
             try:
                 m = float(num)
@@ -368,6 +509,24 @@ class GriddedForecastParsers:
 
     @staticmethod
     def hdf5(filename, group=""):
+        """
+        Load a gridded forecast from an HDF5 container.
+
+        Reads datasets created by :meth:`HDF5Serializer.grid2hdf5`. If `quadkeys`
+        are present, reconstructs a quadtree region; otherwise reconstructs a
+        cartesian region from stored bounding boxes.
+
+        Args:
+            filename (str): Path to the HDF5 file.
+            group (str): Group prefix in the HDF5 file.
+
+        Returns:
+            tuple:
+                - rates (numpy.ndarray): Forecast rates.
+                - region (csep.core.regions.CartesianGrid2D or
+                  csep.core.regions.QuadtreeGrid2D): Reconstructed region.
+                - magnitudes (numpy.ndarray): Magnitude bin edges.
+        """
         start = time.process_time()
 
         with h5py.File(filename, "r") as db:
@@ -391,8 +550,33 @@ class GriddedForecastParsers:
 
 
 class HDF5Serializer:
+    """
+    Serialize gridded forecast components to HDF5.
+
+    Stores the forecast rates, magnitude bins, and enough region geometry to
+    reconstruct a cartesian grid on load.
+    """
     @staticmethod
     def grid2hdf5(rates, region, mag, grp="", hdf5_filename=None, **kwargs):
+        """
+        Store a cartesian gridded forecast into an HDF5 file.
+
+        Writes (or overwrites) datasets under ``grp``:
+        `rates`, `magnitudes`, `bboxes`, `dh`, and `poly_mask`. Extra keyword
+        arguments are stored as additional datasets.
+
+        Args:
+            rates (numpy.ndarray): Forecast rates.
+            region (csep.core.regions.CartesianGrid2D): Region defining the grid.
+            mag (numpy.ndarray): Magnitude bin edges.
+            grp (str): Group prefix in the HDF5 file.
+            hdf5_filename (str): Path to the HDF5 file.
+            **kwargs: Extra metadata to store as datasets.
+
+        Returns:
+            None
+
+        """
         start = time.process_time()
 
         bboxes = numpy.array([i.points for i in region.polygons])
@@ -435,6 +619,21 @@ class HDF5Serializer:
 
 
 def check_format(filename, fmt=None, func=None):
+    """
+    Basic format checks for supported forecast files.
+
+    Currently, only the XML format is validated (presence of per-magnitude `<bin>`
+    entries and expected node structure). Other formats are placeholders.
+
+    Args:
+        filename (str): Path to the file to validate.
+        fmt (str | None): Format name. If None, inferred from the file extension.
+        func (callable | None): Optional hook for custom validation (placeholder).
+
+    Returns:
+        None
+
+    """
     if fmt is None:
         fmt = os.path.splitext(filename)[-1][1:]
 
@@ -494,6 +693,15 @@ def check_format(filename, fmt=None, func=None):
 
 
 def serialize():
+    """
+    Small CLI for testing gridded forecast parsers.
+
+    Parses `--format` and `--filename`, then loads the file with the selected
+    parser.
+
+    Returns:
+        None
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--format", help="format")
     parser.add_argument("--filename", help="Model forecast name")

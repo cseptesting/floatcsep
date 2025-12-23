@@ -150,22 +150,27 @@ A small wrapper for ``pyCSEP`` readers
 .. autosummary::
    :nosignatures:
 
+    CatalogParser
     CatalogParser.ascii
     CatalogParser.json
 
+    CatalogSerializer
     CatalogSerializer.ascii
     CatalogSerializer.json
 
+    GriddedForecastParsers
     GriddedForecastParsers.dat
     GriddedForecastParsers.xml
     GriddedForecastParsers.quadtree
     GriddedForecastParsers.csv
     GriddedForecastParsers.hdf5
 
+    CatalogForecastParsers
     CatalogForecastParsers.csv
     CatalogForecastParsers.load_hermes_catalog
 
     HDF5Serializer.grid2hdf5
+    check_format
     serialize
 
 
