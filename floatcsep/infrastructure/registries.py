@@ -167,6 +167,14 @@ class ModelRegistry(ABC):
 
 
 class ModelFileRegistry(ModelRegistry, FilepathMixin):
+    """
+    The class is responsible to handle the keys (in this case filepaths) to access model objects
+    such as forecasts, input catalogs or argument/parameter files. These keys are used mainly by
+    :class:`floatcsep.infrastructure.repositories.ForecastRepository` or
+    :class:`floatcsep.infrastructure.repositories.CatalogRepository`.
+
+    """
+
     def __init__(
         self,
         model_name: str,
