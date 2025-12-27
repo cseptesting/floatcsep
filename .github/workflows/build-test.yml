@@ -44,6 +44,12 @@ jobs:
           pip install -e .[dev]
           python -c "import floatcsep; print('Version: ', floatcsep.__version__)"
 
+      - name: Free disk
+        run: |
+          micromamba clean --all --yes
+          rm -rf "$MAMBA_ROOT_PREFIX/pkgs" || true
+          df -h
+
       - name: Test with pytest
         run: |
           pytest --durations=0
