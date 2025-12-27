@@ -11,6 +11,13 @@ Latest Version
 
 This option is recommended to learn the software, run the tutorials, and drafting **Testing Experiments**.
 
+.. note::
+
+    We recommend installing with ``conda`` because it bundles native/system dependencies.
+
+
+.. _conda-install-note:
+
 1. Using ``conda``
 ~~~~~~~~~~~~~~~~~~
 
@@ -55,15 +62,55 @@ Lastly, install **floatCSEP** into the new environment using ``pip``:
 2. Using only ``pip``
 ~~~~~~~~~~~~~~~~~~~~~
 
-To install using the ``pip`` manager only, we require to install the binary dependencies of **pyCSEP** (see `Installing pyCSEP <https://docs.cseptesting.org/getting_started/installing.html>`_). The **floatCSEP** latest version can then be installed as:
+To install using the ``pip`` manager only, you need the binary dependencies of **pyCSEP**
+(see `Installing pyCSEP <https://docs.cseptesting.org/getting_started/installing.html>`_).
+
+.. note::
+
+    Pip-only installs may require native libraries for PDF report generation (WeasyPrint).
+    See :ref:`pip-binary-deps`.
+
+The **floatCSEP** latest version can then be installed as:
+
+.. code-block:: console
+
+    $ git clone https://github.com/cseptesting/floatcsep
+    $ cd floatcsep
+    $ python -m venv venv
+    $ pip install .
+
+
+.. _pip-binary-deps:
+
+Binary dependencies for pip-only installs
+-----------------------------------------
+
+Debian/Ubuntu:
 
     .. code-block:: console
 
-        $ git clone https://github.com/cseptesting/floatcsep
-        $ cd floatcsep
-        $ python -m venv venv
-        $ pip install .
+        $ sudo apt-get update
+        $ sudo apt-get install -y \
+            libglib2.0-0 \
+            libpango-1.0-0 \
+            libpangoft2-1.0-0 \
+            libharfbuzz0b \
+            libharfbuzz-subset0
 
+macOS (Homebrew):
+
+    .. code-block:: console
+
+        $ brew install cairo pango gdk-pixbuf libffi
+
+
+In macOS, if ``import weasyprint`` fails to find libraries (e.g. ``libgobject-2.0-0``),
+set this for the current terminal session:
+
+.. code-block:: console
+
+      $ export DYLD_FALLBACK_LIBRARY_PATH="/opt/homebrew/lib:/usr/local/lib:$DYLD_FALLBACK_LIBRARY_PATH"
+export DYLD_FALLBACK_LIBRARY_PATH="/opt/homebrew/lib:/usr/local/lib:$DYLD_FALLBACK_LIBRARY_PATH"
 
 Latest Stable Release
 ---------------------
@@ -73,7 +120,7 @@ This option is recommended for deploying *Floating Testing Experiments* live.
 1. From the ``conda-forge`` channel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Having a ``conda`` manager installed (see **Note** box above), type in a console:
+Having a ``conda`` manager installed (see ``conda`` managers in :ref:`conda-install-note`), type in a console:
 
     .. code-block:: console
 
@@ -86,7 +133,10 @@ where ``3.9 < {PYTHON_VERSION} <= 3.12`` is at your convenience.
 2. From the ``PyPI`` repository
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Having installed the binary dependencies of **pyCSEP** (see `Installing pyCSEP <https://docs.cseptesting.org/getting_started/installing.html>`_}, install **floatCSEP** by:
+Having installed the binary dependencies of **pyCSEP**
+(see `Installing pyCSEP <https://docs.cseptesting.org/getting_started/installing.html>`_)
+and, for pip-only environments, the system dependencies in :ref:`pip-binary-deps`,
+install **floatCSEP** by:
 
     .. code-block:: console
 
@@ -129,7 +179,9 @@ post-installation steps:
 For Developers
 --------------
 
-It is recommended (not obligatory) to use a ``conda`` environment to make sure your contributions do not depend on your system local libraries. For contributing to the **floatCSEP** codebase, please consider `forking the repository <https://docs.github.com/articles/fork-a-repo>`_ and `create pull-requests <https://docs.github.com/articles/creating-a-pull-request>`_ from there.
+We recommend using a ``conda`` environment for development to avoid relying on system libraries. For contributing to
+the **floatCSEP** codebase, please consider `forking the repository <https://docs.github.com/articles/fork-a-repo>`_
+and `creating pull requests <https://docs.github.com/articles/creating-a-pull-request>`_ from there.
 
     .. code-block:: console
 
@@ -137,6 +189,6 @@ It is recommended (not obligatory) to use a ``conda`` environment to make sure y
         $ conda activate floatcsep_dev
         $ git clone https://github.com/${your_fork}/floatcsep
         $ cd floatcsep
-        $ pip install -e .[dev]
+        $ pip install -e ".[dev]"
 
 This will install and configure all the unit-testing, linting, and documentation packages.
