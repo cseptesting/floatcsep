@@ -1,0 +1,38 @@
+name: lockfile
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install conda-lock
+        run: |
+          python -m pip install --upgrade pip
+          pip install conda-lock
+
+      - name: Render linux lock
+        run: |
+          conda-lock render -p linux-64
+
+      - name: Set up micromamba
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          micromamba-version: "latest"
+
+      - name: Create env from lock and import floatcsep
+        run: |
+          micromamba create -y -n lockenv --file conda-linux-64.lock
+          micromamba run -n lockenv python -c "import floatcsep; print('OK', floatcsep.__version__)"
