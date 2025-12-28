@@ -114,7 +114,14 @@ license. Please see
 the [license file](https://github.com/cseptesting/floatcsep/blob/main/LICENSE) for more
 information.
 
-## Support
+## How to cite
+
+If you use **floatCSEP** in your work, please cite the Zenodo software release:
+
+> Pablo Iturrieta, Khawaja Asim, William H. Savran, & Danijel Schorlemmer. (2025). *cseptesting/floatcsep: v0.3.0* (v0.3.0). Zenodo. https://doi.org/10.5281/zenodo.15576250
+
+
+# Support
      
 | <img src="https://i.postimg.cc/rFKQ0vRL/GFZ-Wortbildmarke-EN-Helmholtzdunkelblau-RGB.png" alt="GFZ logo" height="50"/> | <img src="https://i.postimg.cc/CLc5tQcZ/Geo-INQUIRE-logo.png" alt="GeoInquire logo" height="72"/> | <img src="https://i.postimg.cc/tC1LdjYf/scec.png" alt="SCEC logo" height="90"/> |
 |:----------------------------------------------------------------------------------------------------------------------:|:-------------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------:|
