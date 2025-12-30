@@ -84,6 +84,7 @@ However, pyCSEP alone lacks key features required to deploy and conduct entire f
 That is, additional software is required that provides Testing Center capabilities while remaining decoupled from specific hosting hardware.
 To meet this need, we developed floatCSEP, which manages the entire experiment lifecycle, from model integration and initial deployment to the incremental updating of input data, forecasts, results, and reports as new observations become available.
 It is intended for earthquake forecast model developers, institutions that run CSEP-style forecasting experiments, and the broader statistical seismology community.
+To our knowledge, no existing software provides this complete end-to-end testing workflow; commonly used seismology tools instead address only individual steps, such as catalog queries (e.g., [ObsPy](https://github.com/obspy/obspy)) or forecast evaluation (e.g., pyCSEP).
 
 # Software Overview
 
