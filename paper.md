@@ -94,7 +94,7 @@ This declarative approach simplifies the experiment setup, standardizes its work
 
 ![Workflow diagram of floatCSEP for a time-dependent experiment, which roughly consists of: 1) Defining time-space-magnitude ranges and discretizations for forecast generation and evaluation; 2) Querying and filtering earthquake catalogs (both for model input and evaluation); 3) Building the source code of external models, configuring its parameters and input data; 5) Generating forecasts by running each model source code in a containerized environment; 6) Performing forecast evaluations and comparisons using pyCSEP’s or user-implemented testing metrics; and 7) Producing reports including test results and visual representations. \label{fig:workflow}](figures/fig1_workflow_diagram.png){width="380pt"}
 
-floatCSEP uses pyCSEP as a dependency, incorporating its core functionality (forecast and catalog classes, and evaluation routines) alongside additional Testing Center operations, such as data management and computational containerization.
+floatCSEP uses pyCSEP as a dependency, incorporating its core functionality (forecast and catalog classes, and evaluation routines) alongside additional Testing Center operations, such as data management and computational containerization [by using [Docker](www.docker.com), @merkel2014docker] .
 The application supports multiple forecast formats and accommodates both time-invariant and time-variant experiments.
 It handles forecasts produced either by models managed directly by floatCSEP or provided externally through raw files.
 Representative use cases are included as tutorials, which users can extend by incorporating new models, adding alternative evaluations, or by replicating in different regions and timeframes.
