@@ -1,5 +1,5 @@
 ---
-title: 'floatCSEP: An application to deploy and conduct reproducible and prospective earthquake forecasting'
+title: 'floatCSEP: An application to deploy and conduct reproducible, prospective earthquake forecasting experiments'
 tags:
   - Python
   - seismology
@@ -11,28 +11,44 @@ authors:
     corresponding: true
     affiliation: 1
   - name: William H. Savran
+    orcid: 0000-0001-5404-0778
     affiliation: 2
   - name: Marcus Herrmann
+    orcid: 0000-0002-2342-1970
     affiliation: 3
-  - name: José A. Bayona
+  - name: José A. Bayona    docker run --rm -it \
+        -v $PWD:/data \
+        -u $(id -u):$(id -g) \
+        openjournals/inara \
+        -o pdf,crossref 
+    orcid: 0000-0002-3026-0327
     affiliation: 4
   - name: Matt C. Gerstenberger
+    orcid: 0000-0002-2938-1359
     affiliation: 5
   - name: Kenny M. Graham
+    orcid: 0000-0003-3645-6344
     affiliation: 5
   - name: Philip J. Maechling
+    orcid: 0000-0002-9221-7068
     affiliation: 6
   - name: Warner Marzocchi
+    orcid: 0000-0002-9114-1516
     affiliation: 3
   - name: Leila Mizrahi
+    orcid: 0000-0002-5262-3168
     affiliation: 7
   - name: Danijel Schorlemmer
+    orcid: 0000-0003-3969-1059
     affiliation: "1, 7"
   - name: Francesco Serafini
+    orcid: 0000-0003-0154-6200
     affiliation: 4
   - name: Fabio Silva
+    orcid: 0000-0002-6543-5705
     affiliation: 6
   - name: Maximilian J. Werner
+    orcid: 0000-0002-2430-2631
     affiliation: 4
 affiliations:
   - name: GFZ Helmholtz Centre for Geosciences, Potsdam, Germany,
