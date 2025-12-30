@@ -2,7 +2,7 @@
 
 <img src="https://i.postimg.cc/6p5krRnB/float-CSEP-Logo-CMYK.png" width="320"> 
 
-**An application to deploy reproducible and prospective experiments of earthquake forecasting**
+**An application to deploy and conduct reproducible, prospective earthquake forecasting experiments**
 
 <p left>
 
