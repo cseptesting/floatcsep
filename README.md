@@ -116,10 +116,9 @@ information.
 
 ## How to cite
 
-If you use **floatCSEP** in your work, please cite the Zenodo software release:
+If you use **floatCSEP** in your work, please cite it using the **“Cite this repository”** link on the right side of the GitHub page or with:
 
-> Pablo Iturrieta, Khawaja Asim, William H. Savran, & Danijel Schorlemmer. (2025). *cseptesting/floatcsep: v0.3.0* (v0.3.0). Zenodo. https://doi.org/10.5281/zenodo.15576250
-
+> Iturrieta, P., Khawaja, A. M., Savran, W. H., & Schorlemmer, D. (2025). floatCSEP: An application to deploy and conduct reproducible and prospective earthquake forecasting (Version 0.3.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.15576250
 
 # Support
      
