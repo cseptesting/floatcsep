@@ -105,7 +105,7 @@ The software integrates seamlessly with pyCSEP’s existing testing routines, bu
 
 An example configuration file (`config.yml`) for a time-invariant, grid-based experiment in Italy with two models is shown in \autoref{fig:example}.
 
-![Simplest example of a configuration file for a time-invariant, grid-based experiment with two models. The `run` command executes an experiment end-to-end. The `stage` command accesses and builds the models' source code and prepares input/testing catalogs. The `reproduce` command re-executes an experiment and compares it with existing results using statistical and computational metrics. `plot` executes the post-process and visualization of the experiment; The `update` command generates and tests all forecasts missing since the last execution up to today. \label{fig:example}](figures/fig2_example_config.png){width="300pt"}
+![Simplest example of a configuration file for a time-invariant, grid-based experiment with two models. The `run` command executes an experiment end-to-end. The `stage` command accesses and builds the models' source code and prepares input/testing catalogs. The `reproduce` command re-executes an experiment and compares it with existing results using statistical and computational metrics. `plot` executes the post-process and visualization of the experiment; The `update` command generates and tests all forecasts missing since the last execution up to today. \label{fig:example}](figures/fig2_example_config.png){width="350pt"}
 
 # Applications
 
