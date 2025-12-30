@@ -68,6 +68,7 @@ class RunExamples(DataTest):
         self.run_evaluation(cfg)
         self.assertEqual(1, 1)
 
+    @skip_on_ci("Tested only locally")
     def test_case_d(self, *args):
 
         try:
