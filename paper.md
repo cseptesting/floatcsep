@@ -16,17 +16,13 @@ authors:
   - name: Marcus Herrmann
     orcid: 0000-0002-2342-1970
     affiliation: 3
-  - name: José A. Bayona    docker run --rm -it \
-        -v $PWD:/data \
-        -u $(id -u):$(id -g) \
-        openjournals/inara \
-        -o pdf,crossref 
+  - name: José A. Bayona
     orcid: 0000-0002-3026-0327
     affiliation: 4
-  - name: Matt C. Gerstenberger
-    orcid: 0000-0002-2938-1359
+  - name: Matthew C. Gerstenberger
+    orcid: 0000-0002-0392-7114
     affiliation: 5
-  - name: Kenny M. Graham
+  - name: Kenny Graham
     orcid: 0000-0003-3645-6344
     affiliation: 5
   - name: Philip J. Maechling
@@ -121,7 +117,7 @@ The software integrates seamlessly with pyCSEP’s existing testing routines, bu
 
 An example configuration file (`config.yml`) for a time-invariant, grid-based experiment in Italy with two models is shown in \autoref{fig:example}.
 
-![Simplest example of a configuration file for a time-invariant, grid-based experiment with two models. The `run` command executes an experiment end-to-end. The `stage` command accesses and builds the models' source code and prepares input/testing catalogs. The `reproduce` command re-executes an experiment and compares it with existing results using statistical and computational metrics. `plot` executes the post-process and visualization of the experiment; The `update` command generates and tests all forecasts missing since the last execution up to today. \label{fig:example}](figures/fig2_example_config.png){width="350pt"}
+![Simplest example of a configuration file for a time-invariant, grid-based experiment with two models. The `run` command executes the experiment end-to-end, generating and testing all missing forecasts from the last execution up to today. The `stage` command accesses and builds the models' source code, as well as preparing input and testing catalogs. The `reproduce` command re-executes an experiment and compares it with existing results using statistical and computational metrics. `plot` executes the post-process, image generation, and reporting of the experiment. `view` deploys a data app for visualizing the forecasts, catalogs, and test results. \label{fig:example}](figures/fig2_example_config.png){width="350pt"}
 
 # Applications
 
@@ -133,11 +129,11 @@ floatCSEP is designed to support the following applications:
 - Plug in new models into a completed or ongoing (float)CSEP experiment. Since CSEP experiments are clearly defined, they can be effectively used as benchmarks for comparing and developing new forecasting models [e.g., @serafini2025benchmark]
 - Support continuous evaluation of Operational Earthquake Forecasting systems that provide authoritative, near-real-time forecasts [e.g., @jordan2011operational; @mizrahi2024developing]. However, most systems generate forecasts for overlapping windows (e.g., weekly forecasts updated daily) and evaluating the overall performance of such forecast collections remains an open methodological challenge [e.g., @brehmer2025enhancing].
 
-floatCSEP contributes to a growing CSEP software ecosystem that, together with reproducibility packages [e.g., @allison2018reproducibility; @bayona2022prospective; @bayona2023regionally;  @savran2022pycsepsrl; @graham2024new; @iturrieta2024evaluation], open-source forecasting models [e.g., @mizrahi2023etas] , and long-term open-science repositories, could lay the foundation for building robust, collaborative benchmarks in earthquake forecasting.
+floatCSEP contributes to a growing CSEP software ecosystem that, together with reproducibility packages [e.g., @allison2018reproducibility; @bayona2022prospective; @bayona2023regionally;  @savran2022pycsepsrl; @graham2024new; @iturrieta2024evaluation], open-source forecasting models [e.g., @mizrahi2023etas], and long-term open-science repositories, could lay the foundation for building robust, collaborative benchmarks in earthquake forecasting.
 
 # Acknowledgements
 
-Details of author contributions can be found in [```CREDITS.md```](https://github.com/cseptesting/floatcsep/blob/c9b831f804c14129c6c20cc5618234a456dcfbc7/CREDITS.md) in the code repository.
+Details of author contributions can be found in [```CREDITS.md```](https://github.com/cseptesting/floatcsep/blob/b3e142fdb4db5bce08ea3a41da2f10b61bfd977e/CREDITS.md) in the code repository.
 The development of this software was supported and funded in part by (i) the European Commission under project Geo-INQUIRE [https://www.geo-inquire.eu/](https://www.geo-inquire.eu/), number 101058518 within the HORIZON-INFRA-2021-SERV-01 call; (ii) the European Union H2020 program, Grant number 821115, Real-time earthquake rIsk reduction for a reSilient Europe (RISE, [http://www.rise-eu.org/home/](http://www.rise-eu.org/home/)); (iii) the Statewide California Earthquake Center (Contribution No. 14983). SCEC is funded by NSF Cooperative Agreement EAR-2225216 and USGS Cooperative Agreement G24AC00072-00; (iv) the U.S. Geological Survey Earthquake Hazards Program under Grant Nos. G24AP00059 and G25AP00379; and (v) the Leverhulme Trust through its Early Career Fellowship program.
 
 # References
