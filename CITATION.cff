@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use floatCSEP in your research, please cite the Zenodo release."
-title: "floatCSEP: An application to deploy and conduct reproducible and prospective earthquake forecasting"
+title: "floatCSEP: An application to deploy and conduct reproducible, prospective earthquake forecasting experiments"
 type: software
 license: "BSD-3-Clause"
 
