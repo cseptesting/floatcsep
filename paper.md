@@ -71,7 +71,7 @@ floatCSEP is a Python application that standardizes and orchestrates the workflo
 Based on principles established by the Collaboratory for the Study of Earthquake Predictability (CSEP, [https://cseptesting.org](https://cseptesting.org)), it enables reproducible, transparent, and reusable experiments to evaluate earthquake forecasts.
 floatCSEP builds on the existing [pyCSEP](https://github.com/cseptesting/pycsep) toolkit for core evaluation routines and adds the functionality needed to deploy and conduct entire experiments, including catalog handling, forecast generation, evaluation, visualization, and reporting.
 Accompanying tutorials illustrate experiment use cases, which users can extend to incorporate new models, alternative evaluation metrics, or different regions and timeframes.
-Ultimately, floatCSEP is intended to support new official CSEP experiments, and also encourage and empower independent researchers to validate their own models.
+Ultimately, the goal of floatCSEP is to support new official CSEP experiments and to encourage independent researchers to validate their own models.
 
 # Background
 
@@ -86,10 +86,10 @@ These efforts have substantially advanced scientific rigor and established commu
 
 # Statement of Need
 
-Despite their achievements, the original CSEP Testing Centers were centralized, rigid, and with data management tightly coupled to local hardware, significantly limiting software reusability, scalability, and broader community engagement [e.g., @savran2022pycsepsrl; @zechar2010collaboratory; @schorlemmer2018collaboratory].
-As also noted by @mizrahi2024developing, there is broad consensus in the earthquake forecasting community that transparency and reproducibility are essential in forecast testing.
+Despite their achievements, the original CSEP Testing Centers used centralized, rigid software architectures that tightly coupled data management to local hardware, limiting reuse, scalability, and community engagement [e.g., @savran2022pycsepsrl; @zechar2010collaboratory; @schorlemmer2018collaboratory].
+As noted by @mizrahi2024developing, there is broad consensus in the earthquake forecasting community that transparency and reproducibility are essential in forecast testing.
 However, due to the complexity of Testing Centers, independent researchers often require advanced technical expertise to access, reproduce, and analyze CSEP experiments.
-To overcome these limitations, the Python package pyCSEP [@savran2022pycsepsrl; @savran2022pycsepjoss; @graham2024new] was developed to provide core forecast evaluation routines, which can be directly integrated into modelers’ workflows.
+To overcome these limitations, the Python package pyCSEP [@savran2022pycsepsrl; @savran2022pycsepjoss; @graham2024new] was developed to provide core forecast evaluation routines that can be directly integrated into modelers’ workflows.
 
 
 However, pyCSEP alone lacks key features required to deploy and conduct entire forecasting experiments, such as interfacing with external model source code, automating catalog access, managing data, standardizing workflow execution, and generating summary reports.
@@ -100,7 +100,7 @@ To our knowledge, no existing software provides this complete end-to-end testing
 
 # Software Overview
 
-The primary objective of floatCSEP is to provide a portable, automated, and reproducible Testing Center environment that can run on any computer with sufficient computational resources.
+The primary objective of floatCSEP is to provide a portable, automated, and reproducible Testing Center environment that runs on a standard workstation (subject to experiment-specific runtime and memory demands) and scales to HPC systems for computationally intensive experiments, such as time-dependent models producing daily forecasts.
 Experiments are defined through human-readable YAML ([yaml.org](yaml.org)) configuration files, which are processed through a simple command-line interface to ensure ease of use even for users without extensive computational expertise.
 This declarative approach simplifies the experiment setup, standardizes its workflow (\autoref{fig:workflow}) and enhances its reproducibility.
 
@@ -110,7 +110,7 @@ floatCSEP uses pyCSEP as a dependency, incorporating its core functionality (for
 The application supports multiple forecast formats and accommodates both time-invariant and time-variant experiments.
 It handles forecasts produced either by models managed directly by floatCSEP or provided externally through raw files.
 Representative use cases are included as tutorials, which users can extend by incorporating new models, adding alternative evaluations, or by replicating in different regions and timeframes.
-The software integrates seamlessly with pyCSEP’s existing testing routines, but also provides custom hooks for user-defined tests, visualizations, and reports.
+The software integrates seamlessly with pyCSEP’s existing testing routines and provides custom hooks for user-defined tests, visualizations, and reports.
 
 
 # Example Use
