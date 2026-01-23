@@ -310,7 +310,13 @@ class TimeDependentModel(Model):
            and those to be generated, as well as input catalog and arguments file.
 
         """
-        if self.force_stage or not self.registry.path.exists():
+        need_source = (
+                self.force_stage
+                or not self.registry.path.exists()
+                or (self.registry.path.is_dir() and not any(self.registry.path.iterdir()))
+        )
+
+        if need_source:
             os.makedirs(self.registry.dir, exist_ok=True)
             self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
 
