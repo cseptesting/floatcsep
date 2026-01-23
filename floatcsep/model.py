@@ -196,10 +196,23 @@ class TimeIndependentModel(Model):
 
         os.makedirs(container, exist_ok=True)
 
+        if expected_file.exists() and expected_file.is_file() and not self.force_stage:
+            return
+
+        os.makedirs(container, exist_ok=True)
+
+        if expected_file.exists() and expected_file.is_file() and not self.force_stage:
+            return
+
         if self.giturl:
             from_git(self.giturl, str(container), branch=self.repo_hash, force=self.force_stage)
         elif self.zenodo_id:
-            from_zenodo(self.zenodo_id, str(container), force=True)
+            from_zenodo(
+                self.zenodo_id,
+                str(container),
+                force=self.force_stage,
+                keys=[expected_file.name],
+            )
         else:
             pass
 
@@ -338,7 +351,7 @@ class TimeDependentModel(Model):
         if self.giturl:
             from_git(self.giturl, target_dir.as_posix(), branch=self.repo_hash, force=False)
         elif self.zenodo_id:
-            from_zenodo(self.zenodo_id, target_dir.as_posix(), force=True)
+            from_zenodo(self.zenodo_id, target_dir.as_posix(), force=self.force_stage)
         else:
             pass
 
