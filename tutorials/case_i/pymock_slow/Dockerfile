@@ -28,7 +28,7 @@ RUN python3 -m venv $VIRTUAL_ENV && pip install --upgrade pip setuptools wheel
 # Copy the repository from the local machine to the Docker container.
 ## *Only the needed folders/files for the model build*
 COPY --chown=$USER_UID:$USER_GID pymock/ ./pymock/
-COPY --chown=$USER_UID:$USER_GID setup.cfg run.py setup.py ./
+COPY --chown=$USER_UID:$USER_GID setup.cfg setup.py ./
 
 # Install the pymock package.
 ## *Uses pip to install setup.cfg and requirements/instructions therein*
