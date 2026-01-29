@@ -218,3 +218,36 @@ Troubleshooting
 - **Plots not generated**:
   - Inspect logs under ``results/`` for tracebacks.
 
+
+pyCSEP under the hood
+---------------------
+
+
+    **Classes and functions used in this tutorial**
+
+    - Catalog: :py:class:`csep.core.catalogs.CSEPCatalog`
+
+        - :meth:`csep.load_catalog`
+        - :meth:`csep.core.catalogs.CSEPCatalog.write_json`
+
+    - Region: :py:class:`csep.core.regions.italy_csep_region`
+    - Forecast class: :py:class:`csep.core.forecasts.CatalogForecast`
+
+        - :meth:`csep.load_catalog_forecast`
+        - :meth:`floatcsep.utils.file_io.CatalogForecastParsers.csv`
+
+    - Test functions:
+
+        - :py:func:`csep.core.catalog_evaluations.number_test`
+
+    - Result plotting functions:
+
+        - :py:func:`csep.utils.plots.plot_poisson_consistency_test`
+
+
+    **Where to learn pyCSEP further:**
+
+    - :doc:`pycsep:concepts/catalogs`
+    - :doc:`pycsep:concepts/regions`
+    - :doc:`pycsep:concepts/forecasts`
+    - :doc:`pycsep:concepts/evaluations`

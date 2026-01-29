@@ -97,9 +97,6 @@ Models
 
         The forecasts are defined in ``[Earthquakes / 10-years]``, which is specified with the ``forecast_unit`` option (The default is `forecast_unit: 1`).
 
-    .. note::
-
-        The ``use_db`` flag allows ``floatcsep`` to transform the forecasts into a database (HDF5), which speeds up the calculations.
 
 Post-Process
 ~~~~~~~~~~~~
@@ -143,6 +140,48 @@ Plot command
             colormap: magma
 
     and re-run with the ``plot`` command. A forecast figure will re-appear in ``results/{window}/forecasts`` with a different colormap. Additional forecast and catalog plotting options can be found in the :func:`csep.utils.plots.plot_spatial_dataset` and :func:`csep.utils.plots.plot_catalog` ``pycsep`` functions.
+
+    .. note::
+
+        For further details on how to configure the **post-process** of an experiment, see:
+
+        - :ref:`postprocess`
+
+
+pyCSEP under the hood
+---------------------
+
+    This tutorial uses *floatCSEP* as the orchestrator, but relies on *pyCSEP* for functions and objects.
+
+    **Classes and functions used in this tutorial**
+
+    - Catalog: :py:class:`csep.core.catalogs.CSEPCatalog`
+
+        - :meth:`csep.core.catalogs.CSEPCatalog.load_json`
+        - :meth:`csep.core.catalogs.CSEPCatalog.write_json`
+
+    - Region: :py:class:`csep.core.regions.italy_csep_region`
+    - Forecast class: :py:class:`csep.core.forecasts.GriddedForecast`
+
+        - :meth:`floatcsep.utils.file_io.GriddedForecastParsers.xml`
+
+    - Test functions:
+
+        - :py:func:`csep.core.poisson_evaluations.spatial_test`
+        - :py:func:`floatcsep.utils.helpers.sequential_likelihood`
+
+    - Result plotting functions:
+
+        - :py:func:`csep.utils.plots.plot_poisson_consistency_test`
+        - :py:func:`floatcsep.utils.helpers.plot_sequential_likelihood`
+
+
+    **Where to learn pyCSEP further:**
+
+    - :doc:`pycsep:concepts/catalogs`
+    - :doc:`pycsep:concepts/regions`
+    - :doc:`pycsep:concepts/forecasts`
+    - :doc:`pycsep:concepts/evaluations`
 
 
 .. _case_e_references:

@@ -110,7 +110,7 @@ set this for the current terminal session:
 .. code-block:: console
 
       $ export DYLD_FALLBACK_LIBRARY_PATH="/opt/homebrew/lib:/usr/local/lib:$DYLD_FALLBACK_LIBRARY_PATH"
-export DYLD_FALLBACK_LIBRARY_PATH="/opt/homebrew/lib:/usr/local/lib:$DYLD_FALLBACK_LIBRARY_PATH"
+
 
 Latest Stable Release
 ---------------------

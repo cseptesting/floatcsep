@@ -46,7 +46,7 @@ The source files can be found in the ``tutorials/case_e`` folder or in  `the Git
         ├── models.yml
         └── tests.yml
 
-* The model to be evaluated (``etas``) is a collection of daily forecasts from ``2016-11-14`` until ``2016-11-21``.
+* The model to be evaluated (``etas``) is a collection of daily forecasts from ``2016-11-14`` until ``2016-11-21``. The forecasts are `Catalog-Based <https://docs.cseptesting.org/concepts/forecasts.html#catalog-based-forecasts>`_, which are composed of multiple individual simulations (See `Working with catalog-based forecasts <https://docs.cseptesting.org/concepts/forecasts.html#working-with-catalog-based-forecasts>`_)
 
 .. important::
     The forecasts must be located in a folder ``forecasts`` inside the model folder. This is meant for consistency with models based on source codes (see subsequent tutorials).
@@ -55,7 +55,7 @@ The source files can be found in the ``tutorials/case_e`` folder or in  `the Git
 Model
 -----
 
-The time-dependency of a model is manifested here by the provision of different forecasts, i.e., statistical descriptions of seismicity, for different time-windows. In this example, the forecasts were created from an external `ETAS model <https://github.com/lmizrahi/etas>`_ (:ref:`Mizrahi et al. 2021 <case_f_references>`), with which the experiment has no interface. This means that we use **only the forecast files** and no source code. We leave the handling of a model source code for subsequent tutorials.
+    The time-dependency of a model is manifested here by the provision of different `Catalog-Based Forecasts <https://docs.cseptesting.org/concepts/forecasts.html#catalog-based-forecasts>`_, i.e., stochastic descriptions of seismicity, for different time-windows. In this example, the forecasts were created from an external `ETAS model <https://github.com/lmizrahi/etas>`_ (:ref:`Mizrahi et al. 2021 <case_f_references>`), with which the experiment has no interface for this case. This means that we use **only the forecast files** and no source code. We leave the handling of a model source code for tutorial :ref:`case_h`.
 
 
 
@@ -66,7 +66,7 @@ Configuration
 Time
 ~~~~
 
-    The configuration is analogous to time-independent models with multiple time-windows (e.g., case C) with the exception that a ``horizon`` could be defined instead of ``intervals``, which is the forecast time-window length. The experiment's class should now be explicited as ``exp_class: td``.
+    The configuration is analogous to time-independent models with multiple time-windows (e.g., :ref:`case_c`) with the exception that a ``horizon`` could be defined instead of ``intervals``, which is the forecast time-window length. The experiment's class should now be explicited as ``exp_class: td``.
 
     .. literalinclude:: ../../tutorials/case_f/config.yml
         :caption: tutorials/case_f/config.yml
@@ -95,11 +95,12 @@ Models
         :language: yaml
         :lines: 1-4
 
-.. note::
-    For consistency with time-dependent models that will create forecasts from a source code, the ``path`` should point to the folder of the model, which itself should contain a sub-folder named ``{path}/forecasts`` where the files are located.
+    .. warning::
+        For consistency with time-dependent models that will create forecasts from a source code, the ``path`` should point to the folder of the model, which itself should contain a sub-folder named ``{path}/forecasts`` where the files are located. For format descriptions, see `Working with catalog-based forecasts <https://docs.cseptesting.org/concepts/forecasts.html#working-with-catalog-based-forecasts>`_).
 
-.. important::
-    Note that for catalog-based forecast models, the number of catalog simulations (``n_sims``) must be specified – because a forecast may contain synthetic catalogs with zero-event simulations and therefore does not imply the total number of simulated synthetic catalogs.
+    .. important::
+        Note that for catalog-based forecast models, the number of catalog simulations (``n_sims``) must be specified – because a forecast may contain synthetic catalogs with zero-event simulations and therefore does not imply the total number of simulated synthetic catalogs.
+
 
 Tests
 ~~~~~
@@ -114,6 +115,14 @@ Tests
         It is possible to assign two plotting functions to a test, whose ``plot_args`` and ``plot_kwargs`` can be placed indented beneath.
 
 
+.. note::
+
+    For further details on how to configure an experiment, models and evaluations, see:
+
+    - :ref:`experiment_config`
+    - :ref:`model_config`
+    - :ref:`evaluation_config`
+
 Running the experiment
 ----------------------
 
@@ -124,6 +133,44 @@ Running the experiment
        $ floatcsep run config.yml
 
     This will automatically set all the calculation paths (testing catalogs, evaluation results, figures) and will create a summarized report in ``results/report.md``.
+
+
+
+pyCSEP under the hood
+---------------------
+
+    This tutorial uses *floatCSEP* as the orchestrator, but relies on *pyCSEP* for functions and objects.
+
+    **Classes and functions used in this tutorial**
+
+    - Catalog: :py:class:`csep.core.catalogs.CSEPCatalog`
+
+        - :meth:`csep.core.catalogs.CSEPCatalog.load_json`
+        - :meth:`csep.core.catalogs.CSEPCatalog.write_json`
+
+    - Region: :py:class:`csep.core.regions.nz_csep_region`
+    - Forecast class: :py:class:`csep.core.forecasts.CatalogForecast`
+
+        - :meth:`csep.load_catalog_forecast`
+        - :meth:`floatcsep.utils.file_io.CatalogForecastParsers.csv`
+
+    - Test functions:
+
+        - :py:func:`csep.core.catalog_evaluations.number_test`
+        - :py:func:`csep.core.catalog_evaluations.spatial_test`
+
+    - Result plotting functions:
+
+        - :py:func:`csep.utils.plots.plot_number_test`
+        - :py:func:`csep.utils.plots.plot_consistency_test`
+
+
+    **Where to learn pyCSEP further:**
+
+    - :doc:`pycsep:concepts/catalogs`
+    - :doc:`pycsep:concepts/regions`
+    - :doc:`pycsep:concepts/forecasts`
+    - :doc:`pycsep:concepts/evaluations`
 
 
 .. _case_f_references:

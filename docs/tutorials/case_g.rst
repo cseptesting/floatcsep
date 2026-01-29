@@ -37,7 +37,7 @@ Here, we set up a time-dependent model from its **source code** for an experimen
 Experiment Components
 ---------------------
 
-The example folder contains also, along with the already known components (configurations, catalog), a sub-folder for the **source code** of the model `pymock <https://git.gfz-potsdam.de/csep/it_experiment/models/pymock>`_. The components of the experiment (and model) are:
+The example folder contains also, along with the already known components (configurations, catalog), a sub-folder for the **source code** of the model `pymock <https://github.com/pabloitu/pymock>`_. The components of the experiment (and model) are:
 
 ::
 
@@ -65,7 +65,7 @@ The example folder contains also, along with the already known components (confi
         ├── custom_plot_script.py
         └── tests.yml
 
-* The model to be evaluated (``pymock``) is a source code that generates forecasts for multiple time windows.
+* The model to be evaluated (``pymock``) is a source code that generates `Catalog-Based Forecasts <https://docs.cseptesting.org/concepts/forecasts.html#catalog-based-forecasts>`_ for multiple time windows.
 
 * The testing catalog ``catalog.csv`` works also as the input catalog, by being filtered until the testing ``start_date`` and allocated in `pymock/input` dynamically (before each time the model is run)
 
@@ -158,6 +158,12 @@ Models
         For these tutorials, we use ``venv`` sub-environments, but we recommend ``Docker`` to set up real experiments.
 
 
+    .. note::
+
+        For further details on how to configure time-dependent models, see:
+
+        - :ref:`model_config`
+
 Tests
 ~~~~~
 
@@ -200,6 +206,13 @@ Custom Post-Process
     In this way, the plot function can use all the :class:`~floatcsep.experiment.Experiment` attributes/methods to access catalogs, forecasts and test results. The script ``tutorials/case_g/custom_plot_script.py`` can also be viewed directly in `the GitHub repository <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_g/custom_plot_script.py>`_, where it is exemplified how to access the experiment data at runtime.
 
 
+    .. note::
+
+        For further details on how to configure post-procesing, see:
+
+        - :ref:`postprocess`
+
+
 Running the experiment
 ----------------------
 
@@ -209,5 +222,44 @@ Running the experiment
 
        $ floatcsep run config.yml
 
-    This will automatically set all the calculation paths (testing catalogs, evaluation results, figures) and will create a summarized report in ``results/report.md``.
+    This will automatically set all the calculation paths (testing catalogs, evaluation results, figures) and will create a summarized report in ``results/report.md`` and ``results/report.pdf``.
 
+    To view the results in a dashboard, type:
+
+    .. code-block:: console
+
+       $ floatcsep view config.yml
+
+pyCSEP under the hood
+---------------------
+
+
+    **Classes and functions used in this tutorial**
+
+    - Catalog: :py:class:`csep.core.catalogs.CSEPCatalog`
+
+        - :meth:`csep.load_catalog`
+        - :meth:`csep.core.catalogs.CSEPCatalog.write_json`
+
+    - Region: :py:class:`csep.core.regions.italy_csep_region`
+    - Forecast class: :py:class:`csep.core.forecasts.CatalogForecast`
+
+        - :meth:`csep.load_catalog_forecast`
+        - :meth:`floatcsep.utils.file_io.CatalogForecastParsers.csv`
+
+    - Test functions:
+
+        - :py:func:`csep.core.catalog_evaluations.number_test`
+
+    - Result plotting functions:
+
+        - :py:func:`csep.utils.plots.plot_number_test`
+        - :py:func:`csep.utils.plots.plot_consistency_test`
+
+
+    **Where to learn pyCSEP further:**
+
+    - :doc:`pycsep:concepts/catalogs`
+    - :doc:`pycsep:concepts/regions`
+    - :doc:`pycsep:concepts/forecasts`
+    - :doc:`pycsep:concepts/evaluations`

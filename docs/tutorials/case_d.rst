@@ -61,7 +61,7 @@ Once the catalog and models have been downloaded, the experiment structure will 
         └── tests.yml
 
 .. note::
-    In this experiment no region file is needed, because the region is encoded in the forecasts themselves (QuadTree models, see https://zenodo.org/record/6289795 and https://zenodo.org/record/6255575 ).
+    In this experiment no region file is needed because the region is encoded in the forecasts themselves, which are based on the QuadTree description (See `Working with quadtree-gridded forecasts <https://docs.cseptesting.org/concepts/forecasts.html#working-with-quadtree-gridded-forecasts>`_, and the Zenodo repositories https://zenodo.org/record/6289795 and https://zenodo.org/record/6255575 ).
 
 Configuration
 -------------
@@ -120,3 +120,38 @@ Running the experiment
 
 
 
+pyCSEP under the hood
+---------------------
+
+    This tutorial uses *floatCSEP* as the orchestrator, but relies on *pyCSEP* for functions and objects.
+
+    **Classes and functions used in this tutorial**
+
+    - Catalog: :py:class:`csep.core.catalogs.CSEPCatalog`
+
+        - :func:`csep.load_catalog`
+        - :meth:`csep.core.catalogs.CSEPCatalog.write_json`
+
+    - Region: :py:class:`csep.core.regions.QuadtreeGrid2D`
+    - Forecast class: :py:class:`csep.core.forecasts.GriddedForecast`
+
+        - :meth:`floatcsep.utils.file_io.GriddedForecastParsers.quadtree`
+
+    - Test functions:
+
+        - :py:func:`csep.core.poisson_evaluations.spatial_test`
+        - :py:func:`csep.core.poisson_evaluations.paired_t_test`
+        - :py:func:`floatcsep.utils.helpers.vector_poisson_t_w_test`
+
+    - Result plotting functions:
+
+        - :py:func:`csep.utils.plots.plot_poisson_consistency_test`
+        - :py:func:`csep.utils.plots.plot_comparison_test`
+        - :py:func:`floatcsep.utils.helpers.plot_matrix_comparative_test`
+
+    **Where to learn pyCSEP further:**
+
+    - :doc:`pycsep:concepts/catalogs`
+    - :doc:`pycsep:concepts/regions`
+    - :doc:`pycsep:concepts/forecasts`
+    - :doc:`pycsep:concepts/evaluations`

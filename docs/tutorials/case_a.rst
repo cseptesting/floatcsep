@@ -42,17 +42,17 @@ The source code can be found in the ``tutorials/case_a`` folder or in  `GitHub <
         └── config.yml
 
 
-* The testing region ``region.txt`` consists of a grid with two 1ºx1º bins, defined by its bottom-left nodes. The grid spacing is obtained automatically. The nodes are:
+* The testing region ``region.txt`` consists of a grid with two 1ºx1º bins, defined by its bottom-left nodes. (see :doc:`pycsep:concepts/regions` in **pyCSEP***)/ The grid spacing is obtained automatically. The nodes are:
 
     .. literalinclude:: ../../tutorials/case_a/region.txt
        :caption: tutorials/case_a/region.txt
 
-* The testing catalog ``catalog.csep`` contains only one event and is formatted in the :meth:`~pycsep.utils.readers.csep_ascii` style (see :doc:`pycsep:concepts/catalogs`). Catalog formats are detected automatically
+* The testing catalog ``catalog.csep`` contains only one event and is formatted in the :meth:`~pycsep.utils.readers.csep_ascii` style (see :doc:`pycsep:concepts/catalogs` in **pyCSEP***). Catalog formats are detected automatically
 
     .. literalinclude:: ../../tutorials/case_a/catalog.csep
        :caption: tutorials/case_a/catalog.csep
 
-* The forecast ``best_model.dat`` to be evaluated is written in the ``.dat`` format (see :doc:`pycsep:concepts/forecasts`). Forecast formats are detected automatically (see :mod:`floatcsep.utils.file_io.GriddedForecastParsers`)
+* The forecast ``best_model.dat`` to be evaluated is written in the ``.dat`` format (see :doc:`pycsep:concepts/forecasts` in **pyCSEP**). Forecast formats are detected automatically (see :mod:`floatcsep.utils.file_io.GriddedForecastParsers`)
 
     .. literalinclude:: ../../tutorials/case_a/best_model.dat
         :caption: tutorials/case_a/best_model.dat
@@ -61,12 +61,12 @@ The source code can be found in the ``tutorials/case_a`` folder or in  `GitHub <
 Configuration
 -------------
 
-The experiment is defined by a time-, region-, model- and test-configurations, as well as a catalog and a region. In this example, they are written together in the ``config.yml`` file.
+    The experiment is defined by a time-, region-, model- and test-configurations, as well as a catalog and a region. In this example, they are written together in the ``config.yml`` file.
 
 
-.. important::
+    .. warning::
 
-    Every file path (e.g., of a catalog) specified in the ``config.yml`` file should be relative to the directory containing the configuration file.
+        Every file path (e.g., of a catalog) specified in the ``config.yml`` file should be relative to the directory containing the configuration file.
 
 
 
@@ -100,7 +100,7 @@ Region
 Catalog
 ~~~~~~~
 
-    It is defined in the ``catalog`` inset. This should only make reference to a catalog **file** or a catalog **query function** (e.g. :func:`~csep.query_comcat`). **floatCSEP** will automatically filter the catalog to the experiment time, spatial and magnitude frames:
+    It is defined in the ``catalog`` inset. This should only make reference to a catalog **file** or a catalog **query function** (see catalog loaders in :mod:`csep`). **floatCSEP** will automatically filter the catalog to the experiment time, spatial and magnitude frames:
 
     .. literalinclude:: ../../tutorials/case_a/config.yml
        :caption: tutorials/case_a/config.yml
@@ -109,7 +109,7 @@ Catalog
 
 Models
 ~~~~~~
-    The model configuration is set in the ``models`` inset with a list of model names, which specify their file paths (and other attributes). Here, we just set the path as ``best_model.dat``, whose format is automatically detected.
+    The model configuration is set in the ``models`` inset with a list of model names, which specify their file paths (and other attributes). Here, we just set the path as ``best_model.dat``, whose format is automatically detected (see `Working with conventional gridded forecasts <https://docs.cseptesting.org/concepts/forecasts.html#working-with-conventional-gridded-forecasts>`_ in **pyCSEP**) .
 
     .. literalinclude:: ../../tutorials/case_a/config.yml
        :caption: tutorials/case_a/config.yml
@@ -124,11 +124,22 @@ Evaluations
 ~~~~~~~~~~~
     The experiment's evaluations are defined in the ``tests`` inset. It should be a list of test names making reference to their function and plotting function. These can be either from **pyCSEP** (see :doc:`pycsep:concepts/evaluations`) or defined manually. Here, we use the Poisson consistency N-test: its function is :func:`poisson_evaluations.number_test <csep.core.poisson_evaluations.number_test>` with a plotting function :func:`plot_poisson_consistency_test <csep.utils.plots.plot_poisson_consistency_test>`
 
-.. literalinclude:: ../../tutorials/case_a/config.yml
-   :caption: tutorials/case_a/config.yml
-   :language: yaml
-   :lines: 21-24
+    .. literalinclude:: ../../tutorials/case_a/config.yml
+       :caption: tutorials/case_a/config.yml
+       :language: yaml
+       :lines: 21-24
 
+    .. important::
+
+        See here all available `Evaluation Functions <https://floatcsep.readthedocs.io/en/latest/guide/evaluation_config.html#evaluations-functions>`_, along with their corresponding `Plotting Functions <https://floatcsep.readthedocs.io/en/latest/guide/evaluation_config.html#plotting-functions>`_.
+
+.. note::
+
+    For further details on how to configure an experiment, models and evaluations, see:
+
+    - :ref:`experiment_config`
+    - :ref:`model_config`
+    - :ref:`evaluation_config`
 
 Running the experiment
 ----------------------
@@ -160,9 +171,25 @@ Results
     *  The complete results are summarized in ``results/report.md``
 
 
-Advanced
-~~~~~~~~
+pyCSEP under the hood
+---------------------
 
-The experiment run logic can be seen in the file ``case_a.py``, which executes the same example but in python source code. The run logic of the terminal commands ``run``, ``plot`` and ``reproduce`` can be found in :mod:`floatcsep.commands.main`, and can be customized by creating a script similar to ``case_a.py``.
+    This tutorial uses *floatCSEP* as the orchestrator, but relies on *pyCSEP* for functions and objects.
 
+    **Classes and functions used in this tutorial**
 
+    - Catalog: :py:class:`csep.core.catalogs.CSEPCatalog`
+
+        - :func:`csep.load_catalog`
+
+    - Region: :py:class:`csep.core.regions.CartesianGrid2D`
+    - Forecast class: :py:class:`csep.core.forecasts.GriddedForecast`
+    - Test functions: :py:func:`csep.core.poisson_evaluations.number_test`
+    - Result plotting functions: :py:func:`csep.utils.plots.plot_poisson_consistency_test`
+
+    **Where to learn pyCSEP further:**
+
+    - Catalogs: :doc:`pycsep:concepts/catalogs`
+    - Regions: :doc:`pycsep:concepts/regions`
+    - Forecasts: :doc:`pycsep:concepts/forecasts`
+    - Evaluations: :doc:`pycsep:concepts/evaluations`

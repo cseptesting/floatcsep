@@ -76,12 +76,12 @@ As in :ref:`Tutorial G<case_g>`, each **Model** requires to build and execute a 
 .. note::
     The ``models.yml`` will define how to interface **floatCSEP** to each Model, implying that a Model should be developed, or adapted to ensure the interface requirements specified below.
 
-1. The repository URL of each model and their specific versions (e.g., commit hash, tag, release) are specified as:
+1. The repository URL of each model and their specific versions if needed (e.g., commit hash, tag, release) are specified as:
 
     .. literalinclude:: ../../tutorials/case_h/models.yml
         :caption: tutorials/case_h/models.yml
         :language: yaml
-        :lines: 1-3, 11-13, 21-23
+        :lines: 1-3, 12-13, 22-23
 
 2. A ``path`` needs to be indicated for each model, to both download the repository contents therein and from where the source code will be executed.
 
@@ -100,7 +100,8 @@ As in :ref:`Tutorial G<case_g>`, each **Model** requires to build and execute a 
     .. literalinclude:: ../../tutorials/case_h/models.yml
         :caption: tutorials/case_h/models.yml
         :language: yaml
-        :lines: 5
+        :emphasize-lines: 6
+        :lines: 1-6
         :lineno-match:
 
     .. note::
@@ -131,7 +132,7 @@ As in :ref:`Tutorial G<case_g>`, each **Model** requires to build and execute a 
     .. literalinclude:: ../../tutorials/case_h/models.yml
         :caption: tutorials/case_h/models.yml
         :language: yaml
-        :lines: 1,6,11,15,21,25
+        :lines: 1,7,12,15,22,25
 
     .. important::
         Please refer to :ref:`Tutorial G<case_g>` for example of how to set up ``func`` for the model and interface it to **floatCSEP**.
@@ -141,13 +142,13 @@ As in :ref:`Tutorial G<case_g>`, each **Model** requires to build and execute a 
     .. literalinclude:: ../../tutorials/case_h/models.yml
         :caption: tutorials/case_h/models.yml
         :language: yaml
-        :lines: 21, 26
+        :lines: 12,16,22, 26
 
     The experiment will read the forecasts as:
 
     .. code-block::
 
-        {model_path}/{forecasts}/{prefix}_{start}_{end}.csv
+        {model_path}/forecasts/{prefix}_{start}_{end}.csv
 
     where ``start`` and ``end`` follow either the ``%Y-%m-%dT%H:%M:%S.%f`` - ISO861 FORMAT, or the short date version ``%Y-%m-%d`` if the windows are set by midnight.
 
@@ -156,8 +157,11 @@ As in :ref:`Tutorial G<case_g>`, each **Model** requires to build and execute a 
     .. literalinclude:: ../../tutorials/case_h/models.yml
         :caption: tutorials/case_h/models.yml
         :language: yaml
-        :lines: 11,17-20,21,27-31
+        :lines: 12,18-21,22,28-33
 
+.. note::
+
+    For further details on how to configure time-dependent models, see :ref:`model_config`
 
 Time
 ~~~~
@@ -172,7 +176,7 @@ Time
 Catalog
 ~~~~~~~
 
-    The catalog was obtained *prior* to the experiment using ``query_bsi``, but it was filtered from 2006 onwards, so it has enough data for the model calibration.
+    The catalog was obtained *prior* to the experiment using :func:`query bsi <csep.query_bsi>`, but it was filtered from 2006 onwards, so it has enough data for the model calibration.
 
 
 Tests
@@ -213,6 +217,11 @@ Custom Post-Process
 
     In this way, the report function use all the :class:`~floatcsep.experiment.Experiment` attributes/methods to access catalogs, forecasts and test results. The script ``tutorials/case_h/custom_report.py`` can also be viewed directly in `the GitHub repository <https://github.com/cseptesting/floatcsep/blob/main/tutorials/case_h/custom_report.py>`_, where it is exemplified how to access the experiment artifacts.
 
+    .. note::
+
+        For further details on how to configure post-procesing, see:
+
+        - :ref:`postprocess`
 
 Running the experiment
 ----------------------
@@ -225,3 +234,42 @@ Running the experiment
 
     This will automatically set all the calculation paths (testing catalogs, evaluation results, figures) and will create a summarized report in ``results/report.md``.
 
+    To view the results in a dashboard, type:
+
+    .. code-block:: console
+
+       $ floatcsep view config.yml
+
+pyCSEP under the hood
+---------------------
+
+
+    **Classes and functions used in this tutorial**
+
+    - Catalog: :py:class:`csep.core.catalogs.CSEPCatalog`
+
+        - :meth:`csep.load_catalog`
+        - :meth:`csep.core.catalogs.CSEPCatalog.write_json`
+
+    - Region: :py:class:`csep.core.regions.italy_csep_region`
+    - Forecast class: :py:class:`csep.core.forecasts.CatalogForecast`
+
+        - :meth:`csep.load_catalog_forecast`
+        - :meth:`floatcsep.utils.file_io.CatalogForecastParsers.csv`
+
+    - Test functions:
+
+        - :py:func:`csep.core.catalog_evaluations.number_test`
+
+    - Result plotting functions:
+
+        - :py:func:`csep.utils.plots.plot_number_test`
+        - :py:func:`csep.utils.plots.plot_consistency_test`
+
+
+    **Where to learn pyCSEP further:**
+
+    - :doc:`pycsep:concepts/catalogs`
+    - :doc:`pycsep:concepts/regions`
+    - :doc:`pycsep:concepts/forecasts`
+    - :doc:`pycsep:concepts/evaluations`

@@ -88,10 +88,19 @@ Evaluations
        :caption: tutorials/case_b/tests.yml
 
     .. note::
-         Plotting keyword arguments can be set in the ``plot_kwargs`` option - see :func:`~csep.utils.plots.plot_poisson_consistency_test` and :func:`~csep.utils.plots.plot_comparison_test` -.
+         Plotting keyword arguments can be set in the ``plot_kwargs`` option (see :func:`~csep.utils.plots.plot_poisson_consistency_test` and :func:`~csep.utils.plots.plot_comparison_test`).
 
     .. important::
-         Comparison tests (such as the ``paired_t_test``) requires a reference model, whose name should be set in ``ref_model`` at the given test configuration.
+         Comparison tests (such as the :py:func:`poisson_evaluations.paired_t_test <csep.core.poisson_evaluations.paired_t_test>`) requires a reference model, whose name should be set in ``ref_model`` at the given test configuration.See all available `Evaluation Functions <https://floatcsep.readthedocs.io/en/latest/guide/evaluation_config.html#evaluations-functions>`_ and `Plotting Functions <https://floatcsep.readthedocs.io/en/latest/guide/evaluation_config.html#plotting-functions>`_.
+
+.. note::
+
+    For further details on how to configure an experiment, models and evaluations, see:
+
+    - :ref:`experiment_config`
+    - :ref:`model_config`
+    - :ref:`evaluation_config`
+
 
 Running the experiment
 ----------------------
@@ -106,3 +115,39 @@ The experiment can be run by simply navigating to the ``tutorials/case_b`` folde
 This will automatically set all the file paths of the calculation (testing catalogs, evaluation results, figures) and will display a summarized report in ``results/report.md``.
 
 
+pyCSEP under the hood
+---------------------
+
+    This tutorial uses *floatCSEP* as the orchestrator, but relies on *pyCSEP* for functions and objects.
+
+    **Classes and functions used in this tutorial**
+
+    - Catalog: :py:class:`csep.core.catalogs.CSEPCatalog`
+
+        - :meth:`CSEPCatalog.write_json() <csep.core.catalogs.CSEPCatalog.write_json>`
+        - :meth:`CSEPCatalog.load_json() <csep.core.catalogs.CSEPCatalog.load_json>`
+
+    - Region: :py:class:`csep.core.regions.CartesianGrid2D`
+    - Forecast class: :py:class:`csep.core.forecasts.GriddedForecast`
+
+        - :meth:`floatcsep.utils.file_io.GriddedForecastParsers.csv`
+
+    - Test functions:
+
+        - :py:func:`csep.core.poisson_evaluations.number_test`
+        - :py:func:`csep.core.poisson_evaluations.spatial_test`
+        - :py:func:`csep.core.poisson_evaluations.magnitude_test`
+        - :py:func:`csep.core.poisson_evaluations.conditional_likelihood_test`
+        - :py:func:`csep.core.poisson_evaluations.paired_t_test`
+
+    - Result plotting functions:
+
+        - :py:func:`csep.utils.plots.plot_poisson_consistency_test`
+        - :py:func:`csep.utils.plots.plot_comparison_test`
+
+    **Where to learn pyCSEP further:**
+
+    - :doc:`pycsep:concepts/catalogs`
+    - :doc:`pycsep:concepts/regions`
+    - :doc:`pycsep:concepts/forecasts`
+    - :doc:`pycsep:concepts/evaluations`
