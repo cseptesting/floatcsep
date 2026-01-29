@@ -153,3 +153,36 @@ Running the experiment
 
     This will automatically set all the calculation paths (testing catalogs, evaluation results, figures) and will create a summarized report in ``results/report.md``.
 
+
+pyCSEP under the hood
+---------------------
+
+
+    **Classes and functions used in this tutorial**
+
+    - Catalog: :py:class:`csep.core.catalogs.CSEPCatalog`
+
+        - :meth:`csep.load_catalog`
+        - :meth:`csep.core.catalogs.CSEPCatalog.write_json`
+
+    - Region: :py:class:`csep.core.regions.nz_csep_region`
+    - Forecast class: :py:class:`csep.core.forecasts.GriddedForecast`
+
+        - :meth:`csep.load_gridded_forecast`
+        - :meth:`floatcsep.utils.file_io.GriddedForecastParsers.dat`
+
+    - Test functions:
+
+        - :py:func:`csep.core.poisson_evaluations.number_test`
+
+    - Result plotting functions:
+
+        - :py:func:`csep.utils.plots.plot_poisson_consistency_test`
+
+
+    **Where to learn pyCSEP further:**
+
+    - :doc:`pycsep:concepts/catalogs`
+    - :doc:`pycsep:concepts/regions`
+    - :doc:`pycsep:concepts/forecasts`
+    - :doc:`pycsep:concepts/evaluations`

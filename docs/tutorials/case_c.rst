@@ -78,7 +78,12 @@ Evaluations
 
     .. note::
 
-        Plot arguments (title, labels, font sizes, axes limits, etc.) can be passed as a dictionary in ``plot_args`` (see the arguments details in :func:`~csep.utils.plots.plot_poisson_consistency_test`)
+        Plot arguments (title, labels, font sizes, axes limits, etc.) can be passed as a dictionary in ``plot_args`` (see the arguments details in :func:`~csep.utils.plot_poisson_consistency_test`)
+
+    .. important::
+
+        See here all available `Evaluation Functions <https://floatcsep.readthedocs.io/en/latest/guide/evaluation_config.html#evaluations-functions>`_ and their corresponding `Plotting Functions <https://floatcsep.readthedocs.io/en/latest/guide/evaluation_config.html#plotting-functions>`_.
+
 
 Results
 -------
@@ -99,3 +104,38 @@ now creates the result path tree for all time windows.
 The report shows the temporal evaluations for all time-windows, whereas the discrete evaluations are shown only for the last time window.
 
 
+
+pyCSEP under the hood
+---------------------
+
+    This tutorial uses *floatCSEP* as the orchestrator, but relies on *pyCSEP* for functions and objects.
+
+    **Classes and functions used in this tutorial**
+
+    - Catalog: :py:class:`csep.core.catalogs.CSEPCatalog`
+
+        - :func:`csep.load_catalog`
+        - :meth:`csep.core.catalogs.CSEPCatalog.write_json`
+
+    - Region: :py:class:`csep.core.regions.CartesianGrid2D`
+    - Forecast class: :py:class:`csep.core.forecasts.GriddedForecast`
+
+        - :meth:`floatcsep.utils.file_io.GriddedForecastParsers.csv`
+
+    - Test functions:
+
+        - :py:func:`csep.core.poisson_evaluations.spatial_test`
+        - :py:func:`floatcsep.utils.helpers.sequential_likelihood`
+        - :py:func:`floatcsep.utils.helpers.sequential_information_gain`
+
+    - Result plotting functions:
+
+        - :py:func:`csep.utils.plots.plot_poisson_consistency_test`
+        - :py:func:`floatcsep.utils.helpers.plot_sequential_likelihood`
+
+    **Where to learn pyCSEP further:**
+
+    - :doc:`pycsep:concepts/catalogs`
+    - :doc:`pycsep:concepts/regions`
+    - :doc:`pycsep:concepts/forecasts`
+    - :doc:`pycsep:concepts/evaluations`
