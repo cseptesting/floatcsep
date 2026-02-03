@@ -47,23 +47,17 @@ class Evaluation:
         "sequential_information_gain": "sequential_comparative",
     }
 
-    "plot_sequential_likelihood"
-    "plot_matrix_comparative_test"
 
     _PLOTS = {
-        "csep.utils.plots.plot_consistency_test": "aggregate",
-        "csep.utils.plots.plot_poisson_consistency_test": "aggregate",
-        "csep.utils.plots.plot_comparison_test": "aggregate",
+        "csep.plots.plot_consistency_test": "aggregate",
+        "csep.plots.plot_comparison_test": "aggregate",
+        "csep.plots.plot_magnitude_test": "per_model",
+        "csep.plots.plot_test_distribution": "per_model",
+        "csep.plots.plot_calibration_test": "per_model",
+        "csep.plots.plot_concentration_ROC_diagram": "per_model",
+        "csep.plots.plot_ROC_diagram": "per_model",
+        "csep.plots.plot_Molchan_diagram": "per_model",
         "floatcsep.utils.helpers.plot_matrix_comparative_test": "aggregate",
-        "csep.utils.plots.plot_number_test": "per_model",
-        "csep.utils.plots.plot_magnitude_test": "per_model",
-        "csep.utils.plots.plot_distribution_test": "per_model",
-        "csep.utils.plots.plot_likelihood_test": "per_model",
-        "csep.utils.plots.plot_spatial_test": "per_model",
-        "csep.utils.plots.plot_calibration_test": "per_model",
-        "csep.utils.plots.plot_concentration_ROC_diagram": "per_model",
-        "csep.utils.plots.plot_ROC_diagram": "per_model",
-        "csep.utils.plots.plot_Molchan_diagram": "per_model",
         "floatcsep.utils.helpers.plot_sequential_likelihood": "sequential",
     }
 

@@ -1,7 +1,7 @@
 - Catalog_N-test:
     func: catalog_evaluations.number_test
     plot_func:
-      - plot_number_test:
+      - plot_test_distribution:
           plot_args:
             title: Test distribution
       - plot_consistency_test:

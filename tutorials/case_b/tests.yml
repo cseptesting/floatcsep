@@ -1,19 +1,19 @@
 - N-test:
     func: poisson_evaluations.number_test
-    plot_func: plot_poisson_consistency_test
+    plot_func: plot_consistency_test
 - S-test:
     func: poisson_evaluations.spatial_test
-    plot_func: plot_poisson_consistency_test
+    plot_func: plot_consistency_test
     plot_kwargs:
       one_sided_lower: True
 - M-test:
     func: poisson_evaluations.magnitude_test
-    plot_func: plot_poisson_consistency_test
+    plot_func: plot_consistency_test
     plot_kwargs:
       one_sided_lower: True
 - CL-test:
     func: poisson_evaluations.conditional_likelihood_test
-    plot_func: plot_poisson_consistency_test
+    plot_func: plot_consistency_test
     plot_kwargs:
       one_sided_lower: True
 - T-test:

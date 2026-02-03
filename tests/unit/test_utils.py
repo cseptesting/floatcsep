@@ -4,7 +4,7 @@ import numpy
 from datetime import datetime
 
 import csep
-import csep.utils.plots
+import csep.plots
 import csep.core.regions
 
 import floatcsep
@@ -31,8 +31,8 @@ class CsepFunctionTest(unittest.TestCase):
             parse_csep_func("join_struct_arrays"), csep.utils.join_struct_arrays.__class__
         )
         self.assertIsInstance(
-            parse_csep_func("plot_poisson_consistency_test"),
-            csep.utils.plots.plot_poisson_consistency_test.__class__,
+            parse_csep_func("plot_consistency_test"),
+            csep.plots.plot_consistency_test.__class__,
         )
         self.assertIsInstance(
             parse_csep_func("italy_csep_region"), csep.core.regions.italy_csep_region.__class__
