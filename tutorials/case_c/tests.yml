@@ -1,6 +1,6 @@
 - S-test:
     func: poisson_evaluations.spatial_test
-    plot_func: plot_poisson_consistency_test
+    plot_func: plot_consistency_test
     plot_args:
       title: Poisson S-test
       xlabel: Log-Likelihood

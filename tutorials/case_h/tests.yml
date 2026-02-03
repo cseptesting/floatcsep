@@ -3,7 +3,7 @@
     func_kwargs:
         verbose: False
     plot_func:
-        - plot_number_test:
+        - plot_test_distribution:
             plot_args:
                 title: Number consistency test
                 bins: 30
