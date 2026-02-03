@@ -126,8 +126,7 @@ If you use **floatCSEP** in your work, please cite it using the **“Cite this r
 |:----------------------------------------------------------------------------------------------------------------------:|:-------------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------:|
 
 
-- The work in this repository has received funding from the European Union’s Horizon research and innovation programme  
-  under grant agreements No.s 101058518 and 821115 of the projects [GeoInquire](https://www.geo-inquire.eu/) and [RISE](https://www.rise-eu.org/).
+- The work in this repository has received funding from the European Union’s Horizon research and innovation programme under grant agreements No.s 101058518 and 821115 of the projects [GeoInquire](https://www.geo-inquire.eu/) and [RISE](https://www.rise-eu.org/).
   
 - This research was supported by the [Statewide California Earthquake Center](https://www.scec.org/).  
   SCEC is funded by NSF Cooperative Agreement EAR-2225216 and USGS Cooperative Agreement G24AC00072-00.

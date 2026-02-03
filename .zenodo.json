@@ -1,0 +1,118 @@
+{
+  "title": "floatCSEP: An application to deploy and conduct reproducible, prospective earthquake forecasting experiments",
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "bsd-3-clause",
+  "language": "eng",
+  "keywords": [
+    "Python",
+    "seismology",
+    "earthquake forecasting",
+    "forecast testing",
+    "CSEP"
+  ],
+  "version": "0.5.0",
+  "creators": [
+    {
+      "name": "Iturrieta, Pablo",
+      "orcid": "0000-0002-4787-1343",
+      "affiliation": "GFZ Helmholtz Centre for Geosciences, Potsdam, Germany",
+      "type": "ProjectMember"
+    },
+    {
+      "name": "Savran, William H.",
+      "orcid": "0000-0001-5404-0778",
+      "affiliation": "University of Nevada, Reno, United States",
+      "type": "ProjectMember"
+    },
+    {
+      "name": "Herrmann, Marcus",
+      "orcid": "0000-0002-2342-1970",
+      "affiliation": "Università degli Studi di Napoli Federico II, Naples, Italy",
+      "type": "ProjectMember"
+    },
+    {
+      "name": "Bayona, José A.",
+      "orcid": "0000-0002-3026-0327",
+      "affiliation": "School of Earth Sciences, University of Bristol, Bristol, United Kingdom",
+      "type": "ProjectMember"
+    },
+    {
+      "name": "Gerstenberger, Matthew C.",
+      "orcid": "0000-0002-0392-7114",
+      "affiliation": "GNS Science | Te Pū Ao, Lower Hutt, New Zealand",
+      "type": "ProjectMember"
+    },
+    {
+      "name": "Graham, Kenny M.",
+      "orcid": "0000-0003-3645-6344",
+      "affiliation": "GNS Science | Te Pū Ao, Lower Hutt, New Zealand",
+      "type": "ProjectMember"
+    },
+    {
+      "name": "Maechling, Philip J.",
+      "orcid": "0000-0002-9221-7068",
+      "affiliation": "Southern California Earthquake Center, University of Southern California, United States",
+      "type": "ProjectMember"
+    },
+    {
+      "name": "Marzocchi, Warner",
+      "orcid": "0000-0002-9114-1516",
+      "affiliation": "Università degli Studi di Napoli Federico II, Naples, Italy",
+      "type": "ProjectMember"
+    },
+    {
+      "name": "Mizrahi, Leila",
+      "orcid": "0000-0002-5262-3168",
+      "affiliation": "Swiss Seismological Service at ETH Zürich, Zürich, Switzerland",
+      "type": "ProjectMember"
+    },
+    {
+      "name": "Schorlemmer, Danijel",
+      "orcid": "0000-0003-3969-1059",
+      "affiliation": "GFZ Helmholtz Centre for Geosciences, Potsdam, Germany",
+      "type": "ProjectMember"
+    },
+    {
+      "name": "Serafini, Francesco",
+      "orcid": "0000-0003-0154-6200",
+      "affiliation": "School of Earth Sciences, University of Bristol, Bristol, United Kingdom",
+      "type": "ProjectMember"
+    },
+    {
+      "name": "Silva, Fabio",
+      "orcid": "0000-0002-6543-5705",
+      "affiliation": "Southern California Earthquake Center, University of Southern California, United States",
+      "type": "ProjectMember"
+    },
+    {
+      "name": "Werner, Maximilian J.",
+      "orcid": "0000-0002-2430-2631",
+      "affiliation": "School of Earth Sciences, University of Bristol, Bristol, United Kingdom",
+      "type": "ProjectMember"
+    }
+  ],
+  "contributors": [
+    {
+      "name": "Khawaja, Asim M.",
+      "orcid": "0000-0002-6196-4503",
+      "affiliation": "GFZ Helmholtz Centre for Geosciences, Potsdam, Germany",
+      "type": "Researcher"
+    }
+  ],
+  "grants": [
+    { "id": "10.13039/501100000780::101058518" }
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/cseptesting/floatcsep",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    },
+    {
+      "identifier": "https://floatcsep.readthedocs.io",
+      "relation": "isDocumentedBy",
+      "resource_type": "other"
+    }
+  ]
+}
