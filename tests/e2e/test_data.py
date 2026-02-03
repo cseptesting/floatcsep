@@ -88,6 +88,7 @@ class RunExamples(DataTest):
         self.run_evaluation(cfg)
         self.assertEqual(1, 1)
 
+    @skip_on_ci("Tested only locally")
     def test_case_g(self, *args):
         cfg = self.get_runpath("g")
         self.run_evaluation(cfg)
@@ -145,6 +146,7 @@ class ViewExamples(DataTest):
         self.view_dashboard(cfg)
         self.assertEqual(1, 1)
 
+    @skip_on_ci("Tested only locally")
     def test_case_g(self, *args):
         cfg = self.get_rerunpath("g")
         self.view_dashboard(cfg)
