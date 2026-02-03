@@ -5,4 +5,4 @@
       n_sims: 100
       mag_min: 3.5
       seed: 23
-    build: venv
+    build: conda

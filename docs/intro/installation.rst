@@ -3,7 +3,7 @@ Installation
 
 .. important::
 
-    This application uses ``3.9 <= python <= 3.12``
+    This application uses ``3.10 <= python <= 3.12``
 
 
 Latest Version
@@ -128,7 +128,7 @@ Having a ``conda`` manager installed (see ``conda`` managers in :ref:`conda-inst
         $ conda activate experiment
         $ conda install -c conda-forge floatcsep
 
-where ``3.9 < {PYTHON_VERSION} <= 3.12`` is at your convenience.
+where ``3.10 < {PYTHON_VERSION} <= 3.12`` is at your convenience.
 
 2. From the ``PyPI`` repository
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
