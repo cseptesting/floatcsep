@@ -6,12 +6,15 @@
   "language": "eng",
   "keywords": [
     "Python",
-    "seismology",
+    "statistical seismology",
+    "earthquake catalog",
     "earthquake forecasting",
+    "forecast models",
     "forecast testing",
+    "forecast evaluation",
     "CSEP"
   ],
-  "version": "0.5.0",
+  "version": "0.5.1",
   "creators": [
     {
       "name": "Iturrieta, Pablo",
@@ -101,7 +104,8 @@
     }
   ],
   "grants": [
-    { "id": "10.13039/501100000780::101058518" }
+    { "id": "10.13039/501100000780::101058518" },
+    { "id": "10.13039/501100000780::821115" }
   ],
   "related_identifiers": [
     {
@@ -113,6 +117,11 @@
       "identifier": "https://floatcsep.readthedocs.io",
       "relation": "isDocumentedBy",
       "resource_type": "other"
+    },
+    {
+      "identifier": "https://doi.org/10.21105/joss.09408",
+      "relation": "isPublishedIn",
+      "resource_type": "publication-article"
     }
   ]
 }

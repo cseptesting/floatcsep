@@ -1,6 +1,6 @@
 # CSEP Floating Experiments
 
-<img src="https://i.postimg.cc/6p5krRnB/float-CSEP-Logo-CMYK.png" width="320"> 
+<img src="https://i.postimg.cc/6p5krRnB/float-CSEP-Logo-CMYK.png" width="320">
 
 **An application to deploy and conduct reproducible prospective earthquake forecasting experiments**
 
@@ -12,8 +12,8 @@
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/floatcsep)](https://anaconda.org/conda-forge/floatcsep)
 [![Python Versions](https://img.shields.io/pypi/pyversions/floatcsep)](https://pypi.org/project/floatcsep/)
 [![Code Coverage](https://codecov.io/gh/cseptesting/floatcsep/branch/main/graph/badge.svg?token=LI4RSDOKA1)](https://codecov.io/gh/cseptesting/floatcsep)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.09408/status.svg)](https://doi.org/10.21105/joss.09408)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7953816.svg)](https://doi.org/10.5281/zenodo.7953816)
-
 
 </p>
 
@@ -82,7 +82,7 @@ visualized in `results/report.md`, `results/report.pdf` or in a dashboard with:
 floatcsep view config.yml
 ```
 
-**Check out the experiment, models and tests definition in the tutorials [documentation](https://floatcsep.readthedocs.io/en/latest/tutorials/case_a.html)** or in the configuration files for each case in ``floatcsep/tutorials/``. 
+**Check out the experiment, models and tests definition in the tutorials [documentation](https://floatcsep.readthedocs.io/en/latest/tutorials/case_a.html)** or in the configuration files for each case in ``floatcsep/tutorials/``.
 
 # Important Links
 
@@ -118,17 +118,17 @@ information.
 
 If you use **floatCSEP** in your work, please cite it using the **“Cite this repository”** link on the right side of the GitHub page or with:
 
-> Iturrieta, P., Khawaja, A. M., Savran, W. H., & Schorlemmer, D. (2025). floatCSEP: An application to deploy and conduct reproducible and prospective earthquake forecasting (Version 0.3.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.15576250
+> Iturrieta, P., Savran, W. H., Herrmann, M., Bayona, J. A., Gerstenberger, M. C., Graham, K. M., Maechling, P. J., Marzocchi, W., Mizrahi, L., Schorlemmer, D., Serafini, F., Silva, F., & Werner, M. J. (2026). floatCSEP: An application to deploy and conduct reproducible prospective earthquake forecasting experiments. _Journal of Open Source Software, 11_(118). 9408. doi: [10.21105/joss.09408](https://doi.org/10.21105/joss.09408)
 
 # Support
-     
+
 | <img src="https://i.postimg.cc/rFKQ0vRL/GFZ-Wortbildmarke-EN-Helmholtzdunkelblau-RGB.png" alt="GFZ logo" height="50"/> | <img src="https://i.postimg.cc/CLc5tQcZ/Geo-INQUIRE-logo.png" alt="GeoInquire logo" height="72"/> | <img src="https://i.postimg.cc/tC1LdjYf/scec.png" alt="SCEC logo" height="90"/> |
 |:----------------------------------------------------------------------------------------------------------------------:|:-------------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------:|
 
 
 - The work in this repository has received funding from the European Union’s Horizon research and innovation programme under grant agreements No.s 101058518 and 821115 of the projects [GeoInquire](https://www.geo-inquire.eu/) and [RISE](https://www.rise-eu.org/).
-  
-- This research was supported by the [Statewide California Earthquake Center](https://www.scec.org/).  
+
+- This research was supported by the [Statewide California Earthquake Center](https://www.scec.org/).
   SCEC is funded by NSF Cooperative Agreement EAR-2225216 and USGS Cooperative Agreement G24AC00072-00.
 
 
