@@ -169,20 +169,25 @@ def generate_report(experiment: "Experiment", timewindow: int = -1) -> None:
                 width=results_width,
             )
 
+            if "per_model" not in getattr(test, "plot_modes", []):
+                continue
+
             for model in experiment.models:
                 try:
                     result = experiment.registry.get_figure_key(
                         tw_str, f"{test.name}_{model.name}"
                     )
-                    report.add_figure(
-                        f"{model.name}",
-                        result,
-                        level=model_level,
-                        caption=test.markdown,
-                        width=results_width,
-                    )
                 except KeyError:
-                    pass
+                    continue
+                if not os.path.isfile(result):
+                    continue
+                report.add_figure(
+                    f"{model.name}",
+                    result,
+                    level=model_level,
+                    caption=test.markdown,
+                    width=results_width,
+                )
 
     report.table_of_contents()
     report.save(report_path)
