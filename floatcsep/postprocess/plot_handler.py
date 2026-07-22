@@ -142,7 +142,7 @@ def plot_forecasts(experiment: "Experiment") -> None:
     for model in experiment.models:
         for window in time_windows:
             forecast = model.get_forecast(window, region=experiment.region)
-            forecast.plot(plot_args=plot_forecast_config,
+            ax = forecast.plot(plot_args=plot_forecast_config,
                            plot_region=plot_forecast_config.get("plot_region", True)
                           )
 
