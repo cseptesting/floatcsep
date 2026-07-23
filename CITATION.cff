@@ -1,33 +1,114 @@
-cff-version: 1.2.0
-message: "If you use floatCSEP in your research, please cite the Zenodo release."
-title: "floatCSEP: An application to deploy and conduct reproducible prospective earthquake forecasting experiments"
+cff-version: "1.2.0"
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+
+preferred-citation:
+  authors:
+    - family-names: Iturrieta
+      given-names: Pablo
+      orcid: "https://orcid.org/0000-0002-4787-1343"
+      affiliation: "GFZ Helmholtz Centre for Geosciences, Potsdam, Germany"
+    - family-names: Savran
+      given-names: "William H."
+      orcid: "https://orcid.org/0000-0001-5404-0778"
+      affiliation: "University of Nevada, Reno, United States"
+    - family-names: Herrmann
+      given-names: Marcus
+      orcid: "https://orcid.org/0000-0002-2342-1970"
+      affiliation: "Università degli Studi di Napoli Federico II, Naples, Italy"
+    - family-names: Bayona
+      given-names: "José A."
+      orcid: "https://orcid.org/0000-0002-3026-0327"
+      affiliation: "School of Earth Sciences, University of Bristol, Bristol, United Kingdom"
+    - family-names: Gerstenberger
+      given-names: "Matt C."
+      orcid: "https://orcid.org/0000-0002-2938-1359"
+      affiliation: "GNS Science | Te Pū Ao, Lower Hutt, New Zealand"
+    - family-names: Graham
+      given-names: "Kenny M."
+      orcid: "https://orcid.org/0000-0003-3645-6344"
+      affiliation: "GNS Science | Te Pū Ao, Lower Hutt, New Zealand"
+    - family-names: Maechling
+      given-names: "Philip J."
+      orcid: "https://orcid.org/0000-0002-9221-7068"
+      affiliation: "Southern California Earthquake Center, University of Southern California, United States"
+    - family-names: Marzocchi
+      given-names: Warner
+      orcid: "https://orcid.org/0000-0002-9114-1516"
+      affiliation: "Università degli Studi di Napoli Federico II, Naples, Italy"
+    - family-names: Mizrahi
+      given-names: Leila
+      orcid: "https://orcid.org/0000-0002-5262-3168"
+      affiliation: "Swiss Seismological Service at ETH Zürich, Zürich, Switzerland"
+    - family-names: Schorlemmer
+      given-names: Danijel
+      orcid: "https://orcid.org/0000-0003-3969-1059"
+      affiliation: "GFZ Helmholtz Centre for Geosciences, Potsdam, Germany; Swiss Seismological Service at ETH Zürich, Zürich, Switzerland"
+    - family-names: Serafini
+      given-names: Francesco
+      orcid: "https://orcid.org/0000-0003-0154-6200"
+      affiliation: "School of Earth Sciences, University of Bristol, Bristol, United Kingdom"
+    - family-names: Silva
+      given-names: Fabio
+      orcid: "https://orcid.org/0000-0002-6543-5705"
+      affiliation: "Southern California Earthquake Center, University of Southern California, United States"
+    - family-names: Werner
+      given-names: Maximilian J."
+      orcid: "https://orcid.org/0000-0002-2430-2631"
+      affiliation: "School of Earth Sciences, University of Bristol, Bristol, United Kingdom"
+  date-published: 2026-02-20
+  doi: 10.21105/joss.09408
+  issn: 2475-9066
+  issue: 118
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 9408
+  title: "floatCSEP: An application to deploy and conduct reproducible
+    prospective earthquake forecasting experiments"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.09408"
+  volume: 11
+
+title: "floatCSEP: An application to deploy and conduct reproducible
+  prospective earthquake forecasting experiments"
 type: software
-license: "BSD-3-Clause"
-
 repository-code: "https://github.com/cseptesting/floatcsep"
-url: "https://floatcsep.readthedocs.io"
-
-version: "0.3.0"
-doi: "10.5281/zenodo.15576250"
-publisher: "Zenodo"
-
+license: "BSD-3-Clause"
+keywords:
+    - Python
+    - "statistical seismology"
+    - "earthquake catalog"
+    - "earthquake forecasting"
+    - "forecast models"
+    - "forecast testing"
+    - "forecast evaluation"
+    - CSEP
+identifiers:
+  - type: url
+    value: "https://floatcsep.readthedocs.io"
+    description: "The website containing the documentation of floatCSEP."
+  - type: doi
+    value: 10.5281/zenodo.7953816
+    description: "The Zenodo concept DOI - archived snapshots of selected floatCSEP versions."
 authors:
-  - family-names: "Iturrieta"
-    given-names: "Pablo"
+  - family-names: Iturrieta
+    given-names: Pablo
     orcid: "https://orcid.org/0000-0002-4787-1343"
     affiliation: "GFZ Helmholtz Centre for Geosciences, Potsdam, Germany"
-
-  - family-names: "Khawaja"
+  - family-names: Khawaja
     given-names: "Asim M."
     orcid: "https://orcid.org/0000-0002-6196-4503"
     affiliation: "GFZ Helmholtz Centre for Geosciences, Potsdam, Germany"
-
-  - family-names: "Savran"
+  - family-names: Savran
     given-names: "William H."
     orcid: "https://orcid.org/0000-0001-5404-0778"
     affiliation: "University of Nevada, Reno, United States"
-
-  - family-names: "Schorlemmer"
-    given-names: "Danijel"
+  - family-names: Schorlemmer
+    given-names: Danijel
     orcid: "https://orcid.org/0000-0003-3969-1059"
     affiliation: "GFZ Helmholtz Centre for Geosciences, Potsdam, Germany; Swiss Seismological Service at ETH Zürich, Zürich, Switzerland"
+contact:
+- family-names: Iturrieta
+  given-names: Pablo
+  email: pciturri@gfz-potsdam.de
