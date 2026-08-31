@@ -14,6 +14,7 @@ The `<command>` can be one of the following:
 - `run`: Run the experiment.
 - `stage`: Prepare the environment and models.
 - `plot`: Plot forecasts, catalogs, and results.
+- `view`: Launch an interactive web dashboard to explore results.
 - `reproduce`: (see folllowing\ section) Reproduce the results of a previously run experiment.
 
 Each command requires a configuration file (in `YAML` format), which defines the parameters of the experiment.
@@ -95,6 +96,33 @@ The `plot` command re-loads the experiment configuration, stages the models, ide
 .. note::
 
     This command can be useful when trying to customize plots or reports after the results have been created.
+
+
+Viewing Results Interactively: ``floatcsep view``
+-------------------------------------------------
+
+The `view` command launches an interactive web dashboard to explore the experiment results in a browser:
+
+.. code-block:: console
+
+    $ floatcsep view <config.yml> --ui nextjs
+
+Or using the Panel-based dashboard:
+
+.. code-block:: console
+
+    $ floatcsep view <config.yml> 
+
+This starts a local server and opens a browser at ``http://localhost:<port>`` where you can:
+
+- View the experiment overview and configuration
+- Browse forecast visualizations
+- Explore catalog plots
+- Review evaluation results (N-test, S-test plots)
+
+.. note::
+
+    The ``--ui nextjs`` option (recommended) uses a modern Next.js-based interface. Node.js 18.17.0 or newer is required (automatically downloaded if not present). The ``--ui panel`` option uses the Panel-based dashboard.
 
 
 Reproducing Results: ``floatcsep reproduce``

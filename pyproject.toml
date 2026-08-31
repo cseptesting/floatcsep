@@ -44,6 +44,7 @@ dependencies = [
     "xmltodict",
     "weasyprint",
     "markdown-it-py",
+    "pydantic",
 ]
 dynamic = ["version"]
 

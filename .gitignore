@@ -1,3 +1,28 @@
 .idea/
 __pycache__
 version
+# Only ignore results and models directories within tutorial case folders
+tutorials/case*/results/
+tutorials/case*/models/
+tutorials/case*/pymock*
+tutorials/case*/*.json
+tutorials/case*/**/*.csv
+tests/artifacts/models/
+tests/artifacts/catalogs/
+tests/artifacts/zenodo/
+tests/artifacts/zenodo_test/
+notes.kg
+
+# Next.js
+floatcsep/postprocess/nextjs/.next/
+floatcsep/postprocess/nextjs/node_modules/
+floatcsep/postprocess/nextjs/out/
+floatcsep/postprocess/nextjs/.vercel/
+floatcsep/postprocess/nextjs/coverage/
+floatcsep/postprocess/nextjs/.cache/
+floatcsep/postprocess/nextjs/.env*.local
+floatcsep/postprocess/nextjs/package-lock.json
+
+# General Node.js
+node_modules/
+package-lock.json

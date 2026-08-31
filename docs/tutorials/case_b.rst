@@ -21,6 +21,7 @@ The following example is an experiment including **multiple** time-independent f
     .. code-block:: console
 
             $ floatcsep view config.yml
+            $ floatcsep view config.yml --ui nextjs  # Alternative: modern Next.js dashboard
 
 
 .. contents:: Contents

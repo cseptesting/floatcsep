@@ -512,7 +512,7 @@ class ResultsRepository:
         test: "Evaluation",
         window: Union[str, Sequence[datetime.datetime]],
         model: "Model",
-    ) -> EvaluationResult:
+    ) -> Union[EvaluationResult, None]:
 
         if not isinstance(window, str):
             wstr_ = timewindow2str(window)
@@ -520,6 +520,10 @@ class ResultsRepository:
             wstr_ = window
 
         eval_path = self.registry.get_result_key(wstr_, test, model)
+
+        if not exists(eval_path):
+            log.warning(f"Result file not found: {eval_path}")
+            return None
 
         with open(eval_path, "r") as file_:
             model_eval = EvaluationResult.from_dict(json.load(file_))

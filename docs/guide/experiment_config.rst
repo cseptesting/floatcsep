@@ -187,6 +187,8 @@ Configuring the spatial and magnitude definitions is done through the ``region_c
      - The minimum depth (in `km`) of the experiment.
    * - **depth_max**
      - The maximum depth (in `km`) of the experiment.
+   * - **strict_region**
+     - If ``true``, spatial tests (S-test, L-test) will fail when the forecast region differs from the experiment region. If ``false`` (default), the catalog is automatically filtered to the forecast region with a warning.
 
 
 1. The ``region`` parameter can be defined from:

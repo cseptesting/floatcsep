@@ -19,6 +19,7 @@ Here, we set up a time-dependent model from its **source code** for an experimen
     .. code-block:: console
 
             $ floatcsep view config.yml
+            $ floatcsep view config.yml --ui nextjs  # Alternative: modern Next.js dashboard
 
 
     For troubleshooting, run the experiment with:

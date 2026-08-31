@@ -46,6 +46,14 @@ def plot_results(experiment: "Experiment", dpi: int = 300, show: bool = False) -
             ]:
                 for time_str in time_windows:
                     results = test.read_results(time_str, models)
+                    # Filter out None results (failed tests)
+                    if isinstance(results, list):
+                        results = [r for r in results if r is not None]
+                    if not results:
+                        log.warning(
+                            f"No valid results for {test.name} in {time_str}, skipping plot"
+                        )
+                        continue
 
                     if mode == "aggregate":
                         fig_path = registry.get_figure_key(time_str, test.name)
@@ -57,8 +65,11 @@ def plot_results(experiment: "Experiment", dpi: int = 300, show: bool = False) -
                             pyplot.show()
 
                     elif mode == "per_model":
-
-                        for result, model in zip(results, models):
+                        # Filter out pairs where result is None
+                        valid_pairs = [
+                            (r, m) for r, m in zip(results, models) if r is not None
+                        ]
+                        for result, model in valid_pairs:
                             fig_key = f"{test.name}_{model.name}"
                             fig_path = registry.get_figure_key(time_str, fig_key)
                             ax = func(result, plot_args=fargs, **(fkwargs or {}), show=False)
@@ -76,6 +87,14 @@ def plot_results(experiment: "Experiment", dpi: int = 300, show: bool = False) -
             ]:
                 time_key = time_windows[-1]
                 results = test.read_results(time_key, models)
+                # Filter out None results (failed tests)
+                if isinstance(results, list):
+                    results = [r for r in results if r is not None]
+                if not results:
+                    log.warning(
+                        f"No valid results for {test.name} in {time_key}, skipping plot"
+                    )
+                    continue
                 fig_path = registry.get_figure_key(time_key, test.name)
                 ax = func(results, plot_args=fargs, **(fkwargs or {}))
                 if "code" in (fargs or {}):

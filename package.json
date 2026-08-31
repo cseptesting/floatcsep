@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@radix-ui/react-accordion": "^1.2.12",
+    "highcharts-more": "^0.1.7"
+  }
+}

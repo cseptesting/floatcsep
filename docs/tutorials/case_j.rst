@@ -26,6 +26,7 @@ producing daily gridded forecasts and evaluating them with a Poisson N-test. The
     .. code-block:: console
 
             $ floatcsep view config.yml
+            $ floatcsep view config.yml --ui nextjs  # Alternative: modern Next.js dashboard
 
 
     For troubleshooting, run the experiment with:

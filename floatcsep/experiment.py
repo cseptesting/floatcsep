@@ -349,6 +349,7 @@ class Experiment:
              :meth:`~floatcsep.evaluation.Evaluation`
         """
         tests = []
+        strict_region = self.region_config.get("strict_region", False)
 
         if isinstance(test_config, str):
 
@@ -359,6 +360,7 @@ class Experiment:
                 eval_i = Evaluation.from_dict(eval_dict)
                 eval_i.results_repo = self.results_repo
                 eval_i.catalog_repo = self.catalog_repo
+                eval_i.strict_region = strict_region
                 tests.append(eval_i)
 
         elif isinstance(test_config, (dict, list)):
@@ -367,6 +369,7 @@ class Experiment:
                 eval_i = Evaluation.from_dict(eval_dict)
                 eval_i.results_repo = self.results_repo
                 eval_i.catalog_repo = self.catalog_repo
+                eval_i.strict_region = strict_region
                 tests.append(eval_i)
 
         log.info(f"\tEvaluations: {[i.name for i in tests]}")

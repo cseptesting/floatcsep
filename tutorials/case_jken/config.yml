@@ -1,0 +1,22 @@
+name: Tutorial I
+
+time_config:
+  start_date: 2016-11-13T00:00:00
+  end_date: 2016-11-20T00:00:00
+  horizon: 1days
+  exp_class: td
+
+region_config:
+  region: nz_csep_region
+  strict_region: False
+  mag_min: 3.0
+  mag_max: 8.0
+  mag_bin: 0.1
+  depth_min: 0
+  depth_max: 70
+
+run_mode: parallel
+force_rerun: True
+catalog: catalog.csep
+model_config: models.yml
+test_config: tests.yml

@@ -21,6 +21,7 @@ This example shows how to run a realistic testing experiment (based on :ref:`Sch
     .. code-block:: console
 
             $ floatcsep view config.yml
+            $ floatcsep view config.yml --ui nextjs  # Alternative: modern Next.js dashboard
 
 
 .. contents:: Contents

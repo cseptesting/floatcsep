@@ -33,6 +33,7 @@ class TestEvaluation(unittest.TestCase):
             "_type": None,
             "results_repo": None,
             "catalog_repo": None,
+            "strict_region": True,
         }
         self.assertEqual(dict_, eval_.__dict__)
 

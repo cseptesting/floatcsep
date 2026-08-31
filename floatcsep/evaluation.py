@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 from typing import Dict, Callable, Union, Sequence, List, Any
 
@@ -9,6 +10,8 @@ from matplotlib import pyplot
 from floatcsep.model import Model
 from floatcsep.infrastructure.registries import ExperimentRegistry
 from floatcsep.utils.helpers import parse_csep_func
+
+log = logging.getLogger("floatLogger")
 
 
 class Evaluation:
@@ -90,6 +93,7 @@ class Evaluation:
 
         self.results_repo = None
         self.catalog_repo = None
+        self.strict_region = True  # If True, raise error when forecast region differs
 
     @property
     def type(self):
@@ -200,7 +204,7 @@ class Evaluation:
         # Prepare argument tuple
 
         forecast = model.get_forecast(timewindow, region)
-        catalog = self.get_catalog(timewindow, forecast)
+        catalog = self.get_catalog(timewindow, forecast, experiment_region=region)
 
         if isinstance(ref_model, Model):
             # Args: (Fc, RFc, Cat)
@@ -220,30 +224,73 @@ class Evaluation:
         self,
         timewindow: Union[str, Sequence[str]],
         forecast: Union[GriddedForecast, Sequence[GriddedForecast]],
+        experiment_region=None,
     ) -> Union[CSEPCatalog, List[CSEPCatalog]]:
         """
         Reads the catalog(s) from the given path(s). References the catalog region to the
-        forecast region.
+        forecast region and filters events to ensure they fall within the forecast region.
 
         Args:
             timewindow (str): Time window of the testing catalog
             forecast (:class:`~csep.core.forecasts.GriddedForecast`): Forecast
              object, onto which the catalog will be confronted for testing.
+            experiment_region: The experiment's configured region for comparison
 
         Returns:
         """
+
+        # Tests that require spatial binning and need strict region matching
+        _SPATIAL_TESTS = {
+            "spatial_test",
+            "binary_spatial_test", 
+            "binomial_spatial_test",
+            "likelihood_test",
+            "conditional_likelihood_test",
+        }
+        is_spatial_test = self.func.__name__ in _SPATIAL_TESTS
+
+        def _check_region_mismatch(fc_region, exp_region, timewindow_str):
+            """Check if forecast region differs from experiment region."""
+            if fc_region is None or exp_region is None:
+                return
+            fc_bbox = fc_region.get_bbox()
+            exp_bbox = exp_region.get_bbox()
+            if fc_bbox != exp_bbox:
+                msg = (
+                    f"Forecast region {fc_bbox} differs from experiment region {exp_bbox} "
+                    f"for time window {timewindow_str}. Filtering catalog to forecast region."
+                )
+                # Only raise error for spatial tests when strict_region is True
+                if self.strict_region and is_spatial_test:
+                    raise ValueError(
+                        f"strict_region=True: {msg} "
+                        "Set strict_region: false in region_config to allow auto-filtering."
+                    )
+                else:
+                    log.warning(msg)
 
         if isinstance(timewindow, str):
             # eval_cat = CSEPCatalog.load_json(catalog_path)
             eval_cat = self.catalog_repo.get_test_cat(timewindow)
             eval_cat.region = getattr(forecast, "region")
+            # Check for region mismatch and warn/error
+            _check_region_mismatch(forecast.region, experiment_region, timewindow)
+            # Filter catalog to forecast region to prevent spatial test failures
+            if forecast.region is not None:
+                eval_cat.filter_spatial(region=forecast.region, in_place=True)
 
         else:
             eval_cat = [self.catalog_repo.get_test_cat(i) for i in timewindow]
             if (len(forecast) != len(eval_cat)) or (not isinstance(forecast, Sequence)):
                 raise IndexError("Amount of passed catalogs and forecasts must " "be the same")
-            for cat, fc in zip(eval_cat, forecast):
+            for i, (cat, fc) in enumerate(zip(eval_cat, forecast)):
                 cat.region = getattr(fc, "region", None)
+                # Check for region mismatch and warn/error
+                tw_str = timewindow[i] if isinstance(timewindow, list) else str(i)
+                _check_region_mismatch(fc.region, experiment_region, tw_str)
+                # Filter catalog to forecast region
+                if fc.region is not None:
+                    cat.filter_spatial(region=fc.region, in_place=True)
 
         return eval_cat
 

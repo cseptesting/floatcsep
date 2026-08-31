@@ -130,23 +130,26 @@ def plot(config: str, **kwargs) -> None:
     log.debug("")
 
 
-def view(config: str, **kwargs) -> None:
+def view(config: str, ui: str = "panel", **kwargs) -> None:
     """
-    Launch an interactive Panel-based data viewer for an existing experiment.
+    Launch an interactive data viewer for an existing experiment.
 
     This function loads the experiment configuration, reconstructs the model and
-    evaluation file tree, and starts a Panel server so that the user can explore the
-    catalogs, forecasts, and test results in a web browser.
+    evaluation file tree, and starts either a Panel or Next.js server so that the
+    user can explore the catalogs, forecasts, and test results in a web browser.
 
     Example usage from a terminal:
     ::
 
         floatcsep view <config>
+        floatcsep view <config> --ui nextjs
 
     Args
     ----
     config : str
         Path to the experiment configuration file (YAML format).
+    ui : str, optional
+        UI framework to use ('panel' or 'nextjs'). Default: 'panel'
     **kwargs :
         Additional configuration parameters forwarded to `Experiment.from_yml`.
 
@@ -158,8 +161,20 @@ def view(config: str, **kwargs) -> None:
     exp = Experiment.from_yml(config_yml=config, **kwargs)
     exp.stage_models()
     exp.set_tree()
-    log.info(f"Creating Panel App")
-    run_app(experiment=exp, **kwargs)
+
+    # Validate UI choice
+    ui = ui.lower()
+    if ui not in ["panel", "nextjs"]:
+        log.warning(f"Unknown UI framework '{ui}', defaulting to 'panel'")
+        ui = "panel"
+
+    log.info(f"Creating {ui.capitalize()} App")
+
+    if ui == "nextjs":
+        from floatcsep.postprocess.nextjs import run_nextjs_app
+        run_nextjs_app(experiment=exp)
+    else:
+        run_app(experiment=exp, **kwargs)
 
 
 def reproduce(config: str, **kwargs) -> None:
@@ -241,6 +256,13 @@ def floatcsep() -> None:
         "--debug",
         action="store_true",
         help="Set the logging level to DEBUG for console output.",
+    )
+    parser.add_argument(
+        "--ui",
+        type=str,
+        default="panel",
+        choices=["panel", "nextjs"],
+        help="UI framework for view command (panel or nextjs). Default: panel",
     )
     args = parser.parse_args()
 

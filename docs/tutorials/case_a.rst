@@ -21,6 +21,7 @@ The following example shows the definition of a testing experiment of a single *
     .. code-block:: console
 
             $ floatcsep view config.yml
+            $ floatcsep view config.yml --ui nextjs  # Alternative: modern Next.js dashboard
 
 
 .. contents:: Contents

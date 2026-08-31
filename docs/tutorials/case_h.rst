@@ -19,6 +19,7 @@ Here, we run an experiment that accesses, containerizes and executes multiple **
     .. code-block:: console
 
             $ floatcsep view config.yml
+            $ floatcsep view config.yml --ui nextjs  # Alternative: modern Next.js dashboard
 
 
     For troubleshooting, run the experiment with:

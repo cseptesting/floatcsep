@@ -21,6 +21,7 @@ This example shows how set up an experiment with a **time-dependent** model, who
     .. code-block:: console
 
             $ floatcsep view config.yml
+            $ floatcsep view config.yml --ui nextjs  # Alternative: modern Next.js dashboard
 
 
 .. contents:: Contents
