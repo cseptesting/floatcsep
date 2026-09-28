@@ -216,9 +216,7 @@ class TestModelFromZenodo(TestCase):
 
         model = self.init_model(name=name, model_path=path_, zenodo_id=13117711)
 
-        with self.assertRaises(
-            Exception
-        ):  # Mostly for FileNotFound, but connection errors can also arise
+        with self.assertRaises(FileNotFoundError):
             model.get_source()
 
         shutil.rmtree(dir_, ignore_errors=True)

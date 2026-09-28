@@ -1,6 +1,6 @@
 - N-test:
     func: poisson_evaluations.number_test
     plot_func:
-      - plot_poisson_consistency_test:
+      - plot_consistency_test:
           plot_args:
             title: Number consistency test

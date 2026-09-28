@@ -283,7 +283,7 @@ class TestTimeDependentModel(TestModel):
         mock_from_zenodo.assert_called_once_with(
             self.model.zenodo_id,
             self.mock_registry_instance.path.as_posix(),
-            force=True,
+            force=False,
         )
         mock_from_git.assert_not_called()
 

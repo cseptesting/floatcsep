@@ -20,7 +20,7 @@ models:
 tests:
   - Poisson N-test:
       func: poisson_evaluations.number_test
-      plot_func: plot_poisson_consistency_test
+      plot_func: plot_consistency_test
 
 postprocess:
   plot_forecasts:

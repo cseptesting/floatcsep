@@ -1,66 +1,100 @@
+import time
 import git
 import requests
 import hashlib
 import os
-import sys
 import shutil
 
 
-def from_zenodo(record_id, folder, force=False):
-    """
-    Download data from a Zenodo repository.
+def from_zenodo(record_id, folder, force=False, keys=None):
+    record_url = f"https://zenodo.org/api/records/{record_id}"
+    max_tries = 5
 
-    Downloads if file does not exist, checksum has changed in local respect to url or force
+    os.makedirs(folder, exist_ok=True)
 
-    Args:
-        record_id: corresponding to the Zenodo repository
-        folder: where the repository files will be downloaded
-        force: force download even if file exists and checksum passes
+    for attempt in range(1, max_tries + 1):
+        r = requests.get(record_url, timeout=30, headers={"User-Agent": "floatcsep"})
 
-    Returns:
-    """
-    # Grab the urls and filenames and checksums
-    r = requests.get(f"https://zenodo.org/api/records/{record_id}", timeout=30)
-    download_urls = [f["links"]["self"] for f in r.json()["files"]]
-    filenames = [(f["key"], f["checksum"]) for f in r.json()["files"]]
+        if r.status_code == 200:
+            break
 
-    # Download and verify checksums
+        if r.status_code == 403:
+            text = (r.text or "").lower()
+            if "unusual traffic" in text or "<html" in text:
+                snippet = (r.text or "")[:400].replace("\n", "\\n")
+                raise RuntimeError(
+                    "Zenodo returned HTTP 403 and appears to be blocking this network/IP due "
+                    "to unusual traffic.\n"
+                    f"URL: {record_url}\n"
+                    f"Response snippet: {snippet}"
+                )
+            r.raise_for_status()
+
+        if r.status_code in (429, 500, 502, 503, 504):
+            wait = min(2 ** (attempt - 1), 30)
+            ra = r.headers.get("Retry-After")
+            if ra:
+                try:
+                    wait = max(wait, int(ra))
+                except ValueError:
+                    pass
+            time.sleep(wait)
+            continue
+
+        r.raise_for_status()
+    else:
+        raise RuntimeError(f"Zenodo API request failed after {max_tries} attempts: {record_url}")
+
+    try:
+        data = r.json()
+    except Exception as e:
+        snippet = (r.text or "")[:400].replace("\n", "\\n")
+        raise RuntimeError(
+            "Zenodo API did not return valid JSON.\n"
+            f"URL: {record_url}\n"
+            f"Content-Type: {r.headers.get('Content-Type')!r}\n"
+            f"Snippet: {snippet}"
+        ) from e
+
+    files = data.get("files", [])
+    if not isinstance(files, list):
+        raise RuntimeError(f"Zenodo record JSON missing expected 'files' list: {record_url}")
+
+    if keys is not None:
+        wanted = set(keys)
+        files = [f for f in files if f.get("key") in wanted]
+        missing = wanted - {f.get("key") for f in files}
+        if missing:
+            raise FileNotFoundError(
+                f"Zenodo record {record_id} does not contain required file(s): {sorted(missing)}"
+            )
+
+    download_urls = [f["links"]["self"] for f in files]
+    filenames = [(f["key"], f["checksum"]) for f in files]
+
     for (fname, checksum), url in zip(filenames, download_urls):
         full_path = os.path.join(folder, fname)
+
         if os.path.exists(full_path):
             value, digest = check_hash(full_path, checksum)
             if value != digest:
-                print(f"Checksum is different: re-downloading {fname}" f" from Zenodo...")
+                print(f"Checksum differs, re-downloading {fname} ...")
                 download_file(url, full_path)
             elif force:
-                print(f"Re-downloading {fname} from Zenodo...")
+                print(f"Re-downloading {fname} ...")
                 download_file(url, full_path)
             else:
-                print(f"Found file {fname}. Checksum OK.")
-
+                print(f"Found {fname}. Checksum OK.")
         else:
-            print(f"Downloading {fname} from Zenodo...")
+            print(f"Downloading {fname} ...")
             download_file(url, full_path)
+
         value, digest = check_hash(full_path, checksum)
         if value != digest:
             raise Exception("Error: Checksum does not match")
 
 
 def from_git(url, path, branch=None, depth=1, force=False, **kwargs):
-    """
-    Clones a shallow repository from a git url.
-
-    Args:
-        url (str): url of the repository
-        path (str): path/folder where to clone the repo
-        branch (str): repository's branch to clone (default: main)
-        depth (int): depth history of commits
-        force (bool): If True, deletes existing path before cloning
-        **kwargs: keyword args passed to Repo.clone_from
-
-    Returns:
-        the pygit repository
-    """
     kwargs = dict(kwargs, depth=depth)
     git.refresh()
 
@@ -81,50 +115,33 @@ def from_git(url, path, branch=None, depth=1, force=False, **kwargs):
 
 
 def download_file(url: str, filename: str) -> None:
-    """
-    Downloads files (from zenodo).
+    os.makedirs(os.path.dirname(filename) or ".", exist_ok=True)
 
-    Args:
-        url (str): the url where the file is located
-        filename (str): the filename required.
-    """
-    progress_bar_length = 72
-    block_size = 1024
+    r = requests.get(url, timeout=30, stream=True, headers={"User-Agent": "floatcsep"})
+    r.raise_for_status()
 
-    r = requests.get(url, timeout=30, stream=True)
-    total_size = r.headers.get("content-length", False)
-    if not total_size:
-        with requests.head(url, timeout=30) as h:
-            try:
-                total_size = int(h.headers.get("Content-Length", 0))
-            except TypeError:
-                total_size = 0
-    else:
-        total_size = int(total_size)
-    download_size = 0
+    cl = r.headers.get("Content-Length") or r.headers.get("content-length")
+    try:
+        total_size = int(cl) if cl else 0
+    except ValueError:
+        total_size = 0
+
+    base = os.path.basename(filename)
     if total_size:
-        print(f"Downloading file with size of {total_size / block_size:.3f} kB")
+        print(f"{base} ({total_size / (1024 * 1024):.2f} MB)")
     else:
-        print("Downloading file with unknown size")
+        print(f"{base}")
+
     with open(filename, "wb") as f:
-        for data in r.iter_content(chunk_size=block_size):
-            download_size += len(data)
+        for data in r.iter_content(chunk_size=1024 * 64):
+            if not data:
+                continue
             f.write(data)
-            if total_size:
-                progress = int(progress_bar_length * download_size / total_size)
-                sys.stdout.write(
-                    "\r[{}{}] {:.1f}%".format(
-                        "█" * progress,
-                        "." * (progress_bar_length - progress),
-                        100 * download_size / total_size,
-                    )
-                )
-                sys.stdout.flush()
-        sys.stdout.write("\n")
+
+    print(f"Complete: {base}")
 
 
 def check_hash(filename, checksum):
-    """Checks if existing file hash matches checksum from url."""
     algorithm, value = checksum.split(":")
     if not os.path.exists(filename):
         return value, "invalid"

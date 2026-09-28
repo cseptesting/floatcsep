@@ -1,6 +1,6 @@
 - Poisson_S:
     func: poisson_evaluations.spatial_test
-    plot_func: plot_poisson_consistency_test
+    plot_func: plot_consistency_test
     plot_kwargs:
       one_sided_lower: True
     plot_args:

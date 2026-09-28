@@ -3,7 +3,7 @@ Installation
 
 .. important::
 
-    This application uses ``3.9 <= python <= 3.12``
+    This application uses ``3.10 <= python <= 3.12``
 
 
 Latest Version
@@ -110,7 +110,7 @@ set this for the current terminal session:
 .. code-block:: console
 
       $ export DYLD_FALLBACK_LIBRARY_PATH="/opt/homebrew/lib:/usr/local/lib:$DYLD_FALLBACK_LIBRARY_PATH"
-export DYLD_FALLBACK_LIBRARY_PATH="/opt/homebrew/lib:/usr/local/lib:$DYLD_FALLBACK_LIBRARY_PATH"
+
 
 Latest Stable Release
 ---------------------
@@ -128,7 +128,7 @@ Having a ``conda`` manager installed (see ``conda`` managers in :ref:`conda-inst
         $ conda activate experiment
         $ conda install -c conda-forge floatcsep
 
-where ``3.9 < {PYTHON_VERSION} <= 3.12`` is at your convenience.
+where ``3.10 < {PYTHON_VERSION} <= 3.12`` is at your convenience.
 
 2. From the ``PyPI`` repository
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

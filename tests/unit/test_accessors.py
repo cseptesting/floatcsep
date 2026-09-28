@@ -88,7 +88,7 @@ class TestZenodoGetter(unittest.TestCase):
                     self._assert_files_ok()
                     return
             try:
-                from_zenodo(4739912, zenodo_dir())
+                from_zenodo(4739912, zenodo_dir(), keys=["dummy.txt", "dummy.tar"])
             except Exception as e:
                 self.skipTest(f"Zenodo flaky/unavailable: {e!r}")
 

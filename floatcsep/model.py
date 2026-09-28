@@ -196,10 +196,23 @@ class TimeIndependentModel(Model):
 
         os.makedirs(container, exist_ok=True)
 
+        if expected_file.exists() and expected_file.is_file() and not self.force_stage:
+            return
+
+        os.makedirs(container, exist_ok=True)
+
+        if expected_file.exists() and expected_file.is_file() and not self.force_stage:
+            return
+
         if self.giturl:
             from_git(self.giturl, str(container), branch=self.repo_hash, force=self.force_stage)
         elif self.zenodo_id:
-            from_zenodo(self.zenodo_id, str(container), force=True)
+            from_zenodo(
+                self.zenodo_id,
+                str(container),
+                force=self.force_stage,
+                keys=[expected_file.name],
+            )
         else:
             pass
 
@@ -297,7 +310,13 @@ class TimeDependentModel(Model):
            and those to be generated, as well as input catalog and arguments file.
 
         """
-        if self.force_stage or not self.registry.path.exists():
+        need_source = (
+                self.force_stage
+                or not self.registry.path.exists()
+                or (self.registry.path.is_dir() and not any(self.registry.path.iterdir()))
+        )
+
+        if need_source:
             os.makedirs(self.registry.dir, exist_ok=True)
             self.get_source(self.zenodo_id, self.giturl, branch=self.repo_hash)
 
@@ -338,7 +357,7 @@ class TimeDependentModel(Model):
         if self.giturl:
             from_git(self.giturl, target_dir.as_posix(), branch=self.repo_hash, force=False)
         elif self.zenodo_id:
-            from_zenodo(self.zenodo_id, target_dir.as_posix(), force=True)
+            from_zenodo(self.zenodo_id, target_dir.as_posix(), force=self.force_stage)
         else:
             pass
 

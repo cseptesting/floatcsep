@@ -74,7 +74,7 @@ def parse_csep_func(func):
         _target_modules = [
             csep,
             csep.utils,
-            csep.utils.plots,
+            csep.plots,
             csep.core.regions,
             floatcsep.utils.helpers,
             floatcsep.utils.accessors,

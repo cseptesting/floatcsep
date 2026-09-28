@@ -21,7 +21,7 @@ jobs:
           generate-run-shell: true
           environment-file: environment.yml
           create-args: >-
-            python=3.10
+            python=3.11
 
       - name: Install py-build and setuptools-scm
         run: |
