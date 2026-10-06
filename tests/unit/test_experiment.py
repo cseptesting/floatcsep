@@ -98,6 +98,55 @@ class TestExperiment(TestCase):
         }
         self.assertEqual(dict_, exp_a.as_dict())
 
+    def test_input_config(self):
+        input_config = {
+            "catalog": {
+                "region": "italy_csep_collection_region",
+                "mag_min": 2.5,
+                "depth_max": 30,
+                "start_date": datetime(2005, 1, 1),
+            }
+        }
+        exp = Experiment(
+            name="test",
+            **_time_config,
+            **_region_config,
+            input_config=input_config,
+            catalog=_cat,
+        )
+        self.assertEqual(2.5, exp.catalog_repo.input_cat_config["mag_min"])
+        self.assertEqual(10.0, exp.catalog_repo.input_cat_config["mag_max"])
+        self.assertEqual(
+            "italy_csep_collection_region", exp.input_config["catalog"]["region"].name
+        )
+        # the testing settings are untouched
+        self.assertEqual(1.0, exp.mag_min)
+
+        dict_ = exp.as_dict()
+        self.assertEqual(
+            {
+                "catalog": {
+                    "region": "italy_csep_collection_region",
+                    "mag_min": 2.5,
+                    "mag_max": 10.0,
+                    "depth_max": 30,
+                    "start_date": datetime(2005, 1, 1),
+                }
+            },
+            dict_["input_config"],
+        )
+        keys = list(dict_)
+        self.assertLess(keys.index("region_config"), keys.index("input_config"))
+        exp_b = Experiment(**{**dict_, "path": os.getcwd()})
+        self.assertEqual(
+            exp.catalog_repo.input_cat_config["mag_min"],
+            exp_b.catalog_repo.input_cat_config["mag_min"],
+        )
+
+        exp_c = Experiment(name="test", **_time_config, **_region_config, catalog=_cat)
+        self.assertEqual({}, exp_c.input_config)
+        self.assertNotIn("input_config", exp_c.as_dict())
+
     def test_to_yml(self):
         time_config = {
             "start_date": datetime(2021, 1, 1),

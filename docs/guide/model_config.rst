@@ -344,17 +344,18 @@ We distinguish **input data** versus **input arguments**. The input data is give
 
    Therefore, the model source-code should be at least able to dynamically read the obligatory arguments (simply the time window of the issued forecast)
 
-2. **Input Data**: Correspond to any data source outside the control of the modeler (e.g., authoritative input catalog, testing region). For now, **floatCSEP** just handles an input **catalog**, which are all the events within the **main catalog**  until the forecast **start_date**. The catalog is written by default in ``model_path/input/catalog.csv`` in the CSEP ascii format (see :doc:`pycsep:concepts/catalogs`) as:
+2. **Input Data**: Correspond to any data source outside the control of the modeler (e.g., authoritative input catalog, testing region). For now, **floatCSEP** just handles an input **catalog**, which are the events of the **main catalog** that occurred before the forecast **start_date**. By default, the input catalog contains the events within the testing magnitude range, without spatial or depth filters. The ``input_config`` option of the experiment configuration (see :ref:`experiment_config`) sets the region, magnitude range, depth range and earliest date of the input catalog, independently from the testing settings. The catalog is written by default in ``model_path/input/catalog.csv`` in the CSEP ascii format (see :doc:`pycsep:concepts/catalogs`), with a header line, as:
 
   .. code-block:: none
 
-      longitude, latitude, magnitude, time_string, depth, event_id
+      lon,lat,mag,time_string,depth,catalog_id,event_id
 
-  - **longitude**: Decimal degrees of the forecasted event location.
-  - **latitude**: Decimal degrees of the forecasted event location.
-  - **magnitude**: Magnitude of the forecasted event.
-  - **time_string**: Timestamp in UTC following the ISO8601 format (`%Y-%m-%dT%H:%M:%S`).
+  - **lon**: Decimal degrees of the event longitude.
+  - **lat**: Decimal degrees of the event latitude.
+  - **mag**: Magnitude of the event.
+  - **time_string**: Timestamp in UTC following the ISO8601 format (`%Y-%m-%dT%H:%M:%S`, with fractional seconds `.%f` when the event has them).
   - **depth**: Depth of the event in kilometers.
+  - **catalog_id**: Always ``-1`` for an observed catalog (as opposed to the index of a synthetic catalog in a forecast).
   - **event_id**: The event ID in case is necessary to map the event to an additional table.
 
 

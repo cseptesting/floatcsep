@@ -18,6 +18,7 @@
     func_kwargs:
       n_sims: 1000
       mag_min: 3.5
+      mag_compl: 2.5
       seed: 23
 - Negbinom Mock:
     giturl: https://github.com/pabloitu/pymock.git
@@ -28,6 +29,7 @@
     func_kwargs:
       n_sims: 1000
       mag_min: 3.5
+      mag_compl: 2.5
       seed: 23
       distribution: negbinom
       apply_mc_to_lambda: True

@@ -14,6 +14,13 @@ region_config:
   depth_min: 0
   depth_max: 70
 
+input_config:
+  catalog:
+    region: italy_csep_collection_region
+    mag_min: 2.5
+    depth_max: 70
+    start_date: 2006-01-01T00:00:00
+
 catalog: catalog.csv
 force_rerun: True
 model_config: models.yml

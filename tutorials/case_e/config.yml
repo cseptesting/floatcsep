@@ -1,5 +1,7 @@
 name: Tutorial E
-
+authors: Pablo
+doi: 10.5281/zenodo.10790211
+license: GPL
 time_config:
   start_date: 2010-1-1T00:00:00
   end_date: 2022-1-1T00:00:00

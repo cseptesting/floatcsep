@@ -55,6 +55,7 @@ class CatalogRepository:
         self.registry = registry
         self.time_config = {}
         self.region_config = {}
+        self.input_config = {}
 
     def __dir__(self):
         """Adds time and region configs keys to instance scope."""
@@ -87,19 +88,44 @@ class CatalogRepository:
         return
 
     def set_main_catalog(
-        self, catalog: Union[str, Callable, CSEPCatalog], time_config: dict, region_config: dict
+        self,
+        catalog: Union[str, Callable, CSEPCatalog],
+        time_config: dict,
+        region_config: dict,
+        input_config: dict = None,
     ):
         """
         Sets the catalog to be used for the experiment.
 
         Args:
             catalog: Experiment's main catalog.
-            region_config: Experiment instantiation
-            time_config:
+            time_config: Experiment temporal configuration
+            region_config: Experiment region configuration (testing domain)
+            input_config: Input data configuration (see
+                :func:`~floatcsep.utils.helpers.read_input_cfg`). Its ``catalog`` block
+                sets how the models' input catalogs are filtered.
         """
         self.time_config = time_config
         self.region_config = region_config
+        self.input_config = input_config or {}
         self.catalog = catalog
+
+    @property
+    def input_cat_config(self) -> dict:
+        """
+        Returns:
+            The settings used to filter the models' input catalogs. Defaults to the testing
+            magnitude range, without spatial, depth or lower time bounds.
+        """
+        cfg = self.input_config.get("catalog") or {}
+        return {
+            "region": cfg.get("region", None),
+            "mag_min": cfg.get("mag_min", self.region_config.get("mag_min")),
+            "mag_max": cfg.get("mag_max", self.region_config.get("mag_max")),
+            "depth_min": cfg.get("depth_min", None),
+            "depth_max": cfg.get("depth_max", None),
+            "start_date": cfg.get("start_date", None),
+        }
 
     @property
     def catalog(self) -> CSEPCatalog:
@@ -126,22 +152,7 @@ class CatalogRepository:
             self.name = cat
         else:
             query_function = parse_csep_func(cat)
-            bounds = {
-                "start_time": min([item for sublist in self.time_windows for item in sublist]),
-                "end_time": max([item for sublist in self.time_windows for item in sublist]),
-                "min_magnitude": self.magnitudes.min(),
-                "max_depth": self.depths.max(),
-            }
-            if self.region:
-                bounds.update(
-                    {
-                        i: j
-                        for i, j in zip(
-                            ["min_longitude", "max_longitude", "min_latitude", "max_latitude"],
-                            self.region.get_bbox(),
-                        )
-                    }
-                )
+            bounds = self.query_bounds()
 
             self._catalog = query_function(catalog_id="catalog", **bounds)
             self.cat_path = self.registry.rel("catalog.json")
@@ -153,6 +164,44 @@ class CatalogRepository:
                 log.info(f"\tCatalog: stored " f"'{self.cat_path}' " f"from '{cat}'")
             else:
                 log.info(f"\tCatalog: '{cat}'")
+
+    def query_bounds(self) -> dict:
+        """
+        Bounds to query the main catalog from a network API, wide enough to cover both the
+        testing settings (``region_config``, ``time_config``) and the input catalog settings
+        (``input_config``).
+
+        Returns:
+            Keyword arguments for the catalog query function.
+        """
+        inp = self.input_cat_config
+        start = min([item for sublist in self.time_windows for item in sublist])
+        if inp["start_date"]:
+            start = min(start, inp["start_date"])
+        mag_min = self.magnitudes.min()
+        if inp["mag_min"] is not None:
+            mag_min = min(mag_min, inp["mag_min"])
+        depth_max = self.depths.max()
+        if inp["depth_max"] is not None:
+            depth_max = max(depth_max, inp["depth_max"])
+        bounds = {
+            "start_time": start,
+            "end_time": max([item for sublist in self.time_windows for item in sublist]),
+            "min_magnitude": mag_min,
+            "max_depth": depth_max,
+        }
+        regions = [r for r in (self.region, inp["region"]) if r is not None]
+        if regions:
+            bboxes = numpy.array([r.get_bbox() for r in regions])
+            bounds.update(
+                {
+                    "min_longitude": bboxes[:, 0].min(),
+                    "max_longitude": bboxes[:, 1].max(),
+                    "min_latitude": bboxes[:, 2].min(),
+                    "max_latitude": bboxes[:, 3].max(),
+                }
+            )
+        return bounds
 
     def get_test_cat(self, tstring: str = None, fmt: str = "json") -> CSEPCatalog:
         """
@@ -170,31 +219,51 @@ class CatalogRepository:
 
         return test_catalog
 
-    def set_input_cats(self, tstring: str, models: List["Model"], fmt: str = "ascii") -> None:
+    def get_input_cat(self, tstring: str) -> CSEPCatalog:
         """
-        Filters the complete experiment catalog to input sub-catalog filtered to the beginning
-        of the test time-window.
+        Filters the main catalog to the input catalog of a time window: all the events before
+        the window start, within the settings of ``input_config.catalog`` (region, magnitude,
+        depth and lower time bound). See :func:`~floatcsep.utils.helpers.read_input_cfg`.
 
         Args:
             tstring (str): Time window string
-            model (:class:`~floatcsep.model.Model`): Model to give the input
-             catalog
-            fmt (str): Output catalog format
+
+        Returns:
+            The input catalog as a :class:`csep.core.catalogs.CSEPCatalog`
         """
         start, end = str2timewindow(tstring)
-        log.debug(f"[Catalogs] Filtering input catalog and saving to models' input directory")
+        cfg = self.input_cat_config
+        filters = [f"origin_time < {start.timestamp() * 1000}"]
+        if cfg["start_date"]:
+            filters.append(f"origin_time >= {cfg['start_date'].timestamp() * 1000}")
+        if cfg["mag_min"] is not None:
+            filters.append(f"magnitude >= {cfg['mag_min']}")
+        if cfg["mag_max"] is not None:
+            filters.append(f"magnitude < {cfg['mag_max']}")
+        if cfg["depth_min"] is not None:
+            filters.append(f"depth >= {cfg['depth_min']}")
+        if cfg["depth_max"] is not None:
+            filters.append(f"depth < {cfg['depth_max']}")
+        sub_cat = self.catalog.filter(filters, in_place=False)
+        if cfg["region"] is not None and sub_cat.get_number_of_events() > 0:
+            sub_cat.filter_spatial(region=cfg["region"], in_place=True)
+        return sub_cat
+
+    def set_input_cats(self, tstring: str, models: List["Model"], fmt: str = "ascii") -> None:
+        """
+        Filters the complete experiment catalog to the input sub-catalog of a time window (see
+        :meth:`get_input_cat`) and writes it to the input directory of each model.
+
+        Args:
+            tstring (str): Time window string
+            models (list of :class:`~floatcsep.model.Model`): Models to give the input catalog
+            fmt (str): Output catalog format
+        """
+        log.debug("[Catalogs] Filtering input catalog and saving to models' input directory")
+        sub_cat = self.get_input_cat(tstring)
+        writer = getattr(CatalogSerializer, fmt)
         for model in models:
-            input_cat_name = model.registry.get_input_catalog_key(tstring)
-            sub_cat = self.catalog.filter(
-                [
-                    f"origin_time < {start.timestamp() * 1000}",
-                    f"magnitude >= {self.mag_min}",
-                    f"magnitude < {self.mag_max}",
-                ],
-                in_place=False,
-            )
-            writer = getattr(CatalogSerializer, fmt)
-            writer(catalog=sub_cat, filename=input_cat_name)
+            writer(catalog=sub_cat, filename=model.registry.get_input_catalog_key(tstring))
 
     def set_test_cats(self, tstring: str, fmt: str = "json") -> None:
         """
@@ -213,16 +282,20 @@ class CatalogRepository:
             f"{self.registry.rel(test_cat_name)}"
         )
         start, end = str2timewindow(tstring)
-        sub_cat = self.catalog.filter(
-            [
-                f"origin_time < {end.timestamp() * 1000}",
-                f"origin_time >= {start.timestamp() * 1000}",
-                f"magnitude >= {self.mag_min}",
-                f"magnitude < {self.mag_max}",
-            ],
-            in_place=False,
-        )
-        if self.region:
+        filters = [
+            f"origin_time < {end.timestamp() * 1000}",
+            f"origin_time >= {start.timestamp() * 1000}",
+            f"magnitude >= {self.mag_min}",
+            f"magnitude < {self.mag_max}",
+        ]
+        depth_min = self.region_config.get("depth_min", None)
+        depth_max = self.region_config.get("depth_max", None)
+        if depth_min is not None:
+            filters.append(f"depth >= {depth_min}")
+        if depth_max is not None:
+            filters.append(f"depth < {depth_max}")
+        sub_cat = self.catalog.filter(filters, in_place=False)
+        if self.region and sub_cat.get_number_of_events() > 0:
             sub_cat.filter_spatial(region=self.region, in_place=True)
 
         writer = getattr(CatalogSerializer, fmt)

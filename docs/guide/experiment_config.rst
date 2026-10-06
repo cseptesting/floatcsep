@@ -14,9 +14,10 @@ Configuration files are written in ``YAML`` format and are divided into differen
 2. **Temporal Configuration** (``time_config``): Temporal characteristics of the experiment, such as the start and end dates, experiment class (time-independent or time-dependent), the testing intervals, etc.
 3. **Spatial and Magnitude Configuration** (``region_config``): Describes the testing region, such as its geographic bounds, magnitude ranges, and depth ranges.
 4. **Seismic Catalog** (``catalog``): Defines the seismicity data source to test the models. It can either link to a seismic network API, or an existing file in the system.
-5. **Models** (``models``): Configuration of forecasting models. It can direct to an additional configuration file with ``model_config`` for readability. See :ref:`model_config`.
-6. **Evaluation Tests** (``tests``): Configuration of the statistical tests to evaluate the models. It can direct to an additional configuration file with ``test_config`` for readability. See :ref:`evaluation_config`.
-7. **Postprocessing** (``postprocess``): Instructions on how to process and visualize the experiment's results, such as plotting forecasts or generating reports. See :ref:`postprocess`.
+5. **Input Data** (``input_config``): Describes the data handed to the models (e.g., the input catalog of time-dependent models), when it should differ from the testing settings.
+6. **Models** (``models``): Configuration of forecasting models. It can direct to an additional configuration file with ``model_config`` for readability. See :ref:`model_config`.
+7. **Evaluation Tests** (``tests``): Configuration of the statistical tests to evaluate the models. It can direct to an additional configuration file with ``test_config`` for readability. See :ref:`evaluation_config`.
+8. **Postprocessing** (``postprocess``): Instructions on how to process and visualize the experiment's results, such as plotting forecasts or generating reports. See :ref:`postprocess`.
 
 .. note::
 
@@ -228,7 +229,7 @@ Configuring the spatial and magnitude definitions is done through the ``region_c
    resulting in the ``[4.0, 4.1)``, ``[4.1, 4.2)`` and ``[4.2, 4.3)``.
 
 
-3. Depths: The minimum and maximum depths are just required to filter out seismicity outside those ranges.
+3. Depths: The minimum and maximum depths are just required to filter out seismicity outside those ranges. The testing catalogs contain the events with ``depth_min <= depth < depth_max``.
 
 
 Some example of region configurations would be:
@@ -280,6 +281,47 @@ The seismicity catalog can be defined with the ``catalog`` parameter. It represe
 
 .. important::
   The main catalog will be stored, and consecutively filtered to the extent of each testing time-window, as well as to the experiment's spatial domain, and magnitude- and depth- ranges.
+
+
+Input Data
+----------
+
+Time-dependent models receive, at each time window, an **input catalog** with the seismicity that occurred *before* the forecast start (see :ref:`model_config`). By default, this catalog is filtered from the main catalog using the testing magnitude range only (``mag_min``, ``mag_max``), without spatial, depth or lower time bounds. The ``input_config`` option allows to set the input data independently from the testing settings, as is usual in forecasting experiments (e.g., models are calibrated with small events in a wider region than the one they are tested in).
+
+.. code-block:: yaml
+
+   input_config:
+     catalog:
+       region: italy_csep_collection_region
+       mag_min: 2.5
+       mag_max: 8.0
+       depth_min: 0
+       depth_max: 30
+       start_date: 2005-01-01T00:00:00
+
+The ``catalog`` block admits the following parameters, all optional:
+
+.. list-table::
+   :widths: 20 80
+
+   * - **region**
+     - Spatial domain of the input catalog, with the same options as the testing ``region`` (a **CSEP** region or a file). Default: no spatial filter.
+   * - **mag_min**
+     - Minimum magnitude of the input catalog. Default: the testing ``mag_min``.
+   * - **mag_max**
+     - Maximum magnitude of the input catalog (exclusive). Default: the testing ``mag_max``.
+   * - **depth_min**
+     - Minimum depth (in `km`) of the input catalog. Default: no filter.
+   * - **depth_max**
+     - Maximum depth (in `km`, exclusive) of the input catalog. Default: no filter.
+   * - **start_date**
+     - Earliest event (``datetime``) of the input catalog. Default: no lower bound. The upper bound is always the start of the forecast time window.
+
+.. note::
+
+    When the main catalog is queried from a network API, the query bounds are extended to cover both the testing and the input settings (i.e., the lowest magnitude, the largest depth, the earliest date and the union of the regions' bounding boxes).
+
+The input data configuration is written in the reproducibility configuration file, so an experiment reproduced with ``floatcsep reproduce`` hands the same input catalogs to the models. The ``input_config`` block is meant to be extended with other types of input data in the future.
 
 
 Run Configuration
