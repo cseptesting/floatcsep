@@ -125,6 +125,8 @@ These are the helper functions of ``floatCSEP``
     parse_timedelta_string
     read_time_cfg
     read_region_cfg
+    read_input_cfg
+    parse_region
     time_windows_ti
     time_windows_td
 
@@ -241,8 +243,11 @@ catalogs, forecasts), abstracting the experiment logic from the pyCSEP io functi
    CatalogRepository
    CatalogRepository.set_main_catalog
    CatalogRepository.catalog
+   CatalogRepository.input_cat_config
+   CatalogRepository.query_bounds
    CatalogRepository.get_test_cat
    CatalogRepository.set_test_cats
+   CatalogRepository.get_input_cat
    CatalogRepository.set_input_cats
    CatalogRepository.filter_catalog
 

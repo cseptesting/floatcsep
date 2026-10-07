@@ -22,6 +22,7 @@ from floatcsep.utils.helpers import (
     NoAliasLoader,
     read_time_cfg,
     read_region_cfg,
+    read_input_cfg,
     timewindow2str,
     parse_nested_dicts,
 )
@@ -75,6 +76,21 @@ class Experiment:
             - depth_min (:class:`float`): Minimum depth. Defaults to -2
             - depth_max (:class:`float`): Maximum depth. Defaults to 6000
 
+        input_config (dict): Settings of the data handed to the models, as opposed to the
+            testing settings above. Contains a ``catalog`` block with the filters applied to
+            the main catalog before it is written as a model's input catalog:
+
+            - region: Spatial domain of the input catalog (same options as the testing
+              ``region``). Defaults to no spatial filter.
+            - mag_min, mag_max (:class:`float`): Magnitude range of the input catalog.
+              Default to the testing magnitude range.
+            - depth_min, depth_max (:class:`float`): Depth range of the input catalog.
+              Default to no depth filter.
+            - start_date (:class:`datetime.datetime`): Earliest event of the input catalog.
+              Defaults to no lower bound. The upper bound is always the forecast start.
+
+            See :func:`~floatcsep.utils.helpers.read_input_cfg`.
+
         model_config (str): Path to the models' configuration file
         test_config (str): Path to the evaluations' configuration file
         run_mode (str): 'sequential' or 'parallel'
@@ -106,6 +122,7 @@ class Experiment:
         LICENSE: str = None,
         time_config: dict = None,
         region_config: dict = None,
+        input_config: dict = None,
         catalog: str = None,
         models: str = None,
         tests: str = None,
@@ -156,6 +173,7 @@ class Experiment:
         self.seed = kwargs.get("seed", None)
         self.time_config = read_time_cfg(time_config, **kwargs)
         self.region_config = read_region_cfg(region_config, **kwargs)
+        self.input_config = read_input_cfg(input_config, self.region_config, **kwargs)
         self.model_config = models if isinstance(models, str) else None
         self.test_config = tests if isinstance(tests, str) else None
 
@@ -182,6 +200,15 @@ class Experiment:
             else "Time-Independent"
         )
         log.info(f"\tExperiment class: {exp_class_str}")
+        if self.input_config:
+            inp = self.input_config["catalog"]
+            inp_region = inp["region"].name if inp["region"] is not None else None
+            log.info(
+                f"\tInput catalog: region {inp_region}, "
+                f"magnitudes [{inp['mag_min']}, {inp['mag_max']}), "
+                f"depths [{inp.get('depth_min')}, {inp.get('depth_max')}), "
+                f"from {inp.get('start_date')}"
+            )
 
         self.catalog = None
         self.models = []
@@ -189,7 +216,9 @@ class Experiment:
 
         self.postprocess = postprocess if postprocess else {}
         self.default_test_kwargs = default_test_kwargs
-        self.catalog_repo.set_main_catalog(catalog, self.time_config, self.region_config)
+        self.catalog_repo.set_main_catalog(
+            catalog, self.time_config, self.region_config, self.input_config
+        )
 
         self.models = self.set_models(
             models or kwargs.get("model_config"), kwargs.get("order", None)
@@ -582,13 +611,17 @@ class Experiment:
         repr_config = self.registry.get_attr("repr_config")
 
         # Dropping region to results folder if it is a file
-        region_path = self.region_config.get("path", False)
-        if isinstance(region_path, str):
-            if isfile(region_path) and region_path:
-                new_path = join(self.registry.run_dir, self.region_config["path"])
-                shutil.copy2(region_path, new_path)
-                self.region_config.pop("path")
-                self.region_config["region"] = self.registry.rel(new_path)
+        configs = [self.region_config]
+        if self.input_config:
+            configs.append(self.input_config["catalog"])
+        for cfg in configs:
+            region_path = cfg.get("path", False)
+            if isinstance(region_path, str):
+                if isfile(region_path) and region_path:
+                    new_path = join(self.registry.run_dir, cfg["path"])
+                    shutil.copy2(region_path, new_path)
+                    cfg.pop("path")
+                    cfg["region"] = self.registry.rel(new_path)
 
         # Dropping catalog to results folder
         target_cat = join(
@@ -632,10 +665,20 @@ class Experiment:
                 for i, j in self.region_config.items()
                 if (i not in ("magnitudes", "depths") or extended)
             },
-            "catalog": self.registry.rel(self.catalog_repo.cat_path).as_posix(),
-            "models": [i.as_dict() for i in self.models],
-            "tests": [i.as_dict() for i in self.tests],
         }
+        if self.input_config:
+            dict_walk["input_config"] = {
+                "catalog": {
+                    i: j for i, j in self.input_config["catalog"].items() if j is not None
+                }
+            }
+        dict_walk.update(
+            {
+                "catalog": self.registry.rel(self.catalog_repo.cat_path).as_posix(),
+                "models": [i.as_dict() for i in self.models],
+                "tests": [i.as_dict() for i in self.tests],
+            }
+        )
         dict_walk.update(extra)
         return parse_nested_dicts(dict_walk)
 

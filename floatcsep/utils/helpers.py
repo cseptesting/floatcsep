@@ -172,6 +172,55 @@ def read_time_cfg(time_config, **kwargs):
     return time_config
 
 
+def parse_region(region_data, magnitudes=None, path=""):
+    """
+    Resolves a region specification into a :class:`csep.core.regions.CartesianGrid2D`.
+
+    Args:
+        region_data (str, dict, CartesianGrid2D): Name of a pyCSEP/floatCSEP region function,
+            a path to a text file with the cells' origins, or a region dictionary.
+        magnitudes (array-like): Magnitude bins bound to the region. Can be None if the region
+            is only used for spatial filtering.
+        path (str): Directory from which to resolve a region file.
+
+    Returns:
+        A tuple ``(region, region_file)``. ``region_file`` is the path of the region file as
+        given, or None if the region was not read from a file.
+    """
+    if region_data is None:
+        return None, None
+    if isinstance(region_data, CartesianGrid2D):
+        return region_data, None
+    try:
+        return parse_csep_func(region_data)(name=region_data, magnitudes=magnitudes), None
+    except AttributeError:
+        pass
+
+    if isinstance(region_data, str):
+        filename = os.path.join(path, region_data)
+        with open(filename, "r") as file_:
+            parsed_region = file_.readlines()
+        try:
+            data = numpy.array(
+                [re.split(r"\s+|,", i.strip()) for i in parsed_region], dtype=float
+            )
+        except ValueError:
+            data = numpy.array(
+                [re.split(r"\s+|,", i.strip()) for i in parsed_region[1:]], dtype=float
+            )
+        dh1 = scipy.stats.mode(numpy.diff(numpy.unique(data[:, 0]))).mode
+        dh2 = scipy.stats.mode(numpy.diff(numpy.unique(data[:, 1]))).mode
+        dh = numpy.nanmin([dh1, dh2])
+        region = CartesianGrid2D.from_origins(
+            data, name=region_data, magnitudes=magnitudes, dh=dh
+        )
+        return region, region_data
+
+    region_data = dict(region_data)
+    region_data["magnitudes"] = magnitudes
+    return CartesianGrid2D.from_dict(region_data), None
+
+
 def read_region_cfg(region_config, **kwargs):
     """
     Builds the region configuration of an experiment.
@@ -202,40 +251,72 @@ def read_region_cfg(region_config, **kwargs):
         magbin = region_config["mag_bin"]
         magnitudes = cleaner_range(magmin, magmax, magbin)
 
-    region_data = region_config.get("region", None)
-    try:
-        region = (
-            parse_csep_func(region_data)(name=region_data, magnitudes=magnitudes)
-            if region_data
-            else None
-        )
-    except AttributeError:
-        if isinstance(region_data, str):
-            filename = os.path.join(kwargs.get("path", ""), region_data)
-            with open(filename, "r") as file_:
-                parsed_region = file_.readlines()
-                try:
-                    data = numpy.array(
-                        [re.split(r"\s+|,", i.strip()) for i in parsed_region], dtype=float
-                    )
-                except ValueError:
-                    data = numpy.array(
-                        [re.split(r"\s+|,", i.strip()) for i in parsed_region[1:]], dtype=float
-                    )
-                dh1 = scipy.stats.mode(numpy.diff(numpy.unique(data[:, 0]))).mode
-                dh2 = scipy.stats.mode(numpy.diff(numpy.unique(data[:, 1]))).mode
-                dh = numpy.nanmin([dh1, dh2])
-                region = CartesianGrid2D.from_origins(
-                    data, name=region_data, magnitudes=magnitudes, dh=dh
-                )
-                region_config.update({"path": region_data})
-        else:
-            region_data["magnitudes"] = magnitudes
-            region = CartesianGrid2D.from_dict(region_data)
+    region, region_file = parse_region(
+        region_config.get("region", None), magnitudes, kwargs.get("path", "")
+    )
+    if region_file:
+        region_config["path"] = region_file
 
     region_config.update({"depths": depths, "magnitudes": magnitudes, "region": region})
 
     return region_config
+
+
+def read_input_cfg(input_config, region_config=None, **kwargs):
+    """
+    Builds the configuration of the input data handed to the models (e.g., the input catalog of
+    a time-dependent model), as opposed to the testing data defined by ``region_config`` and
+    ``time_config``.
+
+    The ``catalog`` block defines how the main catalog is filtered before being written as a
+    model's input catalog, for each time window. Only the window end (the forecast start date)
+    is set by the experiment. Admissible keys are ``region``, ``mag_min``, ``mag_max``,
+    ``depth_min``, ``depth_max`` and ``start_date``. Missing magnitudes default to those of
+    ``region_config``. A missing region, depths or start date means no filter, which is also
+    what an absent ``input_config`` does.
+
+    Args:
+        input_config (dict): Dictionary with an (optional) ``catalog`` block.
+        region_config (dict): Parsed experiment region configuration, used for defaults.
+        **kwargs: ``path`` is used to resolve a region file relative to the config file.
+
+    Returns:
+        A dictionary with a ``catalog`` block holding the resolved input catalog settings, or
+        an empty dictionary if no input configuration was given.
+    """
+    if not input_config:
+        return {}
+    input_config = copy.deepcopy(input_config)
+    region_config = region_config or {}
+    cat_cfg = input_config.get("catalog") or {}
+    _attrs = ["region", "mag_min", "mag_max", "depth_min", "depth_max", "start_date"]
+    unknown = set(cat_cfg) - set(_attrs) - {"path"}
+    if unknown:
+        raise ValueError(
+            f"Unknown keys in input_config.catalog: {sorted(unknown)}. "
+            f"Admissible keys are {_attrs}"
+        )
+
+    cat_cfg.setdefault("mag_min", region_config.get("mag_min"))
+    cat_cfg.setdefault("mag_max", region_config.get("mag_max"))
+
+    start = cat_cfg.get("start_date")
+    if isinstance(start, str):
+        cat_cfg["start_date"] = datetime.fromisoformat(start)
+    elif isinstance(start, date) and not isinstance(start, datetime):
+        cat_cfg["start_date"] = datetime(start.year, start.month, start.day)
+
+    region, region_file = parse_region(
+        cat_cfg.get("region", None), magnitudes=None, path=kwargs.get("path", "")
+    )
+    cat_cfg["region"] = region
+    if region_file:
+        cat_cfg["path"] = region_file
+    else:
+        cat_cfg.pop("path", None)
+
+    input_config["catalog"] = cat_cfg
+    return input_config
 
 
 def timewindow2str(datetimes: Sequence) -> Union[str, list[str]]:

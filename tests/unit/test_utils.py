@@ -14,6 +14,8 @@ from floatcsep.utils.helpers import (
     time_windows_ti,
     read_time_cfg,
     read_region_cfg,
+    read_input_cfg,
+    parse_region,
     parse_csep_func,
     time_windows_td,
 )
@@ -257,3 +259,71 @@ class RegionUtilsTest(unittest.TestCase):
         midpoints = numpy.genfromtxt(region_path)
         region_config = read_region_cfg(config)
         numpy.testing.assert_almost_equal(midpoints, region_config["region"].midpoints())
+
+    def test_parse_region(self):
+        region, path = parse_region(None)
+        self.assertIsNone(region)
+        self.assertIsNone(path)
+
+        region, path = parse_region("italy_csep_region")
+        self.assertEqual("italy_csep_region", region.name)
+        self.assertIsNone(path)
+        self.assertIsNone(region.magnitudes)
+
+        region_file = os.path.join(root_dir, "../artifacts", "regions", "mock_region")
+        region, path = parse_region(region_file, magnitudes=numpy.array([1.0]))
+        self.assertEqual(region_file, path)
+        self.assertEqual(4, region.num_nodes)
+
+
+class InputConfigTest(unittest.TestCase):
+
+    region_config = {
+        "region": "italy_csep_region",
+        "mag_min": 4.0,
+        "mag_max": 8.0,
+        "mag_bin": 0.1,
+        "depth_min": 0,
+        "depth_max": 30,
+    }
+
+    def test_empty(self):
+        self.assertEqual({}, read_input_cfg(None, self.region_config))
+        self.assertEqual({}, read_input_cfg({}, self.region_config))
+
+    def test_defaults(self):
+        cfg = read_input_cfg({"catalog": {}}, self.region_config)["catalog"]
+        self.assertEqual(4.0, cfg["mag_min"])
+        self.assertEqual(8.0, cfg["mag_max"])
+        self.assertIsNone(cfg["region"])
+        self.assertNotIn("depth_min", cfg)
+        self.assertNotIn("start_date", cfg)
+
+    def test_explicit(self):
+        config = {
+            "catalog": {
+                "region": "italy_csep_collection_region",
+                "mag_min": 2.5,
+                "depth_max": 30,
+                "start_date": "2005-01-01T00:00:00",
+            }
+        }
+        cfg = read_input_cfg(config, self.region_config)["catalog"]
+        self.assertEqual("italy_csep_collection_region", cfg["region"].name)
+        self.assertEqual(2.5, cfg["mag_min"])
+        self.assertEqual(8.0, cfg["mag_max"])
+        self.assertEqual(30, cfg["depth_max"])
+        self.assertEqual(datetime(2005, 1, 1), cfg["start_date"])
+        self.assertNotIn("path", cfg)
+        # the input dictionary is not modified
+        self.assertEqual("italy_csep_collection_region", config["catalog"]["region"])
+
+    def test_region_file(self):
+        region_file = os.path.join(root_dir, "../artifacts", "regions", "mock_region")
+        cfg = read_input_cfg({"catalog": {"region": region_file}}, self.region_config)
+        self.assertEqual(region_file, cfg["catalog"]["path"])
+        self.assertEqual(4, cfg["catalog"]["region"].num_nodes)
+
+    def test_unknown_key(self):
+        with self.assertRaises(ValueError):
+            read_input_cfg({"catalog": {"mag_bin": 0.1}}, self.region_config)

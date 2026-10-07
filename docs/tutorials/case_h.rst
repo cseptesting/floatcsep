@@ -81,7 +81,7 @@ As in :ref:`Tutorial G<case_g>`, each **Model** requires to build and execute a 
     .. literalinclude:: ../../tutorials/case_h/models.yml
         :caption: tutorials/case_h/models.yml
         :language: yaml
-        :lines: 1-3, 12-13, 22-23
+        :lines: 1-3, 12-13, 23-24
 
 2. A ``path`` needs to be indicated for each model, to both download the repository contents therein and from where the source code will be executed.
 
@@ -132,7 +132,7 @@ As in :ref:`Tutorial G<case_g>`, each **Model** requires to build and execute a 
     .. literalinclude:: ../../tutorials/case_h/models.yml
         :caption: tutorials/case_h/models.yml
         :language: yaml
-        :lines: 1,7,12,15,22,25
+        :lines: 1,7,12,15,23,26
 
     .. important::
         Please refer to :ref:`Tutorial G<case_g>` for example of how to set up ``func`` for the model and interface it to **floatCSEP**.
@@ -142,7 +142,7 @@ As in :ref:`Tutorial G<case_g>`, each **Model** requires to build and execute a 
     .. literalinclude:: ../../tutorials/case_h/models.yml
         :caption: tutorials/case_h/models.yml
         :language: yaml
-        :lines: 12,16,22, 26
+        :lines: 12,16,23,27
 
     The experiment will read the forecasts as:
 
@@ -157,7 +157,7 @@ As in :ref:`Tutorial G<case_g>`, each **Model** requires to build and execute a 
     .. literalinclude:: ../../tutorials/case_h/models.yml
         :caption: tutorials/case_h/models.yml
         :language: yaml
-        :lines: 12,18-21,22,28-33
+        :lines: 12,18-22,23,29-35
 
 .. note::
 
@@ -177,6 +177,18 @@ Catalog
 ~~~~~~~
 
     The catalog was obtained *prior* to the experiment using :func:`query bsi <csep.query_bsi>`, but it was filtered from 2006 onwards, so it has enough data for the model calibration.
+
+Input Catalog
+~~~~~~~~~~~~~
+
+    The models are time-dependent, so they receive an **input catalog** at each time window, with the seismicity before the forecast start. The ``input_config`` block sets how this catalog is filtered, independently from the testing settings of ``region_config``: here the models are calibrated with events down to magnitude 2.5 within the Italy *collection* region, whereas the forecasts are tested for magnitudes above 3.5 within the Italy *testing* region.
+
+    .. literalinclude:: ../../tutorials/case_h/config.yml
+        :caption: tutorials/case_h/config.yml
+        :language: yaml
+        :lines: 17-22
+
+    Without ``input_config``, the input catalog would contain the events of the testing magnitude range only, with no spatial or depth filter. See :ref:`experiment_config` for the admissible parameters.
 
 
 Tests
@@ -201,7 +213,7 @@ Custom Post-Process
     .. literalinclude:: ../../tutorials/case_h/config.yml
         :caption: tutorials/case_h/config.yml
         :language: yaml
-        :lines: 22-23
+        :lines: 29-30
 
     This option provides `hook` for a Python script and a function within as:
 
