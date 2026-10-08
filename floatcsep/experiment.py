@@ -434,7 +434,9 @@ class Experiment:
         # Get the time windows strings
         tw_strings = timewindow2str(self.time_windows)
 
-        # Prepare the testing catalogs
+        # Catalogs and forecasts, window by window. In sequential mode the tasks run in this
+        # order and all windows share the model's input folder, so each window's input
+        # catalog must be written right before its forecasts.
         task_graph = TaskGraph()
         for time_i in tw_strings:
             task_i = Task(instance=self.catalog_repo, method="set_test_cats", tstring=time_i)
@@ -448,8 +450,6 @@ class Experiment:
                 )
                 task_graph.add(task=task_j)
 
-        # Set up the Forecasts creation
-        for time_i in tw_strings:
             for model_j in self.models:
                 task_ij = Task(
                     instance=model_j,
@@ -465,7 +465,7 @@ class Experiment:
                         task_ij,
                         dep_inst=self.catalog_repo,
                         dep_meth="set_input_cats",
-                        dkw=(time_i, model_j),
+                        dkw=time_i,
                     )
                 task_graph.add_dependency(
                     task_ij, dep_inst=self.catalog_repo, dep_meth="set_test_cats", dkw=time_i
