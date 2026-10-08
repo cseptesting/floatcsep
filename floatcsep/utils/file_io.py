@@ -4,7 +4,7 @@ import logging
 import os.path
 import time
 import xml.etree.ElementTree as eTree
-from typing import Iterator
+from typing import Callable, Iterator
 
 import csep
 import h5py
@@ -133,15 +133,50 @@ class CatalogForecastParsers:
 
         # CSEP headers
         if headers_df[:2] == csep_headers[:2]:
-
-            return csep.load_catalog_forecast(filename, **kwargs)
-
+            loader = CSEPCatalog.load_ascii_catalogs
         elif headers_df == hermes_headers:
-            return csep.load_catalog_forecast(
-                filename, catalog_loader=CatalogForecastParsers.load_hermes_catalog, **kwargs
-            )
+            loader = CatalogForecastParsers.load_hermes_catalog
         else:
             raise Exception("Catalog Forecast could not be loaded")
+
+        n_cat = kwargs.get("n_cat")
+        if n_cat:
+            loader = CatalogForecastParsers.pad_catalogs(loader, n_cat)
+        return csep.load_catalog_forecast(filename, catalog_loader=loader, **kwargs)
+
+    @staticmethod
+    def pad_catalogs(loader: Callable, n_cat: int) -> Callable:
+        """
+        Wraps a catalog loader so that it yields exactly ``n_cat`` catalogs.
+
+        Synthetic catalogs without events are usually not written in a forecast file. The
+        loaders recover the empty catalogs between two written ``catalog_id``, but cannot know
+        about empty catalogs after the last written one, nor about a file without events.
+        This wrapper yields those trailing empty catalogs, so that the forecast and the
+        evaluations use the declared number of simulations.
+
+        Args:
+            loader (callable): Catalog loader, e.g.
+                :meth:`csep.core.catalogs.CSEPCatalog.load_ascii_catalogs`.
+            n_cat (int): Number of synthetic catalogs in the forecast.
+
+        Returns:
+            A catalog loader with the same signature as ``loader``.
+        """
+
+        def padded(filename, **kwargs):
+            n = 0
+            for cat in loader(filename, **kwargs):
+                if n >= n_cat:
+                    raise ValueError(
+                        f"Forecast {filename} has more catalogs than n_sims={n_cat}"
+                    )
+                n += 1
+                yield cat
+            for i in range(n, n_cat):
+                yield CSEPCatalog(data=[], catalog_id=i, **kwargs)
+
+        return padded
 
     @staticmethod
     def load_hermes_catalog(filename, **kwargs) -> Iterator[CSEPCatalog]:
@@ -283,6 +318,7 @@ class GriddedForecastParsers:
     2D array shaped ``(num_spatial_bins, num_magnitude_bins)`` and `region` is a
     pyCSEP region instance describing the spatial bins.
     """
+
     @staticmethod
     def dat(filename: str):
         """
@@ -466,6 +502,7 @@ class GriddedForecastParsers:
                   csep.core.regions.QuadtreeGrid2D): Region describing spatial bins.
                 - magnitudes (numpy.ndarray): Magnitude bin edges.
         """
+
         def is_mag(num):
             try:
                 m = float(num)
@@ -556,6 +593,7 @@ class HDF5Serializer:
     Stores the forecast rates, magnitude bins, and enough region geometry to
     reconstruct a cartesian grid on load.
     """
+
     @staticmethod
     def grid2hdf5(rates, region, mag, grp="", hdf5_filename=None, **kwargs):
         """

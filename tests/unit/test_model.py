@@ -292,7 +292,26 @@ class TestTimeDependentModel(TestModel):
         self.model.get_forecast(tstring)
 
         self.mock_repository_instance.load_forecast.assert_called_once_with(
-            tstring, name=self.name, region=None
+            tstring, name=self.name, region=None, n_sims=None
+        )
+
+    def test_get_forecast_n_sims(self):
+        tstring = "2020-01-01_2020-12-31"
+        model = TimeDependentModel(
+            name=self.name,
+            model_path=self.model_path,
+            func=self.func,
+            func_kwargs={"n_sims": 50},
+        )
+        model.get_forecast(tstring, region="region")
+        self.mock_repository_instance.load_forecast.assert_called_with(
+            tstring, name=self.name, region="region", n_sims=50
+        )
+
+        model = TimeDependentModel(name=self.name, model_path=self.model_path, n_sims=20)
+        model.get_forecast(tstring)
+        self.mock_repository_instance.load_forecast.assert_called_with(
+            tstring, name=self.name, region=None, n_sims=20
         )
 
     @patch("floatcsep.model.TimeDependentModel.prepare_args")

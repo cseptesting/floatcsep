@@ -382,8 +382,15 @@ class TimeDependentModel(Model):
             region: String representing the region for which to return a forecast.
                 If None, will return a forecast for all regions.
 
+        Note:
+            The number of synthetic catalogs is taken from ``func_kwargs['n_sims']`` (or a
+            model-level ``n_sims``). Without it, pyCSEP infers it from the largest
+            ``catalog_id`` in the file, which misses trailing empty catalogs.
         """
-        return self.repository.load_forecast(tstring, name=self.name, region=region)
+        n_sims = self.func_kwargs.get("n_sims") or self.__dict__.get("n_sims")
+        return self.repository.load_forecast(
+            tstring, name=self.name, region=region, n_sims=n_sims
+        )
 
     def create_forecast(self, tstring: str, **kwargs) -> None:
         """

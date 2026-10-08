@@ -46,6 +46,51 @@ class TestCatalogForecastRepository(unittest.TestCase):
         forecasts = repo.load_forecast(["2023-01-01_2023-01-01", "2023-01-02_2023-01-03"])
         self.assertEqual(forecasts, ["forecatto", "forecatto"])
 
+    def test_load_forecast_n_sims(self):
+        repo = CatalogForecastRepository(self.registry)
+        with patch.object(repo, "_load_single_forecast", return_value="fc") as single:
+            repo.load_forecast("2023-01-01_2023-01-02", name="m", region="r", n_sims=10)
+            single.assert_called_with("2023-01-01_2023-01-02", name="m", region="r", n_sims=10)
+            repo.load_forecast(["2023-01-01_2023-01-02", "2023-01-02_2023-01-03"], "m", "r", 10)
+            single.assert_called_with("2023-01-02_2023-01-03", name="m", region="r", n_sims=10)
+            self.assertEqual(2 + 1, single.call_count)
+
+    def test_load_single_forecast_trailing_empty_catalogs(self):
+        import os
+        import tempfile
+
+        from csep.core.regions import italy_csep_region
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "m_2023-01-01_2023-01-02.csv")
+            with open(path, "w") as f:
+                f.write("lon,lat,mag,time_string,depth,catalog_id,event_id\n")
+                f.write("13.0,42.5,4.5,2023-01-01T10:00:00,10.0,0,0\n")
+                f.write("13.0,42.5,4.2,2023-01-01T11:00:00,10.0,2,0\n")
+            self.registry.get_forecast_key.return_value = path
+            repo = CatalogForecastRepository(self.registry)
+            region = italy_csep_region()
+            fc = repo.load_forecast("2023-01-01_2023-01-02", region=region, n_sims=10)
+            counts = [c.event_count for c in fc]
+            self.assertEqual(10, len(counts))
+            self.assertEqual([1, 0, 1] + [0] * 7, counts)
+            self.assertEqual(10, fc.n_cat)
+
+            fc = repo.load_forecast("2023-01-01_2023-01-02", region=region)
+            self.assertEqual(3, len([c.event_count for c in fc]))
+
+            with open(path, "w") as f:
+                f.write("lon,lat,mag,time_string,depth,catalog_id,event_id\n")
+            fc = repo.load_forecast("2023-01-01_2023-01-02", region=region, n_sims=5)
+            self.assertEqual([0] * 5, [c.event_count for c in fc])
+
+            with open(path, "w") as f:
+                f.write("lon,lat,mag,time_string,depth,catalog_id,event_id\n")
+                f.write("13.0,42.5,4.5,2023-01-01T10:00:00,10.0,7,0\n")
+            fc = repo.load_forecast("2023-01-01_2023-01-02", region=region, n_sims=5)
+            with self.assertRaises(ValueError):
+                [c for c in fc]
+
     @patch("floatcsep.file_io.CatalogForecastParsers.csv")
     def test_load_single_forecast(self, mock_load_catalog_forecast):
         # Test _load_single_forecast
