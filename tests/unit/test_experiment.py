@@ -1,12 +1,13 @@
 import os.path
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import numpy
 from unittest import TestCase
 from datetime import datetime
 from floatcsep.experiment import Experiment
+from floatcsep.model import TimeDependentModel
 from csep.core import poisson_evaluations
 
 _dir = os.path.dirname(__file__)
@@ -227,6 +228,52 @@ class TestExperiment(TestCase):
             #     exp.set_test_cat(tstring)
             #     cat = CSEPCatalog.load_json(file_.name)
             #     numpy.testing.assert_equal(1609455600000, cat.data[0][1])
+
+    @patch("floatcsep.experiment.log_results_tree")
+    @patch("floatcsep.experiment.log_models_tree")
+    @patch.object(Experiment, "set_tree")
+    def test_set_tasks_td_order_and_dependencies(self, *args):
+        exp = Experiment(
+            start_date=datetime(2020, 1, 1),
+            end_date=datetime(2020, 1, 3),
+            horizon="1days",
+            exp_class="td",
+            **_region_config,
+            catalog=_cat,
+        )
+        models = []
+        for name in ("a", "b"):
+            m = MagicMock(spec=TimeDependentModel)
+            m.name = name
+            models.append(m)
+        exp.models = models
+        exp.set_tasks()
+
+        tasks = list(exp.task_graph.tasks)
+        order = [(t.method, t.kwargs["tstring"], getattr(t.obj, "name", None)) for t in tasks]
+        w1, w2 = "2020-01-01_2020-01-02", "2020-01-02_2020-01-03"
+        cat = exp.catalog_repo.name
+        self.assertEqual(
+            [
+                ("set_test_cats", w1, cat),
+                ("set_input_cats", w1, cat),
+                ("create_forecast", w1, "a"),
+                ("create_forecast", w1, "b"),
+                ("set_test_cats", w2, cat),
+                ("set_input_cats", w2, cat),
+                ("create_forecast", w2, "a"),
+                ("create_forecast", w2, "b"),
+            ],
+            order,
+        )
+        for task, deps in exp.task_graph.tasks.items():
+            if task.method != "create_forecast":
+                continue
+            win = task.kwargs["tstring"]
+            self.assertEqual(
+                {("set_test_cats", win), ("set_input_cats", win)},
+                {(d.method, d.kwargs["tstring"]) for d in deps},
+            )
 
     @classmethod
     def tearDownClass(cls) -> None:
