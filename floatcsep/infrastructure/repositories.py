@@ -450,7 +450,10 @@ class CatalogForecastRepository(ForecastRepository):
         if isinstance(tstring, str):
             return self._load_single_forecast(tstring, name=name, region=region, n_sims=n_sims)
         else:
-            return [self._load_single_forecast(t, region) for t in tstring]
+            return [
+                self._load_single_forecast(t, name=name, region=region, n_sims=n_sims)
+                for t in tstring
+            ]
 
     def _load_single_forecast(self, tstring: str, name=None, region=None, n_sims=None):
         start_date, end_date = str2timewindow(tstring)
