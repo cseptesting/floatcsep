@@ -5,6 +5,7 @@ export function chrome() {
   return {
     textStyle: { fontFamily: "Noto Sans, Segoe UI, system-ui, sans-serif", color: ink2, fontSize: 12 },
     animationDuration: 250,
+    useUTC: true,
     grid: { left: 52, right: 18, top: 28, bottom: 36, containLabel: false },
     tooltip: {
       backgroundColor: css("--surface"), borderColor: css("--line"), textStyle: { color: ink, fontSize: 12 },
@@ -17,7 +18,7 @@ export function chrome() {
       splitLine: { lineStyle: { color: grid } },
       nameTextStyle: { color: ink2, fontSize: 12 },
     },
-    legend: { textStyle: { color: ink2 }, icon: "roundRect", itemWidth: 12, itemHeight: 8, top: 0, right: 10 },
+    legend: { type: "scroll", textStyle: { color: ink2 }, icon: "roundRect", itemWidth: 12, itemHeight: 8, top: 0, left: "center", width: "72%", pageIconColor: ink2, pageTextStyle: { color: ink2 } },
   };
 }
 

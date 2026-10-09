@@ -19,10 +19,6 @@ function code(v) {
   return v === null || v === undefined ? null : el("code", {}, typeof v === "object" ? JSON.stringify(v) : String(v));
 }
 
-function key(k) {
-  return el("span", { class: "cfg-key" }, k);
-}
-
 function header(m) {
   const e = m.experiment;
   const badges = el("div", { class: "badges" });
@@ -51,7 +47,13 @@ function header(m) {
 
 function flow(m) {
   const e = m.experiment, r = m.region || {};
-  const lines = (...xs) => el("ul", { class: "lines" }, xs.filter(Boolean).map((x) => el("li", {}, x)));
+  const lines = (...xs) => {
+    xs = xs.filter(Boolean);
+    const shown = xs.length > 4 ? xs.slice(0, 3) : xs;
+    const items = shown.map((x) => el("li", { title: x }, x));
+    if (xs.length > shown.length) items.push(el("li", { class: "more" }, `+ ${xs.length - shown.length} more`));
+    return el("ul", { class: "lines" }, items);
+  };
   const cell = (title, n, unit, href, body) => el("a", { class: "flow-cell", href },
     el("h3", {}, title), el("div", { class: "n" }, n, unit ? el("span", { class: "unit" }, unit) : null), body);
   const nw = m.time_windows.length;
@@ -168,8 +170,8 @@ export async function render(root, ctx) {
       ["Growth", e.growth ? `${e.growth[0].toUpperCase()}${e.growth.slice(1)}` : null],
     ]))), { tight: true }));
 
-  right.append(panel("Models", el("div", {}, modelsList(m))));
-  right.append(panel("Tests", el("div", {}, testsList(m))));
+  right.append(panel("Models", el("div", { class: "scroll-list" }, modelsList(m)), { sub: m.models.length > 4 ? `${m.models.length} models` : "" }));
+  right.append(panel("Tests", el("div", { class: "scroll-list" }, testsList(m)), { sub: m.tests.length > 4 ? `${m.tests.length} tests` : "" }));
   const cite = citeBlock(e);
   if (cite) right.append(cite);
   right.append(panel("Run", props([

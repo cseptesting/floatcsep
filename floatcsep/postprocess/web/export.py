@@ -80,7 +80,8 @@ def _columns(cat: Any) -> Dict[str, Any]:
 
 
 def _iso(v: Any) -> Any:
-    return v.isoformat() if hasattr(v, "isoformat") else v
+    from .manifest import _iso as iso
+    return iso(v) if hasattr(v, "isoformat") else v
 
 
 def export_catalog(experiment: Any, manifest: Dict[str, Any], out: Path) -> Optional[Dict[str, Any]]:

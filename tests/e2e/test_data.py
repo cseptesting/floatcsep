@@ -1,3 +1,4 @@
+import json
 import sys
 
 from floatcsep.commands import main
@@ -42,9 +43,6 @@ class DataTest(unittest.TestCase):
     def get_eval_dist(self):
         pass
 
-    @staticmethod
-    def view_dashboard(cfg_file):
-        main.view(cfg_file, show=True, start=False)
 
 
 @patch("floatcsep.commands.main.plot_forecasts")
@@ -131,23 +129,48 @@ class ReproduceExamples(DataTest):
         self.assertEqual(1, 1)
 
 
-@patch("floatcsep.commands.main.plot_forecasts")
-@patch("floatcsep.commands.main.plot_catalogs")
-@patch("floatcsep.commands.main.plot_custom")
-@patch("floatcsep.commands.main.generate_report")
-class ViewExamples(DataTest):
+class ExportExamples(DataTest):
+    """Exports the tutorials run above as static dashboards and checks the written files."""
+
+    def check_dashboard(self, case, td=False, forecasts=True):
+        cfg = self.get_rerunpath(case)
+        main.export(cfg)
+        out = os.path.join(os.path.dirname(cfg), "dashboard")
+        with open(os.path.join(out, "manifest.json")) as f:
+            manifest = json.load(f)
+        for name in ("index.html", "js/app.js", "vendor/echarts/echarts.min.js", "grid.json"):
+            self.assertTrue(os.path.isfile(os.path.join(out, name)), name)
+
+        n_win = len(manifest["time_windows"])
+        self.assertGreater(n_win, 0)
+        self.assertEqual(manifest["experiment"]["exp_class"], "Time-Dependent" if td else "Time-Independent")
+        if forecasts:
+            for model in manifest["models"]:
+                self.assertEqual(len(model["forecasts"]), n_win, model["name"])
+                for rel in model["forecasts"].values():
+                    with open(os.path.join(out, rel)) as f:
+                        fc = json.load(f)
+                    self.assertGreater(fc["n_cells"], 0)
+                    self.assertEqual(len(fc["totals"]), len(fc["mags"]))
+
+        with open(os.path.join(out, manifest["catalog"]["file"])) as f:
+            cats = json.load(f)
+        self.assertEqual(len(cats["testing"]["w"]), cats["testing"]["n"])
+        self.assertEqual(cats["input"] is not None, td)
+
+        with open(os.path.join(out, manifest["results"]["index"])) as f:
+            index = json.load(f)
+        tests = {t["id"] for t in manifest["tests"]}
+        self.assertTrue(index)
+        self.assertEqual({r["test"] for r in index}, tests)
+        return manifest
+
     def test_case_c(self, *args):
-        cfg = self.get_rerunpath("c")
-        self.view_dashboard(cfg)
-        self.assertEqual(1, 1)
+        self.check_dashboard("c")
 
     def test_case_f(self, *args):
-        cfg = self.get_rerunpath("f")
-        self.view_dashboard(cfg)
-        self.assertEqual(1, 1)
+        self.check_dashboard("f", td=True)
 
     @skip_on_ci("Tested only locally")
     def test_case_g(self, *args):
-        cfg = self.get_rerunpath("g")
-        self.view_dashboard(cfg)
-        self.assertEqual(1, 1)
+        self.check_dashboard("g", td=True)

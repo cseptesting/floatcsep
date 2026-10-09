@@ -20,8 +20,11 @@ def _str(value: Any) -> Optional[str]:
 
 
 def _iso(value: Any) -> Optional[str]:
+    """ISO 8601 string in UTC. Naive datetimes are UTC in floatCSEP."""
     if isinstance(value, datetime.datetime):
-        return value.isoformat()
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=datetime.timezone.utc)
+        return value.astimezone(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
     return _str(value)
 
 
@@ -59,6 +62,14 @@ def _jsonable(value: Any) -> Any:
     return str(value)
 
 
+def _refs(value: Any) -> Optional[List[str]]:
+    if value is None:
+        return None
+    if isinstance(value, (list, tuple)):
+        return [str(v) for v in value]
+    return [str(value)]
+
+
 def window_entries(experiment: Any) -> List[Dict[str, Any]]:
     out = []
     for i, tw in enumerate(experiment.time_windows):
@@ -67,8 +78,8 @@ def window_entries(experiment: Any) -> List[Dict[str, Any]]:
                 "id": f"w{i}",
                 "key": timewindow2str(tw),
                 "label": timewindow2str(tw).replace("_", " – "),
-                "start": tw[0].isoformat(),
-                "end": tw[1].isoformat(),
+                "start": _iso(tw[0]),
+                "end": _iso(tw[1]),
             }
         )
     return out
@@ -173,6 +184,7 @@ def build_manifest(experiment: Any) -> Dict[str, Any]:
                 "type": getattr(t, "type", None),
                 "func_kwargs": _jsonable(getattr(t, "func_kwargs", None)),
                 "ref_model": _str(getattr(t, "ref_model", None)),
+                "ref_models": _refs(getattr(t, "ref_model", None)),
                 "plot_func": [f"{p.__module__}.{p.__name__}" for p in (t.plot_func or [])],
             }
         )

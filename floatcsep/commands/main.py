@@ -12,7 +12,6 @@ from floatcsep.postprocess.plot_handler import (
     plot_custom,
 )
 from floatcsep.postprocess.reporting import generate_report, reproducibility_report
-from floatcsep.postprocess.panel import run_app
 from floatcsep.postprocess.web import export_experiment, serve as serve_dashboard
 
 setup_logger()
@@ -132,36 +131,32 @@ def plot(config: str, **kwargs) -> None:
     log.debug("")
 
 
-def view(config: str, **kwargs) -> None:
+def view(config: str, out: str = None, port: int = 8765, no_browser: bool = False, **kwargs) -> None:
     """
-    Launch an interactive Panel-based data viewer for an existing experiment.
+    Exports an existing experiment as a static web dashboard and opens it in the browser.
 
-    This function loads the experiment configuration, reconstructs the model and
-    evaluation file tree, and starts a Panel server so that the user can explore the
-    catalogs, forecasts, and test results in a web browser.
+    It always re-exports, so the dashboard reflects the current results. Use
+    :func:`export` and :func:`serve` to do the two steps separately.
 
     Example usage from a terminal:
     ::
 
         floatcsep view <config>
+        floatcsep view <config> --port 8080
 
-    Args
-    ----
-    config : str
-        Path to the experiment configuration file (YAML format).
-    **kwargs :
-        Additional configuration parameters forwarded to `Experiment.from_yml`.
-
-    Returns
-    -------
-    None
+    Args:
+        config (str): Path to the experiment configuration file (YAML format).
+        out (str): Dashboard folder. Defaults to ``<run_dir>/dashboard``.
+        port (int): TCP port to serve on.
+        no_browser (bool): Do not open the browser automatically.
+        **kwargs: Additional configuration parameters forwarded to `Experiment.from_yml`.
     """
     log.info(f"floatCSEP v{__version__} | View")
     exp = Experiment.from_yml(config_yml=config, **kwargs)
     exp.stage_models()
     exp.set_tree()
-    log.info(f"Creating Panel App")
-    run_app(experiment=exp, **kwargs)
+    folder = export_experiment(exp, out_dir=out)
+    serve_dashboard(folder, port=port, open_browser=not no_browser)
 
 
 def export(config: str, out: str = None, **kwargs) -> None:

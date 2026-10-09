@@ -33,7 +33,6 @@ dependencies = [
     "h5py",
     "matplotlib",
     "pandas",
-    "panel",
     "packaging",
     "pycsep",
     "pyyaml",
@@ -76,7 +75,8 @@ zip-safe = false
 include = ["floatcsep*"]
 
 [tool.setuptools.package-data]
-"floatcsep.postprocess" = ["assets/*.png", "assets/*.tff"]
+"floatcsep.postprocess" = ["artifacts/*.png", "artifacts/*.ttf", "artifacts/regions/*.png"]
+"floatcsep.postprocess.web" = ["README.md", "static/*.html", "static/css/*", "static/js/*.js", "static/js/pages/*.js", "static/fonts/*", "static/logos/*", "static/vendor/*", "static/vendor/*/*", "static/vendor/*/images/*"]
 
 [tool.setuptools_scm]
 version_scheme = "post-release"

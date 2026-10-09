@@ -302,6 +302,69 @@ export async function render(root, ctx) {
     linesOverWindows(t, t.type === "sequential_comparative" ? "Cumulative Information Gain" : "Cumulative Log-Likelihood", t.ref_model ? `Reference ${t.ref_model}` : t.name, valueOf, t.type === "sequential_comparative" ? "Information gain" : "Log-likelihood");
   }
 
+  function batch(t) {
+    const rows = winRecs().filter((r) => Array.isArray(r.observed_statistic));
+    const refs = t.ref_models && t.ref_models.length ? t.ref_models : models.map((x) => x.name);
+    if (!rows.length) { generic(t); return; }
+    const score = (r) => r.observed_statistic.filter(Number.isFinite).reduce((a, b) => a + b, 0) / r.observed_statistic.length;
+    rows.sort((a, b) => score(b) - score(a));
+    const yNames = rows.map((r) => mName[r.model]);
+    const cells = [];
+    let amax = 0;
+    rows.forEach((r, yi) => {
+      const tq = Array.isArray(r.quantile) ? r.quantile[0] || [] : [];
+      const wq = Array.isArray(r.quantile) ? r.quantile[1] || [] : [];
+      r.observed_statistic.forEach((v, xi) => {
+        if (!Number.isFinite(v) || mName[r.model] === refs[xi]) return;
+        amax = Math.max(amax, Math.abs(v));
+        cells.push({ xi, yi, v, t: Number.isFinite(tq[xi]) && tq[xi] > 0, w: Number.isFinite(wq[xi]) && wq[xi] < state.alpha });
+      });
+    });
+    amax = amax || 1;
+    const pos = css("--series-1"), neg = css("--series-8"), mid = css("--surface-2"), ink = css("--ink");
+    const mix = (v) => {
+      const f = Math.min(1, Math.abs(v) / amax);
+      return { color: v >= 0 ? pos : neg, opacity: 0.15 + 0.85 * f };
+    };
+    mainTitle.textContent = t.name;
+    mainSub.textContent = `Window ${wIdx[state.win] + 1}. Information gain of each model (row) over each reference (column)`;
+    const c = chrome();
+    main.setOption({
+      ...c,
+      legend: { show: false },
+      grid: { left: 10, right: 20, top: 10, bottom: 60, containLabel: true },
+      tooltip: { ...c.tooltip, trigger: "item", formatter: (p) => {
+        const d = cells[p.dataIndex];
+        return `<b>${yNames[d.yi]}</b> over <b>${refs[d.xi]}</b><br>IG ${fmt.num(d.v, 3)}<br>T-test ${d.t ? "significant" : "not significant"}<br>W-test ${d.w ? "significant" : "not significant"}`;
+      } },
+      xAxis: { type: "category", data: refs, ...axis(), splitLine: { show: false }, axisLabel: { ...axis().axisLabel, rotate: refs.length > 5 ? 30 : 0, interval: 0 } },
+      yAxis: { type: "category", data: yNames, inverse: true, ...axis(), splitLine: { show: false }, axisLabel: { ...axis().axisLabel, color: ink } },
+      series: [{
+        type: "custom",
+        data: cells.map((d) => [d.xi, d.yi, d.v]),
+        renderItem: (params, api) => {
+          const d = cells[params.dataIndex];
+          const p = api.coord([d.xi, d.yi]);
+          const sz = api.size([1, 1]);
+          const w = sz[0] - 3, h = sz[1] - 3;
+          const st = mix(d.v);
+          const kids = [{ type: "rect", shape: { x: p[0] - w / 2, y: p[1] - h / 2, width: w, height: h, r: 3 }, style: { fill: st.color, opacity: st.opacity } }];
+          if (d.t) kids.push({ type: "rect", shape: { x: p[0] - w / 2 + 1, y: p[1] - h / 2 + 1, width: w - 2, height: h - 2, r: 3 }, style: { fill: "none", stroke: ink, lineWidth: 2 } });
+          kids.push({ type: "text", style: { x: p[0], y: p[1], text: fmt.num(d.v, 2) + (d.w ? "" : "*"), fill: ink, align: "center", verticalAlign: "middle", fontSize: 12, fontWeight: d.t ? 700 : 400 } });
+          return { type: "group", children: kids };
+        },
+      }],
+    }, true);
+    legend.replaceChildren(
+      el("span", {}, el("i", { class: "swatch", style: { background: pos } }), "Row model better"),
+      el("span", {}, el("i", { class: "swatch", style: { background: neg } }), "Reference better"),
+      el("span", {}, el("i", { class: "swatch", style: { background: "transparent", border: `2px solid ${ink}` } }), "T-test significant"),
+      el("span", {}, "* W-test not significant"),
+    );
+    main.off("click");
+    table(rows.map((r) => [mName[r.model], fmt.num(score(r), 3)]), ["Model", "Mean IG"]);
+  }
+
   function generic(t) {
     const rows = winRecs();
     mainTitle.textContent = t.name;
@@ -334,14 +397,16 @@ export async function render(root, ctx) {
     const t = testOf();
     testInfoDraw();
     const seqLike = t.type === "sequential" || t.type === "sequential_comparative";
-    winField.style.display = seqLike || state.view === "time" ? "none" : "";
-    if (viewSeg.parentElement) viewSeg.parentElement.style.display = seqLike ? "none" : "";
+    const single = seqLike || t.type === "batch";
+    winField.style.display = seqLike || (state.view === "time" && t.type !== "batch") ? "none" : "";
+    if (viewSeg.parentElement) viewSeg.parentElement.style.display = single ? "none" : "";
     if (seqLike) sequential(t);
     else if (t.type === "consistency") (state.view === "time" && windows.length > 1 ? consistencyTime : consistencyWindow)(t);
     else if (t.type === "comparative") {
       if (state.view === "time" && windows.length > 1) linesOverWindows(t, "Information Gain per Window", `Reference ${t.ref_model || "–"}`, (mid, wid) => { const r = recs().find((x) => x.model === mid && x.window === wid); return r && Number.isFinite(r.observed_statistic) ? r.observed_statistic : null; }, "Information gain");
       else comparativeWindow(t);
-    } else generic(t);
+    } else if (t.type === "batch") batch(t);
+    else generic(t);
     detailDraw();
     figureDraw();
   }

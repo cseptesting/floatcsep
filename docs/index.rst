@@ -192,6 +192,7 @@ Collaborators
    guide/evaluation_config.rst
    guide/postprocess_config.rst
    guide/executing_experiment.rst
+   guide/dashboard.rst
 
 
 .. sidebar-links::

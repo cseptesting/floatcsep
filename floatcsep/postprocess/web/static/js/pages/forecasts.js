@@ -16,11 +16,21 @@ async function loadForecast(m, modelId, winId) {
   return { q: raw._q, nm: raw.mags.length, vmin: raw.vmin, vmax: raw.vmax, mags: raw.mags, totals: raw.totals, n: raw.n_cells, grid: raw.grid };
 }
 
-function valuesAt(fc, k) {
+/** log10 rate per cell for magnitude bins k0..k1, from the cumulative N(>=M) values. */
+function valuesAt(fc, k0, k1) {
   const out = new Float32Array(fc.n);
   const finite = [];
+  const last = k1 >= fc.nm - 1;
   for (let i = 0; i < fc.n; i++) {
-    const v = cellValue(fc, i, k);
+    const a = cellValue(fc, i, k0);
+    let v = a;
+    if (!last && Number.isFinite(a)) {
+      const b = cellValue(fc, i, k1 + 1);
+      if (Number.isFinite(b)) {
+        const d = Math.pow(10, a) - Math.pow(10, b);
+        v = d > 0 ? Math.log10(d) : NaN;
+      }
+    }
     out[i] = v;
     if (Number.isFinite(v)) finite.push(v);
   }
@@ -38,9 +48,17 @@ export async function render(root, ctx) {
   }
   const grid = ctx.gridPromise ? await ctx.gridPromise : null;
   const mags = m.magnitudes || [];
-  const state = { model: models[0].id, win: Object.keys(models[0].forecasts)[0], k: 0, range: null, lock: false, showCat: true };
+  const state = { model: models[0].id, win: Object.keys(models[0].forecasts)[0], k: 0, k1: Math.max(0, mags.length - 1), range: null, lock: false, showCat: true };
   let fc = null, cur = null, catalog = null;
   const thr = () => (fc ? fc.mags : mags)[state.k];
+  const dm = mags.length > 1 ? +(mags[1] - mags[0]).toFixed(4) : (r.mag_bin || 0.1);
+  const mtop = () => {
+    const ms = fc ? fc.mags : mags;
+    return state.k1 >= ms.length - 1 ? (r.mag_max ?? ms[ms.length - 1] + dm) : ms[state.k1] + dm;
+  };
+  const isTop = () => state.k1 >= (fc ? fc.mags : mags).length - 1;
+  const magLabel = () => `M ${fmt.num(thr(), 1)} – ${fmt.num(mtop(), 1)}`;
+  const inRange = (mg) => mg >= thr() - 1e-9 && (isTop() || mg < mtop() - 1e-9);
   const windows = m.time_windows;
 
   // controls
@@ -53,8 +71,29 @@ export async function render(root, ctx) {
   const winRow = el("div", { class: "stepper" },
     el("button", { class: "btn", title: "Previous window", "aria-label": "Previous window", onclick: () => step(-1) }, "‹"), winSel,
     el("button", { class: "btn", title: "Next window", "aria-label": "Next window", onclick: () => step(1) }, "›"));
-  const magVal = el("span", { class: "val" }, `M ≥ ${fmt.num(mags[0], 1)}`);
-  const magSlider = el("input", { type: "range", min: 0, max: Math.max(0, mags.length - 1), step: 1, value: 0, "aria-label": "Magnitude threshold", oninput: (e) => { state.k = +e.target.value; magVal.textContent = `M ≥ ${fmt.num(thr(), 1)}`; draw(); } });
+  const magVal = el("span", { class: "val", style: { minWidth: "7em" } });
+  const nmax = Math.max(0, mags.length - 1);
+  const magLo = el("input", { type: "range", min: 0, max: nmax, step: 1, value: 0, "aria-label": "Minimum magnitude" });
+  const magHi = el("input", { type: "range", min: 0, max: nmax, step: 1, value: nmax, "aria-label": "Maximum magnitude" });
+  const magFill = el("div", { class: "fill" });
+  const magBox = el("div", { class: "drange" }, el("div", { class: "track" }), magFill, magLo, magHi);
+  const syncMag = () => {
+    const n = +magLo.max || 1;
+    magFill.style.left = (state.k / n) * 100 + "%";
+    magFill.style.width = ((state.k1 - state.k) / n) * 100 + "%";
+    magVal.textContent = magLabel();
+  };
+  const onMag = (e) => {
+    let a = +magLo.value, b = +magHi.value;
+    if (a > b) { if (e.target === magLo) { b = a; magHi.value = b; } else { a = b; magLo.value = a; } }
+    state.k = a; state.k1 = b;
+    syncMag();
+    draw();
+    drawComparison();
+  };
+  magLo.addEventListener("input", onMag);
+  magHi.addEventListener("input", onMag);
+  const magSlider = magBox;
   const rangeLo = el("input", { type: "range", min: -10, max: 3, step: 0.05, "aria-label": "Colour scale minimum" });
   const rangeHi = el("input", { type: "range", min: -10, max: 3, step: 0.05, "aria-label": "Colour scale maximum" });
   const rangeLab = el("span", { class: "val", style: { minWidth: "7em" } });
@@ -77,7 +116,7 @@ export async function render(root, ctx) {
   left.append(panel("Forecast", el("div", { class: "stack", style: { gap: "16px" } },
     el("div", { class: "group" }, field("Model", modelSel), field("Time window", winRow)),
     el("div", { class: "group" },
-      el("div", { class: "field" }, el("span", {}, "Minimum magnitude"), el("div", { class: "range" }, magSlider, magVal)),
+      el("div", { class: "field" }, el("span", {}, "Magnitude range"), el("div", { class: "range" }, magSlider, magVal)),
       el("div", { class: "field" }, el("span", {}, "Colour scale, log₁₀ rate per cell"), el("div", { class: "range" }, rangeBox, rangeLab)),
       el("div", { class: "row" }, fitBtn, lockCb)),
     m.catalog ? el("div", { class: "group" }, catCb) : null,
@@ -142,18 +181,18 @@ export async function render(root, ctx) {
 
   function draw() {
     if (!fc) return;
-    cur = valuesAt(fc, state.k);
+    cur = valuesAt(fc, state.k, state.k1);
     const g = fc.grid === "region" ? grid : fc.grid;
     layer.setData({ origins: g.origins, dh: g.dh, values: cur.values });
-    if (!state.range || !state.lock) state.range = cur.count ? [cur.lo, cur.hi] : [0, 1];
+    if (!state.range || !state.lock) state.range = cur.count ? (cur.hi - cur.lo < 0.05 ? [cur.lo - 0.5, cur.hi + 0.5] : [cur.lo, cur.hi]) : [0, 1];
     if (state.range && state.lock) { /* keep */ }
     applyRange();
-    const total = fc.totals[state.k];
+    const total = fc.totals[state.k] - (isTop() ? 0 : fc.totals[state.k1 + 1] || 0);
     const mod = m.models.find((x) => x.id === state.model);
     const w = windows.find((x) => x.id === state.win);
     const obs = catalog ? countObserved() : null;
     summary.replaceChildren(el("table", { class: "mini" },
-      el("thead", {}, el("tr", {}, el("th", { scope: "col" }, `M ≥ ${fmt.num(thr(), 1)}`), el("th", { scope: "col" }, "Events"))),
+      el("thead", {}, el("tr", {}, el("th", { scope: "col" }, magLabel()), el("th", { scope: "col" }, "Events"))),
       el("tbody", {},
         el("tr", {}, el("td", {}, "Expected"), el("td", {}, fmt.num(total, total >= 100 ? 0 : 2))),
         obs !== null ? el("tr", {}, el("td", {}, "Observed"), el("td", {}, String(obs))) : null)));
@@ -170,7 +209,7 @@ export async function render(root, ctx) {
   function countObserved() {
     const wi = windows.findIndex((x) => x.id === state.win), th = thr();
     let n = 0;
-    for (let i = 0; i < catalog.n; i++) if (catalog.w[i].includes(wi) && catalog.mag[i] >= th - 1e-9) n++;
+    for (let i = 0; i < catalog.n; i++) if (catalog.w[i].includes(wi) && inRange(catalog.mag[i])) n++;
     return n;
   }
 
@@ -181,7 +220,7 @@ export async function render(root, ctx) {
     const canvas = L.canvas({ padding: 0.3 });
     events = L.layerGroup();
     for (let i = 0; i < catalog.n; i++) {
-      if (!catalog.w[i].includes(wi) || catalog.mag[i] < th - 1e-9) continue;
+      if (!catalog.w[i].includes(wi) || !inRange(catalog.mag[i])) continue;
       L.circleMarker([catalog.lat[i], catalog.lon[i]], { renderer: canvas, radius: 3 + Math.max(0, catalog.mag[i] - th) * 1.8, color: "#ffffff", weight: 1.2, fillColor: css("--accent"), fillOpacity: 0.95 })
         .bindPopup(`<b>M ${fmt.num(catalog.mag[i], 1)}</b><br>${fmt.datetime(catalog.t[i])} UTC`).addTo(events);
     }
@@ -202,7 +241,7 @@ export async function render(root, ctx) {
       tooltip: { ...c.tooltip, trigger: "axis", valueFormatter: (v) => (v === null ? "0" : fmt.sci(v)) },
       xAxis: { type: "value", name: "Magnitude", nameLocation: "middle", nameGap: 24, min: mags[0], max: mags[mags.length - 1], ...axis() },
       yAxis: { type: "log", logBase: 10, name: "Expected events", ...axis(), minorSplitLine: { show: false } },
-      series,
+      series: [...series, { type: "line", data: [], silent: true, markArea: { silent: true, itemStyle: { color: css("--accent-soft") }, data: [[{ xAxis: thr() }, { xAxis: Math.min(mtop(), mags[mags.length - 1]) }]] } }],
     }, true);
   }
 
@@ -223,10 +262,13 @@ export async function render(root, ctx) {
       summary.replaceChildren("No forecast for this model and window."); kpis.replaceChildren();
       return;
     }
-    if (fc.mags.length !== mags.length) {
-      magSlider.max = fc.mags.length - 1;
-      if (state.k > fc.mags.length - 1) state.k = 0;
+    if (+magLo.max !== fc.mags.length - 1) {
+      magLo.max = magHi.max = fc.mags.length - 1;
+      state.k = Math.min(state.k, fc.mags.length - 1);
+      state.k1 = fc.mags.length - 1;
+      magLo.value = state.k; magHi.value = state.k1;
     }
+    syncMag();
     draw();
     drawComparison();
   }
