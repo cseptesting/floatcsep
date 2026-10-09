@@ -332,9 +332,9 @@ export async function render(root, ctx) {
 
   function drawTable(sel) {
     const both = state.kind === "both";
-    tableHead.replaceChildren(
+    tableHead.replaceChildren(...[
       el("th", { scope: "col" }, "Origin time UTC"), el("th", { scope: "col", class: "num" }, "M"), el("th", { scope: "col", class: "num" }, "Depth km"),
-      both ? el("th", { scope: "col" }, "Catalog") : null);
+      both ? el("th", { scope: "col" }, "Catalog") : null].filter(Boolean));
     const top = [...sel].sort((a, b) => cats[b.k].mag[b.i] - cats[a.k].mag[a.i]).slice(0, 12);
     tableBody.replaceChildren(...top.map(({ k, i }) => {
       const cat = cats[k];
