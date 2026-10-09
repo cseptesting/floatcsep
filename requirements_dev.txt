@@ -9,7 +9,6 @@ matplotlib
 markdown-pdf
 packaging
 pandas
-panel
 pycsep
 pytest
 pytest-cov

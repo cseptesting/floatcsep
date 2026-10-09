@@ -15,6 +15,8 @@ The `<command>` can be one of the following:
 - `stage`: Prepare the environment and models.
 - `plot`: Plot forecasts, catalogs, and results.
 - `reproduce`: (see folllowing\ section) Reproduce the results of a previously run experiment.
+- `view`: Export the experiment as a web dashboard and open it in the browser (see :ref:`dashboard`).
+- `export`, `serve`: The two steps of `view`, run separately.
 
 Each command requires a configuration file (in `YAML` format), which defines the parameters of the experiment.
 

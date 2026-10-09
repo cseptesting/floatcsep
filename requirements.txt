@@ -6,7 +6,6 @@ h5py
 markdown-pdf
 matplotlib
 packaging
-panel
 pandas
 pycsep
 pyyaml

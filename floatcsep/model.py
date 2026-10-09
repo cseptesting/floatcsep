@@ -12,7 +12,7 @@ from csep.core.forecasts import GriddedForecast, CatalogForecast
 
 from floatcsep.infrastructure.environments import EnvironmentFactory
 from floatcsep.infrastructure.registries import ModelRegistry
-from floatcsep.infrastructure.repositories import ForecastRepository
+from floatcsep.infrastructure.repositories import ForecastRepository, GriddedForecastRepository
 from floatcsep.utils.accessors import from_zenodo, from_git
 from floatcsep.utils.helpers import timewindow2str, str2timewindow, parse_nested_dicts
 
@@ -383,10 +383,12 @@ class TimeDependentModel(Model):
                 If None, will return a forecast for all regions.
 
         Note:
-            The number of synthetic catalogs is taken from ``func_kwargs['n_sims']`` (or a
-            model-level ``n_sims``). Without it, pyCSEP infers it from the largest
+            For catalog-based forecasts, the number of synthetic catalogs is taken from
+            ``func_kwargs['n_sims']`` (or a model-level ``n_sims``). Without it, pyCSEP infers it from the largest
             ``catalog_id`` in the file, which misses trailing empty catalogs.
         """
+        if isinstance(self.repository, GriddedForecastRepository):
+            return self.repository.load_forecast(tstring, name=self.name, region=region)
         n_sims = self.func_kwargs.get("n_sims") or self.__dict__.get("n_sims")
         return self.repository.load_forecast(
             tstring, name=self.name, region=region, n_sims=n_sims

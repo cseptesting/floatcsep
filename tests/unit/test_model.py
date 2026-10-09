@@ -314,6 +314,19 @@ class TestTimeDependentModel(TestModel):
             tstring, name=self.name, region=None, n_sims=20
         )
 
+    def test_get_forecast_gridded(self):
+        from floatcsep.infrastructure.repositories import GriddedForecastRepository
+
+        tstring = "2020-01-01_2020-12-31"
+        self.mock_repository_factory.return_value = MagicMock(spec=GriddedForecastRepository)
+        model = TimeDependentModel(
+            name=self.name, model_path=self.model_path, func_kwargs={"n_sims": 50}
+        )
+        model.get_forecast(tstring, region="region")
+        model.repository.load_forecast.assert_called_once_with(
+            tstring, name=self.name, region="region"
+        )
+
     @patch("floatcsep.model.TimeDependentModel.prepare_args")
     @patch("floatcsep.model.TimeDependentModel.prepare_extra_input")
     def test_create_forecast(self, preps_extra_mock, prep_args_mock):

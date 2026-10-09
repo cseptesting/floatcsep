@@ -1,5 +1,6 @@
 import argparse
 import logging
+from pathlib import Path
 
 from floatcsep import __version__
 from floatcsep.experiment import Experiment, ExperimentComparison
@@ -11,7 +12,7 @@ from floatcsep.postprocess.plot_handler import (
     plot_custom,
 )
 from floatcsep.postprocess.reporting import generate_report, reproducibility_report
-from floatcsep.postprocess.panel import run_app
+from floatcsep.postprocess.web import export_experiment, serve as serve_dashboard
 
 setup_logger()
 log = logging.getLogger("floatLogger")
@@ -130,36 +131,85 @@ def plot(config: str, **kwargs) -> None:
     log.debug("")
 
 
-def view(config: str, **kwargs) -> None:
+def view(config: str, out: str = None, port: int = 8765, no_browser: bool = False, **kwargs) -> None:
     """
-    Launch an interactive Panel-based data viewer for an existing experiment.
+    Exports an existing experiment as a static web dashboard and opens it in the browser.
 
-    This function loads the experiment configuration, reconstructs the model and
-    evaluation file tree, and starts a Panel server so that the user can explore the
-    catalogs, forecasts, and test results in a web browser.
+    It always re-exports, so the dashboard reflects the current results. Use
+    :func:`export` and :func:`serve` to do the two steps separately.
 
     Example usage from a terminal:
     ::
 
         floatcsep view <config>
+        floatcsep view <config> --port 8080
 
-    Args
-    ----
-    config : str
-        Path to the experiment configuration file (YAML format).
-    **kwargs :
-        Additional configuration parameters forwarded to `Experiment.from_yml`.
-
-    Returns
-    -------
-    None
+    Args:
+        config (str): Path to the experiment configuration file (YAML format).
+        out (str): Dashboard folder. Defaults to ``<run_dir>/dashboard``.
+        port (int): TCP port to serve on.
+        no_browser (bool): Do not open the browser automatically.
+        **kwargs: Additional configuration parameters forwarded to `Experiment.from_yml`.
     """
     log.info(f"floatCSEP v{__version__} | View")
     exp = Experiment.from_yml(config_yml=config, **kwargs)
     exp.stage_models()
     exp.set_tree()
-    log.info(f"Creating Panel App")
-    run_app(experiment=exp, **kwargs)
+    folder = export_experiment(exp, out_dir=out)
+    serve_dashboard(folder, port=port, open_browser=not no_browser)
+
+
+def export(config: str, out: str = None, **kwargs) -> None:
+    """
+    Exports an existing experiment as a static web dashboard (``<run_dir>/dashboard``).
+
+    The folder holds the experiment manifest, catalog, forecasts and results as JSON, plus
+    the front-end files, and can be served by any static web server or published as is.
+
+    Example usage from a terminal:
+    ::
+
+        floatcsep export <config>
+
+    Args:
+        config (str): Path to the experiment configuration file (YAML format).
+        out (str): Output folder. Defaults to ``<run_dir>/dashboard``.
+        **kwargs: Additional configuration parameters forwarded to `Experiment.from_yml`.
+    """
+    log.info(f"floatCSEP v{__version__} | Export")
+    kwargs.pop("port", None)
+    kwargs.pop("no_browser", None)
+    exp = Experiment.from_yml(config_yml=config, **kwargs)
+    exp.stage_models()
+    exp.set_tree()
+    export_experiment(exp, out_dir=out)
+    log.info("Finalized")
+
+
+def serve(config: str, out: str = None, port: int = 8765, no_browser: bool = False, **kwargs) -> None:
+    """
+    Serves the static dashboard of an experiment, exporting it first if it does not exist.
+
+    Example usage from a terminal:
+    ::
+
+        floatcsep serve <config>
+        floatcsep serve <config> --port 8080
+
+    Args:
+        config (str): Path to the experiment configuration file (YAML format).
+        out (str): Dashboard folder. Defaults to ``<run_dir>/dashboard``.
+        port (int): TCP port to serve on.
+        no_browser (bool): Do not open the browser automatically.
+    """
+    log.info(f"floatCSEP v{__version__} | Serve")
+    exp = Experiment.from_yml(config_yml=config, **kwargs)
+    folder = Path(out) if out else exp.registry.run_dir / "dashboard"
+    if not (folder / "manifest.json").exists():
+        exp.stage_models()
+        exp.set_tree()
+        folder = export_experiment(exp, out_dir=out)
+    serve_dashboard(folder, port=port, open_browser=not no_browser)
 
 
 def reproduce(config: str, **kwargs) -> None:
@@ -225,7 +275,7 @@ def floatcsep() -> None:
     parser.add_argument(
         "func",
         type=str,
-        choices=["run", "stage", "plot", "view", "reproduce"],
+        choices=["run", "stage", "plot", "view", "export", "serve", "reproduce"],
         help="Run a calculation",
     )
     parser.add_argument("config", type=str, help="Experiment Configuration file")
@@ -236,6 +286,11 @@ def floatcsep() -> None:
         "-t", "--timestamp", action="store_true", default=False, help="Timestamp results"
     )
 
+    parser.add_argument("-o", "--out", type=str, help="Dashboard output folder (export/serve)")
+    parser.add_argument("-p", "--port", type=int, help="Port for `serve` (default 8765)")
+    parser.add_argument(
+        "--no-browser", action="store_true", help="Do not open the browser on `serve`"
+    )
     parser.add_argument(
         "-d",
         "--debug",

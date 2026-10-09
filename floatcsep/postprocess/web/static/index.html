@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>floatCSEP</title>
+  <link rel="icon" href="logos/logo.png">
+  <script>
+    try {
+      var t = localStorage.getItem("fc-theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <a class="skip" href="#page">Skip to content</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#/experiment">
+        <img src="logos/logo.png" alt="floatCSEP">
+        <span class="sep">/</span>
+        <span class="exp-name" id="exp-name">Loading…</span>
+      </a>
+      <div class="topbar-right">
+        <div class="seg small" id="theme-seg" role="group" aria-label="Theme">
+          <button data-theme="system" aria-pressed="true">System</button>
+          <button data-theme="light" aria-pressed="false">Light</button>
+          <button data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <a class="icon-link" href="https://github.com/cseptesting/floatcsep" title="GitHub" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
+        </a>
+        <a class="icon-link" href="https://floatcsep.readthedocs.io" title="Documentation" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+  <nav class="sections" id="nav" aria-label="Sections">
+    <div class="sections-inner">
+      <a href="#/experiment" data-page="experiment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg><span>Experiment</span><em class="count" data-count="experiment"></em></a>
+      <a href="#/catalogs" data-page="catalogs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="8" r="2.2"/><circle cx="16" cy="6" r="1.4"/><circle cx="14" cy="15" r="3.4"/><circle cx="6" cy="17" r="1.3"/></svg><span>Catalogs</span><em class="count" data-count="catalogs"></em></a>
+      <a href="#/forecasts" data-page="forecasts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor" opacity=".45"/><rect x="15" y="15" width="6" height="6" rx="1" fill="currentColor"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/></svg><span>Forecasts</span><em class="count" data-count="forecasts"></em></a>
+      <a href="#/results" data-page="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h3M17 12h3"/><path d="M7 8v8M17 8v8"/><path d="M7 12h10"/><circle cx="11" cy="12" r="2.4" fill="currentColor"/></svg><span>Results</span><em class="count" data-count="results"></em></a>
+    </div>
+  </nav>
+  <main id="page" class="page" tabindex="-1"></main>
+  <footer class="footer">
+    <div class="footer-inner">
+      <span id="footer-version">floatCSEP</span>
+      <a href="https://cseptesting.org" target="_blank" rel="noopener">CSEP</a>
+      <a href="https://floatcsep.readthedocs.io" target="_blank" rel="noopener">Documentation</a>
+      <div class="logos">
+        <img src="logos/geoinquire_logo.png" alt="Geo-INQUIRE" class="tall">
+        <img src="logos/gfz_logo.png" alt="GFZ">
+        <img src="logos/ethz_logo.png" alt="ETH Zürich">
+        <img src="logos/efehr_logo.png" alt="EFEHR" class="tall">
+        <img src="logos/csep_logo.png" alt="CSEP" class="tall">
+      </div>
+    </div>
+  </footer>
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="vendor/echarts/echarts.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
