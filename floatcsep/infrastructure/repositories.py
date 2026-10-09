@@ -10,7 +10,7 @@ import numpy
 from csep.core.catalogs import CSEPCatalog
 from csep.core.forecasts import GriddedForecast, CatalogForecast
 from csep.models import EvaluationResult
-from csep.utils.time_utils import decimal_year
+from csep.utils.time_utils import decimal_year, datetime_to_utc_epoch
 
 from floatcsep.infrastructure.registries import (
     ExperimentRegistry,
@@ -233,9 +233,9 @@ class CatalogRepository:
         """
         start, end = str2timewindow(tstring)
         cfg = self.input_cat_config
-        filters = [f"origin_time < {start.timestamp() * 1000}"]
+        filters = [f"origin_time < {datetime_to_utc_epoch(start)}"]
         if cfg["start_date"]:
-            filters.append(f"origin_time >= {cfg['start_date'].timestamp() * 1000}")
+            filters.append(f"origin_time >= {datetime_to_utc_epoch(cfg['start_date'])}")
         if cfg["mag_min"] is not None:
             filters.append(f"magnitude >= {cfg['mag_min']}")
         if cfg["mag_max"] is not None:
@@ -283,8 +283,8 @@ class CatalogRepository:
         )
         start, end = str2timewindow(tstring)
         filters = [
-            f"origin_time < {end.timestamp() * 1000}",
-            f"origin_time >= {start.timestamp() * 1000}",
+            f"origin_time < {datetime_to_utc_epoch(end)}",
+            f"origin_time >= {datetime_to_utc_epoch(start)}",
             f"magnitude >= {self.mag_min}",
             f"magnitude < {self.mag_max}",
         ]
