@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 from typing import Dict, Callable, Union, Sequence, List, Any
 
@@ -9,6 +10,8 @@ from matplotlib import pyplot
 from floatcsep.model import Model
 from floatcsep.infrastructure.registries import ExperimentRegistry
 from floatcsep.utils.helpers import parse_csep_func
+
+log = logging.getLogger("floatLogger")
 
 
 class Evaluation:
@@ -29,6 +32,9 @@ class Evaluation:
 
     _TYPES = {
         "number_test": "consistency",
+        "pseudolikelihood_test": "consistency",
+        "MLL_magnitude_test": "consistency",
+        "resampled_magnitude_test": "consistency",
         "spatial_test": "consistency",
         "magnitude_test": "consistency",
         "likelihood_test": "consistency",
@@ -273,6 +279,9 @@ class Evaluation:
         )
 
         evaluation_result = self.func(*test_args, **self.func_kwargs)
+        if evaluation_result is None:
+            log.info(f"[{self.name}] no result for {model.name} in {timewindow} (test not applicable)")
+            return
 
         if self.type in ["sequential", "sequential_comparative"]:
             self.results_repo.write_result(evaluation_result, self, model, timewindow[-1])
