@@ -48,7 +48,7 @@ export async function render(root, ctx) {
   }
   const grid = ctx.gridPromise ? await ctx.gridPromise : null;
   const mags = m.magnitudes || [];
-  const state = { model: models[0].id, win: Object.keys(models[0].forecasts)[0], k: 0, k1: Math.max(0, mags.length - 1), range: null, lock: false, showCat: true };
+  const state = { model: models[0].id, win: Object.keys(models[0].forecasts)[0], k: 0, k1: Math.max(0, mags.length - 1), range: null, lock: false, showCat: true, alphaMin: 0.15, zeros: false };
   let fc = null, cur = null, catalog = null;
   const thr = () => (fc ? fc.mags : mags)[state.k];
   const dm = mags.length > 1 ? +(mags[1] - mags[0]).toFixed(4) : (r.mag_bin || 0.1);
@@ -108,6 +108,17 @@ export async function render(root, ctx) {
   const rangeBox = el("div", { class: "drange" }, el("div", { class: "track" }), el("div", { class: "fill" }), rangeLo, rangeHi);
   const fitBtn = el("button", { class: "btn small", onclick: () => { state.range = null; draw(); } }, "Reset scale");
   const lockCb = el("label", { class: "checkbox" }, el("input", { type: "checkbox", onchange: (e) => { state.lock = e.target.checked; } }), "Lock scale");
+  const alphaLab = el("span", { class: "val", style: { minWidth: "3em" } }, "0.15");
+  const alphaIn = el("input", { type: "range", min: 0, max: 1, step: 0.05, value: 0.15, "aria-label": "Opacity of the lowest colour" });
+  alphaIn.addEventListener("input", () => {
+    state.alphaMin = +alphaIn.value;
+    alphaLab.textContent = fmt.num(state.alphaMin, 2);
+    if (layer) layer.setStyle({ alphaMin: state.alphaMin, alphaMax: Math.max(0.9, state.alphaMin) });
+  });
+  const zerosCb = el("label", { class: "checkbox" }, el("input", { type: "checkbox", onchange: (e) => {
+    state.zeros = e.target.checked;
+    if (layer) layer.setStyle({ emptyFill: state.zeros ? "rgba(120,120,120,0.35)" : null });
+  } }), "Grey out cells with zero rate");
   const catCb = el("label", { class: "checkbox" }, el("input", { type: "checkbox", checked: true, onchange: (e) => { state.showCat = e.target.checked; drawEvents(); } }), "Show observed events");
   const left = el("div", { class: "span-4 stack" });
   const right = el("div", { class: "span-8 stack" });
@@ -118,7 +129,9 @@ export async function render(root, ctx) {
     el("div", { class: "group" },
       el("div", { class: "field" }, el("span", {}, "Magnitude range"), el("div", { class: "range" }, magSlider, magVal)),
       el("div", { class: "field" }, el("span", {}, "Colour scale, log₁₀ rate per cell"), el("div", { class: "range" }, rangeBox, rangeLab)),
-      el("div", { class: "row" }, fitBtn, lockCb)),
+      el("div", { class: "row" }, fitBtn, lockCb),
+      el("div", { class: "field" }, el("span", {}, "Opacity of the lowest colour"), el("div", { class: "range" }, alphaIn, alphaLab)),
+      zerosCb),
     m.catalog ? el("div", { class: "group" }, catCb) : null,
     el("div", { class: "group" }, summary),
   ), { class: "rail" }));

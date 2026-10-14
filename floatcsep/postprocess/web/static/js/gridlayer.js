@@ -4,11 +4,13 @@ import { MAGMA } from "./magma.js";
  * Leaflet layer that paints gridded cell values on a canvas.
  *
  * `setData({origins, dh, values})` sets the cells (values aligned with origins, NaN = empty);
- * `setRange(lo, hi)` sets the colour scale; `valueAt(latlng)` looks a cell up for tooltips.
+ * `setRange(lo, hi)` sets the colour scale; `valueAt(latlng)` looks a cell up for tooltips;
+ * `setStyle({alphaMin, alphaMax, emptyFill})` changes the opacity ramp (alphaMin applies to the
+ * lowest colour) and the fill of cells without a value (null = not drawn).
  */
 export const GridLayer = L.Layer.extend({
   initialize(options) {
-    L.setOptions(this, { alphaMin: 0.15, alphaMax: 0.9, pane: "overlayPane", ...options });
+    L.setOptions(this, { alphaMin: 0.15, alphaMax: 0.9, emptyFill: null, pane: "overlayPane", ...options });
     this._cells = null;
     this._lo = 0;
     this._hi = 1;
@@ -52,6 +54,12 @@ export const GridLayer = L.Layer.extend({
   setRange(lo, hi) {
     this._lo = lo;
     this._hi = hi > lo ? hi : lo + 1e-9;
+    this._draw();
+  },
+
+  setStyle(opts) {
+    L.setOptions(this, opts);
+    this._alphaRamp = this._makeAlpha();
     this._draw();
   },
 
@@ -104,13 +112,16 @@ export const GridLayer = L.Layer.extend({
     const rgb = this._rgb || (this._rgb = MAGMA.map((h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]));
     for (let i = 0; i < n; i++) {
       const v = values[i];
-      if (!Number.isFinite(v)) continue;
+      const empty = !Number.isFinite(v);
+      if (empty && !this.options.emptyFill) continue;
       const [x, y] = origins[i];
       if (x + dh < b.getWest() || x > b.getEast() || y + dh < b.getSouth() || y > b.getNorth()) continue;
       const p0 = map.latLngToContainerPoint([y + dh, x]);
       const p1 = map.latLngToContainerPoint([y, x + dh]);
       if (this.options.fill) {
         ctx.fillStyle = this.options.fill;
+      } else if (empty) {
+        ctx.fillStyle = this.options.emptyFill;
       } else {
         let t = (v - this._lo) / span;
         t = t < 0 ? 0 : t > 1 ? 1 : t;
